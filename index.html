@@ -63,6 +63,15 @@
   @media (prefers-reduced-motion: reduce){ .fetch{display:none} }
   .wrap{position:relative; z-index:1}
   .vision p{font-size:14.5px; color:var(--sub); margin:9px 0 0; line-height:1.55}
+
+  .pupface{width:96px; height:96px; border-radius:50%; object-fit:cover; object-position:55% 45%;
+           border:3px solid #e8b84b; box-shadow:0 4px 18px rgba(232,184,75,.25);
+           animation: breathe 3.4s ease-in-out infinite alternate, perk 9s ease-in-out infinite}
+  @keyframes breathe{from{transform:translateY(0) scale(1)} to{transform:translateY(-4px) scale(1.02)}}
+  @keyframes perk{0%,86%,100%{rotate:0deg} 89%{rotate:-5deg} 93%{rotate:4deg} 96%{rotate:-2deg}}
+  .done .pupface{animation: dropin .6s cubic-bezier(.34,1.56,.64,1) both}
+  @keyframes dropin{from{transform:translateY(-26px) scale(.6); opacity:0} to{transform:translateY(0) scale(1); opacity:1}}
+  @media (prefers-reduced-motion: reduce){ .pupface, .done .pupface{animation:none} }
   [hidden]{display:none!important}
 </style>
 </head>
@@ -70,7 +79,7 @@
 <div class="wrap">
 
   <header class="hero">
-    <div class="paw">🐾</div>
+    <img class="pupface" src="pup-face.jpg" alt="the VoterPup" width="96" height="96">
     <h1>VoterPup</h1>
     <p class="tag">You'll forget what bugged you about your city.<br><b>Your pup won't.</b><br>
     Log it in 5 seconds — VoterPup remembers, and fetches it back the day you can vote on it.</p>
@@ -114,7 +123,7 @@
   </form>
 
   <div class="card done" id="thanks" hidden>
-    <div class="big">🐾</div>
+    <img class="pupface" src="pup-face.jpg" alt="" width="96" height="96">
     <h2 id="thanksHead">Got it. The pup remembers.</h2>
     <p class="hint" id="thanksBody">You just helped build the memory between what people care about and how they vote.</p>
   </div>
@@ -186,6 +195,5 @@
       .catch(function(){ try{ localStorage.setItem('pending_'+Date.now(), JSON.stringify(payload)); }catch(_){}; done(); });
   });
 </script>
-<div class="fetch" aria-hidden="true"><span class="ball">🎾</span><span class="dog">🐕</span></div>
 </body>
 </html>
