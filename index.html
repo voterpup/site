@@ -1,0 +1,173 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>VoterPup — the pup that remembers what you care about</title>
+<meta name="description" content="Log what bugs you about your city in 5 seconds. VoterPup remembers it — and fetches it back when you can vote on it.">
+<!--
+  VOTERPUP SPLASH + 2-TAP POLL  (voterpup.com)
+  Deploy: GitHub Pages (repo: voterpup/voterpup.github.io or any repo w/ Pages) + custom domain.
+  ENDPOINT: paste your Google Apps Script /exec URL below (see deploy notes). Demo mode logs to console until set.
+-->
+<style>
+  :root{ --bg:#0f1720; --card:#161f2b; --ink:#eef3f8; --sub:#9fb0c3;
+         --accent:#3ba776; --accent-ink:#04130c; --line:#243244; --chip:#1d2836; --chipsel:#2b6b4e; }
+  @media (prefers-color-scheme: light){
+    :root{ --bg:#f6f8fa; --card:#ffffff; --ink:#101720; --sub:#5a6b7d;
+           --line:#e2e8f0; --chip:#eef2f7; --chipsel:#cdeeda; } }
+  *{box-sizing:border-box} html,body{margin:0}
+  body{background:var(--bg); color:var(--ink);
+       font:16px/1.55 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+       padding:max(20px,env(safe-area-inset-top)) 16px calc(28px + env(safe-area-inset-bottom));
+       display:flex; justify-content:center;}
+  .wrap{width:100%; max-width:560px}
+  /* hero */
+  .hero{text-align:center; padding:18px 6px 22px}
+  .paw{font-size:52px; line-height:1}
+  h1{font-size:30px; margin:10px 0 6px; letter-spacing:.3px}
+  .tag{font-size:17px; color:var(--sub); margin:0 auto 0; max-width:26em}
+  .tag b{color:var(--ink)}
+  .kicker{margin-top:14px; font-size:13px; color:var(--sub)}
+  /* card */
+  .card{background:var(--card); border:1px solid var(--line); border-radius:18px; padding:20px; margin-top:8px}
+  .q{font-size:19px; line-height:1.3; font-weight:700; margin:2px 0 4px}
+  .hint{color:var(--sub); font-size:13px; margin:0 0 12px}
+  textarea{width:100%; background:var(--chip); border:1px solid var(--line); color:var(--ink);
+        border-radius:12px; padding:13px; font-size:16px; min-height:76px; resize:vertical}
+  .mem{display:grid; gap:9px; margin-top:6px}
+  .membtn{background:var(--chip); border:1px solid var(--line); color:var(--ink); border-radius:12px;
+        padding:13px; font-size:15px; text-align:left; cursor:pointer; -webkit-tap-highlight-color:transparent;
+        transition:background .15s,border-color .15s,transform .05s}
+  .membtn:active{transform:scale(.99)}
+  .membtn[aria-pressed="true"]{background:var(--chipsel); border-color:var(--accent); font-weight:600}
+  label.small{display:block; color:var(--sub); font-size:13px; margin:15px 2px 6px}
+  input,select{width:100%; background:var(--chip); border:1px solid var(--line); color:var(--ink);
+        border-radius:12px; padding:12px; font-size:15px}
+  hr{border:0; border-top:1px solid var(--line); margin:18px 0}
+  button.go{width:100%; margin-top:16px; background:var(--accent); color:var(--accent-ink);
+        border:0; border-radius:12px; padding:15px; font-size:16px; font-weight:700; cursor:pointer}
+  button.go:disabled{opacity:.5; cursor:not-allowed}
+  .priv{color:var(--sub); font-size:12px; text-align:center; margin:14px 4px 2px}
+  .done{text-align:center; padding:28px 10px}
+  .done .big{font-size:44px}
+  footer{text-align:center; color:var(--sub); font-size:13px; margin-top:26px}
+  footer a{color:var(--sub)}
+  [hidden]{display:none!important}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="hero">
+    <div class="paw">🐾</div>
+    <h1>VoterPup</h1>
+    <p class="tag">You'll forget what bugged you about your city.<br><b>Your pup won't.</b><br>
+    Log it in 5 seconds — VoterPup remembers, and fetches it back the day you can vote on it.</p>
+    <div class="kicker">A community project. Not tied to any party or candidate. Launching in Vancouver.</div>
+  </header>
+
+  <form id="form" class="card" novalidate>
+    <!-- Q1 -->
+    <div class="q">What's one thing you've seen lately that you'd want your city to fix?</div>
+    <p class="hint">Your own words — 5 words is plenty.</p>
+    <textarea id="issue" name="issue" placeholder="e.g. waited 25 min for a bus that never came"></textarea>
+
+    <hr>
+
+    <!-- Q2 -->
+    <div class="q">Be honest — will you still remember this the next time you vote?</div>
+    <div class="mem" id="mem">
+      <button type="button" class="membtn" data-v="yes">Yes, definitely</button>
+      <button type="button" class="membtn" data-v="maybe">Maybe... not sure</button>
+      <button type="button" class="membtn" data-v="no">Honestly, probably not</button>
+    </div>
+
+    <hr>
+
+    <!-- Q3 -->
+    <div class="q">And most people — do they remember what bugged them all year?</div>
+    <div class="mem" id="mem2">
+      <button type="button" class="membtn" data-v="yes">Sure they do</button>
+      <button type="button" class="membtn" data-v="some">Some do</button>
+      <button type="button" class="membtn" data-v="no">Not a chance</button>
+    </div>
+
+    <label class="small" for="email">Want yours remembered? Leave an email — we'll email you <b>only</b> when your issue comes up for a vote. Never for anything else. <b>Puppy promise.</b> 🐾 (optional)</label>
+    <input id="email" name="email" type="email" inputmode="email" placeholder="you@email.com" autocomplete="email">
+
+    <label class="small" for="hood">Your area (optional)</label>
+    <input id="hood" name="neighbourhood" placeholder="e.g. Ballard, Mount Pleasant, ...">
+
+    <button class="go" id="submit" type="submit" disabled>Give it to the pup 🐾</button>
+    <p class="priv">We store your answer + optional email. Never your identity, party, or vote.</p>
+  </form>
+
+  <div class="card done" id="thanks" hidden>
+    <div class="big">🐾</div>
+    <h2 id="thanksHead">Got it. The pup remembers.</h2>
+    <p class="hint" id="thanksBody">You just helped build the memory between what people care about and how they vote.</p>
+  </div>
+
+  <footer>
+    <a href="mailto:hi@voterpup.com">hi@voterpup.com</a> ·
+    <a href="https://x.com/VoterPup">X</a> ·
+    <a href="https://instagram.com/voterpuphq">Instagram</a> ·
+    <a href="https://tiktok.com/@voterpup">TikTok</a> ·
+    <a href="https://youtube.com/@voterpup">YouTube</a>
+  </footer>
+</div>
+
+<script>
+  var ENDPOINT = "https://script.google.com/macros/s/AKfycbymfth61k_mLE8yNf2dBM9QSfoSTEoaZyk_NqMaIS1zeACxnKKRBTA0AqCLc_PH8c6A/exec";
+
+  var memory = null, others = null;
+  var issueEl = document.getElementById('issue');
+  var submitBtn = document.getElementById('submit');
+  function refresh(){ submitBtn.disabled = !(issueEl.value.trim() && memory && others); }
+  issueEl.addEventListener('input', refresh);
+
+  function wireGroup(id, set){
+    var g = document.getElementById(id);
+    Array.prototype.forEach.call(g.querySelectorAll('.membtn'), function(b){
+      b.addEventListener('click', function(){
+        set(b.getAttribute('data-v'));
+        g.querySelectorAll('.membtn').forEach(function(x){ x.setAttribute('aria-pressed','false'); });
+        b.setAttribute('aria-pressed','true');
+        refresh();
+      });
+    });
+  }
+  wireGroup('mem',  function(v){ memory = v; });
+  wireGroup('mem2', function(v){ others = v; });
+
+  document.getElementById('form').addEventListener('submit', function(e){
+    e.preventDefault();
+    var payload = {
+      issue: issueEl.value.trim(),
+      will_remember: memory,          // yes | maybe | no
+      others_remember: others,        // yes | some | no  -> the GAP stat
+      neighbourhood: document.getElementById('hood').value.trim(),
+      email: document.getElementById('email').value.trim(),
+      ua: 'web', ts: new Date().toISOString()
+    };
+    submitBtn.disabled = true; submitBtn.textContent = 'Fetching...';
+
+    function done(){
+      document.getElementById('form').hidden = true;
+      if(memory !== 'yes' || others === 'no'){
+        document.getElementById('thanksHead').textContent = "That's exactly why VoterPup exists.";
+        document.getElementById('thanksBody').textContent = "Almost nobody remembers. The pup will. We'll fetch this back when you can act on it.";
+      }
+      document.getElementById('thanks').hidden = false;
+    }
+
+    if(!ENDPOINT){ console.log('NO ENDPOINT SET -- payload:', payload); done(); return; }
+    // text/plain avoids the CORS preflight that Apps Script can't answer
+    fetch(ENDPOINT, {method:'POST', headers:{'Content-Type':'text/plain;charset=utf-8'}, body:JSON.stringify(payload)})
+      .then(done)
+      .catch(function(){ try{ localStorage.setItem('pending_'+Date.now(), JSON.stringify(payload)); }catch(_){}; done(); });
+  });
+</script>
+</body>
+</html>
