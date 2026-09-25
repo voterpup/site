@@ -11,11 +11,11 @@
   ENDPOINT: paste your Google Apps Script /exec URL below (see deploy notes). Demo mode logs to console until set.
 -->
 <style>
-  :root{ --bg:#0f1720; --card:#161f2b; --ink:#eef3f8; --sub:#9fb0c3;
-         --accent:#3ba776; --accent-ink:#04130c; --line:#243244; --chip:#1d2836; --chipsel:#2b6b4e; }
+  :root{ --bg:#10161d; --card:#171f29; --ink:#e9eff5; --sub:#9db0c0;
+         --accent:#2f7d5f; --accent-ink:#eaf5ef; --line:#26323f; --chip:#1c2733; --chipsel:#28564a; }
   @media (prefers-color-scheme: light){
-    :root{ --bg:#faf6ec; --card:#fffdf6; --ink:#2a2418; --sub:#6b6250;
-           --line:#e7ddc8; --chip:#f5efe1; --chipsel:#d9ecd7; } }
+    :root{ --bg:#f3f5f7; --card:#ffffff; --ink:#212b36; --sub:#55677a;
+           --line:#dfe6ec; --chip:#eef2f6; --chipsel:#d7e9df; } }
   *{box-sizing:border-box} html,body{margin:0}
   body{background:var(--bg); color:var(--ink);
        font:16px/1.55 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
@@ -65,6 +65,8 @@
   .done .pupface{animation: dropin .6s cubic-bezier(.34,1.56,.64,1) both}
   @keyframes dropin{from{transform:translateY(-26px) scale(.6); opacity:0} to{transform:translateY(0) scale(1); opacity:1}}
   @media (prefers-reduced-motion: reduce){ .pupface, .done .pupface{animation:none} }
+  .watch{width:100%; border-radius:16px; margin-top:18px; border:1px solid var(--line); display:block}
+  .cap{font-size:12.5px; color:var(--sub); margin-top:8px; font-style:italic}
   [hidden]{display:none!important}
 </style>
 </head>
@@ -77,6 +79,8 @@
     <p class="tag">You'll forget what bugged you about your city.<br><b>Your pup won't.</b><br>
     Log it in 5 seconds — VoterPup remembers, and fetches it back the day you can vote on it.</p>
     <div class="kicker">A community project. Not tied to any party or candidate. Ever.</div>
+    <img class="watch" src="pup-watch.jpg" alt="The pup watching the city from a rainy window">
+    <div class="cap">Keeping watch, so you don't have to remember alone.</div>
   </header>
 
   <form id="form" class="card" novalidate>
