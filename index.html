@@ -14,8 +14,8 @@
   :root{ --bg:#0f1720; --card:#161f2b; --ink:#eef3f8; --sub:#9fb0c3;
          --accent:#3ba776; --accent-ink:#04130c; --line:#243244; --chip:#1d2836; --chipsel:#2b6b4e; }
   @media (prefers-color-scheme: light){
-    :root{ --bg:#f6f8fa; --card:#ffffff; --ink:#101720; --sub:#5a6b7d;
-           --line:#e2e8f0; --chip:#eef2f7; --chipsel:#cdeeda; } }
+    :root{ --bg:#faf6ec; --card:#fffdf6; --ink:#2a2418; --sub:#6b6250;
+           --line:#e7ddc8; --chip:#f5efe1; --chipsel:#d9ecd7; } }
   *{box-sizing:border-box} html,body{margin:0}
   body{background:var(--bg); color:var(--ink);
        font:16px/1.55 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
@@ -53,6 +53,16 @@
   .done .big{font-size:44px}
   footer{text-align:center; color:var(--sub); font-size:13px; margin-top:26px}
   footer a{color:var(--sub)}
+
+  .fetch{position:fixed; bottom:5px; left:0; width:100%; height:32px; pointer-events:none; opacity:.55; z-index:0}
+  .fetch span{position:absolute; bottom:0}
+  .fetch .ball{font-size:17px; animation: fetchrun 17s linear infinite, ballbounce .5s ease-in-out infinite alternate}
+  .fetch .dog{font-size:25px; transform:scaleX(-1); animation: fetchrun 17s linear infinite; animation-delay:.8s}
+  @keyframes fetchrun{0%{left:-9%} 100%{left:104%}}
+  @keyframes ballbounce{from{margin-bottom:0} to{margin-bottom:7px}}
+  @media (prefers-reduced-motion: reduce){ .fetch{display:none} }
+  .wrap{position:relative; z-index:1}
+  .vision p{font-size:14.5px; color:var(--sub); margin:9px 0 0; line-height:1.55}
   [hidden]{display:none!important}
 </style>
 </head>
@@ -107,6 +117,13 @@
     <div class="big">🐾</div>
     <h2 id="thanksHead">Got it. The pup remembers.</h2>
     <p class="hint" id="thanksBody">You just helped build the memory between what people care about and how they vote.</p>
+  </div>
+
+  <div class="card vision" style="margin-top:14px">
+    <div class="q" style="font-size:17px">Why VoterPup exists</div>
+    <p>By election day, most of us can't remember the things that bugged us all year. Politicians count on that &mdash; it's why campaigns run on whatever is loudest in the final week, not on what your street actually needs.</p>
+    <p>VoterPup is the memory: five seconds to log what's broken, a pup that never forgets it, and a nudge the moment you can actually act on it &mdash; a vote, a council decision, a public hearing.</p>
+    <p>And when enough remembered issues add up, something bigger happens: the loudest thing stops winning by default, and what people actually care about becomes impossible to ignore.</p>
   </div>
 
   <footer>
@@ -169,5 +186,6 @@
       .catch(function(){ try{ localStorage.setItem('pending_'+Date.now(), JSON.stringify(payload)); }catch(_){}; done(); });
   });
 </script>
+<div class="fetch" aria-hidden="true"><span class="ball">🎾</span><span class="dog">🐕</span></div>
 </body>
 </html>
