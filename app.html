@@ -319,7 +319,7 @@ function screenLedger(tail){
     var box = document.getElementById('entries');
     box.innerHTML = L.entries.map(function(e){
       return '<div class="card">' +
-        '<div class="entry-body">' + esc(e.body) + '</div>' +
+        (e.body ? '<div class="entry-body">' + esc(e.body) + '</div>' : '') + mediaHTML(e.media) +
         '<div class="ts">' + new Date(e.ts).toLocaleString() + '</div>' +
         '<div class="chips">' + (e.shared
           ? '<span class="chip goldfill">🌿 Counted with the community</span>' +
