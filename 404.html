@@ -115,11 +115,11 @@ function rpc(fn, args) {
 function esc(s){ var d=document.createElement('div'); d.textContent=s; return d.innerHTML; }
 function qrDataURL(text, cell){ var q=qrcode(0,'M'); q.addData(text); q.make(); return q.createDataURL(cell||6, 2); }
 var pendingFiles = [];
-function attachRow(){
+function attachRow_unused(){
   return '<div class="attach"><button class="chip" id="addmedia" type="button">📷 add photos / video</button>' +
          '<input id="fpick" type="file" accept="image/*,video/*" multiple hidden><div id="thumbs" style="display:flex;gap:8px;flex-wrap:wrap"></div></div>';
 }
-function wireAttach(){
+function wireAttach(){\n  // picker + add button are rendered inline by each screen
   var pick = document.getElementById('fpick');
   document.getElementById('addmedia').onclick = function(){ pick.click(); };
   pick.onchange = function(){
@@ -176,11 +176,19 @@ function screenCapture(){
   var saved = loadLocal();
   pendingFiles = [];
   root.innerHTML = nav() +
-    '<textarea id="gripe" placeholder=\'What made you think &quot;someone should fix this&quot;?\' autofocus></textarea>' +
-    attachRow() +
-    '<button class="btn" id="go" disabled>Continue 🐾</button>' +
+    say('What made you think<br>&ldquo;someone should fix this&rdquo;?', 'your street, your city, your country — 5 words is plenty') +
+    '<div class="composer">' +
+      '<textarea id="gripe" placeholder="Tell your pup..." autofocus></textarea>' +
+      '<div id="thumbs" class="attach"></div>' +
+      '<div class="cfoot">' +
+        '<div class="iconbtn" id="addmedia">📷</div>' +
+        '<input id="fpick" type="file" accept="image/*,video/*" multiple hidden>' +
+        '<div class="spacer"></div>' +
+        '<button class="btn compact" id="go" disabled>Continue 🐾</button>' +
+      '</div>' +
+    '</div>' +
     (saved && !KIOSK ? '<button class="btn ghost" id="resume">Continue with ' + esc(saved.name) + ' →</button>' : '') +
-    '<p class="privacy">🔒 No account, no email. You\'ll get a private link — that link is yours alone.</p>' +
+    '<p class="privacy">🔒 No account, no email. You&rsquo;ll get a private link — that link is yours alone.</p>' +
     tabbar('pup');
   wireAttach(); wireTabs();
   var ta = document.getElementById('gripe');
@@ -193,11 +201,9 @@ function screenCapture(){
 
 function screenName(gripe){
   var sugg = ['Maple','Scout','Biscuit','Beaver'];
-  root.innerHTML =
-    '<div class="brand">VoterPup 🐾</div>' +
-    '<div class="q">Someone\'s going to remember<br>this for you.</div>' +
-    '<p class="hint">Give your pup a name</p>' +
-    '<input id="pname" maxlength="20" placeholder="e.g. Beaver">' +
+  root.innerHTML = nav() +
+    say('Someone&rsquo;s going to remember this for you.', 'what&rsquo;s my name?') +
+    '<input id="pname" maxlength="20" placeholder="Name your pup">' +
     '<div class="chips">' + sugg.map(function(s){ return '<span class="chip" data-n="'+s+'">'+s+'</span>'; }).join('') + '</div>' +
     '<button class="btn gold" id="open" disabled>Open the box 🎁</button>';
   var inp = document.getElementById('pname');
@@ -275,28 +281,33 @@ function screenKiosk(name, tail){
 function screenLedger(tail){
   rpc('vp_get_ledger', { p_tail: tail }).then(function(L){
     if (!L) {
-      root.innerHTML = '<div class="brand">VoterPup 🐾</div><div class="q">No pup here.</div>' +
-        '<p class="hint">Check your link — every character matters. Lost it? That\'s what the (optional, future) email backup is for.</p>' +
-        '<button class="btn" onclick="location.href=\'/app.html\'">Start a new pup</button>';
-      return;
+      root.innerHTML = nav() + say('No pup here.', 'check your link — every character matters') +
+        '<button class="btn" onclick="location.href=\'/app.html\'">Start a new pup</button>' + tabbar('pup');
+      wireTabs(); return;
     }
     saveLocal(tail, L.name);
     var n = L.entries.length;
     pendingFiles = [];
     root.innerHTML = nav() +
-      '<textarea id="gripe" placeholder=\'What made you think &quot;someone should fix this&quot;?\'></textarea>' +
-      attachRow() +
-      '<p class="privacy">🔒 Everything you give ' + esc(L.name) + ' is private. Sharing is your choice — reversible anytime.</p>' +
-      '<div class="btnrow">' +
-        '<button class="btn" id="priv" disabled>Give it to ' + esc(L.name) + ' 🐾<div class="sub">(private)</div></button>' +
-        '<button class="btn gold" id="share" disabled>Be counted 🌱<div class="sub">(share)</div></button>' +
+      say('What made you think<br>&ldquo;someone should fix this&rdquo;?', 'tell ' + esc(L.name) + ' — 5 words is plenty') +
+      '<div class="composer">' +
+        '<textarea id="gripe" placeholder="Tell ' + esc(L.name) + '..."></textarea>' +
+        '<div id="thumbs" class="attach"></div>' +
+        '<div class="cfoot">' +
+          '<div class="iconbtn" id="addmedia">📷</div>' +
+          '<input id="fpick" type="file" accept="image/*,video/*" multiple hidden>' +
+          '<div class="spacer"></div>' +
+          '<button class="btn compact" id="priv" disabled>Give it to ' + esc(L.name) + ' 🐾<div class="sub">(private)</div></button>' +
+          '<button class="btn gold compact" id="share" disabled>Be counted 🌱<div class="sub">(share)</div></button>' +
+        '</div>' +
       '</div>' +
-      '<div class="count">' + (n === 0 ? esc(L.name) + ' is waiting for a first memory.'
-        : esc(L.name) + ' remembers ' + n + ' thing' + (n===1?'':'s') + '.') + '</div>' +
+      '<p class="privacy">🔒 Everything you give ' + esc(L.name) + ' is private. Sharing is your choice — reversible anytime.</p>' +
+      '<div class="count">' + (n === 0 ? esc(L.name) + ' is waiting for a first memory'
+        : esc(L.name) + ' remembers ' + n + ' thing' + (n===1?'':'s')) + '</div>' +
       '<div id="entries"></div>' +
-      '<div class="banner">📱 The VoterPup app is days away — this link will bring ' + esc(L.name) + ' along. Daily prompts, photos, and more.</div>' +
+      '<div class="banner">📱 The VoterPup app is days away — this link will bring ' + esc(L.name) + ' along.</div>' +
       '<div class="banner">🔑 Your link: <span style="word-break:break-all">' + esc(pupURL(tail)) + '</span>' +
-      ' — <a href="#" id="copy2" style="color:var(--gold)">copy</a> · <a href="#" id="stick2" style="color:var(--gold)">sticker</a></div>' +
+      ' — <a href="#" id="copy2" style="color:#a97f1d">copy</a> · <a href="#" id="stick2" style="color:#a97f1d">sticker</a></div>' +
       '<footer><a href="mailto:hi@voterpup.com">hi@voterpup.com</a> · voterpup.com</footer>' + tabbar('pup');
     wireAttach(); wireTabs();
     var ta = document.getElementById('gripe');
@@ -336,7 +347,7 @@ function screenLedger(tail){
       };
     });
   }).catch(function(e){
-    root.innerHTML = '<div class="brand">VoterPup 🐾</div><p class="hint">The pup couldn\'t fetch right now: ' + esc(e.message) + '</p>';
+    root.innerHTML = nav() + say('The pup couldn&rsquo;t fetch right now.', esc(e.message));
   });
 }
 
@@ -367,7 +378,11 @@ function makeSticker(name, url){
   qimg.src = qrDataURL(url, 8);
 }
 
-function nav(){ return '<div class="nav"><div class="brand">VoterPup 🐾</div></div>'; }
+function nav(){ return '<div class="nav"><div class="brand">Voter<b>Pup</b> 🐾</div></div>'; }
+function say(text, small, name){
+  return '<div class="say"><img class="avatar" src="/pup-face.jpg" alt="">' +
+    '<div class="balloon">' + text + (small ? '<small>' + small + '</small>' : '') + '</div></div>';
+}
 function tabbar(active){
   return '<div class="tabbar">' +
     '<a href="#" id="tab-pup" class="' + (active==='pup'?'on':'') + '">🐾<span>My pup</span></a>' +
