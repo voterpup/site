@@ -263,6 +263,28 @@ function renderVoteStrip(){
       (e.days === 0 ? 'TODAY' : 'in ' + e.days + ' day' + (e.days===1?'':'s')) + '</span>';
   }).catch(function(){ el.innerHTML = ''; });
 }
+var _elCache = {};
+function fillEntryElections(){
+  var chips = document.querySelectorAll('[data-eplace]');
+  var byPlace = {};
+  Array.prototype.forEach.call(chips, function(c){
+    var p = c.getAttribute('data-eplace');
+    (byPlace[p] = byPlace[p] || []).push(c);
+  });
+  Object.keys(byPlace).forEach(function(p){
+    var apply = function(e){
+      byPlace[p].forEach(function(c){
+        c.textContent = '📍 ' + p.split(',')[0] + (e ? ' · 🗳️ ' + (e.days === 0 ? 'today' : e.days + 'd') : '');
+      });
+    };
+    if (p in _elCache) { apply(_elCache[p]); return; }
+    rpc('vp_find_election', { p_place: p }).then(function(e){ _elCache[p] = e; apply(e); }).catch(function(){});
+  });
+}
+function placeChip(place){
+  if (!place) return '';
+  return '<span class="chip" style="cursor:default" data-eplace="' + esc(place) + '">📍 ' + esc(place.split(',')[0]) + '</span>';
+}
 function pupURL(tail){ return BASE + '/p/' + tail; }
 function saveLocal(tail, name){ try{ localStorage.setItem('vp.pup', JSON.stringify({tail:tail,name:name})); }catch(e){} }
 function loadLocal(){ try{ return JSON.parse(localStorage.getItem('vp.pup')||'null'); }catch(e){ return null; } }
@@ -319,7 +341,7 @@ function screenUnbox(name, gripe){
   var animDone = new Promise(function(res){ setTimeout(res, 3300); });
   var mint = uploadPending().then(function(media){
     return rpc('vp_create_ledger', { p_name: name }).then(function(l){
-      return rpc('vp_add_entry', { p_tail: l.tail, p_body: gripe, p_shared: false, p_media: media })
+      return rpc('vp_add_entry', { p_tail: l.tail, p_body: gripe, p_shared: false, p_media: media, p_place: getPlace() })
              .then(function(){ pendingFiles = []; return l; });
     });
   });
@@ -405,7 +427,7 @@ function screenLedger(tail){
     function submit(shared){
       document.getElementById('priv').disabled = true; document.getElementById('share').disabled = true;
       uploadPending().then(function(media){
-        return rpc('vp_add_entry', { p_tail: tail, p_body: ta.value.trim(), p_shared: shared, p_media: media });
+        return rpc('vp_add_entry', { p_tail: tail, p_body: ta.value.trim(), p_shared: shared, p_media: media, p_place: getPlace() });
       }).then(function(){ pendingFiles = []; screenLedger(tail); })
         .catch(function(e){ alert('The pup stumbled: ' + e.message); upd(); });
     }
@@ -419,13 +441,14 @@ function screenLedger(tail){
       return '<div class="card">' +
         (e.body ? '<div class="entry-body">' + esc(e.body) + '</div>' : '') + mediaHTML(e.media) +
         '<div class="ts">' + new Date(e.ts).toLocaleString() + '</div>' +
-        '<div class="chips">' + (e.topic ? '<span class="topicchip">#' + esc(e.topic) + '</span>' : '') + (e.shared
+        '<div class="chips">' + placeChip(e.place) + (e.topic ? '<span class="topicchip">#' + esc(e.topic) + '</span>' : '') + (e.shared
           ? '<span class="chip goldfill">🌿 Counted with the community</span>' +
             '<span class="chip" data-a="unshare" data-id="'+e.id+'">↩ make private</span>'
           : '<span class="chip" style="cursor:default">🔒 Private</span>' +
             '<span class="chip goldline" data-a="share" data-id="'+e.id+'">🌱 Make it count</span>') +
         '</div></div>';
     }).join('');
+    fillEntryElections();
     Array.prototype.forEach.call(box.querySelectorAll('[data-a]'), function(c){
       c.onclick = function(){
         rpc('vp_set_shared', { p_tail: tail, p_id: c.getAttribute('data-id'),
@@ -496,7 +519,7 @@ function screenPack(){
     if (!rows.length) { b.innerHTML = 'The Pack is quiet — be the first to be counted. 🌱'; return; }
     b.className = '';
     b.innerHTML = rows.map(function(r){
-      return '<div class="card">' + (r.topic ? '<div style="margin-bottom:6px"><span class="topicchip">#' + esc(r.topic) + '</span></div>' : '') + (r.body ? '<div class="entry-body">' + esc(r.body) + '</div>' : '') + mediaHTML(r.media) +
+      return '<div class="card">' + ((r.topic || r.place) ? '<div style="margin-bottom:6px">' + (r.topic ? '<span class="topicchip">#' + esc(r.topic) + '</span> ' : '') + (r.place ? '<span class="chip" style="cursor:default">📍 ' + esc(r.place.split(',')[0]) + '</span>' : '') + '</div>' : '') + (r.body ? '<div class="entry-body">' + esc(r.body) + '</div>' : '') + mediaHTML(r.media) +
         '<div class="ts">— ' + esc(r.pup) + ' · ' + new Date(r.ts).toLocaleDateString() + '</div></div>';
     }).join('');
   }).catch(function(e){ document.getElementById('board').textContent = 'The pack is napping: ' + e.message; });
