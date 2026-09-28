@@ -119,7 +119,7 @@ function attachRow_unused(){
   return '<div class="attach"><button class="chip" id="addmedia" type="button">📷 add photos / video</button>' +
          '<input id="fpick" type="file" accept="image/*,video/*" multiple hidden><div id="thumbs" style="display:flex;gap:8px;flex-wrap:wrap"></div></div>';
 }
-function wireAttach(){\n  // picker + add button are rendered inline by each screen
+function wireAttach(){
   var pick = document.getElementById('fpick');
   document.getElementById('addmedia').onclick = function(){ pick.click(); };
   pick.onchange = function(){
