@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>VoterPup — your pup remembers</title>
 <meta name="robots" content="noindex">
+<meta name="referrer" content="no-referrer">
 <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.min.js"></script>
 <style>
   :root{ --bg:#10161d; --card:#171f29; --ink:#e9eff5; --sub:#9db0c0;
@@ -296,6 +297,9 @@ function makeSticker(name, url){
   if (m) screenLedger(decodeURIComponent(m[1]));
   else screenCapture();
 })();
+</script>
+<script>
+  window.goatcounter = { path: function(p) { return p.indexOf('/p/') === 0 ? '/p/(pup)' : p; } };
 </script>
 <script data-goatcounter="https://voterpup.goatcounter.com/count" async src="//gc.zgo.at/count.js"></script>
 </body>
