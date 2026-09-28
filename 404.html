@@ -106,6 +106,22 @@
   .attach .rm{position:absolute; top:-6px; right:-6px; background:var(--ink); color:var(--card);
           border-radius:50%; width:20px; height:20px; font-size:12px; line-height:20px; text-align:center; cursor:pointer}
   .media img,.media video{width:100%; border-radius:10px; margin-top:8px; max-height:340px; object-fit:cover; background:#000}
+  .say{display:flex; gap:10px; align-items:flex-start; margin:2px 0 12px}
+  .avatar{width:32px; height:32px; border-radius:50%; object-fit:cover; object-position:55% 45%;
+          border:2px solid var(--gold); flex:0 0 auto}
+  .balloon{background:var(--card); border:1px solid var(--line); border-radius:4px 16px 16px 16px;
+          padding:9px 13px; font-size:14.5px; font-weight:600; line-height:1.4;
+          box-shadow:0 1px 2px rgba(16,24,40,.05)}
+  .balloon small{display:block; font-weight:500; color:var(--sub); font-size:12px; margin-top:3px}
+  .composer{background:var(--card); border:1px solid var(--line); border-radius:16px; padding:12px;
+          box-shadow:0 1px 2px rgba(16,24,40,.05), 0 1px 3px rgba(16,24,40,.06)}
+  .composer textarea{width:100%; border:0; outline:0; resize:vertical; background:transparent;
+          color:var(--ink); font:16px/1.5 inherit; min-height:60px; padding:2px}
+  .cfoot{display:flex; align-items:flex-end; gap:8px; margin-top:8px}
+  .iconbtn{width:38px; height:38px; border-radius:12px; background:var(--chip); border:1px solid var(--line);
+          font-size:17px; display:flex; align-items:center; justify-content:center; cursor:pointer; flex:0 0 auto}
+  .spacer{flex:1}
+  .btn.compact{display:inline-block; width:auto; margin:0; padding:10px 14px; border-radius:11px; font-size:13.5px}
   [hidden]{display:none!important}
   .center{text-align:center}
 </style>
