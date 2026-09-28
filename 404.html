@@ -80,6 +80,11 @@
   @keyframes fadein{to{opacity:1}}
   @media (prefers-reduced-motion: reduce){ .pupimg,.cap,.tag,.ready,.paw{animation:none; opacity:1}
         .gift{animation:none; opacity:0} .paw{display:none} }
+  .pulse{animation:pulsebtn 1.25s ease-in-out infinite}
+  @keyframes pulsebtn{0%,100%{transform:scale(1)}50%{transform:scale(1.04); box-shadow:0 5px 18px rgba(232,184,75,.5)}}
+  .reveal{opacity:0; transition:opacity .5s ease}
+  .reveal.show{opacity:1}
+  .namefield{margin-top:10px}
   .linkbox{background:var(--chip); border:1px dashed var(--gold); border-radius:12px; padding:12px;
            font-size:13px; word-break:break-all; margin-top:10px}
   .qrwrap{display:flex; justify-content:center; margin:14px 0}
@@ -253,63 +258,45 @@ function saveLocal(tail, name){ try{ localStorage.setItem('vp.pup', JSON.stringi
 function loadLocal(){ try{ return JSON.parse(localStorage.getItem('vp.pup')||'null'); }catch(e){ return null; } }
 
 // ---------- screens ----------
-function screenCapture(){
+function screenCapture(prefGripe, prefName){
   var saved = loadLocal();
   pendingFiles = [];
   root.innerHTML = nav() +
     say('What made you think<br>&ldquo;someone should fix this&rdquo;?', 'your street, your city, your country — 5 words is plenty') +
     '<div class="composer">' +
-      '<textarea id="gripe" placeholder="Tell your pup..." autofocus></textarea>' +
+      '<textarea id="gripe" placeholder="Tell it..."></textarea>' +
       '<div id="thumbs" class="attach"></div>' +
       '<div class="cfoot">' +
         '<div class="iconbtn" id="addmedia">📷</div>' +
         '<input id="fpick" type="file" accept="image/*,video/*" multiple hidden>' +
         '<div class="spacer"></div>' +
-        '<button class="btn compact" id="go" disabled>Continue 🐾</button>' +
       '</div>' +
     '</div>' +
+    '<div class="namefield"><input id="pname" maxlength="20" placeholder="Name the pup who&rsquo;ll remember it"></div>' +
+    '<div class="chips">' + ['Maple','Scout','Biscuit','Beaver'].map(function(s){
+        return '<span class="chip" data-n="'+s+'">'+s+'</span>'; }).join('') + '</div>' +
+    '<button class="btn gold" id="open" disabled>Open the box 🎁</button>' +
     (saved && !KIOSK ? '<button class="btn ghost" id="resume">Continue with ' + esc(saved.name) + ' →</button>' : '') +
     '<p class="privacy">🔒 No account, no email. You&rsquo;ll get a private link — that link is yours alone.</p>' +
     tabbar('pup');
   wireAttach(); wireTabs();
-  var ta = document.getElementById('gripe');
-  function upd(){ document.getElementById('go').disabled = !(ta.value.trim() || pendingFiles.length); }
-  ta.oninput = upd;
-  document.getElementById('fpick').addEventListener('change', function(){ setTimeout(upd, 50); });
-  document.getElementById('go').onclick = function(){ screenName(ta.value.trim()); };
+  var ta = document.getElementById('gripe'), inp = document.getElementById('pname');
+  if (prefGripe) ta.value = prefGripe;
+  if (prefName) inp.value = prefName;
+  function upd(){ document.getElementById('open').disabled =
+    !((ta.value.trim() || pendingFiles.length) && inp.value.trim()); }
+  ta.oninput = upd; inp.oninput = upd;
+  document.getElementById('fpick').addEventListener('change', function(){ setTimeout(upd, 60); });
+  Array.prototype.forEach.call(document.querySelectorAll('.chip[data-n]'), function(c){
+    c.onclick = function(){ inp.value = c.getAttribute('data-n'); upd(); };
+  });
+  upd();
+  document.getElementById('open').onclick = function(){ screenUnbox(inp.value.trim(), ta.value.trim()); };
   if (saved && !KIOSK) document.getElementById('resume').onclick = function(){ location.href = pupURL(saved.tail); };
 }
 
-function screenName(gripe){
-  var sugg = ['Maple','Scout','Biscuit','Beaver'];
+function screenUnbox(name, gripe){
   root.innerHTML = nav() +
-    say('Someone&rsquo;s going to remember this for you.', 'what&rsquo;s my name?') +
-    '<input id="pname" maxlength="20" placeholder="Name your pup">' +
-    '<div class="chips">' + sugg.map(function(s){ return '<span class="chip" data-n="'+s+'">'+s+'</span>'; }).join('') + '</div>' +
-    '<button class="btn gold" id="open" disabled>Open the box 🎁</button>';
-  var inp = document.getElementById('pname');
-  inp.oninput = function(){ document.getElementById('open').disabled = !inp.value.trim(); };
-  Array.prototype.forEach.call(document.querySelectorAll('.chip'), function(c){
-    c.onclick = function(){ inp.value = c.getAttribute('data-n'); inp.oninput(); };
-  });
-  document.getElementById('open').onclick = function(){
-    var btn = document.getElementById('open'); btn.disabled = true; btn.textContent = 'Opening...';
-    var name = inp.value.trim();
-    uploadPending().then(function(media){
-      return rpc('vp_create_ledger', { p_name: name }).then(function(l){
-        return rpc('vp_add_entry', { p_tail: l.tail, p_body: gripe, p_shared: false, p_media: media })
-               .then(function(){ pendingFiles = []; return l; });
-      });
-    }).then(function(l){
-      saveLocal(l.tail, l.name);
-      screenCeremony(l.name, l.tail);
-    }).catch(function(e){ alert('The pup stumbled: ' + e.message); btn.disabled=false; btn.textContent='Open the box 🎁'; });
-  };
-}
-
-function screenCeremony(name, tail){
-  root.innerHTML =
-    '<div class="brand center" style="text-align:center">VoterPup 🐾</div>' +
     '<div class="scene">' +
       '<span class="paw p1">🐾</span><span class="paw p2">🐾</span><span class="paw p3">🐾</span>' +
       '<span class="paw p4">🐾</span><span class="paw p5">🐾</span>' +
@@ -318,47 +305,49 @@ function screenCeremony(name, tail){
       '<div class="cap">🧢</div>' +
       '<div class="tag">' + esc(name.toUpperCase()) + '</div>' +
     '</div>' +
-    '<div class="ready">' +
-      '<div style="font-size:18px;font-weight:700;margin-bottom:8px">' + esc(name) + ' is ready to remember. 🐾</div>' +
-      '<button class="btn gold" id="next">Get ' + esc(name) + '\'s link</button>' +
-    '</div>';
-  document.getElementById('next').onclick = function(){ KIOSK ? screenKiosk(name, tail) : screenLink(name, tail); };
-}
-
-function screenLink(name, tail){
-  var url = pupURL(tail);
-  root.innerHTML =
-    '<div class="brand">VoterPup 🐾</div>' +
-    '<div class="q">This link IS ' + esc(name) + '.</div>' +
-    '<p class="hint">Save it — it\'s the only key to your pup. Anyone with the link can read these entries, so treat it like a key.</p>' +
-    '<div class="linkbox" id="lb">' + esc(url) + '</div>' +
-    '<div class="btnrow">' +
-      '<button class="btn" id="copy">Copy link</button>' +
-      '<button class="btn ghost" id="sticker">Sticker PNG</button>' +
-    '</div>' +
-    '<div class="qrwrap"><img src="' + qrDataURL(url) + '" alt="your pup QR"></div>' +
-    '<button class="btn gold" id="enter">Go to ' + esc(name) + ' →</button>' +
-    '<p class="privacy">Want a backup key + a nudge when you can vote on your stuff? Email comes later, only if you choose.</p>';
-  document.getElementById('copy').onclick = function(){
-    navigator.clipboard.writeText(url).then(function(){ document.getElementById('copy').textContent = 'Copied ✓'; });
-  };
-  document.getElementById('sticker').onclick = function(){ makeSticker(name, url); };
-  document.getElementById('enter').onclick = function(){ location.href = url; };
-}
-
-function screenKiosk(name, tail){
-  var url = pupURL(tail);
-  root.innerHTML =
-    '<div class="brand center" style="text-align:center">VoterPup 🐾</div>' +
-    '<div class="q center" style="text-align:center">Scan to take ' + esc(name) + ' home</div>' +
-    '<div class="qrwrap kioskqr"><img src="' + qrDataURL(url, 10) + '"></div>' +
-    '<p class="hint center" style="text-align:center">This QR is your private link — the pup remembers what you just said.</p>' +
-    '<div class="btnrow">' +
-      '<button class="btn ghost" id="sticker">Print sticker</button>' +
-      '<button class="btn" id="newpup">New pup 🐾</button>' +
-    '</div>';
-  document.getElementById('sticker').onclick = function(){ makeSticker(name, url); };
-  document.getElementById('newpup').onclick = function(){ location.href = location.pathname + '?kiosk=1'; };
+    '<div class="reveal" id="reveal"></div>';
+  var animDone = new Promise(function(res){ setTimeout(res, 3300); });
+  var mint = uploadPending().then(function(media){
+    return rpc('vp_create_ledger', { p_name: name }).then(function(l){
+      return rpc('vp_add_entry', { p_tail: l.tail, p_body: gripe, p_shared: false, p_media: media })
+             .then(function(){ pendingFiles = []; return l; });
+    });
+  });
+  Promise.all([mint, animDone]).then(function(vals){
+    var l = vals[0]; saveLocal(l.tail, l.name);
+    var url = pupURL(l.tail);
+    var r = document.getElementById('reveal');
+    if (KIOSK) {
+      r.innerHTML =
+        '<div class="q center" style="text-align:center; font-size:18px">Scan to take ' + esc(l.name) + ' home</div>' +
+        '<div class="qrwrap kioskqr"><img src="' + qrDataURL(url, 10) + '"></div>' +
+        '<div class="btnrow">' +
+          '<button class="btn ghost" id="sticker">Print sticker</button>' +
+          '<button class="btn" id="newpup">New pup 🐾</button>' +
+        '</div>';
+      document.getElementById('sticker').onclick = function(){ makeSticker(l.name, url); };
+      document.getElementById('newpup').onclick = function(){ location.href = location.pathname + '?kiosk=1'; };
+    } else {
+      r.innerHTML =
+        '<div style="text-align:center; font-size:16.5px; font-weight:700; margin-bottom:8px">' + esc(l.name) + ' is ready to remember. 🐾</div>' +
+        '<div class="linkbox">' + esc(url) + '</div>' +
+        '<div class="btnrow" style="margin-top:10px">' +
+          '<button class="btn ghost" id="copy">Copy link</button>' +
+          '<button class="btn ghost" id="sticker">Sticker</button>' +
+        '</div>' +
+        '<button class="btn gold pulse" id="enter">Go to ' + esc(l.name) + ' →</button>' +
+        '<p class="privacy">Save that link — it&rsquo;s the only key to your pup. Treat it like a key.</p>';
+      document.getElementById('copy').onclick = function(){
+        navigator.clipboard.writeText(url).then(function(){ document.getElementById('copy').textContent = 'Copied ✓'; });
+      };
+      document.getElementById('sticker').onclick = function(){ makeSticker(l.name, url); };
+      document.getElementById('enter').onclick = function(){ location.href = url; };
+    }
+    r.className = 'reveal show';
+  }).catch(function(e){
+    alert('The pup stumbled: ' + e.message);
+    screenCapture(gripe, name);
+  });
 }
 
 function screenLedger(tail){
