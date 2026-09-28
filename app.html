@@ -222,7 +222,17 @@ function mediaHTML(m){
       : '<img src="' + esc(x.url) + '" loading="lazy">';
   }).join('') + '</div>';
 }
+var PLACE_TTL = 7*24*3600*1000;
 function getPlace(){ try{ return localStorage.getItem('vp.place'); }catch(e){ return null; } }
+function placeStale(){ try{ var t = +localStorage.getItem('vp.place_ts') || 0; return (Date.now() - t) > PLACE_TTL; }catch(e){ return false; } }
+function refreshPlaceIfStale(){
+  if (!getPlace() || !placeStale() || !navigator.permissions) return;
+  navigator.permissions.query({ name: 'geolocation' }).then(function(st){
+    if (st.state !== 'granted') return;             // never surprise-prompt
+    var before = getPlace();
+    detectPlace(function(p){ if (p && p !== before) renderVoteStrip(); });
+  }).catch(function(){});
+}
 function detectPlace(cb){
   if (!navigator.geolocation) { cb(null); return; }
   navigator.geolocation.getCurrentPosition(function(pos){
@@ -231,7 +241,7 @@ function detectPlace(cb){
       .then(function(r){ return r.json(); })
       .then(function(g){
         var place = [g.city || g.locality, g.principalSubdivision, g.countryName].filter(Boolean).join(', ');
-        try{ localStorage.setItem('vp.place', place); }catch(e){}
+        try{ localStorage.setItem('vp.place', place); localStorage.setItem('vp.place_ts', String(Date.now())); }catch(e){}
         cb(place);
       }).catch(function(){ cb(null); });
   }, function(){ cb(null); }, { timeout: 8000 });
@@ -381,7 +391,12 @@ function screenLedger(tail){
       '<div class="banner">🔑 Your link: <span style="word-break:break-all">' + esc(pupURL(tail)) + '</span>' +
       ' — <a href="#" id="copy2" style="color:#a97f1d">copy</a> · <a href="#" id="stick2" style="color:#a97f1d">sticker</a></div>' +
       '<footer><a href="mailto:hi@voterpup.com">hi@voterpup.com</a> · voterpup.com</footer>' + tabbar('pup');
-    wireAttach(); wireTabs(); renderVoteStrip();
+    wireAttach(); wireTabs(); renderVoteStrip(); refreshPlaceIfStale();
+    if (!window._vpVisWired) { window._vpVisWired = true;
+      document.addEventListener('visibilitychange', function(){
+        if (!document.hidden) refreshPlaceIfStale();
+      });
+    }
     var ta = document.getElementById('gripe');
     function upd(){ var ok = !!(ta.value.trim() || pendingFiles.length);
       document.getElementById('priv').disabled = !ok; document.getElementById('share').disabled = !ok; }
