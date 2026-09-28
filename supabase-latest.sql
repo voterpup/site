@@ -1,9 +1,10 @@
--- PATCH 4: per-issue location (city-level only) -> per-issue election tracking
+-- ============ VOTERPUP CUMULATIVE PATCH — always safe to run, always the only file ============
+alter table entries add column if not exists topic text;
 alter table entries add column if not exists place text;
 
--- old 4-arg signature must go or PostgREST sees an ambiguous overload
+-- kill every historical overload, then create the one true signature
+drop function if exists vp_add_entry(text, text, boolean);
 drop function if exists vp_add_entry(text, text, boolean, jsonb);
-
 create or replace function vp_add_entry(p_tail text, p_body text, p_shared boolean,
                                         p_media jsonb default '[]'::jsonb, p_place text default null)
 returns json language plpgsql security definer set search_path = public as $$
@@ -36,13 +37,18 @@ begin
   return json_build_object('name', l.name, 'created_at', l.created_at, 'entries', es);
 end $$;
 
-create or replace function vp_shared_board()
+-- The Pack: optional locality — p_place given => only that city's shared entries
+drop function if exists vp_shared_board();
+create or replace function vp_shared_board(p_place text default null)
 returns json language sql security definer set search_path = public as $$
   select coalesce(json_agg(j), '[]'::json) from (
     select json_build_object('body', e.body, 'ts', e.created_at, 'pup', l.name,
                              'media', e.media, 'topic', e.topic, 'place', e.place) as j
     from entries e join ledgers l on l.tail = e.tail
-    where e.shared order by e.created_at desc limit 100
+    where e.shared
+      and (p_place is null
+           or lower(split_part(coalesce(e.place,''),',',1)) = lower(split_part(p_place,',',1)))
+    order by e.created_at desc limit 100
   ) s;
 $$;
-grant execute on function vp_shared_board() to anon;
+grant execute on function vp_shared_board(text) to anon;

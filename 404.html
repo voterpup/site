@@ -506,20 +506,36 @@ function wireTabs(){
     var s = loadLocal(); location.href = s ? pupURL(s.tail) : '/app.html'; };
 }
 
-function screenPack(){
-  root.innerHTML = nav(true) +
+function screenPack(mode){
+  var place = getPlace();
+  if (!mode) mode = place ? 'local' : 'all';
+  var city = place ? place.split(',')[0] : null;
+  root.innerHTML = nav() +
     '<div class="q" style="font-size:20px">The Pack 🐾</div>' +
-    '<div class="packtag">What people around you want fixed — shared by their pups.</div>' +
+    '<div class="chips" style="margin:0 0 12px">' +
+      (city ? '<span class="chip ' + (mode==='local'?'goldfill':'goldline') + '" id="mlocal">📍 ' + esc(city) + '</span>'
+            : '<span class="chip goldline" id="mfind">📍 use my location</span>') +
+      '<span class="chip ' + (mode==='all'?'goldfill':'goldline') + '" id="mall">🌍 Everywhere</span>' +
+    '</div>' +
     '<div id="board" class="hint">fetching the pack...</div>' +
     '<footer>Only what people chose to share. 🌱 · <a href="mailto:hi@voterpup.com">hi@voterpup.com</a></footer>' +
     tabbar('pack');
   wireTabs();
-  rpc('vp_shared_board', {}).then(function(rows){
+  var ml = document.getElementById('mlocal'), ma = document.getElementById('mall'), mf = document.getElementById('mfind');
+  if (ml) ml.onclick = function(){ if (mode !== 'local') screenPack('local'); };
+  if (ma) ma.onclick = function(){ if (mode !== 'all') screenPack('all'); };
+  if (mf) mf.onclick = function(){ mf.textContent = '📍 sniffing...'; detectPlace(function(){ screenPack('local'); }); };
+  rpc('vp_shared_board', { p_place: (mode === 'local' && place) ? place : null }).then(function(rows){
     var b = document.getElementById('board');
-    if (!rows.length) { b.innerHTML = 'The Pack is quiet — be the first to be counted. 🌱'; return; }
+    if (!rows.length) {
+      b.innerHTML = mode === 'local'
+        ? 'The Pack is quiet in ' + esc(city) + ' — be the first to be counted. 🌱'
+        : 'The Pack is quiet — be the first to be counted. 🌱';
+      return;
+    }
     b.className = '';
     b.innerHTML = rows.map(function(r){
-      return '<div class="card">' + ((r.topic || r.place) ? '<div style="margin-bottom:6px">' + (r.topic ? '<span class="topicchip">#' + esc(r.topic) + '</span> ' : '') + (r.place ? '<span class="chip" style="cursor:default">📍 ' + esc(r.place.split(',')[0]) + '</span>' : '') + '</div>' : '') + (r.body ? '<div class="entry-body">' + esc(r.body) + '</div>' : '') + mediaHTML(r.media) +
+      return '<div class="card">' + ((r.topic || r.place) ? '<div style="margin-bottom:6px">' + (r.topic ? '<span class="topicchip">#' + esc(r.topic) + '</span> ' : '') + (r.place ? '<span class="chip" style="cursor:default">📍 ' + esc(r.place.split(',')[1] && mode==='local' ? r.place.split(',')[0] : r.place.split(',')[0]) + '</span>' : '') + '</div>' : '') + (r.body ? '<div class="entry-body">' + esc(r.body) + '</div>' : '') + mediaHTML(r.media) +
         '<div class="ts">— ' + esc(r.pup) + ' · ' + new Date(r.ts).toLocaleDateString() + '</div></div>';
     }).join('');
   }).catch(function(e){ document.getElementById('board').textContent = 'The pack is napping: ' + e.message; });
