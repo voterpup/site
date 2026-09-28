@@ -21,7 +21,7 @@
   .hint{color:var(--sub); font-size:13px; margin:0 0 12px}
   textarea,input{width:100%; background:var(--chip); color:var(--ink); border:1px solid var(--line);
        border-radius:12px; padding:13px; font-size:16px}
-  textarea{min-height:64px; resize:vertical}
+  textarea{min-height:80px; resize:vertical}
   .btn{display:block; width:100%; background:var(--accent); color:#eaf5ef; border:0; border-radius:12px;
        padding:14px; font-size:15px; font-weight:700; text-align:center; cursor:pointer; margin-top:12px}
   .btn.gold{background:var(--gold); color:var(--goldink)}
@@ -176,7 +176,7 @@ function screenCapture(){
   var saved = loadLocal();
   pendingFiles = [];
   root.innerHTML = nav() +
-    '<textarea id="gripe" placeholder=\'What made you think "someone should fix this"?  ·  5 words is plenty\' autofocus></textarea>' +
+    '<textarea id="gripe" placeholder=\'What made you think &quot;someone should fix this&quot;?\' autofocus></textarea>' +
     attachRow() +
     '<button class="btn" id="go" disabled>Continue 🐾</button>' +
     (saved && !KIOSK ? '<button class="btn ghost" id="resume">Continue with ' + esc(saved.name) + ' →</button>' : '') +
@@ -284,7 +284,7 @@ function screenLedger(tail){
     var n = L.entries.length;
     pendingFiles = [];
     root.innerHTML = nav() +
-      '<textarea id="gripe" placeholder=\'What made you think "someone should fix this"?  ·  5 words is plenty\'></textarea>' +
+      '<textarea id="gripe" placeholder=\'What made you think &quot;someone should fix this&quot;?\'></textarea>' +
       attachRow() +
       '<p class="privacy">🔒 Everything you give ' + esc(L.name) + ' is private. Sharing is your choice — reversible anytime.</p>' +
       '<div class="btnrow">' +
