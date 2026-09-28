@@ -1,0 +1,302 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>VoterPup — your pup remembers</title>
+<meta name="robots" content="noindex">
+<script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.min.js"></script>
+<style>
+  :root{ --bg:#10161d; --card:#171f29; --ink:#e9eff5; --sub:#9db0c0;
+         --accent:#2f7d5f; --gold:#e8b84b; --goldink:#2a2418; --line:#26323f; --chip:#1c2733; }
+  @media (prefers-color-scheme: light){
+    :root{ --bg:#f3f5f7; --card:#ffffff; --ink:#212b36; --sub:#55677a;
+           --line:#dfe6ec; --chip:#eef2f6; } }
+  *{box-sizing:border-box} html,body{margin:0}
+  body{background:var(--bg); color:var(--ink);
+       font:16px/1.55 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+       padding:max(18px,env(safe-area-inset-top)) 16px calc(24px + env(safe-area-inset-bottom));
+       display:flex; justify-content:center}
+  .wrap{width:100%; max-width:560px}
+  .brand{color:var(--gold); font-size:21px; font-weight:800; margin-bottom:12px}
+  .q{font-size:23px; font-weight:700; line-height:1.32; margin:4px 0 10px}
+  .hint{color:var(--sub); font-size:13px; margin:0 0 12px}
+  textarea,input{width:100%; background:var(--chip); color:var(--ink); border:1px solid var(--line);
+       border-radius:12px; padding:13px; font-size:16px}
+  textarea{min-height:64px; resize:vertical}
+  .btn{display:block; width:100%; background:var(--accent); color:#eaf5ef; border:0; border-radius:12px;
+       padding:14px; font-size:15px; font-weight:700; text-align:center; cursor:pointer; margin-top:12px}
+  .btn.gold{background:var(--gold); color:var(--goldink)}
+  .btn.ghost{background:var(--chip); color:var(--sub); border:1px solid var(--line)}
+  .btn:disabled{opacity:.45}
+  .btnrow{display:flex; gap:8px}
+  .btnrow .btn{flex:1}
+  .sub{font-size:11px; opacity:.75; font-weight:400; margin-top:2px}
+  .chips{display:flex; gap:8px; flex-wrap:wrap; margin-top:10px}
+  .chip{background:var(--chip); border:1px solid var(--line); color:var(--sub); border-radius:999px;
+        padding:6px 12px; font-size:12.5px; cursor:pointer}
+  .chip.goldline{border-color:var(--gold); color:var(--gold)}
+  .chip.goldfill{background:#2c2617; border-color:var(--gold); color:var(--gold); font-weight:700; cursor:default}
+  .card{background:var(--card); border:1px solid var(--line); border-radius:14px; padding:14px; margin-top:10px}
+  .privacy{color:var(--sub); font-size:12.5px; margin:12px 0 2px}
+  .entry-body{font-size:15px}
+  .ts{color:#7d8da0; font-size:11.5px; margin-top:5px}
+  .count{color:var(--sub); font-size:13px; margin:14px 0}
+  /* ceremony */
+  .scene{height:230px; display:flex; align-items:flex-end; justify-content:center; position:relative; margin:24px 0 6px}
+  .pupimg{width:92px; height:92px; border-radius:50%; object-fit:cover; object-position:55% 45%;
+          border:3px solid var(--gold); position:absolute; bottom:64px; opacity:0;
+          animation:jump .7s cubic-bezier(.34,1.56,.64,1) .5s forwards}
+  .boxe{font-size:88px; z-index:2; animation:shake .5s ease-in-out 1}
+  .cap{font-size:38px; position:absolute; bottom:132px; margin-left:-8px; z-index:3; opacity:0; transform:rotate(-14deg);
+       animation:capdrop .45s cubic-bezier(.34,1.56,.64,1) 1.25s forwards}
+  .tag{position:absolute; bottom:36px; background:var(--gold); color:var(--goldink); font-weight:900;
+       letter-spacing:1px; font-size:13px; border-radius:8px; padding:3px 10px; opacity:0; z-index:4;
+       animation:pop .4s cubic-bezier(.34,1.56,.64,1) 1.7s forwards}
+  .ready{opacity:0; animation:fade .4s ease 2.1s forwards; text-align:center}
+  @keyframes shake{0%,100%{transform:rotate(0)}20%{transform:rotate(-8deg)}40%{transform:rotate(8deg)}60%{transform:rotate(-6deg)}80%{transform:rotate(6deg)}}
+  @keyframes jump{from{opacity:0; transform:translateY(70px) scale(.4)}to{opacity:1; transform:translateY(0) scale(1)}}
+  @keyframes capdrop{from{opacity:0; transform:translateY(-140px) rotate(-14deg)}to{opacity:1; transform:translateY(0) rotate(-14deg)}}
+  @keyframes pop{from{opacity:0; transform:scale(0)}to{opacity:1; transform:scale(1)}}
+  @keyframes fade{to{opacity:1}}
+  @media (prefers-reduced-motion: reduce){ .pupimg,.cap,.tag,.ready{animation:none; opacity:1} .boxe{animation:none} }
+  .linkbox{background:var(--chip); border:1px dashed var(--gold); border-radius:12px; padding:12px;
+           font-size:13px; word-break:break-all; margin-top:10px}
+  .qrwrap{display:flex; justify-content:center; margin:14px 0}
+  .qrwrap img{border-radius:10px; background:#fff; padding:10px}
+  .kioskqr img{width:78vw; max-width:420px}
+  .banner{background:var(--chip); border:1px solid var(--line); border-radius:12px; padding:11px 13px;
+          color:var(--sub); font-size:13px; margin-top:14px}
+  footer{text-align:center; color:var(--sub); font-size:12.5px; margin-top:24px}
+  footer a{color:var(--sub)}
+  [hidden]{display:none!important}
+  .center{text-align:center}
+</style>
+</head>
+<body>
+<div class="wrap" id="root"></div>
+<script>
+// ===== CONFIG — paste from Supabase project settings (API section) =====
+var SUPABASE_URL = "PASTE_SUPABASE_URL";        // e.g. https://abcd1234.supabase.co
+var SUPABASE_ANON_KEY = "PASTE_ANON_KEY";
+// ======================================================================
+
+var BASE = location.origin;
+var KIOSK = new URLSearchParams(location.search).get('kiosk') === '1';
+var root = document.getElementById('root');
+
+function rpc(fn, args) {
+  return fetch(SUPABASE_URL + '/rest/v1/rpc/' + fn, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'apikey': SUPABASE_ANON_KEY,
+               'Authorization': 'Bearer ' + SUPABASE_ANON_KEY },
+    body: JSON.stringify(args)
+  }).then(function (r) {
+    if (!r.ok) return r.text().then(function (t) { throw new Error(t); });
+    return r.json();
+  });
+}
+
+function esc(s){ var d=document.createElement('div'); d.textContent=s; return d.innerHTML; }
+function qrDataURL(text, cell){ var q=qrcode(0,'M'); q.addData(text); q.make(); return q.createDataURL(cell||6, 2); }
+function pupURL(tail){ return BASE + '/p/' + tail; }
+function saveLocal(tail, name){ try{ localStorage.setItem('vp.pup', JSON.stringify({tail:tail,name:name})); }catch(e){} }
+function loadLocal(){ try{ return JSON.parse(localStorage.getItem('vp.pup')||'null'); }catch(e){ return null; } }
+
+// ---------- screens ----------
+function screenCapture(){
+  var saved = loadLocal();
+  root.innerHTML =
+    '<div class="brand">VoterPup 🐾</div>' +
+    '<div class="q">What made you think<br>"someone should fix this"?</div>' +
+    '<p class="hint">Anything counts — your street, your city, your country. 5 words is plenty.</p>' +
+    '<textarea id="gripe" placeholder="e.g. waited 25 min for a bus that never came" autofocus></textarea>' +
+    '<button class="btn" id="go" disabled>Continue 🐾</button>' +
+    (saved && !KIOSK ? '<button class="btn ghost" id="resume">Continue with ' + esc(saved.name) + ' →</button>' : '') +
+    '<p class="privacy">🔒 No account, no email. You\'ll get a private link — that link is yours alone.</p>';
+  var ta = document.getElementById('gripe');
+  ta.oninput = function(){ document.getElementById('go').disabled = !ta.value.trim(); };
+  document.getElementById('go').onclick = function(){ screenName(ta.value.trim()); };
+  if (saved && !KIOSK) document.getElementById('resume').onclick = function(){ location.href = pupURL(saved.tail); };
+}
+
+function screenName(gripe){
+  var sugg = ['Maple','Scout','Biscuit','Beaver'];
+  root.innerHTML =
+    '<div class="brand">VoterPup 🐾</div>' +
+    '<div class="q">Someone\'s going to remember<br>this for you.</div>' +
+    '<p class="hint">Give your pup a name</p>' +
+    '<input id="pname" maxlength="20" placeholder="e.g. Beaver">' +
+    '<div class="chips">' + sugg.map(function(s){ return '<span class="chip" data-n="'+s+'">'+s+'</span>'; }).join('') + '</div>' +
+    '<button class="btn gold" id="open" disabled>Open the box 🎁</button>';
+  var inp = document.getElementById('pname');
+  inp.oninput = function(){ document.getElementById('open').disabled = !inp.value.trim(); };
+  Array.prototype.forEach.call(document.querySelectorAll('.chip'), function(c){
+    c.onclick = function(){ inp.value = c.getAttribute('data-n'); inp.oninput(); };
+  });
+  document.getElementById('open').onclick = function(){
+    var btn = document.getElementById('open'); btn.disabled = true; btn.textContent = 'Opening...';
+    var name = inp.value.trim();
+    rpc('vp_create_ledger', { p_name: name }).then(function(l){
+      return rpc('vp_add_entry', { p_tail: l.tail, p_body: gripe, p_shared: false })
+             .then(function(){ return l; });
+    }).then(function(l){
+      saveLocal(l.tail, l.name);
+      screenCeremony(l.name, l.tail);
+    }).catch(function(e){ alert('The pup stumbled: ' + e.message); btn.disabled=false; btn.textContent='Open the box 🎁'; });
+  };
+}
+
+function screenCeremony(name, tail){
+  root.innerHTML =
+    '<div class="brand center" style="text-align:center">VoterPup 🐾</div>' +
+    '<div class="scene">' +
+      '<img class="pupimg" src="/pup-face.jpg" alt="">' +
+      '<div class="boxe">📦</div>' +
+      '<div class="cap">🧢</div>' +
+      '<div class="tag">' + esc(name.toUpperCase()) + '</div>' +
+    '</div>' +
+    '<div class="ready">' +
+      '<div style="font-size:18px;font-weight:700;margin-bottom:8px">' + esc(name) + ' is ready to remember. 🐾</div>' +
+      '<button class="btn gold" id="next">Get ' + esc(name) + '\'s link</button>' +
+    '</div>';
+  document.getElementById('next').onclick = function(){ KIOSK ? screenKiosk(name, tail) : screenLink(name, tail); };
+}
+
+function screenLink(name, tail){
+  var url = pupURL(tail);
+  root.innerHTML =
+    '<div class="brand">VoterPup 🐾</div>' +
+    '<div class="q">This link IS ' + esc(name) + '.</div>' +
+    '<p class="hint">Save it — it\'s the only key to your pup. Anyone with the link can read these entries, so treat it like a key.</p>' +
+    '<div class="linkbox" id="lb">' + esc(url) + '</div>' +
+    '<div class="btnrow">' +
+      '<button class="btn" id="copy">Copy link</button>' +
+      '<button class="btn ghost" id="sticker">Sticker PNG</button>' +
+    '</div>' +
+    '<div class="qrwrap"><img src="' + qrDataURL(url) + '" alt="your pup QR"></div>' +
+    '<button class="btn gold" id="enter">Go to ' + esc(name) + ' →</button>' +
+    '<p class="privacy">Want a backup key + a nudge when you can vote on your stuff? Email comes later, only if you choose.</p>';
+  document.getElementById('copy').onclick = function(){
+    navigator.clipboard.writeText(url).then(function(){ document.getElementById('copy').textContent = 'Copied ✓'; });
+  };
+  document.getElementById('sticker').onclick = function(){ makeSticker(name, url); };
+  document.getElementById('enter').onclick = function(){ location.href = url; };
+}
+
+function screenKiosk(name, tail){
+  var url = pupURL(tail);
+  root.innerHTML =
+    '<div class="brand center" style="text-align:center">VoterPup 🐾</div>' +
+    '<div class="q center" style="text-align:center">Scan to take ' + esc(name) + ' home</div>' +
+    '<div class="qrwrap kioskqr"><img src="' + qrDataURL(url, 10) + '"></div>' +
+    '<p class="hint center" style="text-align:center">This QR is your private link — the pup remembers what you just said.</p>' +
+    '<div class="btnrow">' +
+      '<button class="btn ghost" id="sticker">Print sticker</button>' +
+      '<button class="btn" id="newpup">New pup 🐾</button>' +
+    '</div>';
+  document.getElementById('sticker').onclick = function(){ makeSticker(name, url); };
+  document.getElementById('newpup').onclick = function(){ location.href = location.pathname + '?kiosk=1'; };
+}
+
+function screenLedger(tail){
+  rpc('vp_get_ledger', { p_tail: tail }).then(function(L){
+    if (!L) {
+      root.innerHTML = '<div class="brand">VoterPup 🐾</div><div class="q">No pup here.</div>' +
+        '<p class="hint">Check your link — every character matters. Lost it? That\'s what the (optional, future) email backup is for.</p>' +
+        '<button class="btn" onclick="location.href=\'/app.html\'">Start a new pup</button>';
+      return;
+    }
+    saveLocal(tail, L.name);
+    var n = L.entries.length;
+    root.innerHTML =
+      '<div class="brand">VoterPup 🐾</div>' +
+      '<div class="q">What made you think<br>"someone should fix this"?</div>' +
+      '<textarea id="gripe" placeholder="5 words is plenty..."></textarea>' +
+      '<p class="privacy">🔒 Everything you give ' + esc(L.name) + ' is private. Sharing is your choice — reversible anytime.</p>' +
+      '<div class="btnrow">' +
+        '<button class="btn" id="priv" disabled>Give it to ' + esc(L.name) + ' 🐾<div class="sub">(private)</div></button>' +
+        '<button class="btn gold" id="share" disabled>Be counted 🌱<div class="sub">(share)</div></button>' +
+      '</div>' +
+      '<div class="count">' + (n === 0 ? esc(L.name) + ' is waiting for a first memory.'
+        : esc(L.name) + ' remembers ' + n + ' thing' + (n===1?'':'s') + '.') + '</div>' +
+      '<div id="entries"></div>' +
+      '<div class="banner">📱 The VoterPup app is days away — this link will bring ' + esc(L.name) + ' along. Daily prompts, photos, and more.</div>' +
+      '<div class="banner">🔑 Your link: <span style="word-break:break-all">' + esc(pupURL(tail)) + '</span>' +
+      ' — <a href="#" id="copy2" style="color:var(--gold)">copy</a> · <a href="#" id="stick2" style="color:var(--gold)">sticker</a></div>' +
+      '<footer><a href="mailto:hi@voterpup.com">hi@voterpup.com</a> · voterpup.com</footer>';
+    var ta = document.getElementById('gripe');
+    function upd(){ var ok = !!ta.value.trim();
+      document.getElementById('priv').disabled = !ok; document.getElementById('share').disabled = !ok; }
+    ta.oninput = upd;
+    function submit(shared){
+      rpc('vp_add_entry', { p_tail: tail, p_body: ta.value.trim(), p_shared: shared })
+        .then(function(){ screenLedger(tail); })
+        .catch(function(e){ alert('The pup stumbled: ' + e.message); });
+    }
+    document.getElementById('priv').onclick = function(){ submit(false); };
+    document.getElementById('share').onclick = function(){ submit(true); };
+    document.getElementById('copy2').onclick = function(ev){ ev.preventDefault();
+      navigator.clipboard.writeText(pupURL(tail)); this.textContent = 'copied ✓'; };
+    document.getElementById('stick2').onclick = function(ev){ ev.preventDefault(); makeSticker(L.name, pupURL(tail)); };
+    var box = document.getElementById('entries');
+    box.innerHTML = L.entries.map(function(e){
+      return '<div class="card">' +
+        '<div class="entry-body">' + esc(e.body) + '</div>' +
+        '<div class="ts">' + new Date(e.ts).toLocaleString() + '</div>' +
+        '<div class="chips">' + (e.shared
+          ? '<span class="chip goldfill">🌿 Counted with the community</span>' +
+            '<span class="chip" data-a="unshare" data-id="'+e.id+'">↩ make private</span>'
+          : '<span class="chip" style="cursor:default">🔒 Private</span>' +
+            '<span class="chip goldline" data-a="share" data-id="'+e.id+'">🌱 Make it count</span>') +
+        '</div></div>';
+    }).join('');
+    Array.prototype.forEach.call(box.querySelectorAll('[data-a]'), function(c){
+      c.onclick = function(){
+        rpc('vp_set_shared', { p_tail: tail, p_id: c.getAttribute('data-id'),
+                               p_shared: c.getAttribute('data-a') === 'share' })
+          .then(function(){ screenLedger(tail); });
+      };
+    });
+  }).catch(function(e){
+    root.innerHTML = '<div class="brand">VoterPup 🐾</div><p class="hint">The pup couldn\'t fetch right now: ' + esc(e.message) + '</p>';
+  });
+}
+
+// sticker: 50x30mm-ish label PNG via canvas -> download / share
+function makeSticker(name, url){
+  var W = 900, H = 540, c = document.createElement('canvas'); c.width = W; c.height = H;
+  var x = c.getContext('2d');
+  x.fillStyle = '#fff'; x.fillRect(0,0,W,H);
+  var qimg = new Image();
+  qimg.onload = function(){
+    x.drawImage(qimg, W-440, 50, 400, 400);
+    x.fillStyle = '#2a2418';
+    x.font = '900 64px sans-serif'; x.fillText('🐾 ' + name.toUpperCase(), 40, 140);
+    x.font = '600 34px sans-serif'; x.fillStyle = '#55677a';
+    x.fillText('remembers what', 40, 230); x.fillText('you care about.', 40, 275);
+    x.font = '800 36px sans-serif'; x.fillStyle = '#2a2418';
+    x.fillText('voterpup.com', 40, 470);
+    c.toBlob(function(blob){
+      var f = new File([blob], 'voterpup-' + name.toLowerCase() + '.png', { type: 'image/png' });
+      if (navigator.canShare && navigator.canShare({ files: [f] })) {
+        navigator.share({ files: [f], title: 'VoterPup sticker' }).catch(function(){});
+      } else {
+        var a = document.createElement('a');
+        a.href = URL.createObjectURL(blob); a.download = f.name; a.click();
+      }
+    });
+  };
+  qimg.src = qrDataURL(url, 8);
+}
+
+// ---------- router ----------
+(function(){
+  var m = location.pathname.match(/^\/p\/(.+)$/);
+  if (m) screenLedger(decodeURIComponent(m[1]));
+  else screenCapture();
+})();
+</script>
+<script data-goatcounter="https://voterpup.goatcounter.com/count" async src="//gc.zgo.at/count.js"></script>
+</body>
+</html>
