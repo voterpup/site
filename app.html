@@ -7,6 +7,7 @@
 <meta name="robots" content="noindex">
 <meta name="referrer" content="no-referrer">
 <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
   :root{ --bg:#f6f8fa; --card:#ffffff; --ink:#212b36; --sub:#5b6b7c;
          --accent:#2f7d5f; --gold:#e8b84b; --goldink:#2a2418; --line:#e3e9ee; --chip:#eef2f5; }
@@ -123,6 +124,14 @@
       box-shadow:0 10px 40px rgba(0,0,0,.25); margin-bottom:env(safe-area-inset-bottom)}
   .stksheet img{width:100%; border-radius:10px; border:1px solid var(--line); display:block}
   .stksheet .hint{margin:8px 2px 0; text-align:center}
+  .stkcard{margin:0 0 12px; cursor:pointer}
+  .stkthumb{position:relative; border-radius:14px; overflow:hidden; border:1px solid var(--line); background:#fff}
+  .stkthumb img{width:100%; display:block; min-height:60px}
+  .stkblur{position:absolute; top:0; right:0; bottom:0; width:50%; backdrop-filter:blur(9px); -webkit-backdrop-filter:blur(9px);
+      background:rgba(255,255,255,.35); display:flex; align-items:center; justify-content:center; text-align:center;
+      font-size:11.5px; font-weight:800; color:#2a2418; padding:8px}
+  .backup{margin:0 0 12px}
+  .backup .btn{margin-top:0}
   .linkbox{background:var(--chip); border:1px dashed var(--gold); border-radius:12px; padding:12px;
            font-size:13px; word-break:break-all; margin-top:10px}
   .qrwrap{display:flex; justify-content:center; margin:14px 0}
@@ -224,6 +233,11 @@
 // ===== CONFIG — paste from Supabase project settings (API section) =====
 var SUPABASE_URL = "https://setyjmgijsbplgyqynlh.supabase.co";
 var SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNldHlqbWdpanNicGxneXF5bmxoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTA1NDU0NTAsImV4cCI6MjEwNjEyMTQ1MH0.v8tjuc2UZrTw5whfDXtpEPW4CHggusgjq8Mkdh6ZMw8";
+// Flip to true once Google is enabled in Supabase Auth -> Providers.
+var GOOGLE_READY = false;
+var sb = null;
+try { sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY,
+        { auth: { flowType: 'pkce', detectSessionInUrl: true, persistSession: true } }); } catch (e) {}
 // ======================================================================
 
 var BASE = location.origin;
@@ -505,9 +519,11 @@ function screenCapture(prefGripe, prefName){
         return '<span class="chip" data-n="'+s+'">'+s+'</span>'; }).join('') + '</div>' +
     '<button class="btn gold" id="open" disabled>Open the box 🎁</button>' +
     (saved && !KIOSK ? '<button class="btn ghost" id="resume">Continue with ' + esc(saved.name) + ' →</button>' : '') +
-    '<p class="privacy">🔒 No account, no email. You&rsquo;ll get a private link — that link is yours alone.</p>' +
+    '<p class="privacy">🔒 No account needed. You&rsquo;ll get a private link — that link is yours alone.</p>' +
+    (GOOGLE_READY && !saved && !KIOSK ? '<p class="privacy"><a href="#" id="grestore" style="color:#3b6fb6;font-weight:700">Backed up a pup before? Find it →</a></p>' : '') +
     tabbar('pup');
   wireAttach(); wireTabs();
+  var gr = document.getElementById('grestore'); if (gr) gr.onclick = function(ev){ ev.preventDefault(); startRestore(); };
   var ta = document.getElementById('gripe'), inp = document.getElementById('pname');
   if (prefGripe) ta.value = prefGripe;
   if (prefName) inp.value = prefName;
@@ -602,6 +618,12 @@ function screenLedger(tail){
       '</div>' +
         '<div class="ft">' + esc(L.name) + ' fetches your issues for you.' +
         '<small>Tell ' + esc(L.name) + ' what should be fixed — it brings them back the day you can vote on them. 🗳️</small></div></div>' +
+      '<div class="stkcard" id="stkcard"><div class="stkthumb"><img id="stkimg" alt="' + esc(L.name) + '\u2019s sticker">' +
+        '<div class="stkblur">tap to show<br>your sticker</div></div></div>' +
+      (GOOGLE_READY ? (isBackedUp(tail)
+        ? '<div class="banner">✅ ' + esc(L.name) + ' is backed up to your Google account.</div>'
+        : '<div class="backup"><button class="btn ghost" id="gbackup">🔐 Don&rsquo;t lose ' + esc(L.name) + ' — back up with Google</button>' +
+          '<p class="privacy">We use your email only to restore ' + esc(L.name) + ' on any device. No mail, ever.</p></div>') : '') +
       say('What made you think<br>&ldquo;someone should fix this&rdquo;?', 'tell ' + esc(L.name) + ' — 5 words is plenty') +
       '<div class="composer">' +
         '<textarea id="gripe" placeholder="Tell ' + esc(L.name) + '..."></textarea>' +
@@ -620,7 +642,7 @@ function screenLedger(tail){
         : esc(L.name) + ' remembers ' + n + ' thing' + (n===1?'':'s')) + '</div>' +
       '<div id="entries" class="grid2"></div>' +  esc(L.name) + ' along.</div>' +
       '<div class="banner">🔑 Your link: <span style="word-break:break-all">' + esc(pupURL(tail)) + '</span>' +
-      ' — <a href="#" id="copy2" style="color:#a97f1d">copy</a> · <a href="#" id="stick2" style="color:#a97f1d">sticker</a></div>' +
+      ' — <a href="#" id="copy2" style="color:#a97f1d">copy</a></div>' +
       '<footer><a href="mailto:hi@voterpup.com">hi@voterpup.com</a> · voterpup.com</footer>' + tabbar('pup');
     wireAttach(); wireTabs(); renderVoteStrip(); refreshPlaceIfStale();
     (function(){
@@ -653,7 +675,8 @@ function screenLedger(tail){
     document.getElementById('share').onclick = function(){ submit(true); };
     document.getElementById('copy2').onclick = function(ev){ ev.preventDefault();
       navigator.clipboard.writeText(pupURL(tail)); this.textContent = 'copied ✓'; };
-    document.getElementById('stick2').onclick = function(ev){ ev.preventDefault(); makeSticker(L.name, pupURL(tail)); };
+    mountHomeSticker(L.name, pupURL(tail));
+    var gb = document.getElementById('gbackup'); if (gb) gb.onclick = function(){ startBackup(tail); };
     var box = document.getElementById('entries');
     box.innerHTML = L.entries.map(function(e){
       return '<div class="card">' +
@@ -696,7 +719,7 @@ function screenLedger(tail){
 }
 
 // sticker: 50x30mm-ish label PNG via canvas -> download / share
-function makeSticker(name, url){
+function renderSticker(name, url, cb){
   var W = 900, H = 540, c = document.createElement('canvas'); c.width = W; c.height = H;
   var x = c.getContext('2d');
   x.fillStyle = '#fff'; x.fillRect(0, 0, W, H);
@@ -715,12 +738,22 @@ function makeSticker(name, url){
     x.fillText('remembers what', 44, 270); x.fillText('you care about.', 44, 312);
     x.font = '600 24px sans-serif'; x.fillText('Scan to visit your pup →', 44, 380);
     x.font = '800 36px sans-serif'; x.fillStyle = '#2a2418'; x.fillText('voterpup.com', 44, 480);
-    showSticker(c, name);
+    cb(c);
   }
   face.onload = draw; face.onerror = function(){ face = document.createElement('canvas'); draw(); };
   qimg.onload = draw;
   face.src = '/pup-face.jpg';
   qimg.src = qrDataURL(url, 8);
+}
+
+function makeSticker(name, url){ renderSticker(name, url, function(c){ showSticker(c, name); }); }
+window._stk = window._stk || {};
+function mountHomeSticker(name, url){
+  var card = document.getElementById('stkcard'), im = document.getElementById('stkimg');
+  if (!card || !im) return;
+  var put = function(c){ window._stk[url] = c; im.src = c.toDataURL('image/png'); };
+  if (window._stk[url]) put(window._stk[url]); else renderSticker(name, url, put);
+  card.onclick = function(){ if (window._stk[url]) showSticker(window._stk[url], name); };
 }
 
 function showSticker(canvas, name){
@@ -951,10 +984,11 @@ function screenPack(mode, topic0){
   }).catch(function(e){ document.getElementById('board').textContent = 'The pack is napping: ' + e.message; });
 }
 
-var APP_VERSION = "20260929045824";
+var APP_VERSION = "20260929052552";
 (function(){
   try {
     fetch('/version.json?t=' + Date.now(), { cache: 'no-store' }).then(function(r){ return r.json(); }).then(function(j){
+      if (/[?&](code|claimed|restore)=/.test(location.search)) return;
       if (j && j.v && j.v !== APP_VERSION && sessionStorage.getItem('vp.reloaded') !== j.v) {
         sessionStorage.setItem('vp.reloaded', j.v);
         location.reload();
@@ -963,10 +997,72 @@ var APP_VERSION = "20260929045824";
   } catch (e) {}
 })();
 
+function isBackedUp(tail){ try { return JSON.parse(localStorage.getItem('vp.backedup') || '[]').indexOf(tail) >= 0; } catch (e) { return false; } }
+function markBackedUp(tail){ try { var a = JSON.parse(localStorage.getItem('vp.backedup') || '[]'); if (a.indexOf(tail) < 0) a.push(tail); localStorage.setItem('vp.backedup', JSON.stringify(a)); } catch (e) {} }
+function waitSession(){
+  return new Promise(function(res, rej){
+    var n = 0;
+    (function poll(){
+      sb.auth.getSession().then(function(r){
+        if (r.data && r.data.session) res(r.data.session);
+        else if (++n > 24) rej(new Error('sign-in did not complete'));
+        else setTimeout(poll, 250);
+      });
+    })();
+  });
+}
+function startBackup(tail){
+  if (!sb) { alert('Backup is unavailable right now.'); return; }
+  try { localStorage.setItem('vp.claimTail', tail); } catch (e) {}
+  sb.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: BASE + '/app.html?claimed=1' } });
+}
+function startRestore(){
+  if (!sb) return;
+  sb.auth.getSession().then(function(r){
+    if (r.data && r.data.session) { screenRestore(); return; }
+    sb.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: BASE + '/app.html?restore=1' } });
+  });
+}
+function finishClaim(){
+  var tail = null; try { tail = localStorage.getItem('vp.claimTail'); } catch (e) {}
+  root.innerHTML = nav() + say('Saving your pup to your Google account…');
+  if (!tail) { location.replace('/app.html'); return; }
+  waitSession().then(function(){ return sb.rpc('vp_claim_ledger', { p_tail: tail }); }).then(function(r){
+    if (r.error) throw new Error(r.error.message);
+    markBackedUp(tail); try { localStorage.removeItem('vp.claimTail'); } catch (e) {}
+    location.replace(pupURL(tail));
+  }).catch(function(e){
+    root.innerHTML = nav() + say('Backup didn&rsquo;t finish.', esc(e.message)) +
+      '<button class="btn" onclick="location.href=\'' + pupURL(tail) + '\'">Back to your pup</button>';
+  });
+}
+function screenRestore(){
+  root.innerHTML = nav() + say('Finding your pups…');
+  waitSession().then(function(){ return sb.rpc('vp_my_ledgers'); }).then(function(r){
+    if (r.error) throw new Error(r.error.message);
+    var list = r.data || [];
+    if (!list.length) {
+      root.innerHTML = nav() + say('No pups are backed up to this Google account yet.') +
+        '<button class="btn" onclick="location.href=\'/app.html\'">Start a new pup</button>' + tabbar('pup');
+      wireTabs(); return;
+    }
+    root.innerHTML = nav() + say('Welcome back! Which pup?') + list.map(function(p){
+      return '<button class="btn ghost" data-t="' + esc(p.tail) + '" data-n="' + esc(p.name) + '">🐶 ' + esc(p.name) + '</button>';
+    }).join('') + tabbar('pup');
+    wireTabs();
+    Array.prototype.forEach.call(root.querySelectorAll('[data-t]'), function(b){
+      b.onclick = function(){ var t = b.getAttribute('data-t'); markBackedUp(t); saveLocal(t, b.getAttribute('data-n')); location.href = pupURL(t); };
+    });
+  }).catch(function(e){ root.innerHTML = nav() + say('Couldn&rsquo;t find your pups.', esc(e.message)); });
+}
+
 // ---------- router ----------
 (function(){
   var m = location.pathname.match(/^\/p\/(.+)$/);
-  if (m) screenLedger(decodeURIComponent(m[1]));
+  var qs = new URLSearchParams(location.search);
+  if (qs.get('claimed') === '1' && sb) finishClaim();
+  else if (qs.get('restore') === '1' && sb) screenRestore();
+  else if (m) screenLedger(decodeURIComponent(m[1]));
   else if (location.pathname === '/pack') screenPack(undefined, new URLSearchParams(location.search).get('t') || null);
   else screenCapture();
 })();

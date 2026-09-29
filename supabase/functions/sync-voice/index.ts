@@ -35,7 +35,8 @@ function scopeOf(name: string) {
 }
 function ruleTopic(name: string) {
   const n = name.toLowerCase();
-  if (/traffic|bike|pedestrian|street|transit|bus|road|bridge/.test(n)) return "transit";
+  if (/rezoning|development application|developent application|text amendment|odp amendment/.test(n)) return "housing";
+  if (/\b(traffic|bikes?|pedestrian|streets?|transit|bus|roads?|bridges?)\b/.test(n)) return "transit";
   if (/park|playground|off-leash|beach|garden/.test(n)) return "parks";
   if (/shelter|homeless|supportive housing/.test(n)) return "homelessness";
   if (/rezoning|development|housing|residential|rental|text amendment|odp/.test(n)) return "housing";
@@ -58,7 +59,9 @@ Deno.serve(async () => {
   const seen = new Map((seenRows || []).map((r: { slug: string; checked_at: string; has_window: boolean }) => [r.slug, r]));
   const now = Date.now();
   const age = (slug: string) => now - new Date(seen.get(slug)!.checked_at).getTime();
-  const fresh = tiles.filter((t) => !seen.has(t.slug));
+  const PARSER_EPOCH = Date.parse("2026-09-29T05:16:32Z");   // bump when the parser changes
+  const fresh = tiles.filter((t) => !seen.has(t.slug) ||
+    new Date(seen.get(t.slug)!.checked_at).getTime() < PARSER_EPOCH);
   const due = tiles.filter((t) => seen.has(t.slug) &&
     (seen.get(t.slug)!.has_window ? age(t.slug) > 7 * 86400e3 : age(t.slug) > 86400e3));
   if (fresh.length === 0) {
@@ -71,26 +74,34 @@ Deno.serve(async () => {
   const today = new Date().toISOString().slice(0, 10);
 
   const found: { slug: string; name: string; end: string }[] = [];
-  let upserted = 0;
+  let upserted = 0, rangesSeen = 0;
   for (const t of todo) {
     await sleep(1000);
     let hasWindow = false;
     try {
       const r = await fetch(BASE + t.slug, { headers: { "User-Agent": UA } });
       if (r.ok) {
-        const m = text(await r.text()).match(/Accepting public comments\s*\n\s*([^\n]+)/);
+        const pageText = text(await r.text());
+        if (/\u2192/.test(pageText.split("Key dates")[1]?.slice(0, 400) ?? "")) rangesSeen++;
+        const m = pageText.match(/(Accepting public comments|Q&A period|Public comment period|Comment period|Feedback period|Survey open)\s*\n\s*([^\n]+)/);
         if (m) {
-          const parts = m[1].split("→");
+          const parts = m[2].split("→");
           const end = parseDate((parts[1] ?? parts[0]).trim());
+          const startRaw = parts[1] ? parts[0].trim() : null;
+          const endYear = end ? +end.slice(0, 4) : undefined;
+          const start = startRaw ? parseDate(startRaw, endYear) : null;
+          const label = m[1];
           if (end && end >= today) {
             found.push({ ...t, end }); hasWindow = true;
             const url = BASE + t.slug;
-            const closes = new Date(end + "T12:00:00Z").toLocaleDateString("en-CA", { month: "long", day: "numeric" });
+            const fmt = (d: string) => new Date(d + "T12:00:00Z").toLocaleDateString("en-CA", { month: "long", day: "numeric" });
+            const closes = fmt(end);
+            const opensLine = start && start > today ? `\u2022 ${label} opens ${fmt(start)}.\n` : "";
             const { error } = await db.from("elections").upsert({
               name: "Have your say: " + t.name, level: "city", region: "vancouver", vote_date: end,
               kind: "voice", topic: ruleTopic(t.name), scope: scopeOf(t.name), source_url: url,
               actions: [{ label: "Read it & comment on Shape Your City", url }],
-              how: `\u2022 Comments close ${closes}.\n\u2022 Read the proposal and send your comment on the project page.\n\u2022 Anyone can comment \u2014 you don't need to be a citizen or a voter.`,
+              how: `${opensLine}\u2022 ${label === "Q&A period" ? "Questions and comments" : "Comments"} close ${closes}.\n\u2022 Read the proposal and send your comment on the project page.\n\u2022 Anyone can comment \u2014 you don't need to be a citizen or a voter.`,
               how_ok: true,
             }, { onConflict: "source_url" });
             if (!error) upserted++;
@@ -101,7 +112,7 @@ Deno.serve(async () => {
     await db.from("syc_seen").upsert({ slug: t.slug, checked_at: new Date().toISOString(), has_window: hasWindow });
   }
 
-  if (todo.length >= 10 && found.length === 0) {
+  if (todo.length >= 10 && found.length === 0 && rangesSeen === 0) {
     return new Response(`parse check FAILED: ${todo.length} pages checked, 0 comment windows found — check the date format`, { status: 500 });
   }
 
@@ -128,5 +139,5 @@ Deno.serve(async () => {
   }
   const { count } = await db.from("elections").select("id", { count: "exact", head: true }).eq("kind", "voice");
   return new Response(JSON.stringify({ tiles: tiles.length, checked: todo.length, unseen_left: Math.max(0, fresh.length - todo.length),
-    open_windows_this_run: found.length, upserted, voice_rows_total: count }));
+    open_windows_this_run: found.length, date_ranges_seen: rangesSeen, upserted, voice_rows_total: count }));
 });
