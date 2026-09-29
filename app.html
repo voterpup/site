@@ -117,6 +117,12 @@
   .mpanel a{display:inline-block; margin:6px 8px 0 0; color:#3b6fb6; font-weight:700; text-decoration:none}
   .mpanel .vitem{margin-top:6px; white-space:normal}
   .mpanel .qname{color:var(--ink); font-weight:700; margin-top:8px}
+  .stkover{position:fixed; inset:0; z-index:50; background:rgba(16,22,29,.62); display:flex;
+      align-items:flex-end; justify-content:center; padding:16px}
+  .stksheet{background:var(--card); border-radius:18px; padding:16px; width:100%; max-width:440px;
+      box-shadow:0 10px 40px rgba(0,0,0,.25); margin-bottom:env(safe-area-inset-bottom)}
+  .stksheet img{width:100%; border-radius:10px; border:1px solid var(--line); display:block}
+  .stksheet .hint{margin:8px 2px 0; text-align:center}
   .linkbox{background:var(--chip); border:1px dashed var(--gold); border-radius:12px; padding:12px;
            font-size:13px; word-break:break-all; margin-top:10px}
   .qrwrap{display:flex; justify-content:center; margin:14px 0}
@@ -693,27 +699,60 @@ function screenLedger(tail){
 function makeSticker(name, url){
   var W = 900, H = 540, c = document.createElement('canvas'); c.width = W; c.height = H;
   var x = c.getContext('2d');
-  x.fillStyle = '#fff'; x.fillRect(0,0,W,H);
-  var qimg = new Image();
-  qimg.onload = function(){
-    x.drawImage(qimg, W-440, 50, 400, 400);
-    x.fillStyle = '#2a2418';
-    x.font = '900 64px sans-serif'; x.fillText('🐾 ' + name.toUpperCase(), 40, 140);
-    x.font = '600 34px sans-serif'; x.fillStyle = '#55677a';
-    x.fillText('remembers what', 40, 230); x.fillText('you care about.', 40, 275);
-    x.font = '800 36px sans-serif'; x.fillStyle = '#2a2418';
-    x.fillText('voterpup.com', 40, 470);
-    c.toBlob(function(blob){
-      var f = new File([blob], 'voterpup-' + name.toLowerCase() + '.png', { type: 'image/png' });
-      if (navigator.canShare && navigator.canShare({ files: [f] })) {
-        navigator.share({ files: [f], title: 'VoterPup sticker' }).catch(function(){});
-      } else {
-        var a = document.createElement('a');
-        a.href = URL.createObjectURL(blob); a.download = f.name; a.click();
-      }
-    });
-  };
+  x.fillStyle = '#fff'; x.fillRect(0, 0, W, H);
+  x.strokeStyle = '#e8b84b'; x.lineWidth = 10; x.strokeRect(5, 5, W - 10, H - 10);
+  var face = new Image(), qimg = new Image(), left = 2;
+  function draw(){
+    if (--left) return;
+    x.save(); x.beginPath(); x.arc(110, 118, 70, 0, Math.PI * 2); x.clip();
+    x.drawImage(face, 40, 48, 140, 140); x.restore();
+    x.beginPath(); x.arc(110, 118, 70, 0, Math.PI * 2); x.lineWidth = 6; x.strokeStyle = '#e8b84b'; x.stroke();
+    x.drawImage(qimg, W - 430, 60, 390, 390);
+    x.fillStyle = '#2a2418'; x.font = '900 58px sans-serif';
+    x.fillText(name.toUpperCase(), 200, 140);
+    x.font = '600 32px sans-serif'; x.fillStyle = '#55677a';
+    x.fillText('remembers what', 44, 270); x.fillText('you care about.', 44, 312);
+    x.font = '600 24px sans-serif'; x.fillText('Scan to visit your pup →', 44, 380);
+    x.font = '800 36px sans-serif'; x.fillStyle = '#2a2418'; x.fillText('voterpup.com', 44, 480);
+    showSticker(c, name);
+  }
+  face.onload = draw; face.onerror = function(){ face = document.createElement('canvas'); draw(); };
+  qimg.onload = draw;
+  face.src = '/pup-face.jpg';
   qimg.src = qrDataURL(url, 8);
+}
+
+function showSticker(canvas, name){
+  var fname = 'voterpup-' + name.toLowerCase().replace(/[^a-z0-9]+/g, '-') + '.png';
+  var dataURL = canvas.toDataURL('image/png');
+  var ov = document.createElement('div');
+  ov.className = 'stkover';
+  ov.innerHTML = '<div class="stksheet">' +
+    '<div class="q" style="font-size:17px; margin:0 0 10px">' + esc(name) + '’s sticker 🐾</div>' +
+    '<img src="' + dataURL + '" alt="sticker preview">' +
+    '<p class="hint">This QR is ' + esc(name) + '’s private key — anyone who scans it sees these entries.</p>' +
+    '<button class="btn gold" id="stksave">Save as image</button>' +
+    '<div class="btnrow"><button class="btn ghost" id="stkshare">Share / print</button>' +
+    '<button class="btn ghost" id="stkclose">Close</button></div>' +
+    '<p class="hint" style="font-size:11.5px">On iPhone: long-press the sticker → Save to Photos.</p></div>';
+  document.body.appendChild(ov);
+  function close(){ if (ov.parentNode) ov.parentNode.removeChild(ov); }
+  ov.onclick = function(ev){ if (ev.target === ov) close(); };
+  document.getElementById('stkclose').onclick = close;
+  document.getElementById('stksave').onclick = function(){
+    var a = document.createElement('a'); a.href = dataURL; a.download = fname;
+    document.body.appendChild(a); a.click(); a.remove();
+    this.textContent = 'Saved ✓';
+  };
+  var shareBtn = document.getElementById('stkshare');
+  canvas.toBlob(function(blob){
+    var f = new File([blob], fname, { type: 'image/png' });
+    if (navigator.canShare && navigator.canShare({ files: [f] })) {
+      shareBtn.onclick = function(){ navigator.share({ files: [f], title: 'VoterPup sticker' }).catch(function(){}); };
+    } else {
+      shareBtn.style.display = 'none';
+    }
+  });
 }
 
 function nav(){ return '<div class="appstrip">📱 The VoterPup app is coming — this link will bring your pup along</div>' +
@@ -911,7 +950,7 @@ function screenPack(mode, topic0){
   }).catch(function(e){ document.getElementById('board').textContent = 'The pack is napping: ' + e.message; });
 }
 
-var APP_VERSION = "20260929044835";
+var APP_VERSION = "20260929045813";
 (function(){
   try {
     fetch('/version.json?t=' + Date.now(), { cache: 'no-store' }).then(function(r){ return r.json(); }).then(function(j){
