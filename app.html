@@ -240,7 +240,9 @@ function detectPlace(cb){
           '&longitude=' + pos.coords.longitude + '&localityLanguage=en')
       .then(function(r){ return r.json(); })
       .then(function(g){
-        var place = [g.city || g.locality, g.principalSubdivision, g.countryName].filter(Boolean).join(', ');
+        var rawCity = (g.city || g.locality || '');
+        var city = rawCity.replace(/\b(Metro|Greater|Regional District|District of|City of)\b/gi, '').replace(/\s+/g,' ').trim() || rawCity;
+        var place = [city, g.principalSubdivision, g.countryName].filter(Boolean).join(', ');
         try{ localStorage.setItem('vp.place', place); localStorage.setItem('vp.place_ts', String(Date.now())); }catch(e){}
         cb(place);
       }).catch(function(){ cb(null); });
@@ -534,10 +536,26 @@ function screenPack(mode){
       return;
     }
     b.className = '';
-    b.innerHTML = rows.map(function(r){
-      return '<div class="card">' + ((r.topic || r.place) ? '<div style="margin-bottom:6px">' + (r.topic ? '<span class="topicchip">#' + esc(r.topic) + '</span> ' : '') + (r.place ? '<span class="chip" style="cursor:default">📍 ' + esc(r.place.split(',')[1] && mode==='local' ? r.place.split(',')[0] : r.place.split(',')[0]) + '</span>' : '') + '</div>' : '') + (r.body ? '<div class="entry-body">' + esc(r.body) + '</div>' : '') + mediaHTML(r.media) +
-        '<div class="ts">— ' + esc(r.pup) + ' · ' + new Date(r.ts).toLocaleDateString() + '</div></div>';
-    }).join('');
+    var counts = {};
+    rows.forEach(function(r){ if (r.topic) counts[r.topic] = (counts[r.topic]||0) + 1; });
+    var topics = Object.keys(counts).sort(function(a,b){ return counts[b]-counts[a]; });
+    var sel = null;
+    function draw(){
+      var shown = sel ? rows.filter(function(r){ return r.topic === sel; }) : rows;
+      b.innerHTML =
+        (topics.length ? '<div class="chips" style="margin-bottom:10px">' +
+          '<span class="chip ' + (!sel?'goldfill':'goldline') + '" data-t="">All (' + rows.length + ')</span>' +
+          topics.map(function(t){ return '<span class="chip ' + (sel===t?'goldfill':'goldline') + '" data-t="' + esc(t) + '">#' + esc(t) + ' (' + counts[t] + ')</span>'; }).join('') +
+        '</div>' : '') +
+        shown.map(function(r){
+          return '<div class="card">' + ((r.topic || r.place) ? '<div style="margin-bottom:6px">' + (r.topic ? '<span class="topicchip">#' + esc(r.topic) + '</span> ' : '') + (r.place ? '<span class="chip" style="cursor:default">📍 ' + esc(r.place.split(',')[0]) + '</span>' : '') + '</div>' : '') + (r.body ? '<div class="entry-body">' + esc(r.body) + '</div>' : '') + mediaHTML(r.media) +
+          '<div class="ts">— ' + esc(r.pup) + ' · ' + new Date(r.ts).toLocaleDateString() + '</div></div>';
+        }).join('');
+      Array.prototype.forEach.call(b.querySelectorAll('[data-t]'), function(c){
+        c.onclick = function(){ sel = c.getAttribute('data-t') || null; draw(); };
+      });
+    }
+    draw();
   }).catch(function(e){ document.getElementById('board').textContent = 'The pack is napping: ' + e.message; });
 }
 
