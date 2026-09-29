@@ -749,10 +749,7 @@ function screenLedger(tail){
       '<div class="momwrap" id="votestrip"></div>' +
       '<div class="count">' + (n === 0 ? esc(L.name) + ' is waiting for a first memory'
         : esc(L.name) + ' remembers ' + n + ' thing' + (n===1?'':'s')) + '</div>' +
-      '<div id="entries" class="grid2"></div>' +  esc(L.name) + ' along.</div>' +
-      '<div class="banner">🔑 Your link: <span style="word-break:break-all">' + esc(pupURL(tail)) + '</span>' +
-      ' — <a href="#" id="copy2" style="color:#a97f1d">copy</a></div>' +
-      '<footer><a href="mailto:hi@voterpup.com">hi@voterpup.com</a> · voterpup.com</footer>' + tabbar('pup');
+      '<div id="entries" class="grid2"></div>' + tabbar('pup');
     wireAttach(); wireTabs(); renderVoteStrip(); refreshPlaceIfStale();
     (function(){
       var vf = document.getElementById('vfetch');
@@ -786,8 +783,6 @@ function screenLedger(tail){
     }
     document.getElementById('priv').onclick = function(){ submit(false); };
     document.getElementById('share').onclick = function(){ submit(true); };
-    document.getElementById('copy2').onclick = function(ev){ ev.preventDefault();
-      navigator.clipboard.writeText(pupURL(tail)); this.textContent = 'copied ✓'; };
     mountHomeSticker(L.name, pupURL(tail));
     var ns = document.getElementById('navshow');
     if (ns) ns.onclick = function(ev){ ev.preventDefault(); showCandidate(tail, L.name); };
@@ -871,17 +866,17 @@ function renderSticker(name, url, cb){
   qimg.src = qrDataURL(url, 8);
 }
 
-function makeSticker(name, url){ renderSticker(name, url, function(c){ showSticker(c, name); }); }
+function makeSticker(name, url){ renderSticker(name, url, function(c){ showSticker(c, name, url); }); }
 window._stk = window._stk || {};
 function mountHomeSticker(name, url){
   var card = document.getElementById('stkcard'), im = document.getElementById('stkimg');
   if (!card || !im) return;
   var put = function(c){ window._stk[url] = c; im.src = c.toDataURL('image/png'); };
   if (window._stk[url]) put(window._stk[url]); else renderSticker(name, url, put);
-  card.onclick = function(){ if (window._stk[url]) showSticker(window._stk[url], name); };
+  card.onclick = function(){ if (window._stk[url]) showSticker(window._stk[url], name, url); };
 }
 
-function showSticker(canvas, name){
+function showSticker(canvas, name, url){
   var fname = 'voterpup-' + name.toLowerCase().replace(/[^a-z0-9]+/g, '-') + '.png';
   var dataURL = canvas.toDataURL('image/png');
   var ov = document.createElement('div');
@@ -892,12 +887,16 @@ function showSticker(canvas, name){
     '<p class="hint">This QR is ' + esc(name) + '’s private key — anyone who scans it sees these entries.</p>' +
     '<button class="btn gold" id="stksave">Save as image</button>' +
     '<div class="btnrow"><button class="btn ghost" id="stkshare">Share / print</button>' +
-    '<button class="btn ghost" id="stkclose">Close</button></div>' +
+    '<button class="btn ghost" id="stkcopy">Copy link</button></div>' +
+    '<button class="btn ghost" id="stkclose">Close</button>' +
     '<p class="hint" style="font-size:11.5px">On iPhone: long-press the sticker → Save to Photos.</p></div>';
   document.body.appendChild(ov);
   function close(){ if (ov.parentNode) ov.parentNode.removeChild(ov); }
   ov.onclick = function(ev){ if (ev.target === ov) close(); };
   document.getElementById('stkclose').onclick = close;
+  document.getElementById('stkcopy').onclick = function(){
+    var b = this; navigator.clipboard.writeText(url).then(function(){ b.textContent = 'Copied ✓'; });
+  };
   document.getElementById('stksave').onclick = function(){
     var a = document.createElement('a'); a.href = dataURL; a.download = fname;
     document.body.appendChild(a); a.click(); a.remove();
@@ -1110,7 +1109,7 @@ function screenPack(mode, topic0){
   }).catch(function(e){ document.getElementById('board').textContent = 'The pack is napping: ' + e.message; });
 }
 
-var APP_VERSION = "20260929075633";
+var APP_VERSION = "20260929083330";
 (function(){
   try {
     fetch('/version.json?t=' + Date.now(), { cache: 'no-store' }).then(function(r){ return r.json(); }).then(function(j){
