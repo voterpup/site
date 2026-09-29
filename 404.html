@@ -1300,7 +1300,19 @@ function reminderSheet(tail, name, after){
       return '<span class="chip ' + (on ? 'goldfill' : 'goldline') + '" data-f="' + f + '">' + (f === 'off' ? 'Off' : REM_WORD[f]) + '</span>'; }).join('') + '</div>' +
     '<label class="remtime" id="remtimerow"' + (off ? ' hidden' : '') + '>at <input type="time" id="remtime" value="' + tv + '"></label>' +
     '<button class="btn gold" id="remsave">Save</button><button class="btn ghost" id="remcancel">Not now</button>' +
+    (cur && !cur.off ? '<a href="#" class="mlink" id="remtest" style="display:block;text-align:center;margin-top:8px">Send a test now</a>' : '') +
     '<p class="privacy" id="remerr"></p></div>';
+  var rt = document.getElementById('remtest');
+  if (rt) rt.onclick = function(ev){
+    ev.preventDefault(); rt.textContent = 'Sending…';
+    navigator.serviceWorker.ready.then(function(reg){ return reg.pushManager.getSubscription(); }).then(function(sub){
+      if (!sub) throw new Error('This device isn\u2019t subscribed. Tap Save to turn reminders on again.');
+      return fetch(SUPABASE_URL + '/functions/v1/send-reminders', { method: 'POST', headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ test: sub.endpoint }) }).then(function(r){ return r.json(); });
+    }).then(function(r){
+      rt.textContent = r.sent ? 'Sent ✓ It should appear within a few seconds.' : 'Couldn\u2019t send. Tap Save to turn reminders on again.';
+    }).catch(function(e){ rt.textContent = e.message; });
+  };
   var sel = off ? 'off' : p.freq;
   Array.prototype.forEach.call(ov.querySelectorAll('[data-f]'), function(c){
     c.onclick = function(){ sel = c.getAttribute('data-f');
@@ -1568,7 +1580,7 @@ function screenPack(mode, topic0){
   }).catch(function(e){ document.getElementById('board').textContent = 'The pack is napping: ' + e.message; });
 }
 
-var APP_VERSION = "20260929232944";
+var APP_VERSION = "20260929235056";
 (function(){
   try {
     fetch('/version.json?t=' + Date.now(), { cache: 'no-store' }).then(function(r){ return r.json(); }).then(function(j){
