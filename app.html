@@ -139,6 +139,9 @@
   .votestrip b{color:var(--ink)}
   .votestrip .days{margin-left:auto; background:var(--accent); color:#f2f9f5; border-radius:999px;
       padding:3px 10px; font-weight:800; font-size:12px; white-space:nowrap}
+  .votestrip .days.red{background:#a94b4b}
+  .dred{color:#a94b4b; font-weight:800}
+  .dgreen{color:var(--accent); font-weight:800}
   .topicchip{background:#eef6f2; border:1px solid #cfe5da; color:#2f7d5f; border-radius:999px;
       padding:4px 10px; font-size:11.5px; font-weight:700}
   .say{display:flex; gap:10px; align-items:flex-start; margin:2px 0 12px}
@@ -281,31 +284,39 @@ function renderVoteStrip(){
   }
   rpc('vp_find_election', { p_place: place }).then(function(e){
     if (!e) { el.innerHTML = '🗳️ No upcoming election on file for <b>' + esc(place.split(',')[0]) + '</b> yet.'; return; }
-    el.innerHTML = '🗳️ <b>' + esc(e.name) + '</b><span class="days">' +
+    var cls = e.kind === 'election' ? 'days red' : 'days';
+    el.innerHTML = '🗳️ <b>' + esc(e.name) + '</b><span class="' + cls + '">' +
       (e.days === 0 ? 'TODAY' : 'in ' + e.days + ' day' + (e.days===1?'':'s')) + '</span>';
   }).catch(function(){ el.innerHTML = ''; });
 }
 var _elCache = {};
 function fillEntryElections(){
   var chips = document.querySelectorAll('[data-eplace]');
-  var byPlace = {};
+  var byKey = {};
   Array.prototype.forEach.call(chips, function(c){
-    var p = c.getAttribute('data-eplace');
-    (byPlace[p] = byPlace[p] || []).push(c);
+    var k = c.getAttribute('data-eplace') + '||' + (c.getAttribute('data-etopic') || '');
+    (byKey[k] = byKey[k] || []).push(c);
   });
-  Object.keys(byPlace).forEach(function(p){
+  Object.keys(byKey).forEach(function(k){
+    var parts = k.split('||'), p = parts[0], t = parts[1] || null;
     var apply = function(e){
-      byPlace[p].forEach(function(c){
-        c.textContent = '📍 ' + p.split(',')[0] + (e ? ' · 🗳️ ' + (e.days === 0 ? 'today' : e.days + 'd') : '');
+      byKey[k].forEach(function(c){
+        var base = '📍 ' + esc(p.split(',')[0]);
+        if (!e) { c.innerHTML = base; return; }
+        var cls = e.kind === 'election' ? 'dred' : 'dgreen';
+        c.innerHTML = base + ' · <span class="' + cls + '">🗳️ ' +
+          (e.days === 0 ? 'today' : e.days + 'd') + '</span>';
+        c.title = e.name;
       });
     };
-    if (p in _elCache) { apply(_elCache[p]); return; }
-    rpc('vp_find_election', { p_place: p }).then(function(e){ _elCache[p] = e; apply(e); }).catch(function(){});
+    if (k in _elCache) { apply(_elCache[k]); return; }
+    rpc('vp_find_moment', { p_place: p, p_topic: t }).then(function(e){ _elCache[k] = e; apply(e); }).catch(function(){});
   });
 }
-function placeChip(place){
+function placeChip(place, topic){
   if (!place) return '';
-  return '<span class="chip" style="cursor:default" data-eplace="' + esc(place) + '">📍 ' + esc(place.split(',')[0]) + '</span>';
+  return '<span class="chip" style="cursor:default" data-eplace="' + esc(place) + '"' +
+    (topic ? ' data-etopic="' + esc(topic) + '"' : '') + '>📍 ' + esc(place.split(',')[0]) + '</span>';
 }
 function pupURL(tail){ return BASE + '/p/' + tail; }
 function saveLocal(tail, name){ try{ localStorage.setItem('vp.pup', JSON.stringify({tail:tail,name:name})); }catch(e){} }
@@ -463,7 +474,7 @@ function screenLedger(tail){
       return '<div class="card">' +
         (e.body ? '<div class="entry-body">' + esc(e.body) + '</div>' : '') + mediaHTML(e.media) +
         '<div class="ts">' + new Date(e.ts).toLocaleString() + '</div>' +
-        '<div class="chips">' + placeChip(e.place) + (e.topic ? '<span class="topicchip">#' + esc(e.topic) + '</span>' : '') + (e.shared
+        '<div class="chips">' + placeChip(e.place, e.topic) + (e.topic ? '<span class="topicchip">#' + esc(e.topic) + '</span>' : '') + (e.shared
           ? '<span class="chip goldfill">🌿 Counted with the community</span>' +
             '<span class="chip" data-a="unshare" data-id="'+e.id+'">↩ make private</span>'
           : '<span class="chip" style="cursor:default">🔒 Private</span>' +
