@@ -1019,7 +1019,7 @@ function screenPack(mode, topic0){
   }).catch(function(e){ document.getElementById('board').textContent = 'The pack is napping: ' + e.message; });
 }
 
-var APP_VERSION = "20260929072358";
+var APP_VERSION = "20260929072418";
 (function(){
   try {
     fetch('/version.json?t=' + Date.now(), { cache: 'no-store' }).then(function(r){ return r.json(); }).then(function(j){
@@ -1174,8 +1174,8 @@ function showCandidate(tail, name){
   function draw(info){
     var url = viewURL(info.token);
     ov.innerHTML = '<div class="stksheet">' +
-      '<div class="q" style="font-size:17px; margin:0 0 4px">Show a candidate what you care about 🗳️</div>' +
-      '<p class="hint" style="text-align:left; margin:0 0 8px">Next time a candidate asks for your vote, let them scan this. They see your issues — read-only. Never your name or email.</p>' +
+      '<div class="q" style="font-size:17px; margin:0 0 4px">Make them earn your vote 🗳️</div>' +
+      '<p class="hint" style="text-align:left; margin:0 0 8px">Candidates will knock and ask for your vote. Before you give it, make them look at what you actually need fixed. They scan — they read. Never your name or email.</p>' +
       '<div class="qrwrap" style="margin:6px 0"><img src="' + qrDataURL(url, 7) + '" alt="read-only QR"></div>' +
       '<p class="hint" style="text-align:left"><b>' + info.count + ' entr' + (info.count === 1 ? 'y' : 'ies') + '</b> will be visible — ' +
         (info.view_all ? 'all of them, including private ones.' : 'only the ones you shared 🌱.') +
@@ -1209,15 +1209,17 @@ function screenView(tok){
     V.entries.forEach(function(e){ if (e.topic) counts[e.topic] = (counts[e.topic] || 0) + 1; });
     var tops = Object.keys(counts).sort(function(a, b){ return counts[b] - counts[a]; });
     root.innerHTML = nav() +
-      say('What this voter wants fixed', esc(V.name) + '’s person' + (V.city ? ' · ' + esc(V.city) : '') + ' · ' + V.entries.length + ' issue' + (V.entries.length === 1 ? '' : 's')) +
+      say('Before you ask for my vote — read this.', 'What I need fixed · ' + esc(V.name) + '’s person' + (V.city ? ' · ' + esc(V.city) : '') + ' · ' + V.entries.length + ' issue' + (V.entries.length === 1 ? '' : 's')) +
       (tops.length ? '<div class="viewsum">' + tops.map(function(t){
         return '<span class="topicchip">#' + esc(t) + ' ×' + counts[t] + '</span>'; }).join('') + '</div>' : '') +
+      '<div class="count" style="margin-top:0">Logged by this voter, dated when they noticed it.</div>' +
       (V.entries.length ? '<div class="grid2">' + V.entries.map(function(e){
         return '<div class="card">' + (e.topic ? '<div style="margin-bottom:6px"><span class="topicchip">#' + esc(e.topic) + '</span></div>' : '') +
           (e.body ? '<div class="entry-body">' + esc(e.body) + '</div>' : '') + mediaHTML(e.media) +
           '<div class="ts">' + new Date(e.ts).toLocaleDateString() + '</div></div>';
       }).join('') + '</div>' : '<div class="hint">Nothing shared here yet.</div>') +
-      '<footer>Shown with VoterPup — a pup that remembers what people care about. Not tied to any party or candidate.<br>' +
+      '<div class="banner" style="font-weight:700; color:var(--ink)">Want this vote? Tell this voter how you’ll fix these.</div>' +
+      '<footer>VoterPup — a voter’s memory. Not tied to any party or candidate.<br>' +
       '<a href="/app.html">Start your own pup →</a></footer>';
   }).catch(function(e){ root.innerHTML = nav() + say('Couldn’t load this.', esc(e.message)); });
 }
