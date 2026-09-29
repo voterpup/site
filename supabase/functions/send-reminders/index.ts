@@ -26,7 +26,7 @@ Deno.serve(async (req) => {
     const line = LINES[Math.floor(Math.random() * LINES.length)](s.name);
     try {
       const r = await webpush.sendNotification({ endpoint: s.endpoint, keys: { p256dh: s.p256dh, auth: s.auth } },
-        JSON.stringify({ title: "🐾 " + s.name, body: body.test ? "Test reminder: this is how " + s.name + " will ask." : line, url: "/p/" + s.tail }),
+        JSON.stringify({ title: "🐾 " + s.name, body: body.test ? "Test reminder: this is how " + s.name + " will ask." : line, url: "/p/" + s.tail + "?add=1" }),
         { TTL: 3600, urgency: "high" });
       console.log("push", new URL(s.endpoint).host, r.statusCode);
       if (!body.test) await db.from("push_subs").update({ last_sent: new Date().toISOString(), fails: 0 }).eq("endpoint", s.endpoint);
