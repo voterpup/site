@@ -135,6 +135,11 @@
   .nav{justify-content:space-between}
   .acct{font-size:13px; font-weight:700; color:#3b6fb6; text-decoration:none; padding:5px 10px;
       border:1px solid var(--line); border-radius:999px; background:var(--card)}
+  .navr{display:flex; gap:6px; align-items:center}
+  .acct.show{color:#8a6a14; border-color:var(--gold); background:#faf3df}
+  .viewsum{display:flex; flex-wrap:wrap; gap:6px; margin:4px 0 12px}
+  .switchrow{display:flex; align-items:center; gap:10px; font-size:13px; color:var(--ink); margin:10px 2px}
+  .switchrow input{width:auto; transform:scale(1.2)}
   .linkbox{background:var(--chip); border:1px dashed var(--gold); border-radius:12px; padding:12px;
            font-size:13px; word-break:break-all; margin-top:10px}
   .qrwrap{display:flex; justify-content:center; margin:14px 0}
@@ -625,7 +630,7 @@ function screenLedger(tail){
     saveLocal(tail, L.name);
     var n = L.entries.length;
     pendingFiles = [];
-    root.innerHTML = nav() +
+    root.innerHTML = nav(n > 0 && !KIOSK ? '<a href="#" class="acct show" id="navshow">🗳️ Show</a>' : '') +
       '<div class="fetchcard"><div class="fetchvid">' +
         '<video class="vsit" src="/pup-sit.mp4" muted autoplay loop playsinline preload="auto"></video>' +
         (window._vpFetchPlayed ? '' : '<video class="vtop" id="vfetch" src="/pup-fetch.mp4" muted autoplay playsinline preload="auto"></video>') +
@@ -695,6 +700,8 @@ function screenLedger(tail){
     document.getElementById('copy2').onclick = function(ev){ ev.preventDefault();
       navigator.clipboard.writeText(pupURL(tail)); this.textContent = 'copied ✓'; };
     mountHomeSticker(L.name, pupURL(tail));
+    var ns = document.getElementById('navshow');
+    if (ns) ns.onclick = function(ev){ ev.preventDefault(); showCandidate(tail, L.name); };
     var gb = document.getElementById('gbackup'); if (gb) gb.onclick = function(){
       gb.style.display = 'none';
       sb.auth.getSession().then(function(r){
@@ -816,9 +823,9 @@ function showSticker(canvas, name){
   });
 }
 
-function nav(){ return '<div class="appstrip">📱 The VoterPup app is coming — this link will bring your pup along</div>' +
-  '<div class="nav"><div class="brand">Voter<b>Pup</b> 🐾</div>' +
-  (GOOGLE_READY && !KIOSK ? '<a href="#" class="acct" id="navacct">Sign in</a>' : '') + '</div>'; }
+function nav(extra){ return '<div class="appstrip">📱 The VoterPup app is coming — this link will bring your pup along</div>' +
+  '<div class="nav"><div class="brand">Voter<b>Pup</b> 🐾</div><div class="navr">' + (extra || '') +
+  (GOOGLE_READY && !KIOSK ? '<a href="#" class="acct" id="navacct">Sign in</a>' : '') + '</div></div>'; }
 function say(text, small, name){
   return '<div class="say"><img class="avatar" src="/pup-face.jpg" alt="">' +
     '<div class="balloon">' + text + (small ? '<small>' + small + '</small>' : '') + '</div></div>';
@@ -1012,7 +1019,7 @@ function screenPack(mode, topic0){
   }).catch(function(e){ document.getElementById('board').textContent = 'The pack is napping: ' + e.message; });
 }
 
-var APP_VERSION = "20260929071426";
+var APP_VERSION = "20260929072037";
 (function(){
   try {
     fetch('/version.json?t=' + Date.now(), { cache: 'no-store' }).then(function(r){ return r.json(); }).then(function(j){
@@ -1158,17 +1165,76 @@ document.addEventListener('click', function(ev){
 new MutationObserver(function(){ if (document.getElementById('navacct') && !document.getElementById('navacct').dataset.done) {
   document.getElementById('navacct').dataset.done = '1'; refreshAcct(); } }).observe(document.getElementById('root'), { childList: true });
 
+function viewURL(tok){ return BASE + '/v/' + tok; }
+function showCandidate(tail, name){
+  var ov = document.createElement('div'); ov.className = 'stkover';
+  document.body.appendChild(ov);
+  function close(){ if (ov.parentNode) ov.parentNode.removeChild(ov); }
+  ov.onclick = function(ev){ if (ev.target === ov) close(); };
+  function draw(info){
+    var url = viewURL(info.token);
+    ov.innerHTML = '<div class="stksheet">' +
+      '<div class="q" style="font-size:17px; margin:0 0 4px">Show a candidate what you care about 🗳️</div>' +
+      '<p class="hint" style="text-align:left; margin:0 0 8px">Next time a candidate asks for your vote, let them scan this. They see your issues — read-only. Never your name or email.</p>' +
+      '<div class="qrwrap" style="margin:6px 0"><img src="' + qrDataURL(url, 7) + '" alt="read-only QR"></div>' +
+      '<p class="hint" style="text-align:left"><b>' + info.count + ' entr' + (info.count === 1 ? 'y' : 'ies') + '</b> will be visible — ' +
+        (info.view_all ? 'all of them, including private ones.' : 'only the ones you shared 🌱.') +
+        ' Anything you add later shows up too.</p>' +
+      '<label class="switchrow"><input type="checkbox" id="vall"' + (info.view_all ? ' checked' : '') + '> Include my private entries</label>' +
+      '<div class="btnrow"><button class="btn ghost" id="vprev">Preview</button><button class="btn ghost" id="vcopy">Copy link</button></div>' +
+      '<button class="btn ghost" id="vreset">Reset link (the old code stops working)</button>' +
+      '<button class="btn gold" id="vclose">Done</button></div>';
+    document.getElementById('vclose').onclick = close;
+    document.getElementById('vprev').onclick = function(){ window.open(url, '_blank', 'noopener'); };
+    document.getElementById('vcopy').onclick = function(){ navigator.clipboard.writeText(url); this.textContent = 'Copied ✓'; };
+    document.getElementById('vall').onchange = function(){
+      rpc('vp_set_view_all', { p_tail: tail, p_all: this.checked }).then(draw).catch(function(e){ alert(e.message); });
+    };
+    document.getElementById('vreset').onclick = function(){
+      if (!confirm('Make a new code? Anyone holding the old one loses access.')) return;
+      rpc('vp_rotate_view_token', { p_tail: tail }).then(draw).catch(function(e){ alert(e.message); });
+    };
+  }
+  ov.innerHTML = '<div class="stksheet"><p class="hint">Preparing your code…</p></div>';
+  rpc('vp_view_info', { p_tail: tail }).then(draw).catch(function(e){
+    ov.innerHTML = '<div class="stksheet"><p class="hint">Couldn’t make a code: ' + esc(e.message) + '</p><button class="btn" id="vclose2">Close</button></div>';
+    document.getElementById('vclose2').onclick = close;
+  });
+}
+function screenView(tok){
+  root.innerHTML = nav() + '<div class="hint">Loading…</div>';
+  vpRead({ mode: 'view', token: tok }).then(function(V){
+    if (!V) { root.innerHTML = nav() + say('This code doesn’t work anymore.', 'the owner may have reset it'); return; }
+    var counts = {};
+    V.entries.forEach(function(e){ if (e.topic) counts[e.topic] = (counts[e.topic] || 0) + 1; });
+    var tops = Object.keys(counts).sort(function(a, b){ return counts[b] - counts[a]; });
+    root.innerHTML = nav() +
+      say('What this voter wants fixed', esc(V.name) + '’s person' + (V.city ? ' · ' + esc(V.city) : '') + ' · ' + V.entries.length + ' issue' + (V.entries.length === 1 ? '' : 's')) +
+      (tops.length ? '<div class="viewsum">' + tops.map(function(t){
+        return '<span class="topicchip">#' + esc(t) + ' ×' + counts[t] + '</span>'; }).join('') + '</div>' : '') +
+      (V.entries.length ? '<div class="grid2">' + V.entries.map(function(e){
+        return '<div class="card">' + (e.topic ? '<div style="margin-bottom:6px"><span class="topicchip">#' + esc(e.topic) + '</span></div>' : '') +
+          (e.body ? '<div class="entry-body">' + esc(e.body) + '</div>' : '') + mediaHTML(e.media) +
+          '<div class="ts">' + new Date(e.ts).toLocaleDateString() + '</div></div>';
+      }).join('') + '</div>' : '<div class="hint">Nothing shared here yet.</div>') +
+      '<footer>Shown with VoterPup — a pup that remembers what people care about. Not tied to any party or candidate.<br>' +
+      '<a href="/app.html">Start your own pup →</a></footer>';
+  }).catch(function(e){ root.innerHTML = nav() + say('Couldn’t load this.', esc(e.message)); });
+}
+
 // ---------- router ----------
 (function(){
   var m = location.pathname.match(/^\/p\/(.+)$/);
   var qs = new URLSearchParams(location.search);
-  if (m) screenLedger(decodeURIComponent(m[1]));
+  var vm = location.pathname.match(/^\/v\/([0-9a-f]{20})$/);
+  if (vm) screenView(vm[1]);
+  else if (m) screenLedger(decodeURIComponent(m[1]));
   else if (location.pathname === '/pack') screenPack(undefined, new URLSearchParams(location.search).get('t') || null);
   else screenCapture();
 })();
 </script>
 <script>
-  window.goatcounter = { path: function(p) { return p.indexOf('/p/') === 0 ? '/p/(pup)' : p; } };
+  window.goatcounter = { path: function(p) { return p.indexOf('/p/') === 0 ? '/p/(pup)' : (p.indexOf('/v/') === 0 ? '/v/(view)' : p); } };
 </script>
 <script data-goatcounter="https://voterpup.goatcounter.com/count" async src="//gc.zgo.at/count.js"></script>
 </body>

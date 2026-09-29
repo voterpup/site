@@ -19,12 +19,17 @@ function pathOf(m: Media): string | null {
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: CORS });
   const db = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
-  let body: { mode?: string; tail?: string; place?: string | null } = {};
+  let body: { mode?: string; tail?: string; token?: string; place?: string | null } = {};
   try { body = await req.json(); } catch (_) { /* empty */ }
 
   let data: any;
   if (body.mode === "ledger" && typeof body.tail === "string") {
     const r = await db.rpc("vp_get_ledger", { p_tail: body.tail });
+    if (r.error) return new Response(JSON.stringify({ error: r.error.message }), { status: 400, headers: CORS });
+    data = r.data;
+    if (!data) return new Response("null", { headers: { ...CORS, "content-type": "application/json" } });
+  } else if (body.mode === "view" && typeof (body as any).token === "string") {
+    const r = await db.rpc("vp_get_view", { p_token: (body as any).token });
     if (r.error) return new Response(JSON.stringify({ error: r.error.message }), { status: 400, headers: CORS });
     data = r.data;
     if (!data) return new Response("null", { headers: { ...CORS, "content-type": "application/json" } });
