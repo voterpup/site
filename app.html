@@ -104,6 +104,11 @@
   .fetchvid video{position:absolute; inset:0; width:78px; height:120px; object-fit:cover; border-radius:12px; background:#e9edf1}
   .fetchvid .vtop{z-index:2; transition:opacity .35s}
   .fetchvid img.vsit{position:absolute; inset:0; width:78px; height:120px; object-fit:cover; border-radius:12px; background:#e9edf1}
+  .mcard{background:var(--card); border:1px solid var(--line); border-radius:16px; padding:12px; margin:0 0 12px;
+      box-shadow:0 1px 2px rgba(16,24,40,.05)}
+  .mcard .mh{font-size:15px; font-weight:800; margin-bottom:4px}
+  .mcard .mp{font-size:12.5px; color:var(--sub); margin:0 0 8px}
+  .mcard .btn{margin-top:6px}
   .herorow{display:grid; grid-template-columns:minmax(0,3fr) minmax(0,2fr); gap:10px; margin:0 0 12px}
   .herorow .fetchcard{margin:0; align-items:flex-start; gap:10px}
   .herorow .fetchcard .ft{font-size:13.5px}
@@ -814,21 +819,14 @@ function screenLedger(tail){
       '<div class="herorow"><div class="fetchcard"><div class="fetchvid">' +
         '<img class="vsit" src="/pup-sit.webp" alt="">' +
         (window._vpFetchPlayed ? '' : '<video class="vtop" id="vfetch" src="/pup-fetch.mp4" muted autoplay playsinline preload="auto"></video>') +
-        (GOOGLE_READY ? (isBackedUp(tail)
-          ? '<span class="bkbadge" title="' + esc(L.name) + ' is backed up to your Google account">✅ saved</span>'
-          : '<a href="#" class="bklink" id="gbackup">🔐 back up</a>') : '') +
       '</div>' +
         '<div class="ft">' + esc(L.name) + ' fetches your issues for you.' +
         '<small>It brings them back the day you can vote on them. 🗳️</small>' +
-        '<div class="hacts"><div class="hpill stkcard" id="stkcard"><div class="stkthumb"><img id="stkimg" alt="' + esc(L.name) + '\u2019s sticker">' +
-          '<div class="stkblur"></div></div>your link \u203a</div>' +
-      '</div></div></div>' +
+      '</div></div>' +
       '<div class="sharetile">' + slotMedia('share') +
         '<div class="shcap">Make them earn your vote.</div>' +
         (KIOSK ? '' : '<a href="#" class="hpill' + (n > 0 ? '' : ' off') + '" id="navshow">📤 Share my issues</a>') +
       '</div></div>' +
-      (GOOGLE_READY && !isBackedUp(tail) ? '<div class="backup" id="gwrap" hidden><div id="gslot"></div>' +
-          '<p class="privacy">Don&rsquo;t lose ' + esc(L.name) + '. We use your email only to restore it on any device. No mail, ever.</p></div>' : '') +
       say('What made you think<br>&ldquo;someone should fix this&rdquo;?', 'tell ' + esc(L.name) + ' — 5 words is plenty') +
       '<div class="composer">' +
         '<textarea id="gripe" placeholder="Tell ' + esc(L.name) + '..."></textarea>' +
@@ -879,22 +877,10 @@ function screenLedger(tail){
     }
     document.getElementById('priv').onclick = function(){ submit(false); };
     document.getElementById('share').onclick = function(){ submit(true); };
-    mountHomeSticker(L.name, pupURL(tail));
     var ns = document.getElementById('navshow');
     if (ns) ns.onclick = function(ev){ ev.preventDefault();
       if (n > 0) showCandidate(tail, L.name);
       else { ns.textContent = 'Tell ' + L.name + ' one first'; setTimeout(function(){ ns.textContent = '📤 Share my issues'; }, 2200); } };
-    var gb = document.getElementById('gbackup'); if (gb) gb.onclick = function(ev){
-      if (ev) ev.preventDefault();
-      gb.style.display = 'none';
-      var gw = document.getElementById('gwrap'); if (gw) gw.hidden = false;
-      sb.auth.getSession().then(function(r){
-        if (r.data && r.data.session) {
-          sb.rpc('vp_claim_ledger', { p_tail: tail }).then(function(x){ if (x.error) throw new Error(x.error.message); markBackedUp(tail); screenLedger(tail); })
-            .catch(function(e){ gb.style.display = ''; alert('Backup didn\u2019t finish: ' + e.message); });
-        } else startBackup(tail, document.getElementById('gslot'));
-      });
-    };
     var box = document.getElementById('entries');
     box.innerHTML = L.entries.map(function(e){
       return '<div class="card">' +
@@ -1042,6 +1028,7 @@ function tabbar(active){
   return '<div class="tabbar">' +
     '<a href="#" id="tab-pup" class="' + (active==='pup'?'on':'') + '">🐶<span>My pup</span></a>' +
     '<a href="/pack" class="' + (active==='pack'?'on':'') + '">🐾<span>The Pack</span></a>' +
+    '<a href="/manage" class="' + (active==='manage'?'on':'') + '">⚙️<span>Manage pup</span></a>' +
   '</div>';
 }
 function wireTabs(){
@@ -1254,7 +1241,7 @@ function screenPack(mode, topic0){
   }).catch(function(e){ document.getElementById('board').textContent = 'The pack is napping: ' + e.message; });
 }
 
-var APP_VERSION = "20260929192054";
+var APP_VERSION = "20260929195413";
 (function(){
   try {
     fetch('/version.json?t=' + Date.now(), { cache: 'no-store' }).then(function(r){ return r.json(); }).then(function(j){
@@ -1323,11 +1310,11 @@ function googleButton(slot, onSignedIn){
     google.accounts.id.renderButton(slot, { theme: 'outline', size: 'large', text: 'continue_with', shape: 'pill', width: 280 });
   }).catch(function(e){ slot.innerHTML = '<p class="privacy">' + esc(e.message) + '</p>'; });
 }
-function startBackup(tail, slot){
+function startBackup(tail, slot, after){
   googleButton(slot, function(){
     sb.rpc('vp_claim_ledger', { p_tail: tail }).then(function(r){
       if (r.error) throw new Error(r.error.message);
-      markBackedUp(tail); screenLedger(tail);
+      markBackedUp(tail); (after || screenLedger)(tail);
     }).catch(function(e){ slot.innerHTML = '<p class="privacy">Backup didn&rsquo;t finish: ' + esc(e.message) + '</p>'; });
   });
 }
@@ -1459,6 +1446,57 @@ function screenView(tok){
   }).catch(function(e){ root.innerHTML = nav() + say('Couldn’t load this.', esc(e.message)); });
 }
 
+function screenManage(){
+  var s = loadLocal();
+  if (!s) { location.href = '/app.html'; return; }
+  var tail = s.tail, url = pupURL(tail);
+  root.innerHTML = nav() + '<div class="hint">Loading…</div>' + tabbar('manage'); wireTabs();
+  readLedger(tail).then(function(L){
+    if (!L) { root.innerHTML = nav() + say('This pup couldn&rsquo;t be found.', 'start a new one') + tabbar('manage'); wireTabs(); return; }
+    var n = L.entries.length, nm = esc(L.name), backed = isBackedUp(tail);
+    root.innerHTML = nav() +
+      '<div class="q" style="font-size:20px; margin-bottom:10px">Manage ' + nm + ' 🐾</div>' +
+      '<div class="mcard"><div class="mh">🔑 ' + nm + '&rsquo;s link</div>' +
+        '<p class="mp">The only key to ' + nm + '. Anyone with it can read your entries, so keep it like a key.</p>' +
+        '<div class="linkbox">' + esc(url) + '</div>' +
+        '<div class="btnrow" style="margin-top:8px"><button class="btn ghost" id="mcopy">Copy link</button>' +
+        '<button class="btn ghost" id="mstk">🏷️ Sticker</button></div></div>' +
+      (GOOGLE_READY && !KIOSK ? '<div class="mcard"><div class="mh">🔐 Backup</div>' +
+        (backed ? '<p class="mp">✅ ' + nm + ' is backed up to your Google account. Sign in on any device to bring it back.</p>'
+                : '<p class="mp">Don&rsquo;t lose ' + nm + '. We use your email only to restore it on any device. No mail, ever.</p>' +
+                  '<button class="btn gold" id="mbackup">Back up with Google</button><div id="mslot"></div>') +
+        '</div>' : '') +
+      (KIOSK ? '' : '<div class="mcard"><div class="mh">📤 Share my issues</div>' +
+        '<p class="mp">A read-only code for candidates: they see what you need fixed, never your name or email.</p>' +
+        '<button class="btn ghost" id="mshare"' + (n ? '' : ' disabled') + '>' + (n ? 'Open my share code' : 'Tell ' + nm + ' one issue first') + '</button></div>') +
+      '<div class="mcard"><div class="mh">🐶 Pups</div>' +
+        (GOOGLE_READY && !KIOSK ? '<button class="btn ghost" id="mpups">My backed-up pups</button><div id="mrslot"></div>' : '') +
+        '<button class="btn ghost" id="mnew">＋ Start another pup</button></div>' +
+      '<footer><a href="/privacy.html">Privacy</a> · <a href="mailto:hi@voterpup.com">hi@voterpup.com</a></footer>' +
+      tabbar('manage');
+    wireTabs();
+    document.getElementById('mcopy').onclick = function(){
+      var b = this; navigator.clipboard.writeText(url).then(function(){ b.textContent = 'Copied ✓'; });
+    };
+    document.getElementById('mstk').onclick = function(){ makeSticker(L.name, url); };
+    var mb = document.getElementById('mbackup');
+    if (mb) mb.onclick = function(){
+      mb.style.display = 'none';
+      sb.auth.getSession().then(function(r){
+        if (r.data && r.data.session) {
+          sb.rpc('vp_claim_ledger', { p_tail: tail }).then(function(x){ if (x.error) throw new Error(x.error.message); markBackedUp(tail); screenManage(); })
+            .catch(function(e){ mb.style.display = ''; alert('Backup didn\u2019t finish: ' + e.message); });
+        } else startBackup(tail, document.getElementById('mslot'), screenManage);
+      });
+    };
+    var ms = document.getElementById('mshare');
+    if (ms && n) ms.onclick = function(){ showCandidate(tail, L.name); };
+    var mp = document.getElementById('mpups');
+    if (mp) mp.onclick = function(){ mp.style.display = 'none'; startRestore(document.getElementById('mrslot')); };
+    document.getElementById('mnew').onclick = function(){ location.href = '/app.html?new=1'; };
+  }).catch(function(e){ root.innerHTML = nav() + say('Couldn&rsquo;t load this.', esc(e.message)) + tabbar('manage'); wireTabs(); });
+}
+
 // ---------- router ----------
 (function(){
   var m = location.pathname.match(/^\/p\/(.+)$/);
@@ -1467,6 +1505,7 @@ function screenView(tok){
   if (vm) screenView(vm[1]);
   else if (m) screenLedger(decodeURIComponent(m[1]));
   else if (location.pathname === '/pack') screenPack(undefined, new URLSearchParams(location.search).get('t') || null);
+  else if (location.pathname === '/manage') screenManage();
   else screenCapture();
 })();
 </script>
