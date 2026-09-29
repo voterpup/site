@@ -285,10 +285,21 @@ function renderVoteStrip(){
   }
   rpc('vp_upcoming', { p_place: place }).then(function(list){
     if (!list || !list.length) { el.innerHTML = '🗳️ No upcoming votes on file for <b>' + esc(place.split(',')[0]) + '</b> yet.'; return; }
-    el.innerHTML = list.map(function(e){
-      var cls = e.kind === 'election' ? 'days red' : 'days';
-      return '<div class="vsrow">🗳️ <b>' + esc(e.name) + '</b><span class="' + cls + '">' +
-        (e.days === 0 ? 'TODAY' : 'in ' + e.days + ' day' + (e.days===1?'':'s')) + '</span></div>';
+    var rows = [], qByDate = {};
+    list.forEach(function(e){
+      if (e.kind === 'decision') {
+        if (!qByDate[e.vote_date]) { qByDate[e.vote_date] = { n: 0, days: e.days }; rows.push({ q: e.vote_date }); }
+        qByDate[e.vote_date].n++;
+      } else rows.push(e);
+    });
+    function pill(days, red){
+      return '<span class="' + (red ? 'days red' : 'days') + '">' +
+        (days === 0 ? 'TODAY' : 'in ' + days + ' day' + (days===1?'':'s')) + '</span>';
+    }
+    el.innerHTML = rows.map(function(r){
+      if (r.q) { var g = qByDate[r.q];
+        return '<div class="vsrow">🗳️ <b>' + g.n + ' ballot question' + (g.n===1?'':'s') + '</b> — tap a #topic to see yours' + pill(g.days, false) + '</div>'; }
+      return '<div class="vsrow">🗳️ <b>' + esc(r.name) + '</b>' + pill(r.days, true) + '</div>';
     }).join('');
   }).catch(function(){ el.innerHTML = ''; });
 }
