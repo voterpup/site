@@ -1266,7 +1266,7 @@ function screenPack(mode, topic0){
   }).catch(function(e){ document.getElementById('board').textContent = 'The pack is napping: ' + e.message; });
 }
 
-var APP_VERSION = "20260929204118";
+var APP_VERSION = "20260929204647";
 (function(){
   try {
     fetch('/version.json?t=' + Date.now(), { cache: 'no-store' }).then(function(r){ return r.json(); }).then(function(j){
@@ -1478,7 +1478,7 @@ function screenView(tok){
   }).catch(function(e){ root.innerHTML = nav() + say('Couldn’t load this.', esc(e.message)); });
 }
 
-var BACKUP_IMG = '/pup-face.jpg';  // replace with the 'puppy has a home' picture
+var BACKUP_IMG = '/pup-home.jpg';
 function wireHero(){
   wireSlots();
   var vf = document.getElementById('vfetch');
