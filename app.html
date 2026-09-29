@@ -132,6 +132,9 @@
       background:rgba(255,255,255,.3)}
   .backup{margin:0 0 12px}
   .backup .btn{margin-top:0}
+  .nav{justify-content:space-between}
+  .acct{font-size:13px; font-weight:700; color:#3b6fb6; text-decoration:none; padding:5px 10px;
+      border:1px solid var(--line); border-radius:999px; background:var(--card)}
   .linkbox{background:var(--chip); border:1px dashed var(--gold); border-radius:12px; padding:12px;
            font-size:13px; word-break:break-all; margin-top:10px}
   .qrwrap{display:flex; justify-content:center; margin:14px 0}
@@ -574,6 +577,9 @@ function screenUnbox(name, gripe){
   });
   Promise.all([mint, animDone]).then(function(vals){
     var l = vals[0]; saveLocal(l.tail, l.name);
+    if (sb && !KIOSK) sb.auth.getSession().then(function(r){
+      if (r.data && r.data.session) sb.rpc('vp_claim_ledger', { p_tail: l.tail }).then(function(x){ if (!x.error) markBackedUp(l.tail); });
+    });
     var url = pupURL(l.tail);
     var r = document.getElementById('reveal');
     if (KIOSK) {
@@ -689,7 +695,15 @@ function screenLedger(tail){
     document.getElementById('copy2').onclick = function(ev){ ev.preventDefault();
       navigator.clipboard.writeText(pupURL(tail)); this.textContent = 'copied ✓'; };
     mountHomeSticker(L.name, pupURL(tail));
-    var gb = document.getElementById('gbackup'); if (gb) gb.onclick = function(){ gb.style.display = 'none'; startBackup(tail, document.getElementById('gslot')); };
+    var gb = document.getElementById('gbackup'); if (gb) gb.onclick = function(){
+      gb.style.display = 'none';
+      sb.auth.getSession().then(function(r){
+        if (r.data && r.data.session) {
+          sb.rpc('vp_claim_ledger', { p_tail: tail }).then(function(x){ if (x.error) throw new Error(x.error.message); markBackedUp(tail); screenLedger(tail); })
+            .catch(function(e){ gb.style.display = ''; alert('Backup didn\u2019t finish: ' + e.message); });
+        } else startBackup(tail, document.getElementById('gslot'));
+      });
+    };
     var box = document.getElementById('entries');
     box.innerHTML = L.entries.map(function(e){
       return '<div class="card">' +
@@ -803,7 +817,8 @@ function showSticker(canvas, name){
 }
 
 function nav(){ return '<div class="appstrip">📱 The VoterPup app is coming — this link will bring your pup along</div>' +
-  '<div class="nav"><div class="brand">Voter<b>Pup</b> 🐾</div></div>'; }
+  '<div class="nav"><div class="brand">Voter<b>Pup</b> 🐾</div>' +
+  (GOOGLE_READY && !KIOSK ? '<a href="#" class="acct" id="navacct">Sign in</a>' : '') + '</div>'; }
 function say(text, small, name){
   return '<div class="say"><img class="avatar" src="/pup-face.jpg" alt="">' +
     '<div class="balloon">' + text + (small ? '<small>' + small + '</small>' : '') + '</div></div>';
@@ -997,7 +1012,7 @@ function screenPack(mode, topic0){
   }).catch(function(e){ document.getElementById('board').textContent = 'The pack is napping: ' + e.message; });
 }
 
-var APP_VERSION = "20260929070836";
+var APP_VERSION = "20260929071426";
 (function(){
   try {
     fetch('/version.json?t=' + Date.now(), { cache: 'no-store' }).then(function(r){ return r.json(); }).then(function(j){
@@ -1087,19 +1102,61 @@ function screenRestore(){
     if (r.error) throw new Error(r.error.message);
     var list = r.data || [];
     if (!list.length) {
+      var h0 = loadLocal();
       root.innerHTML = nav() + say('No pups are backed up to this Google account yet.') +
-        '<button class="btn" onclick="location.href=\'/app.html\'">Start a new pup</button>' + tabbar('pup');
-      wireTabs(); return;
+        (h0 ? '<button class="btn gold" id="addhere0">🔐 Back up ' + esc(h0.name) + ' (on this device)</button>' : '') +
+        '<button class="btn" onclick="location.href=\'/app.html\'">Start a new pup</button>' +
+        '<button class="btn ghost" id="signout0" style="margin-top:18px">Sign out</button>' + tabbar('pup');
+      wireTabs();
+      var a0 = document.getElementById('addhere0');
+      if (a0) a0.onclick = function(){ sb.rpc('vp_claim_ledger', { p_tail: h0.tail }).then(function(r){
+        if (r.error) throw new Error(r.error.message); markBackedUp(h0.tail); screenRestore(); })
+        .catch(function(e){ alert('Could not back up: ' + e.message); }); };
+      document.getElementById('signout0').onclick = function(){ sb.auth.signOut().then(function(){ location.href = '/app.html'; }); };
+      return;
     }
-    root.innerHTML = nav() + say('Welcome back! Which pup?') + list.map(function(p){
+    var here = loadLocal(), hereListed = here && list.some(function(p){ return p.tail === here.tail; });
+    root.innerHTML = nav() + say('Your pups', 'backed up to your Google account') + list.map(function(p){
       return '<button class="btn ghost" data-t="' + esc(p.tail) + '" data-n="' + esc(p.name) + '">🐶 ' + esc(p.name) + '</button>';
-    }).join('') + tabbar('pup');
+    }).join('') +
+    (here && !hereListed ? '<button class="btn gold" id="addhere">🔐 Also back up ' + esc(here.name) + ' (on this device)</button>' : '') +
+    '<button class="btn ghost" id="signout" style="margin-top:18px">Sign out</button>' + tabbar('pup');
+    var ah = document.getElementById('addhere');
+    if (ah) ah.onclick = function(){ sb.rpc('vp_claim_ledger', { p_tail: here.tail }).then(function(r){
+      if (r.error) throw new Error(r.error.message); markBackedUp(here.tail); screenRestore(); })
+      .catch(function(e){ alert('Could not back up: ' + e.message); }); };
+    document.getElementById('signout').onclick = function(){ sb.auth.signOut().then(function(){ location.href = '/app.html'; }); };
     wireTabs();
     Array.prototype.forEach.call(root.querySelectorAll('[data-t]'), function(b){
       b.onclick = function(){ var t = b.getAttribute('data-t'); markBackedUp(t); saveLocal(t, b.getAttribute('data-n')); location.href = pupURL(t); };
     });
   }).catch(function(e){ root.innerHTML = nav() + say('Couldn&rsquo;t find your pups.', esc(e.message)); });
 }
+
+function refreshAcct(){
+  var a = document.getElementById('navacct');
+  if (!a || !sb) return;
+  sb.auth.getSession().then(function(r){
+    var s = r.data && r.data.session;
+    a.textContent = s ? 'My pups' : 'Sign in';
+  });
+}
+function screenSignIn(){
+  root.innerHTML = nav() +
+    say('Sign in to find your backed-up pups.', 'We use your email only to restore your pups. No mail, ever.') +
+    '<div id="sislot" style="display:flex;justify-content:center;margin:8px 0 14px"></div>' +
+    tabbar('pup');
+  wireTabs();
+  googleButton(document.getElementById('sislot'), screenRestore);
+}
+document.addEventListener('click', function(ev){
+  var t = ev.target && ev.target.closest ? ev.target.closest('#navacct') : null;
+  if (!t || !sb) return;
+  ev.preventDefault();
+  sb.auth.getSession().then(function(r){ (r.data && r.data.session) ? screenRestore() : screenSignIn(); });
+});
+new MutationObserver(function(){ if (document.getElementById('navacct') && !document.getElementById('navacct').dataset.done) {
+  document.getElementById('navacct').dataset.done = '1'; refreshAcct(); } }).observe(document.getElementById('root'), { childList: true });
 
 // ---------- router ----------
 (function(){
