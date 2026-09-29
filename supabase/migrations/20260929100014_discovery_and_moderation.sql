@@ -5,6 +5,7 @@ alter table elections add constraint elections_status_chk check (status in ('liv
 alter table elections add column if not exists parent text;        -- city rows: province/state (lowercase)
 alter table elections add column if not exists dkey text;          -- discovery dedupe key
 alter table elections add column if not exists source_quote text;  -- verbatim text the date was verified against
+alter table elections add column if not exists evidence_url text;  -- discovery source page (source_url is unique, reserved for sync-voice)
 alter table elections add column if not exists discovered_at timestamptz;
 create unique index if not exists elections_dkey_uq on elections(dkey);  -- NULLs stay distinct; full index so upsert(on_conflict=dkey) works
 
