@@ -369,7 +369,7 @@ function voiceItems(vs, cap){
   }).join('') + (vs.length > cap ? '<div class="vitem"><span>+ ' + (vs.length - cap) + ' more on Shape Your City</span></div>' : '');
 }
 function groupedVoiceRow(vs, cap){
-  return '<details class="mom"><summary class="vsrow">🗣️ <b>' + vs.length + ' way' + (vs.length===1?'':'s') + ' to have your say</b>' +
+  return '<details class="mom"><summary class="vsrow">🗣️ <b>' + (vs.length >= 40 ? '40+' : vs.length) + ' way' + (vs.length===1?'':'s') + ' to have your say</b>' +
     '<span class="days blue">next closes ' + daysText(vs[0].days) + '</span></summary>' +
     '<div class="mombody"><div>Anyone can comment — you don’t need to be a citizen or a voter.</div>' +
     voiceItems(vs, cap) + '</div></details>';
