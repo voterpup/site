@@ -98,6 +98,26 @@
   .nav .brand{margin:0}
   .nav a{color:var(--gold); font-size:13.5px; font-weight:700; text-decoration:none}
   .packtag{color:var(--sub); font-size:13px; margin:2px 0 12px}
+  .searchbar{width:100%; background:var(--card); border:1px solid var(--line); border-radius:12px;
+      padding:11px 13px; font-size:15px; margin:0 0 12px; box-shadow:0 1px 2px rgba(16,24,40,.04)}
+  .tilegrid{display:grid; grid-template-columns:1fr 1fr; gap:10px}
+  .tile{border-radius:14px; color:#fff; padding:12px; min-height:118px; position:relative; overflow:hidden;
+      cursor:pointer; display:flex; flex-direction:column; justify-content:flex-end;
+      background-size:cover; background-position:center; box-shadow:0 1px 3px rgba(16,24,40,.12)}
+  .tile .tcount{position:absolute; top:8px; right:11px; font-weight:900; font-size:19px; opacity:.95}
+  .tile .tname{font-weight:800; font-size:13px; letter-spacing:.3px; margin-top:6px}
+  .tile .tsnippet{font-size:12.5px; line-height:1.35; opacity:.95; min-height:34px;
+      display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden;
+      transition:opacity .45s}
+  .tile.mine{color:var(--goldink)}
+  .grid2{display:grid; grid-template-columns:1fr 1fr; gap:10px; align-items:start}
+  .grid2 .card{margin-top:0}
+  .grid2 .entry-body{font-size:13.5px; display:-webkit-box; -webkit-line-clamp:4; -webkit-box-orient:vertical; overflow:hidden}
+  .grid2 .media img,.grid2 .media video{max-height:110px}
+  .grid2 .chips{gap:5px}
+  .grid2 .chip{padding:4px 8px; font-size:10.5px}
+  .grid2 .ts{font-size:10.5px}
+  .backchip{margin-bottom:10px; display:inline-block}
   .tabbar{position:fixed; left:0; right:0; bottom:0; display:flex; z-index:9;
           background:var(--card); border-top:1px solid var(--line);
           padding-bottom:env(safe-area-inset-bottom)}
@@ -411,7 +431,7 @@ function screenLedger(tail){
       '<p class="privacy">🔒 Everything you give ' + esc(L.name) + ' is private. Sharing is your choice — reversible anytime.</p>' +
       '<div class="count">' + (n === 0 ? esc(L.name) + ' is waiting for a first memory'
         : esc(L.name) + ' remembers ' + n + ' thing' + (n===1?'':'s')) + '</div>' +
-      '<div id="entries"></div>' +  esc(L.name) + ' along.</div>' +
+      '<div id="entries" class="grid2"></div>' +  esc(L.name) + ' along.</div>' +
       '<div class="banner">🔑 Your link: <span style="word-break:break-all">' + esc(pupURL(tail)) + '</span>' +
       ' — <a href="#" id="copy2" style="color:#a97f1d">copy</a> · <a href="#" id="stick2" style="color:#a97f1d">sticker</a></div>' +
       '<footer><a href="mailto:hi@voterpup.com">hi@voterpup.com</a> · voterpup.com</footer>' + tabbar('pup');
@@ -508,54 +528,129 @@ function wireTabs(){
     var s = loadLocal(); location.href = s ? pupURL(s.tail) : '/app.html'; };
 }
 
+var TILE_COLORS = ['#2f7d5f','#b3702d','#5f6caf','#a94b4b','#3d8f8f','#6b8e23','#8a5fae','#556270','#996633'];
+
 function screenPack(mode){
   var place = getPlace();
   if (!mode) mode = place ? 'local' : 'all';
   var city = place ? place.split(',')[0] : null;
   root.innerHTML = nav() +
-    '<div class="q" style="font-size:20px">The Pack 🐾</div>' +
-    '<div class="chips" style="margin:0 0 12px">' +
-      (city ? '<span class="chip ' + (mode==='local'?'goldfill':'goldline') + '" id="mlocal">📍 ' + esc(city) + '</span>'
-            : '<span class="chip goldline" id="mfind">📍 use my location</span>') +
-      '<span class="chip ' + (mode==='all'?'goldfill':'goldline') + '" id="mall">🌍 Everywhere</span>' +
+    '<div class="q" style="font-size:20px; margin-bottom:8px">The Pack \ud83d\udc3e</div>' +
+    '<div class="chips" style="margin:0 0 10px">' +
+      (city ? '<span class="chip ' + (mode==='local'?'goldfill':'goldline') + '" id="mlocal">\ud83d\udccd ' + esc(city) + '</span>'
+            : '<span class="chip goldline" id="mfind">\ud83d\udccd use my location</span>') +
+      '<span class="chip ' + (mode==='all'?'goldfill':'goldline') + '" id="mall">\ud83c\udf0d Everywhere</span>' +
     '</div>' +
+    '<input class="searchbar" id="packsearch" placeholder="\ud83d\udd0d Search the pack...">' +
     '<div id="board" class="hint">fetching the pack...</div>' +
-    '<footer>Only what people chose to share. 🌱 · <a href="mailto:hi@voterpup.com">hi@voterpup.com</a></footer>' +
+    '<footer>Only what people chose to share. \ud83c\udf31 \u00b7 <a href="mailto:hi@voterpup.com">hi@voterpup.com</a></footer>' +
     tabbar('pack');
   wireTabs();
   var ml = document.getElementById('mlocal'), ma = document.getElementById('mall'), mf = document.getElementById('mfind');
   if (ml) ml.onclick = function(){ if (mode !== 'local') screenPack('local'); };
   if (ma) ma.onclick = function(){ if (mode !== 'all') screenPack('all'); };
-  if (mf) mf.onclick = function(){ mf.textContent = '📍 sniffing...'; detectPlace(function(){ screenPack('local'); }); };
-  rpc('vp_shared_board', { p_place: (mode === 'local' && place) ? place : null }).then(function(rows){
+  if (mf) mf.onclick = function(){ mf.textContent = '\ud83d\udccd sniffing...'; detectPlace(function(){ screenPack('local'); }); };
+
+  var saved = loadLocal();
+  Promise.all([
+    rpc('vp_shared_board', { p_place: (mode === 'local' && place) ? place : null }),
+    saved ? rpc('vp_get_ledger', { p_tail: saved.tail }).catch(function(){ return null; }) : Promise.resolve(null)
+  ]).then(function(res){
+    var rows = res[0] || [];
+    var mine = (res[1] && res[1].entries || []).filter(function(e){ return e.shared; })
+      .map(function(e){ return { body: e.body, ts: e.ts, pup: saved.name, media: e.media, topic: e.topic, place: e.place }; });
     var b = document.getElementById('board');
-    if (!rows.length) {
+    if (!rows.length && !mine.length) {
       b.innerHTML = mode === 'local'
-        ? 'The Pack is quiet in ' + esc(city) + ' — be the first to be counted. 🌱'
-        : 'The Pack is quiet — be the first to be counted. 🌱';
+        ? 'The Pack is quiet in ' + esc(city) + ' \u2014 be the first to be counted. \ud83c\udf31'
+        : 'The Pack is quiet \u2014 be the first to be counted. \ud83c\udf31';
       return;
     }
     b.className = '';
-    var counts = {};
-    rows.forEach(function(r){ if (r.topic) counts[r.topic] = (counts[r.topic]||0) + 1; });
-    var topics = Object.keys(counts).sort(function(a,b){ return counts[b]-counts[a]; });
-    var sel = null;
-    function draw(){
-      var shown = sel ? rows.filter(function(r){ return r.topic === sel; }) : rows;
-      b.innerHTML =
-        (topics.length ? '<div class="chips" style="margin-bottom:10px">' +
-          '<span class="chip ' + (!sel?'goldfill':'goldline') + '" data-t="">All (' + rows.length + ')</span>' +
-          topics.map(function(t){ return '<span class="chip ' + (sel===t?'goldfill':'goldline') + '" data-t="' + esc(t) + '">#' + esc(t) + ' (' + counts[t] + ')</span>'; }).join('') +
-        '</div>' : '') +
-        shown.map(function(r){
-          return '<div class="card">' + ((r.topic || r.place) ? '<div style="margin-bottom:6px">' + (r.topic ? '<span class="topicchip">#' + esc(r.topic) + '</span> ' : '') + (r.place ? '<span class="chip" style="cursor:default">📍 ' + esc(r.place.split(',')[0]) + '</span>' : '') + '</div>' : '') + (r.body ? '<div class="entry-body">' + esc(r.body) + '</div>' : '') + mediaHTML(r.media) +
-          '<div class="ts">— ' + esc(r.pup) + ' · ' + new Date(r.ts).toLocaleDateString() + '</div></div>';
-        }).join('');
-      Array.prototype.forEach.call(b.querySelectorAll('[data-t]'), function(c){
-        c.onclick = function(){ sel = c.getAttribute('data-t') || null; draw(); };
-      });
+
+    function cardHTML(r){
+      return '<div class="card">' +
+        ((r.topic || r.place) ? '<div style="margin-bottom:6px">' +
+          (r.topic ? '<span class="topicchip">#' + esc(r.topic) + '</span> ' : '') +
+          (r.place ? '<span class="chip" style="cursor:default">\ud83d\udccd ' + esc(r.place.split(',')[0]) + '</span>' : '') + '</div>' : '') +
+        (r.body ? '<div class="entry-body">' + esc(r.body) + '</div>' : '') + mediaHTML(r.media) +
+        '<div class="ts">\u2014 ' + esc(r.pup) + ' \u00b7 ' + new Date(r.ts).toLocaleDateString() + '</div></div>';
     }
-    draw();
+    function feedHTML(list){ return '<div class="grid2">' + list.map(cardHTML).join('') + '</div>'; }
+
+    var byTopic = {};
+    rows.forEach(function(r){ var t = r.topic || 'fresh'; (byTopic[t] = byTopic[t] || []).push(r); });
+    var topics = Object.keys(byTopic).sort(function(a,b){ return byTopic[b].length - byTopic[a].length; });
+
+    function firstImg(list){
+      for (var i = 0; i < list.length; i++) {
+        var m = list[i].media || [];
+        for (var j = 0; j < m.length; j++)
+          if (m[j].type && m[j].type.indexOf('image') === 0) return m[j].url;
+      }
+      return null;
+    }
+
+    function tilesView(){
+      clearInterval(window._packT);
+      var tiles = [];
+      if (mine.length) tiles.push({ key: '__mine', name: '\u2b50 My shared', list: mine, color: 'var(--gold)', mine: true });
+      topics.forEach(function(t, i){
+        tiles.push({ key: t, name: '#' + t, list: byTopic[t], color: TILE_COLORS[i % TILE_COLORS.length] });
+      });
+      b.innerHTML = '<div class="tilegrid">' + tiles.map(function(t, i){
+        var img = firstImg(t.list);
+        var bg = img
+          ? 'background-image:linear-gradient(rgba(20,26,33,.25), rgba(20,26,33,.72)), url(' + esc(img) + ')'
+          : 'background:' + t.color;
+        return '<div class="tile' + (t.mine ? ' mine' : '') + '" data-i="' + i + '" style="' + bg + '">' +
+          '<div class="tcount">' + t.list.length + '</div>' +
+          '<div class="tsnippet" id="tsnip' + i + '">' + esc((t.list[0].body || '\ud83d\udcf7').slice(0, 90)) + '</div>' +
+          '<div class="tname">' + esc(t.name) + '</div></div>';
+      }).join('') + '</div>';
+      Array.prototype.forEach.call(b.querySelectorAll('.tile'), function(el){
+        el.onclick = function(){ feedView(tiles[+el.getAttribute('data-i')]); };
+      });
+      var tick = 0;
+      window._packT = setInterval(function(){
+        tick++;
+        tiles.forEach(function(t, i){
+          if (t.list.length < 2) return;
+          var sn = document.getElementById('tsnip' + i); if (!sn) return;
+          sn.style.opacity = 0;
+          setTimeout(function(){
+            var r = t.list[tick % t.list.length];
+            sn.textContent = (r.body || '\ud83d\udcf7').slice(0, 90);
+            sn.style.opacity = 1;
+          }, 450);
+        });
+      }, 3500);
+    }
+
+    function feedView(t){
+      clearInterval(window._packT);
+      b.innerHTML = '<span class="chip goldline backchip" id="back">\u2190 all tiles</span>' +
+        '<div class="count" style="margin-top:0">' + esc(t.name) + ' \u00b7 ' + t.list.length + '</div>' +
+        feedHTML(t.list);
+      document.getElementById('back').onclick = tilesView;
+    }
+
+    var all = rows.slice();
+    mine.forEach(function(m){ if (!all.some(function(r){ return r.ts === m.ts && r.pup === m.pup; })) all.push(m); });
+    document.getElementById('packsearch').oninput = function(){
+      var q = this.value.trim().toLowerCase();
+      if (!q) { tilesView(); return; }
+      clearInterval(window._packT);
+      var hit = all.filter(function(r){
+        return (r.body || '').toLowerCase().indexOf(q) >= 0 ||
+               (r.topic || '').toLowerCase().indexOf(q) >= 0 ||
+               (r.pup || '').toLowerCase().indexOf(q) >= 0 ||
+               (r.place || '').toLowerCase().indexOf(q) >= 0;
+      });
+      b.innerHTML = hit.length ? feedHTML(hit) : '<div class="hint">Nothing in the pack matches that. \ud83d\udc3e</div>';
+    };
+
+    tilesView();
   }).catch(function(e){ document.getElementById('board').textContent = 'The pack is napping: ' + e.message; });
 }
 
