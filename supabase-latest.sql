@@ -52,3 +52,8 @@ returns json language sql security definer set search_path = public as $$
   ) s;
 $$;
 grant execute on function vp_shared_board(text) to anon;
+
+-- Edge functions use the service role; with "auto-expose tables" off it needs explicit grants
+grant usage on schema public to service_role;
+grant all on table entries, ledgers, elections to service_role;
+grant usage, select on all sequences in schema public to service_role;
