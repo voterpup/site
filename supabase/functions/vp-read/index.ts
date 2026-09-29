@@ -41,11 +41,16 @@ Deno.serve(async (req) => {
     return new Response(JSON.stringify({ error: "bad request" }), { status: 400, headers: CORS });
   }
 
-  const rows: { media?: Media[] }[] = Array.isArray(data) ? data : (data.entries ?? []);
+  // Each row is signed under its own rule: a pup's OWN entries in full; anything that belongs to
+  // someone else (board, candidate view, issues this pup backs) only as reviewed-ok images.
+  const own: { media?: Media[] }[] = body.mode === "ledger" ? (data.entries ?? []) : [];
+  const others: { media?: Media[] }[] = body.mode === "ledger" ? (data.backed ?? [])
+    : Array.isArray(data) ? data : (data.entries ?? []);
+  const isPub = (m: any) => m.mod === "ok" && !String(m.type).startsWith("video/");
   const paths = new Set<string>();
-  const publicMode = body.mode !== "ledger";
-  for (const row of rows) for (const m of (row.media ?? []) as any[]) {
-    if (publicMode && (m.mod !== "ok" || String(m.type).startsWith("video/"))) continue;
+  for (const row of own) for (const m of (row.media ?? []) as any[]) { const p = pathOf(m); if (p) paths.add(p); }
+  for (const row of others) for (const m of (row.media ?? []) as any[]) {
+    if (!isPub(m)) continue;
     const p = pathOf(m); if (p) paths.add(p);
   }
 
@@ -54,9 +59,8 @@ Deno.serve(async (req) => {
     const { data: s } = await db.storage.from("media").createSignedUrls([...paths], TTL);
     for (const x of s ?? []) if (x.signedUrl && x.path) signed.set(x.path, x.signedUrl);
   }
-  // Public modes (board, view) are fail-closed: only images reviewed 'ok' get a URL.
-  const isPublic = body.mode !== "ledger";
-  for (const row of rows) {
+  // Other people's media is fail-closed: only images reviewed 'ok' get a URL.
+  const sign = (row: { media?: Media[] }, isPublic: boolean) => {
     row.media = (row.media ?? [])
       .map((m: any) => {
         if (isPublic) {
@@ -69,6 +73,8 @@ Deno.serve(async (req) => {
         return u ? { type: m.type, url: u } : null;
       })
       .filter(Boolean) as Media[];
-  }
+  };
+  for (const row of own) sign(row, false);
+  for (const row of others) sign(row, true);
   return new Response(JSON.stringify(data), { headers: { ...CORS, "content-type": "application/json" } });
 });
