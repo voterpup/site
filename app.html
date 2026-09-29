@@ -605,13 +605,30 @@ function screenPack(mode, topic0){
       return null;
     }
 
+    var tiles = [];
+    if (mine.length) tiles.push({ key: '__mine', name: '\u2b50 My shared', list: mine, color: 'var(--gold)', mine: true });
+    topics.forEach(function(t, i){
+      tiles.push({ key: t, name: '#' + t, list: byTopic[t], color: TILE_COLORS[i % TILE_COLORS.length] });
+    });
+
+    var _upCache = null;
+    function topicMoments(t, cb){
+      if (!place) { cb(''); return; }
+      var build = function(list){
+        var rel = (list || []).filter(function(e){ return e.kind === 'election' || e.topic === t.key; });
+        if (!rel.length) { cb(''); return; }
+        cb('<div class="votestrip">' + rel.map(function(e){
+          var cls = e.kind === 'election' ? 'days red' : 'days';
+          return '<div class="vsrow">\ud83d\uddf3\ufe0f <b>' + esc(e.name) + '</b><span class="' + cls + '">' +
+            (e.days === 0 ? 'TODAY' : 'in ' + e.days + ' day' + (e.days===1?'':'s')) + '</span></div>';
+        }).join('') + '</div>');
+      };
+      if (_upCache) { build(_upCache); return; }
+      rpc('vp_upcoming', { p_place: place }).then(function(list){ _upCache = list; build(list); }).catch(function(){ cb(''); });
+    }
+
     function tilesView(){
       clearInterval(window._packT);
-      var tiles = [];
-      if (mine.length) tiles.push({ key: '__mine', name: '\u2b50 My shared', list: mine, color: 'var(--gold)', mine: true });
-      topics.forEach(function(t, i){
-        tiles.push({ key: t, name: '#' + t, list: byTopic[t], color: TILE_COLORS[i % TILE_COLORS.length] });
-      });
       b.innerHTML = '<div class="tilegrid">' + tiles.map(function(t, i){
         var img = firstImg(t.list);
         var bg = img
@@ -645,8 +662,18 @@ function screenPack(mode, topic0){
       clearInterval(window._packT);
       b.innerHTML = '<span class="chip goldline backchip" id="back">\u2190 all tiles</span>' +
         '<div class="count" style="margin-top:0">' + esc(t.name) + ' \u00b7 ' + t.list.length + '</div>' +
+        '<div id="tmoments"></div>' +
         feedHTML(t.list);
       document.getElementById('back').onclick = tilesView;
+      if (!t.mine) topicMoments(t, function(html){
+        var tm = document.getElementById('tmoments'); if (tm) tm.innerHTML = html;
+      });
+    }
+
+    if (topic0) {
+      var hit0 = null;
+      tiles.forEach(function(t){ if (t.key === topic0) hit0 = t; });
+      if (hit0) { feedView(hit0); return; }
     }
 
     var all = rows.slice();
