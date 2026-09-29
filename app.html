@@ -708,7 +708,8 @@ function makeSticker(name, url){
     x.drawImage(face, 40, 48, 140, 140); x.restore();
     x.beginPath(); x.arc(110, 118, 70, 0, Math.PI * 2); x.lineWidth = 6; x.strokeStyle = '#e8b84b'; x.stroke();
     x.drawImage(qimg, W - 430, 60, 390, 390);
-    x.fillStyle = '#2a2418'; x.font = '900 58px sans-serif';
+    x.fillStyle = '#2a2418';
+    var fs = 58; do { x.font = '900 ' + fs + 'px sans-serif'; fs -= 2; } while (fs > 18 && x.measureText(name.toUpperCase()).width > 250);
     x.fillText(name.toUpperCase(), 200, 140);
     x.font = '600 32px sans-serif'; x.fillStyle = '#55677a';
     x.fillText('remembers what', 44, 270); x.fillText('you care about.', 44, 312);
@@ -950,7 +951,7 @@ function screenPack(mode, topic0){
   }).catch(function(e){ document.getElementById('board').textContent = 'The pack is napping: ' + e.message; });
 }
 
-var APP_VERSION = "20260929045813";
+var APP_VERSION = "20260929045824";
 (function(){
   try {
     fetch('/version.json?t=' + Date.now(), { cache: 'no-store' }).then(function(r){ return r.json(); }).then(function(j){
