@@ -10,8 +10,14 @@ const MONTHS: Record<string, number> = { january:1,february:2,march:3,april:4,ma
   august:8,september:9,october:10,november:11,december:12 };
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
+const NAMED: Record<string, string> = { amp:"&", quot:'"', lt:"<", gt:">", apos:"'", nbsp:" ",
+  rarr:"→", larr:"←", ndash:"–", mdash:"—", rsquo:"’", lsquo:"‘", hellip:"…" };
 function decode(s: string) {
-  return s.replace(/&amp;/g,"&").replace(/&#39;/g,"'").replace(/&quot;/g,'"').replace(/&lt;/g,"<").replace(/&gt;/g,">").trim();
+  return s
+    .replace(/&#x([0-9a-f]+);/gi, (_, h) => String.fromCodePoint(parseInt(h, 16)))
+    .replace(/&#(\d+);/g, (_, d) => String.fromCodePoint(+d))
+    .replace(/&([a-z]+);/gi, (m, n) => NAMED[n.toLowerCase()] ?? m)
+    .trim();
 }
 function text(html: string) {
   return decode(html.replace(/<script[\s\S]*?<\/script>|<style[\s\S]*?<\/style>/g," ").replace(/<[^>]+>/g,"\n"))
@@ -37,6 +43,10 @@ function ruleTopic(name: string) {
 
 Deno.serve(async () => {
   const db = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
+  const { data: last } = await db.from("syc_seen").select("checked_at").order("checked_at", { ascending: false }).limit(1);
+  if (last?.length && Date.now() - new Date(last[0].checked_at).getTime() < 55 * 60e3) {
+    return new Response(JSON.stringify({ skipped: "cooldown: last run < 55 min ago" }));
+  }
   const listRes = await fetch(BASE + "/projects", { headers: { "User-Agent": UA } });
   if (!listRes.ok) return new Response("list fetch failed: " + listRes.status, { status: 502 });
   const listHtml = await listRes.text();
@@ -47,10 +57,14 @@ Deno.serve(async () => {
     return new Response(`health check FAILED: parsed ${tiles.length} published tiles — no changes made`, { status: 500 });
   }
 
-  const { data: seen } = await db.from("syc_seen").select("slug")
-    .gt("checked_at", new Date(Date.now() - 7 * 86400e3).toISOString());
-  const recent = new Set((seen || []).map((r: { slug: string }) => r.slug));
-  const todo = tiles.filter((t) => !recent.has(t.slug)).slice(0, 40);
+  const { data: seenRows } = await db.from("syc_seen").select("slug, checked_at, has_window");
+  const seen = new Map((seenRows || []).map((r: { slug: string; checked_at: string; has_window: boolean }) => [r.slug, r]));
+  const now = Date.now();
+  const age = (slug: string) => now - new Date(seen.get(slug)!.checked_at).getTime();
+  const fresh = tiles.filter((t) => !seen.has(t.slug));
+  const due = tiles.filter((t) => seen.has(t.slug) &&
+    (seen.get(t.slug)!.has_window ? age(t.slug) > 7 * 86400e3 : age(t.slug) > 86400e3));
+  const todo = [...fresh, ...due].slice(0, 60);
   const today = new Date().toISOString().slice(0, 10);
 
   const found: { slug: string; name: string; end: string }[] = [];
@@ -70,6 +84,10 @@ Deno.serve(async () => {
       }
     } catch (_) { /* skip page, retry next week */ }
     await db.from("syc_seen").upsert({ slug: t.slug, checked_at: new Date().toISOString(), has_window: hasWindow });
+  }
+
+  if (todo.length >= 10 && found.length === 0) {
+    return new Response(`parse check FAILED: ${todo.length} pages checked, 0 comment windows found — check the date format`, { status: 500 });
   }
 
   // topics: one cheap batch call for city-scope names; rules for address-level applications
