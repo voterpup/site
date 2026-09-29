@@ -96,6 +96,27 @@
   .fetchcard video{width:78px; height:120px; object-fit:cover; border-radius:12px; flex:0 0 auto; background:#e9edf1}
   .fetchcard .ft{font-size:14px; font-weight:700; line-height:1.35}
   .fetchcard .ft small{display:block; font-weight:500; color:var(--sub); font-size:12px; margin-top:3px}
+  .fetchvid{position:relative; width:78px; height:120px; flex:0 0 auto}
+  .fetchvid video{position:absolute; inset:0; width:78px; height:120px; object-fit:cover; border-radius:12px; background:#e9edf1}
+  .fetchvid .vtop{z-index:2; transition:opacity .35s}
+  .momwrap{margin:14px 0 4px}
+  .momwrap .mhead{font-size:12px; font-weight:800; color:var(--sub); text-transform:uppercase; letter-spacing:.5px; margin:0 2px 8px}
+  .momgrid{display:grid; grid-template-columns:1fr 1fr; gap:10px}
+  .mtile{border-radius:14px; color:#fff; padding:11px 12px; min-height:104px; cursor:pointer; position:relative;
+      display:flex; flex-direction:column; justify-content:space-between; box-shadow:0 1px 3px rgba(16,24,40,.12)}
+  .mtile.red{background:#a94b4b} .mtile.green{background:#2f7d5f} .mtile.blue{background:#3b6fb6}
+  .mtile .mk{font-size:10.5px; font-weight:800; letter-spacing:.5px; opacity:.9; text-transform:uppercase}
+  .mtile .md{font-size:24px; font-weight:900; line-height:1}
+  .mtile .md small{font-size:12px; font-weight:700; opacity:.9}
+  .mtile .mn{font-size:12.5px; font-weight:700; line-height:1.3; display:-webkit-box; -webkit-line-clamp:2;
+      -webkit-box-orient:vertical; overflow:hidden}
+  .mtile.on{outline:3px solid var(--gold); outline-offset:2px}
+  .mpanel{background:var(--card); border:1px solid var(--line); border-radius:14px; padding:10px 12px; margin-top:10px;
+      font-size:12.5px; color:var(--sub); white-space:pre-line}
+  .mpanel b{color:var(--ink)}
+  .mpanel a{display:inline-block; margin:6px 8px 0 0; color:#3b6fb6; font-weight:700; text-decoration:none}
+  .mpanel .vitem{margin-top:6px; white-space:normal}
+  .mpanel .qname{color:var(--ink); font-weight:700; margin-top:8px}
   .linkbox{background:var(--chip); border:1px dashed var(--gold); border-radius:12px; padding:12px;
            font-size:13px; word-break:break-all; margin-top:10px}
   .qrwrap{display:flex; justify-content:center; margin:14px 0}
@@ -302,7 +323,7 @@ function renderVoteStrip(){
   var el = document.getElementById('votestrip'); if (!el) return;
   var place = getPlace();
   if (!place) {
-    el.innerHTML = '📍 <b>Find your next election</b><span class="days" id="findloc" style="cursor:pointer">use my location</span>';
+    el.innerHTML = '<div class="votestrip" style="display:flex;align-items:center;gap:8px">📍 <b>Find your next election</b><span class="days" id="findloc" style="cursor:pointer;margin-left:auto">use my location</span></div>';
     document.getElementById('findloc').onclick = function(){
       el.innerHTML = '📍 sniffing around...';
       detectPlace(function(p){ renderVoteStrip(); });
@@ -310,8 +331,8 @@ function renderVoteStrip(){
     return;
   }
   rpc('vp_upcoming', { p_place: place }).then(function(list){
-    if (!list || !list.length) { el.innerHTML = '🗳️ No upcoming votes on file for <b>' + esc(place.split(',')[0]) + '</b> yet.'; return; }
-    el.innerHTML = renderMoments(list, true);
+    if (!list || !list.length) { el.innerHTML = '<div class="votestrip">🗳️ No upcoming votes on file for <b>' + esc(place.split(',')[0]) + '</b> yet.</div>'; return; }
+    mountMoments(el, list, true);
   }).catch(function(){ el.innerHTML = ''; });
 }
 var _elCache = {};
@@ -384,6 +405,53 @@ function groupedVoiceRow(vs, cap){
     '<span class="days blue">next closes ' + daysText(vs[0].days) + '</span></summary>' +
     '<div class="mombody"><div>Anyone can comment — you don’t need to be a citizen or a voter.</div>' +
     voiceItems(vs, cap) + '</div></details>';
+}
+function momentTiles(list, groupDecisions){
+  var items = [], byDate = {}, voice = [];
+  list.forEach(function(e){
+    if (e.kind === 'voice') { voice.push(e); return; }
+    if (groupDecisions && e.kind === 'decision') {
+      if (!byDate[e.vote_date]) { byDate[e.vote_date] = []; items.push({ qd: e.vote_date }); }
+      byDate[e.vote_date].push(e);
+    } else items.push({ e: e });
+  });
+  var tiles = items.map(function(it){
+    if (it.qd) {
+      var qs = byDate[it.qd], seen = {}, links = [];
+      qs.forEach(function(q){ (q.actions || []).forEach(function(a){ if (!seen[a.url]) { seen[a.url] = 1; links.push(a); } }); });
+      return { cls: 'green', kind: 'Ballot questions', days: qs[0].days,
+        title: qs.length + ' question' + (qs.length === 1 ? '' : 's') + ' on your ballot',
+        body: qs.map(function(q){ return '<div class="qname">' + esc(q.name) + '</div>' + (q.how ? '<div>' + esc(q.how) + '</div>' : ''); }).join('') +
+              '<div>' + actionLinks(links) + '</div>' };
+    }
+    var e = it.e;
+    return { cls: e.kind === 'election' ? 'red' : (e.kind === 'voice' ? 'blue' : 'green'),
+      kind: e.kind === 'election' ? 'Election' : (e.kind === 'voice' ? 'Have your say' : 'Ballot question'),
+      days: e.days, title: e.name, body: '<b>' + esc(e.name) + '</b>\n' + momentBody(e) };
+  });
+  if (voice.length) tiles.push({ cls: 'blue', kind: 'Have your say', days: voice[0].days,
+    title: (voice.length >= 40 ? '40+' : voice.length) + ' open consultation' + (voice.length === 1 ? '' : 's'),
+    body: '<div>Anyone can comment — you don’t need to be a citizen or a voter.</div>' + voiceItems(voice, groupDecisions ? 8 : 12) });
+  return tiles;
+}
+function mountMoments(el, list, groupDecisions, heading){
+  var tiles = momentTiles(list, groupDecisions);
+  if (!tiles.length) { el.innerHTML = ''; return; }
+  el.innerHTML = '<div class="mhead">' + (heading || 'When you can act') + '</div><div class="momgrid">' +
+    tiles.map(function(t, i){
+      return '<div class="mtile ' + t.cls + '" data-mi="' + i + '"><div class="mk">' + t.kind + '</div>' +
+        '<div class="md">' + (t.days === 0 ? 'TODAY' : t.days + '<small> day' + (t.days === 1 ? '' : 's') + '</small>') + '</div>' +
+        '<div class="mn">' + esc(t.title) + '</div></div>';
+    }).join('') + '</div><div class="mpanel" hidden></div>';
+  var panel = el.querySelector('.mpanel');
+  Array.prototype.forEach.call(el.querySelectorAll('.mtile'), function(tile){
+    tile.onclick = function(){
+      var i = +tile.getAttribute('data-mi'), was = tile.classList.contains('on');
+      Array.prototype.forEach.call(el.querySelectorAll('.mtile'), function(x){ x.classList.remove('on'); });
+      if (was) { panel.hidden = true; return; }
+      tile.classList.add('on'); panel.innerHTML = tiles[i].body; panel.hidden = false;
+    };
+  });
 }
 function renderMoments(list, groupDecisions){
   var out = [], byDate = {}, order = [], voice = [];
@@ -522,11 +590,13 @@ function screenLedger(tail){
     var n = L.entries.length;
     pendingFiles = [];
     root.innerHTML = nav() +
-      '<div class="fetchcard"><video src="/pup-fetch.mp4" muted autoplay loop playsinline preload="metadata"></video>' +
+      '<div class="fetchcard"><div class="fetchvid">' +
+        '<video class="vsit" src="/pup-sit.mp4" muted autoplay loop playsinline preload="auto"></video>' +
+        (window._vpFetchPlayed ? '' : '<video class="vtop" id="vfetch" src="/pup-fetch.mp4" muted autoplay playsinline preload="auto"></video>') +
+      '</div>' +
         '<div class="ft">' + esc(L.name) + ' fetches your issues for you.' +
         '<small>Tell ' + esc(L.name) + ' what should be fixed — it brings them back the day you can vote on them. 🗳️</small></div></div>' +
       say('What made you think<br>&ldquo;someone should fix this&rdquo;?', 'tell ' + esc(L.name) + ' — 5 words is plenty') +
-      '<div class="votestrip" id="votestrip"></div>' +
       '<div class="composer">' +
         '<textarea id="gripe" placeholder="Tell ' + esc(L.name) + '..."></textarea>' +
         '<div id="thumbs" class="attach"></div>' +
@@ -539,6 +609,7 @@ function screenLedger(tail){
         '</div>' +
       '</div>' +
       '<p class="privacy">🔒 Everything you give ' + esc(L.name) + ' is private. Sharing is your choice — reversible anytime.</p>' +
+      '<div class="momwrap" id="votestrip"></div>' +
       '<div class="count">' + (n === 0 ? esc(L.name) + ' is waiting for a first memory'
         : esc(L.name) + ' remembers ' + n + ' thing' + (n===1?'':'s')) + '</div>' +
       '<div id="entries" class="grid2"></div>' +  esc(L.name) + ' along.</div>' +
@@ -546,6 +617,15 @@ function screenLedger(tail){
       ' — <a href="#" id="copy2" style="color:#a97f1d">copy</a> · <a href="#" id="stick2" style="color:#a97f1d">sticker</a></div>' +
       '<footer><a href="mailto:hi@voterpup.com">hi@voterpup.com</a> · voterpup.com</footer>' + tabbar('pup');
     wireAttach(); wireTabs(); renderVoteStrip(); refreshPlaceIfStale();
+    (function(){
+      var vf = document.getElementById('vfetch');
+      if (!vf) return;
+      window._vpFetchPlayed = true;
+      var done = function(){ vf.style.opacity = 0; setTimeout(function(){ if (vf.parentNode) vf.parentNode.removeChild(vf); }, 400); };
+      vf.addEventListener('ended', done);
+      vf.addEventListener('error', done);
+      var p = vf.play(); if (p && p.catch) p.catch(done);
+    })();
     if (!window._vpVisWired) { window._vpVisWired = true;
       document.addEventListener('visibilitychange', function(){
         if (!document.hidden) refreshPlaceIfStale();
@@ -725,14 +805,14 @@ function screenPack(mode, topic0){
 
     var _upCache = null;
     function topicMoments(t, cb){
-      if (!place) { cb(''); return; }
+      if (!place) { cb([]); return; }
       var build = function(list){
         var rel = (list || []).filter(function(e){ return e.kind === 'election' || e.topic === t.key; });
-        if (!rel.length) { cb(''); return; }
-        cb('<div class="votestrip">' + renderMoments(rel, false) + '</div>');
+        if (!rel.length) { cb([]); return; }
+        cb(rel);
       };
       if (_upCache) { build(_upCache); return; }
-      rpc('vp_upcoming', { p_place: place }).then(function(list){ _upCache = list; build(list); }).catch(function(){ cb(''); });
+      rpc('vp_upcoming', { p_place: place }).then(function(list){ _upCache = list; build(list); }).catch(function(){ cb([]); });
     }
 
     function tileImgs(list){
@@ -802,7 +882,7 @@ function screenPack(mode, topic0){
         feedHTML(t.list);
       document.getElementById('back').onclick = tilesView;
       if (!t.mine) topicMoments(t, function(html){
-        var tm = document.getElementById('tmoments'); if (tm) tm.innerHTML = html;
+        var tm = document.getElementById('tmoments'); if (tm) mountMoments(tm, html, false, 'When you can act on ' + t.name);
       });
     }
 
