@@ -235,6 +235,7 @@ var SUPABASE_URL = "https://setyjmgijsbplgyqynlh.supabase.co";
 var SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNldHlqbWdpanNicGxneXF5bmxoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTA1NDU0NTAsImV4cCI6MjEwNjEyMTQ1MH0.v8tjuc2UZrTw5whfDXtpEPW4CHggusgjq8Mkdh6ZMw8";
 // Flip to true once Google is enabled in Supabase Auth -> Providers.
 var GOOGLE_READY = false;
+var GOOGLE_CLIENT_ID = '';   // paste the OAuth Web client ID (public, safe in page)
 var sb = null;
 try { sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY,
         { auth: { flowType: 'pkce', detectSessionInUrl: true, persistSession: true } }); } catch (e) {}
@@ -300,7 +301,7 @@ function uploadPending(){
       body: f
     }).then(function(r){
       if (!r.ok) return r.text().then(function(t){ throw new Error(t); });
-      return { url: SUPABASE_URL + '/storage/v1/object/public/media/' + name, type: f.type };
+      return { path: name, type: f.type };
     });
   });
   return Promise.all(ups);
@@ -495,6 +496,13 @@ function ensurePlace(){
     setTimeout(function(){ fin(null); }, 9000);
   });
 }
+function vpRead(body){
+  return fetch(SUPABASE_URL + '/functions/v1/vp-read', {
+    method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body)
+  }).then(function(r){ return r.text().then(function(t){ if (!r.ok) throw new Error(t); return t ? JSON.parse(t) : null; }); });
+}
+function readLedger(tail){ return vpRead({ mode: 'ledger', tail: tail }); }
+function readBoard(place){ return vpRead({ mode: 'board', place: place || null }); }
 function pupURL(tail){ return BASE + '/p/' + tail; }
 function saveLocal(tail, name){ try{ localStorage.setItem('vp.pup', JSON.stringify({tail:tail,name:name})); }catch(e){} }
 function loadLocal(){ try{ return JSON.parse(localStorage.getItem('vp.pup')||'null'); }catch(e){ return null; } }
@@ -520,10 +528,10 @@ function screenCapture(prefGripe, prefName){
     '<button class="btn gold" id="open" disabled>Open the box 🎁</button>' +
     (saved && !KIOSK ? '<button class="btn ghost" id="resume">Continue with ' + esc(saved.name) + ' →</button>' : '') +
     '<p class="privacy">🔒 No account needed. You&rsquo;ll get a private link — that link is yours alone.</p>' +
-    (GOOGLE_READY && !saved && !KIOSK ? '<p class="privacy"><a href="#" id="grestore" style="color:#3b6fb6;font-weight:700">Backed up a pup before? Find it →</a></p>' : '') +
+    (GOOGLE_READY && !saved && !KIOSK ? '<p class="privacy"><a href="#" id="grestore" style="color:#3b6fb6;font-weight:700">Backed up a pup before? Find it →</a></p><div id="grslot"></div>' : '') +
     tabbar('pup');
   wireAttach(); wireTabs();
-  var gr = document.getElementById('grestore'); if (gr) gr.onclick = function(ev){ ev.preventDefault(); startRestore(); };
+  var gr = document.getElementById('grestore'); if (gr) gr.onclick = function(ev){ ev.preventDefault(); gr.style.display = 'none'; startRestore(document.getElementById('grslot')); };
   var ta = document.getElementById('gripe'), inp = document.getElementById('pname');
   if (prefGripe) ta.value = prefGripe;
   if (prefName) inp.value = prefName;
@@ -602,7 +610,7 @@ function screenUnbox(name, gripe){
 }
 
 function screenLedger(tail){
-  rpc('vp_get_ledger', { p_tail: tail }).then(function(L){
+  readLedger(tail).then(function(L){
     if (!L) {
       root.innerHTML = nav() + say('No pup here.', 'check your link — every character matters') +
         '<button class="btn" onclick="location.href=\'/app.html\'">Start a new pup</button>' + tabbar('pup');
@@ -623,7 +631,7 @@ function screenLedger(tail){
       '</div></div>' +
       (GOOGLE_READY ? (isBackedUp(tail)
         ? '<div class="banner">✅ ' + esc(L.name) + ' is backed up to your Google account.</div>'
-        : '<div class="backup"><button class="btn ghost" id="gbackup">🔐 Don&rsquo;t lose ' + esc(L.name) + ' — back up with Google</button>' +
+        : '<div class="backup"><button class="btn ghost" id="gbackup">🔐 Don&rsquo;t lose ' + esc(L.name) + ' — back up with Google</button><div id="gslot"></div>' +
           '<p class="privacy">We use your email only to restore ' + esc(L.name) + ' on any device. No mail, ever.</p></div>') : '') +
       say('What made you think<br>&ldquo;someone should fix this&rdquo;?', 'tell ' + esc(L.name) + ' — 5 words is plenty') +
       '<div class="composer">' +
@@ -681,7 +689,7 @@ function screenLedger(tail){
     document.getElementById('copy2').onclick = function(ev){ ev.preventDefault();
       navigator.clipboard.writeText(pupURL(tail)); this.textContent = 'copied ✓'; };
     mountHomeSticker(L.name, pupURL(tail));
-    var gb = document.getElementById('gbackup'); if (gb) gb.onclick = function(){ startBackup(tail); };
+    var gb = document.getElementById('gbackup'); if (gb) gb.onclick = function(){ gb.style.display = 'none'; startBackup(tail, document.getElementById('gslot')); };
     var box = document.getElementById('entries');
     box.innerHTML = L.entries.map(function(e){
       return '<div class="card">' +
@@ -837,8 +845,8 @@ function screenPack(mode, topic0){
 
   var saved = loadLocal();
   Promise.all([
-    rpc('vp_shared_board', { p_place: (mode === 'local' && place) ? place : null }),
-    saved ? rpc('vp_get_ledger', { p_tail: saved.tail }).catch(function(){ return null; }) : Promise.resolve(null)
+    readBoard((mode === 'local' && place) ? place : null),
+    saved ? readLedger(saved.tail).catch(function(){ return null; }) : Promise.resolve(null)
   ]).then(function(res){
     var rows = res[0] || [];
     var mine = (res[1] && res[1].entries || []).filter(function(e){ return e.shared; })
@@ -989,7 +997,7 @@ function screenPack(mode, topic0){
   }).catch(function(e){ document.getElementById('board').textContent = 'The pack is napping: ' + e.message; });
 }
 
-var APP_VERSION = "20260929064523";
+var APP_VERSION = "20260929065339";
 (function(){
   try {
     fetch('/version.json?t=' + Date.now(), { cache: 'no-store' }).then(function(r){ return r.json(); }).then(function(j){
@@ -1016,29 +1024,61 @@ function waitSession(){
     })();
   });
 }
-function startBackup(tail){
-  if (!sb) { alert('Backup is unavailable right now.'); return; }
-  try { localStorage.setItem('vp.claimTail', tail); } catch (e) {}
-  sb.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: BASE + '/app.html?claimed=1' } });
+function inAppBrowser(){ return /Instagram|FBAN|FBAV|TikTok|musical_ly|Snapchat|Line\/|WhatsApp|; wv\)/i.test(navigator.userAgent); }
+var _gisLoad = null;
+function loadGIS(){
+  if (_gisLoad) return _gisLoad;
+  _gisLoad = new Promise(function(res, rej){
+    var s = document.createElement('script'); s.src = 'https://accounts.google.com/gsi/client'; s.async = true;
+    s.onload = function(){ res(); }; s.onerror = function(){ rej(new Error('could not load Google sign-in')); };
+    document.head.appendChild(s);
+  });
+  return _gisLoad;
 }
-function startRestore(){
+function sha256hex(str){
+  return crypto.subtle.digest('SHA-256', new TextEncoder().encode(str)).then(function(buf){
+    return Array.prototype.map.call(new Uint8Array(buf), function(b){ return ('0' + b.toString(16)).slice(-2); }).join('');
+  });
+}
+// Renders Google's own button into `slot`; resolves after a Supabase session exists.
+function googleButton(slot, onSignedIn){
+  if (!sb || !GOOGLE_CLIENT_ID) { slot.innerHTML = '<p class="privacy">Google backup isn&rsquo;t switched on yet.</p>'; return; }
+  if (inAppBrowser()) {
+    slot.innerHTML = '<p class="privacy">Google blocks sign-in inside this app. Open <b>voterpup.com</b> in Chrome or Safari to back up your pup.</p>' +
+      '<button class="btn ghost" id="copyopen">Copy link to open in browser</button>';
+    document.getElementById('copyopen').onclick = function(){ navigator.clipboard.writeText(location.href); this.textContent = 'Copied ✓'; };
+    return;
+  }
+  slot.innerHTML = '<p class="privacy">Loading Google sign-in…</p>';
+  var raw = Array.prototype.map.call(crypto.getRandomValues(new Uint8Array(16)), function(b){ return ('0' + b.toString(16)).slice(-2); }).join('');
+  Promise.all([loadGIS(), sha256hex(raw)]).then(function(v){
+    google.accounts.id.initialize({
+      client_id: GOOGLE_CLIENT_ID, nonce: v[1], ux_mode: 'popup',
+      callback: function(resp){
+        slot.innerHTML = '<p class="privacy">Signing in…</p>';
+        sb.auth.signInWithIdToken({ provider: 'google', token: resp.credential, nonce: raw }).then(function(r){
+          if (r.error) throw new Error(r.error.message);
+          onSignedIn();
+        }).catch(function(e){ slot.innerHTML = '<p class="privacy">Sign-in didn&rsquo;t finish: ' + esc(e.message) + '</p>'; });
+      }
+    });
+    slot.innerHTML = '';
+    google.accounts.id.renderButton(slot, { theme: 'outline', size: 'large', text: 'continue_with', shape: 'pill', width: 280 });
+  }).catch(function(e){ slot.innerHTML = '<p class="privacy">' + esc(e.message) + '</p>'; });
+}
+function startBackup(tail, slot){
+  googleButton(slot, function(){
+    sb.rpc('vp_claim_ledger', { p_tail: tail }).then(function(r){
+      if (r.error) throw new Error(r.error.message);
+      markBackedUp(tail); screenLedger(tail);
+    }).catch(function(e){ slot.innerHTML = '<p class="privacy">Backup didn&rsquo;t finish: ' + esc(e.message) + '</p>'; });
+  });
+}
+function startRestore(slot){
   if (!sb) return;
   sb.auth.getSession().then(function(r){
     if (r.data && r.data.session) { screenRestore(); return; }
-    sb.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: BASE + '/app.html?restore=1' } });
-  });
-}
-function finishClaim(){
-  var tail = null; try { tail = localStorage.getItem('vp.claimTail'); } catch (e) {}
-  root.innerHTML = nav() + say('Saving your pup to your Google account…');
-  if (!tail) { location.replace('/app.html'); return; }
-  waitSession().then(function(){ return sb.rpc('vp_claim_ledger', { p_tail: tail }); }).then(function(r){
-    if (r.error) throw new Error(r.error.message);
-    markBackedUp(tail); try { localStorage.removeItem('vp.claimTail'); } catch (e) {}
-    location.replace(pupURL(tail));
-  }).catch(function(e){
-    root.innerHTML = nav() + say('Backup didn&rsquo;t finish.', esc(e.message)) +
-      '<button class="btn" onclick="location.href=\'' + pupURL(tail) + '\'">Back to your pup</button>';
+    googleButton(slot, screenRestore);
   });
 }
 function screenRestore(){
@@ -1065,9 +1105,7 @@ function screenRestore(){
 (function(){
   var m = location.pathname.match(/^\/p\/(.+)$/);
   var qs = new URLSearchParams(location.search);
-  if (qs.get('claimed') === '1' && sb) finishClaim();
-  else if (qs.get('restore') === '1' && sb) screenRestore();
-  else if (m) screenLedger(decodeURIComponent(m[1]));
+  if (m) screenLedger(decodeURIComponent(m[1]));
   else if (location.pathname === '/pack') screenPack(undefined, new URLSearchParams(location.search).get('t') || null);
   else screenCapture();
 })();
