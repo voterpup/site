@@ -32,3 +32,7 @@ begin
 end $$;
 drop trigger if exists place_watch_kick on place_watch;
 create trigger place_watch_kick after insert on place_watch for each row execute function vp_kick_discovery();
+
+-- A national-level row is shown in every city of that country: its name must not be local.
+update elections set name = 'US general election (federal offices)'
+  where dkey = 'federal|united states||2026-11-03|election|';
