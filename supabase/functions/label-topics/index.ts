@@ -30,7 +30,7 @@ Deno.serve(async () => {
         role: "user",
         content: "Label each civic gripe with exactly ONE topic from this list: " +
           TOPICS.join(", ") +
-          ". Tents, encampments or unhoused people are "homelessness", never "safety". Reply with ONLY a JSON array of {\"id\":\"...\",\"topic\":\"...\"} — no prose.\n" +
+          ". Tents, encampments or unhoused people are 'homelessness', never 'safety'. Reply with ONLY a JSON array of {\"id\":\"...\",\"topic\":\"...\"} — no prose.\n" +
           JSON.stringify(rows),
       }],
     }),
