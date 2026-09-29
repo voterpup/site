@@ -124,12 +124,12 @@
       box-shadow:0 10px 40px rgba(0,0,0,.25); margin-bottom:env(safe-area-inset-bottom)}
   .stksheet img{width:100%; border-radius:10px; border:1px solid var(--line); display:block}
   .stksheet .hint{margin:8px 2px 0; text-align:center}
-  .stkcard{margin:0 0 12px; cursor:pointer}
-  .stkthumb{position:relative; border-radius:14px; overflow:hidden; border:1px solid var(--line); background:#fff}
-  .stkthumb img{width:100%; display:block; min-height:60px}
-  .stkblur{position:absolute; top:0; right:0; bottom:0; width:50%; backdrop-filter:blur(9px); -webkit-backdrop-filter:blur(9px);
-      background:rgba(255,255,255,.35); display:flex; align-items:center; justify-content:center; text-align:center;
-      font-size:11.5px; font-weight:800; color:#2a2418; padding:8px}
+  .stkcard{cursor:pointer; display:inline-flex; align-items:center; gap:6px; margin-top:7px}
+  .stkcard .stkcap{font-size:11.5px; font-weight:700; color:#8a6a14}
+  .stkthumb{position:relative; width:72px; height:43px; border-radius:6px; overflow:hidden; border:1px solid var(--line); background:#fff; flex:0 0 auto}
+  .stkthumb img{width:72px; height:43px; display:block}
+  .stkblur{position:absolute; top:0; right:0; bottom:0; width:50%; backdrop-filter:blur(3px); -webkit-backdrop-filter:blur(3px);
+      background:rgba(255,255,255,.3)}
   .backup{margin:0 0 12px}
   .backup .btn{margin-top:0}
   .linkbox{background:var(--chip); border:1px dashed var(--gold); border-radius:12px; padding:12px;
@@ -617,9 +617,10 @@ function screenLedger(tail){
         (window._vpFetchPlayed ? '' : '<video class="vtop" id="vfetch" src="/pup-fetch.mp4" muted autoplay playsinline preload="auto"></video>') +
       '</div>' +
         '<div class="ft">' + esc(L.name) + ' fetches your issues for you.' +
-        '<small>Tell ' + esc(L.name) + ' what should be fixed — it brings them back the day you can vote on them. 🗳️</small></div></div>' +
-      '<div class="stkcard" id="stkcard"><div class="stkthumb"><img id="stkimg" alt="' + esc(L.name) + '\u2019s sticker">' +
-        '<div class="stkblur">tap to show<br>your sticker</div></div></div>' +
+        '<small>Tell ' + esc(L.name) + ' what should be fixed — it brings them back the day you can vote on them. 🗳️</small>' +
+        '<div class="stkcard" id="stkcard"><div class="stkthumb"><img id="stkimg" alt="' + esc(L.name) + '\u2019s sticker">' +
+        '<div class="stkblur"></div></div><span class="stkcap">your sticker \u203a</span></div>' +
+      '</div></div>' +
       (GOOGLE_READY ? (isBackedUp(tail)
         ? '<div class="banner">✅ ' + esc(L.name) + ' is backed up to your Google account.</div>'
         : '<div class="backup"><button class="btn ghost" id="gbackup">🔐 Don&rsquo;t lose ' + esc(L.name) + ' — back up with Google</button>' +
@@ -649,7 +650,11 @@ function screenLedger(tail){
       var vf = document.getElementById('vfetch');
       if (!vf) return;
       window._vpFetchPlayed = true;
-      var done = function(){ vf.style.opacity = 0; setTimeout(function(){ if (vf.parentNode) vf.parentNode.removeChild(vf); }, 400); };
+      var done = function(){
+        var vs = document.querySelector('.fetchvid .vsit');
+        if (vs) { try { vs.currentTime = 1.0; vs.play(); } catch (e) {} }
+        vf.style.opacity = 0; setTimeout(function(){ if (vf.parentNode) vf.parentNode.removeChild(vf); }, 400);
+      };
       vf.addEventListener('ended', done);
       vf.addEventListener('error', done);
       var p = vf.play(); if (p && p.catch) p.catch(done);
@@ -984,7 +989,7 @@ function screenPack(mode, topic0){
   }).catch(function(e){ document.getElementById('board').textContent = 'The pack is napping: ' + e.message; });
 }
 
-var APP_VERSION = "20260929052552";
+var APP_VERSION = "20260929063622";
 (function(){
   try {
     fetch('/version.json?t=' + Date.now(), { cache: 'no-store' }).then(function(r){ return r.json(); }).then(function(j){
