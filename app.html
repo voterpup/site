@@ -106,17 +106,16 @@
   .fetchvid img.vsit{position:absolute; inset:0; width:78px; height:120px; object-fit:cover; border-radius:12px; background:#e9edf1}
   .mcard{background:var(--card); border:1px solid var(--line); border-radius:16px; padding:12px; margin:0 0 12px;
       box-shadow:0 1px 2px rgba(16,24,40,.05)}
-  .tour{display:flex; flex-direction:column; min-height:calc(100vh - 40px); padding-top:6px}
-  .tourtop{display:flex; justify-content:space-between; font-size:12.5px; color:var(--sub); font-weight:700; margin-bottom:10px}
-  .tourtop a{color:var(--sub)}
-  .tourmedia{position:relative; width:100%; aspect-ratio:4/3; border-radius:18px; overflow:hidden; background:#f1ede3;
-      box-shadow:0 2px 10px rgba(16,24,40,.1)}
-  .tourmedia img,.tourmedia video{position:absolute; inset:0; width:100%; height:100%; object-fit:cover}
-  .tourtitle{font-size:21px; font-weight:800; line-height:1.25; margin:18px 2px 6px}
-  .tourtext{font-size:14.5px; color:var(--sub); line-height:1.5; margin:0 2px 14px}
-  .tourdots{display:flex; gap:6px; justify-content:center; margin:auto 0 14px}
-  .tourdots i{width:7px; height:7px; border-radius:50%; background:#d9dde5} .tourdots i.on{background:var(--gold); width:18px; border-radius:4px}
-  .tourback{display:block; text-align:center; font-size:13px; color:var(--sub); margin-top:10px}
+  .tourdim{position:fixed; inset:0; z-index:60}
+  .tourhole{position:fixed; z-index:61; border-radius:14px; box-shadow:0 0 0 200vmax rgba(16,22,29,.62); cursor:pointer;
+      outline:3px solid var(--gold)}
+  .tourtip{position:fixed; left:12px; right:12px; z-index:62; background:var(--card); border-radius:16px; padding:12px 14px;
+      box-shadow:0 10px 30px rgba(0,0,0,.3); max-width:440px; margin:0 auto}
+  .tourtxt{font-size:14px; line-height:1.45; color:var(--ink)}
+  .tourrow{display:flex; align-items:center; gap:8px; margin-top:10px; font-size:12px; color:var(--sub)}
+  .tourrow a{color:var(--sub); margin-right:auto}
+  .tbtn{border:0; border-radius:999px; padding:7px 14px; font-weight:800; font-size:13px; background:var(--gold); color:#2a2418; cursor:pointer}
+  .tbtn.ghost{background:var(--chip); color:var(--ink)}
   .mrow{display:flex; gap:12px; align-items:center; background:var(--card); border:1px solid var(--line); border-radius:16px;
       padding:10px; margin:0 0 10px; box-shadow:0 1px 2px rgba(16,24,40,.05)}
   .mthumb{position:relative; width:96px; height:96px; flex:0 0 auto; border-radius:12px; overflow:hidden; background:#f1ede3}
@@ -225,6 +224,8 @@
   .qrwrap{display:flex; justify-content:center; margin:14px 0}
   .qrwrap img{border-radius:10px; background:#fff; padding:10px}
   .kioskqr img{width:78vw; max-width:420px}
+  .sharqr img{width:min(42vw, 170px); height:auto}
+  .stksheet{max-height:calc(100vh - 24px); overflow-y:auto}
   .banner{background:var(--chip); border:1px solid var(--line); border-radius:12px; padding:11px 13px;
           color:var(--sub); font-size:13px; margin-top:14px}
   footer{text-align:center; color:var(--sub); font-size:12.5px; margin-top:24px}
@@ -839,8 +840,8 @@ function screenUnbox(name, gripe){
       document.getElementById('sticker').onclick = function(){ makeSticker(l.name, url); };
       document.getElementById('newpup').onclick = function(){ location.href = location.pathname + '?kiosk=1'; };
     } else {
-      history.replaceState(null, '', '/p/' + l.tail);
-      screenTour(l.tail, l.name);
+      try { sessionStorage.setItem('vp.tour', '1'); } catch (e) {}
+      location.href = url;
       return;
     }
     r.className = 'reveal show';
@@ -850,43 +851,58 @@ function screenUnbox(name, gripe){
   });
 }
 
-// First-run tour: one card per feature, same media frame on every card. Skippable, replayable from Manage.
-function screenTour(tail, name){
+// Interactive first-run tour: spotlights the real controls on the pup page, one at a time.
+// The spotlighted control stays tappable; everything else is dimmed. Replay from Manage pup.
+function startTour(name, k0){
   var nm = esc(name);
   var steps = [
-    { media: '<img src="/pup-sit.webp" alt="" style="object-position:50% 12%">', title: nm + ' remembers your first issue 🐾',
-      text: 'Tell ' + nm + ' anything your city should fix: five words or a photo. It stays private unless you choose to share it.' },
-    { media: '<img src="/pup-watch.jpg" alt="">', title: 'Be counted 🌱',
-      text: 'Share an issue to add it to The Pack. Neighbours see what needs fixing and tap 🐾 Same here on what they&rsquo;ve seen too.' },
-    { media: '<img src="/pup-face.jpg" alt="">', title: nm + ' fetches it back at voting time 🗳️',
-      text: 'Your elections, ballot questions and comment deadlines, with countdowns, so you know when your voice counts.' },
-    { media: '<video src="/pup-share-loop.mp4" poster="/pup-share.jpg" muted autoplay loop playsinline></video>', title: 'Make them earn your vote 📤',
-      text: 'Show candidates a read-only list of what you need fixed. Never your name or email.' },
-    { media: '<img src="/pup-home.jpg" alt="">', title: 'Give ' + nm + ' a home 🔐',
-      text: 'Until you sign in, ' + nm + '&rsquo;s link is its only key. Back up with Google under ⚙️ Manage pup so you never lose it.' }
-  ];
-  var k = 0;
-  function finish(toManage){
+    { sel: '.composer', text: '<b>Tell ' + nm + '</b> anything your city should fix. Five words is plenty, 📷 adds a photo.' },
+    { sel: '#priv', text: '<b>Give it to ' + nm + '</b>: private. Only you ever see it.' },
+    { sel: '#share', text: '<b>Be counted 🌱</b>: shares it to The Pack, where neighbours tap 🐾 Same here.' },
+    { sel: '#entries', text: nm + ' <b>already remembers</b> your first issue. Tap 🌱 Make it count on any card to share it later.' },
+    { sel: '#votestrip', text: '<b>When you can act 🗳️</b>: your elections and deadlines, with countdowns. ' + nm + ' brings your issues back then.' },
+    { sel: '#navshow', text: '<b>Make them earn your vote 📤</b>: show candidates a read-only list of what you need fixed.' },
+    { sel: '.tabbar a[href="/pack"]', text: '<b>The Pack 🐾</b>: what your neighbours want fixed, sorted by what you care about.' },
+    { sel: '.tabbar a[href="/manage"]', text: '<b>Manage ' + nm + '</b>: back up with Google so you never lose ' + nm + ', invite friends, get your sticker.', last: true }
+  ].filter(function(s){ return document.querySelector(s.sel); });
+  if (!steps.length) return;
+  var k = Math.min(k0 || 0, steps.length - 1);
+  var dim = document.createElement('div'); dim.className = 'tourdim';
+  var hole = document.createElement('div'); hole.className = 'tourhole';
+  var tip = document.createElement('div'); tip.className = 'tourtip';
+  document.body.appendChild(dim); document.body.appendChild(hole); document.body.appendChild(tip);
+  function end(){
+    [dim, hole, tip].forEach(function(x){ if (x.parentNode) x.parentNode.removeChild(x); });
+    window.removeEventListener('resize', place); window.removeEventListener('scroll', place, true);
     try { localStorage.setItem('vp.toured', '1'); } catch (e) {}
-    if (toManage) location.href = '/manage'; else screenLedger(tail);
   }
-  function draw(){
-    var s = steps[k], last = k === steps.length - 1;
-    root.innerHTML = '<div class="tour">' +
-      '<div class="tourtop"><span>' + (k + 1) + ' / ' + steps.length + '</span><a href="#" id="tskip">Skip</a></div>' +
-      '<div class="tourmedia">' + s.media + '</div>' +
-      '<div class="tourtitle">' + s.title + '</div><p class="tourtext">' + s.text + '</p>' +
-      '<div class="tourdots">' + steps.map(function(_, i){ return '<i class="' + (i === k ? 'on' : '') + '"></i>'; }).join('') + '</div>' +
-      (last && GOOGLE_READY && !KIOSK
-        ? '<button class="btn gold" id="tmanage">🔐 Back up ' + nm + ' now</button><button class="btn ghost" id="tnext">Start using ' + nm + ' →</button>'
-        : '<button class="btn gold" id="tnext">' + (last ? 'Start using ' + nm + ' →' : 'Next') + '</button>') +
-      (k ? '<a href="#" id="tback" class="tourback">‹ Back</a>' : '') + '</div>';
-    document.getElementById('tskip').onclick = function(ev){ ev.preventDefault(); finish(false); };
-    document.getElementById('tnext').onclick = function(){ if (last) finish(false); else { k++; draw(); } };
-    var tb = document.getElementById('tback'); if (tb) tb.onclick = function(ev){ ev.preventDefault(); k--; draw(); };
-    var tm = document.getElementById('tmanage'); if (tm) tm.onclick = function(){ finish(true); };
+  function place(){
+    var s = steps[k], el = document.querySelector(s.sel);
+    if (!el) { end(); return; }
+    var r = el.getBoundingClientRect(), pad = 6;
+    hole.style.cssText = 'top:' + (r.top - pad) + 'px;left:' + (r.left - pad) + 'px;width:' + (r.width + 2 * pad) + 'px;height:' + (r.height + 2 * pad) + 'px';
+    var th = tip.offsetHeight, vh = window.innerHeight;
+    var below = r.bottom + 12 + th < vh - 8 && (r.top + r.height / 2 < vh / 2 || r.top - 12 - th < 8);
+    var top = below ? r.bottom + 12 : r.top - 12 - th;
+    tip.style.top = Math.max(8, Math.min(top, vh - th - 8)) + 'px';
   }
-  draw();
+  function show(){
+    var s = steps[k], el = document.querySelector(s.sel);
+    tip.innerHTML = '<div class="tourtxt">' + s.text + '</div><div class="tourrow"><span>' + (k + 1) + ' / ' + steps.length + '</span>' +
+      '<a href="#" id="tskip">Skip</a>' + (k ? '<button class="tbtn ghost" id="tback">Back</button>' : '') +
+      (s.last && GOOGLE_READY && !KIOSK ? '<button class="tbtn" id="tman">🔐 Back up now</button><button class="tbtn ghost" id="tnext">Done</button>'
+                                        : '<button class="tbtn" id="tnext">' + (s.last ? 'Done' : 'Next') + '</button>') + '</div>';
+    if (!el.closest('.tabbar')) el.scrollIntoView({ block: 'center', behavior: 'instant' });
+    requestAnimationFrame(function(){ requestAnimationFrame(place); });
+    document.getElementById('tskip').onclick = function(ev){ ev.preventDefault(); end(); };
+    document.getElementById('tnext').onclick = function(){ if (s.last) end(); else { k++; show(); } };
+    var b = document.getElementById('tback'); if (b) b.onclick = function(){ k--; show(); };
+    var m = document.getElementById('tman'); if (m) m.onclick = function(){ end(); location.href = '/manage'; };
+  }
+  // tapping the spotlighted control itself ends the tour and lets it do its job
+  hole.onclick = function(){ var el = document.querySelector(steps[k].sel); end(); if (el) (el.querySelector('textarea') || el).click(); };
+  window.addEventListener('resize', place); window.addEventListener('scroll', place, true);
+  show();
 }
 
 function screenLedger(tail){
@@ -919,6 +935,8 @@ function screenLedger(tail){
         : esc(L.name) + ' remembers ' + n + ' thing' + (n===1?'':'s')) + '</div>' +
       '<div id="entries" class="grid2"></div>' + '<div id="backedbox"></div>' + tabbar('pup');
     wireAttach(); wireTabs(); wireSlots(); renderVoteStrip(); refreshPlaceIfStale();
+    var wantTour = false; try { wantTour = sessionStorage.getItem('vp.tour') === '1'; sessionStorage.removeItem('vp.tour'); } catch (e) {}
+    if (wantTour && !KIOSK) setTimeout(function(){ startTour(L.name); }, 700);
     if (!window._vpVisWired) { window._vpVisWired = true;
       document.addEventListener('visibilitychange', function(){
         if (!document.hidden) refreshPlaceIfStale();
@@ -1305,7 +1323,7 @@ function screenPack(mode, topic0){
   }).catch(function(e){ document.getElementById('board').textContent = 'The pack is napping: ' + e.message; });
 }
 
-var APP_VERSION = "20260929211324";
+var APP_VERSION = "20260929212325";
 (function(){
   try {
     fetch('/version.json?t=' + Date.now(), { cache: 'no-store' }).then(function(r){ return r.json(); }).then(function(j){
@@ -1469,7 +1487,7 @@ function showCandidate(tail, name){
     ov.innerHTML = '<div class="stksheet">' +
       '<div class="q" style="font-size:17px; margin:0 0 4px">Make them earn your vote 🗳️</div>' +
       '<p class="hint" style="text-align:left; margin:0 0 8px">Candidates will knock and ask for your vote. Before you give it, make them look at what you actually need fixed. They scan — they read. Never your name or email.</p>' +
-      '<div class="qrwrap" style="margin:6px 0"><img src="' + qrDataURL(url, 7) + '" alt="read-only QR"></div>' +
+      '<div class="qrwrap sharqr" style="margin:6px 0"><img src="' + qrDataURL(url, 7) + '" alt="read-only QR"></div>' +
       '<p class="hint" style="text-align:left"><b>' + info.count + ' entr' + (info.count === 1 ? 'y' : 'ies') + '</b> will be visible — ' +
         (info.view_all ? 'all of them, including private ones.' : 'only the ones you shared 🌱.') +
         ' Anything you add later shows up too.</p>' +
@@ -1585,7 +1603,7 @@ function screenManage(){
     on('mpups', function(){ if (sess) screenRestore(); else { this.style.display = 'none'; startRestore(document.getElementById('mrslot')); } });
     on('mout', function(){ sb.auth.signOut().then(function(){ screenManage(); }); });
     on('mnew', function(){ location.href = '/app.html?new=1'; });
-    on('mtour', function(){ history.pushState(null, '', '/p/' + tail); screenTour(tail, L.name); });
+    on('mtour', function(){ try { sessionStorage.setItem('vp.tour', '1'); } catch (e) {} location.href = url; });
     on('minv', function(){
       var b = this, msg = 'I gave my city&rsquo;s issues to a pup that remembers them at voting time. Get yours:'.replace('&rsquo;', '’');
       if (navigator.share) navigator.share({ title: 'VoterPup', text: msg, url: INVITE_URL }).catch(function(){});
