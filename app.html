@@ -104,7 +104,7 @@
   .fetchvid video{position:absolute; inset:0; width:78px; height:120px; object-fit:cover; border-radius:12px; background:#e9edf1}
   .fetchvid .vtop{z-index:2; transition:opacity .35s}
   .fetchvid img.vsit{position:absolute; inset:0; width:78px; height:120px; object-fit:cover; border-radius:12px; background:#e9edf1}
-  .herorow{display:grid; grid-template-columns:3fr 2fr; gap:10px; margin:0 0 12px}
+  .herorow{display:grid; grid-template-columns:minmax(0,3fr) minmax(0,2fr); gap:10px; margin:0 0 12px}
   .herorow .fetchcard{margin:0; align-items:flex-start; gap:10px}
   .herorow .fetchcard .ft{font-size:13.5px}
   .herorow .fetchcard .ft small{font-size:11.5px}
@@ -119,10 +119,12 @@
   .hpill.off{opacity:.55}
   .hacts .bkbadge,.hacts .bklink{margin:7px 0 0 0}
   .hpill .stkthumb,.hpill .stkthumb img{width:40px; height:24px; border-radius:4px}
-  .sharetile .cap{font-size:12.5px; font-weight:800; line-height:1.25}
+  .sharetile .shcap{font-size:12.5px; font-weight:800; line-height:1.25; margin-top:auto}
+  .sharetile .slotmedia{flex:1 1 auto; min-height:64px; height:auto}
+  .fetchvid .bkbadge,.fetchvid .bklink{position:absolute; left:4px; right:4px; bottom:4px; z-index:3; margin:0;
+      text-align:center; font-size:10px; padding:2px 4px; background:rgba(255,255,255,.92)}
   .herorow .fetchcard .ft{display:flex; flex-direction:column; min-height:120px}
   .herorow .hacts{margin-top:auto; display:flex; flex-wrap:wrap; align-items:center; gap:4px}
-  .sharetile .slotmedia{height:64px}
   .shbtn{display:block; text-align:center; font-size:12px; font-weight:800; color:#7a5a0c; background:#faf3df;
       border:1px solid var(--gold); border-radius:999px; padding:6px 4px; text-decoration:none; white-space:nowrap}
   .shbtn.off{opacity:.55; cursor:default}
@@ -812,17 +814,17 @@ function screenLedger(tail){
       '<div class="herorow"><div class="fetchcard"><div class="fetchvid">' +
         '<img class="vsit" src="/pup-sit.webp" alt="">' +
         (window._vpFetchPlayed ? '' : '<video class="vtop" id="vfetch" src="/pup-fetch.mp4" muted autoplay playsinline preload="auto"></video>') +
+        (GOOGLE_READY ? (isBackedUp(tail)
+          ? '<span class="bkbadge" title="' + esc(L.name) + ' is backed up to your Google account">✅ saved</span>'
+          : '<a href="#" class="bklink" id="gbackup">🔐 back up</a>') : '') +
       '</div>' +
         '<div class="ft">' + esc(L.name) + ' fetches your issues for you.' +
         '<small>It brings them back the day you can vote on them. 🗳️</small>' +
         '<div class="hacts"><div class="hpill stkcard" id="stkcard"><div class="stkthumb"><img id="stkimg" alt="' + esc(L.name) + '\u2019s sticker">' +
           '<div class="stkblur"></div></div>your link \u203a</div>' +
-        (GOOGLE_READY ? (isBackedUp(tail)
-          ? '<span class="bkbadge" title="' + esc(L.name) + ' is backed up to your Google account">✅ backed up</span>'
-          : '<a href="#" class="bklink" id="gbackup">🔐 back up</a>') : '') +
       '</div></div></div>' +
       '<div class="sharetile">' + slotMedia('share') +
-        '<div class="cap">Make them earn your vote.</div>' +
+        '<div class="shcap">Make them earn your vote.</div>' +
         (KIOSK ? '' : '<a href="#" class="hpill' + (n > 0 ? '' : ' off') + '" id="navshow">📤 Share my issues</a>') +
       '</div></div>' +
       (GOOGLE_READY && !isBackedUp(tail) ? '<div class="backup" id="gwrap" hidden><div id="gslot"></div>' +
@@ -1252,7 +1254,7 @@ function screenPack(mode, topic0){
   }).catch(function(e){ document.getElementById('board').textContent = 'The pack is napping: ' + e.message; });
 }
 
-var APP_VERSION = "20260929191813";
+var APP_VERSION = "20260929192054";
 (function(){
   try {
     fetch('/version.json?t=' + Date.now(), { cache: 'no-store' }).then(function(r){ return r.json(); }).then(function(j){
