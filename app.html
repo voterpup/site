@@ -343,7 +343,7 @@ function uploadPending(){
   return Promise.all(ups);
 }
 var SLOT_MEDIA = {
-  share: { video: null, poster: '/pup-face.jpg' },   // e.g. '/pup-share.mp4' when it arrives
+  share: { video: '/pup-share.mp4', poster: '/pup-share.jpg' },
   pack:  { video: null, poster: '/pup-watch.jpg' }   // e.g. '/pup-pack.mp4'
 };
 function slotMedia(key){
@@ -1024,7 +1024,7 @@ var TILE_COLORS = ['#2f7d5f','#b3702d','#5f6caf','#a94b4b','#3d8f8f','#6b8e23','
 
 function screenPack(mode, topic0){
   var place = getPlace();
-  if (!mode) mode = place ? 'local' : 'all';
+  if (!mode) mode = 'all';
   var city = place ? place.split(',')[0] : null;
   root.innerHTML = nav() +
     '<div class="packhero">' + slotMedia('pack') +
@@ -1092,7 +1092,13 @@ function screenPack(mode, topic0){
 
     var byTopic = {};
     rows.forEach(function(r){ var t = r.topic || 'fresh'; (byTopic[t] = byTopic[t] || []).push(r); });
-    var topics = Object.keys(byTopic).sort(function(a,b){ return byTopic[b].length - byTopic[a].length; });
+    // Affinity: topics this person logs or backs come first (computed on the device; nothing is sent).
+    var aff = {};
+    ((res[1] && res[1].entries) || []).forEach(function(e){ if (e.topic) aff[e.topic] = (aff[e.topic] || 0) + 2; });
+    backedList.forEach(function(e){ if (e.topic) aff[e.topic] = (aff[e.topic] || 0) + 1; });
+    var topics = Object.keys(byTopic).sort(function(a,b){
+      return ((aff[b] || 0) - (aff[a] || 0)) || (byTopic[b].length - byTopic[a].length);
+    });
 
     function firstImg(list){
       for (var i = 0; i < list.length; i++) {
@@ -1218,7 +1224,7 @@ function screenPack(mode, topic0){
   }).catch(function(e){ document.getElementById('board').textContent = 'The pack is napping: ' + e.message; });
 }
 
-var APP_VERSION = "20260929184156";
+var APP_VERSION = "20260929191122";
 (function(){
   try {
     fetch('/version.json?t=' + Date.now(), { cache: 'no-store' }).then(function(r){ return r.json(); }).then(function(j){
