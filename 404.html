@@ -110,6 +110,36 @@
   .mtitle .mlink{margin-left:auto}
   .mtitle input{flex:1; min-width:120px; font-size:16px; padding:8px 10px; border:1px solid var(--line); border-radius:10px}
   .mtitle .mbtn{width:auto; margin:0; padding:8px 12px; font-size:13px}
+  .flashbtn{position:fixed; right:16px; bottom:84px; z-index:8; display:flex; align-items:center; gap:6px; padding:10px 14px 10px 12px;
+      border-radius:999px; background:#1f2733; color:#fff; text-decoration:none; font-size:18px; box-shadow:0 6px 18px rgba(0,0,0,.25)}
+  .flashbtn span{font-size:12.5px; font-weight:800; letter-spacing:.2px}
+  .flashov{position:fixed; inset:0; z-index:80; background:#141a22; color:#fff; display:flex; flex-direction:column;
+      padding:14px 14px 0; animation:fin .25s ease}
+  @keyframes fin{from{opacity:0; transform:scale(.98)} to{opacity:1; transform:none}}
+  .flashtop{display:flex; align-items:flex-start; justify-content:space-between; gap:10px}
+  .flashtitle{font-size:20px; font-weight:800} .flashsub{font-size:12.5px; color:#aab4c3; margin-top:2px}
+  .flashx{color:#fff; text-decoration:none; font-size:20px; padding:2px 8px}
+  .flashdemo{align-self:flex-start; margin-top:8px; font-size:11px; font-weight:800; letter-spacing:.6px; color:#1f2733;
+      background:var(--gold); border-radius:999px; padding:3px 10px}
+  .fstrip{display:flex; gap:8px; overflow-x:auto; padding:12px 0 10px; scrollbar-width:none}
+  .fstrip::-webkit-scrollbar{display:none}
+  .fday{flex:0 0 auto; width:50px; text-align:center; background:#232c38; border-radius:12px; padding:6px 0; color:#fff; text-decoration:none; position:relative}
+  .fday b{display:block; font-size:18px} .fday span{font-size:10.5px; color:#aab4c3; text-transform:uppercase}
+  .fday i{position:absolute; top:-5px; right:-3px; background:var(--gold); color:#1f2733; font-style:normal; font-size:10px; font-weight:800;
+      border-radius:999px; min-width:17px; height:17px; line-height:17px}
+  .froll{flex:1; overflow-y:auto; padding-bottom:30px}
+  .fgroup{display:flex; gap:10px; margin:6px 0 14px}
+  .fdate{flex:0 0 46px; text-align:center; position:sticky; top:0; align-self:flex-start}
+  .fdate b{display:block; font-size:24px; line-height:1} .fdate span{display:block; font-size:11px; color:#e8b84b; text-transform:uppercase; font-weight:800}
+  .fdate small{font-size:10.5px; color:#8793a5}
+  .fcol{flex:1; display:flex; flex-direction:column; gap:8px; border-left:2px solid #2d3848; padding-left:10px}
+  .fcard{background:#f7f4ec; color:#1f2733; border-radius:14px; padding:10px 12px; border-left:4px solid var(--gold);
+      opacity:0; animation:roll .45s cubic-bezier(.2,.8,.2,1) forwards; transform-origin:top center}
+  .fcard.fbacked{border-left-color:#b3702d; background:#f3ebe0}
+  @keyframes roll{from{opacity:0; transform:perspective(600px) rotateX(-60deg) translateY(-8px)} to{opacity:1; transform:none}}
+  .fcard img{width:100%; max-height:150px; object-fit:cover; border-radius:10px; margin-bottom:8px; display:block}
+  .fbody{font-size:14.5px; font-weight:700; line-height:1.35} .fmeta{font-size:11.5px; color:#6b7387; margin-top:4px}
+  .fend{text-align:center; color:#aab4c3; font-size:12.5px; margin:10px 0 20px; line-height:1.5}
   .plusbtn{flex:0 0 64px !important; position:relative}
   .plusbtn b{position:absolute; left:50%; top:-18px; transform:translateX(-50%); width:54px; height:54px; border-radius:50%;
       background:var(--gold); color:#2a2418; font-size:32px; font-weight:600; line-height:52px; text-align:center;
@@ -937,8 +967,10 @@ function screenLedger(tail){
       '<div class="puphead"><img class="pupav" src="/pup-face.jpg" alt=""><div><div class="pupname">' + esc(L.name) + '</div>' +
         '<div class="pupsub">' + (n ? 'remembers ' + n + ' thing' + (n === 1 ? '' : 's') : 'tap + to tell ' + esc(L.name) + ' something') + '</div></div></div>' +
       '<div class="momwrap" id="votestrip"></div>' +
-      '<div id="entries" class="grid2"></div>' + '<div id="backedbox"></div>' + tabbar('pup');
+      '<div id="entries" class="grid2"></div>' + '<div id="backedbox"></div>' +
+      (KIOSK ? '' : '<a href="#" class="flashbtn" id="flashbtn" aria-label="Flashback">⚡<span>Flashback</span></a>') + tabbar('pup');
     wireTabs(); renderVoteStrip(); refreshPlaceIfStale();
+    var fb = document.getElementById('flashbtn'); if (fb) fb.onclick = function(ev){ ev.preventDefault(); openFlashback(L); };
     var wantTour = false; try { wantTour = sessionStorage.getItem('vp.tour') === '1'; sessionStorage.removeItem('vp.tour'); } catch (e) {}
     if (wantTour && !KIOSK) setTimeout(function(){ startTour(L.name); }, 700);
     if (!window._vpVisWired) { window._vpVisWired = true;
@@ -1106,6 +1138,67 @@ function wireTabs(){
     var s = loadLocal(); location.href = s ? pupURL(s.tail) : '/app.html?new=1'; };
   var pl = document.getElementById('tab-plus');
   if (pl) pl.onclick = function(ev){ ev.preventDefault(); openAdd(); };
+}
+// Flashback: every issue this pup remembers (its own + the ones it backs), rolled out by date.
+var FLASH_DEMO = [
+  { body: 'Pothole on 4th Ave keeps coming back', topic: 'infrastructure', days: 62, mine: true },
+  { body: 'Bus 99 full every morning, three passed me', topic: 'transit', days: 48, mine: true },
+  { body: 'No shade at the playground', topic: 'parks', days: 48, backed: true, pup: 'Maple' },
+  { body: 'Rent up 18% this year', topic: 'housing', days: 30, mine: true },
+  { body: 'Crosswalk light too short for seniors', topic: 'safety', days: 12, backed: true, pup: 'Scout' },
+  { body: 'Litter after every weekend market', topic: 'cleanliness', days: 3, mine: true }
+];
+function openFlashback(L){
+  var items = [];
+  (L.entries || []).forEach(function(e){ items.push({ body: e.body, topic: e.topic, ts: e.ts, media: e.media, shared: e.shared, mine: true }); });
+  (L.backed || []).forEach(function(e){ items.push({ body: e.body, topic: e.topic, ts: e.ts, media: e.media, backed: true, pup: e.pup }); });
+  var demo = !items.length;
+  if (demo) items = FLASH_DEMO.map(function(d){ var x = Object.assign({}, d); x.ts = new Date(Date.now() - d.days * 864e5).toISOString(); return x; });
+  items.sort(function(a, b){ return new Date(b.ts) - new Date(a.ts); });
+  var byDay = [], idx = {};
+  items.forEach(function(it){
+    var d = new Date(it.ts), key = d.getFullYear() + '-' + d.getMonth() + '-' + d.getDate();
+    if (!(key in idx)) { idx[key] = byDay.length; byDay.push({ key: key, d: d, list: [] }); }
+    byDay[idx[key]].list.push(it);
+  });
+  var mine = items.filter(function(x){ return x.mine; }).length, backs = items.length - mine;
+  var first = byDay.length ? byDay[byDay.length - 1].d : new Date();
+  var nm = esc(L.name);
+  var ov = document.createElement('div'); ov.className = 'flashov';
+  function card(it, k){
+    var img = null; (it.media || []).forEach(function(m){ if (!img && m.url && m.type && m.type.indexOf('image') === 0) img = m.url; });
+    return '<div class="fcard' + (it.backed ? ' fbacked' : '') + '" style="animation-delay:' + Math.min(k * 70, 1400) + 'ms">' +
+      (img ? '<img src="' + esc(img) + '" alt="">' : '') +
+      '<div class="fbody">' + esc(it.body || '📷') + '</div>' +
+      '<div class="fmeta">' + (it.topic ? '#' + esc(it.topic) + ' · ' : '') +
+        (it.backed ? '🐾 you back ' + esc(it.pup || '') : (it.shared ? '🌱 shared' : '🔒 private')) + '</div></div>';
+  }
+  var k = 0;
+  var strip = byDay.slice().reverse().map(function(g, i){
+    return '<a href="#" class="fday" data-g="' + (byDay.length - 1 - i) + '"><b>' + g.d.getDate() + '</b><span>' +
+      g.d.toLocaleDateString(undefined, { month: 'short' }) + '</span><i>' + g.list.length + '</i></a>';
+  }).join('');
+  var roll = byDay.map(function(g, gi){
+    return '<div class="fgroup" id="fg' + gi + '"><div class="fdate"><b>' + g.d.getDate() + '</b><span>' +
+      g.d.toLocaleDateString(undefined, { month: 'short' }) + '</span><small>' + g.d.toLocaleDateString(undefined, { weekday: 'short' }) + '</small></div>' +
+      '<div class="fcol">' + g.list.map(function(it){ return card(it, k++); }).join('') + '</div></div>';
+  }).join('');
+  ov.innerHTML = '<div class="flashtop"><div><div class="flashtitle">⚡ ' + nm + '&rsquo;s flashback</div>' +
+      '<div class="flashsub">' + (demo ? 'A demo of what yours will look like' :
+        mine + ' issue' + (mine === 1 ? '' : 's') + (backs ? ' · ' + backs + ' you back' : '') + ' · since ' + first.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })) + '</div></div>' +
+      '<a href="#" class="flashx" id="flashx">✕</a></div>' +
+    (demo ? '<div class="flashdemo">DEMO · Tap + to start yours</div>' : '') +
+    '<div class="fstrip">' + strip + '</div>' +
+    '<div class="froll">' + roll + '<div class="fend">That&rsquo;s everything ' + nm + ' remembers 🐾<br>It brings these back when you can vote.</div></div>';
+  document.body.appendChild(ov);
+  document.body.style.overflow = 'hidden';
+  function close(){ document.body.style.overflow = ''; if (ov.parentNode) ov.parentNode.removeChild(ov); }
+  document.getElementById('flashx').onclick = function(ev){ ev.preventDefault(); close(); };
+  Array.prototype.forEach.call(ov.querySelectorAll('.fday'), function(a){
+    a.onclick = function(ev){ ev.preventDefault();
+      var g = document.getElementById('fg' + a.getAttribute('data-g')); if (g) g.scrollIntoView({ behavior: 'smooth', block: 'start' }); };
+  });
+  var st = ov.querySelector('.fstrip'); st.scrollLeft = st.scrollWidth;
 }
 function toast(html, ms){
   var old = document.querySelector('.toast'); if (old) old.parentNode.removeChild(old);
@@ -1358,7 +1451,7 @@ function screenPack(mode, topic0){
   }).catch(function(e){ document.getElementById('board').textContent = 'The pack is napping: ' + e.message; });
 }
 
-var APP_VERSION = "20260929214050";
+var APP_VERSION = "20260929232256";
 (function(){
   try {
     fetch('/version.json?t=' + Date.now(), { cache: 'no-store' }).then(function(r){ return r.json(); }).then(function(j){
