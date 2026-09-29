@@ -322,6 +322,7 @@ function uploadPending(){
 }
 function mediaHold(x){
   if (x.hidden === 'video') return '<div class="chip" style="display:inline-block;margin-top:8px;cursor:default">🎥 video · not shown publicly</div>';
+  if (x.hidden === 'held') return '<div class="chip" style="display:inline-block;margin-top:8px;cursor:default">📷 photo · not shown publicly</div>';
   if (x.hidden === 'blocked') return '<div class="chip" style="display:inline-block;margin-top:8px;cursor:default">🚫 image removed</div>';
   return '<div class="chip" style="display:inline-block;margin-top:8px;cursor:default">🕑 photo under review</div>';
 }
@@ -1109,7 +1110,7 @@ function screenPack(mode, topic0){
   }).catch(function(e){ document.getElementById('board').textContent = 'The pack is napping: ' + e.message; });
 }
 
-var APP_VERSION = "20260929075016";
+var APP_VERSION = "20260929075633";
 (function(){
   try {
     fetch('/version.json?t=' + Date.now(), { cache: 'no-store' }).then(function(r){ return r.json(); }).then(function(j){

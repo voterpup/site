@@ -43,17 +43,31 @@ Deno.serve(async (req) => {
 
   const rows: { media?: Media[] }[] = Array.isArray(data) ? data : (data.entries ?? []);
   const paths = new Set<string>();
-  for (const row of rows) for (const m of row.media ?? []) { const p = pathOf(m); if (p) paths.add(p); }
+  const publicMode = body.mode !== "ledger";
+  for (const row of rows) for (const m of (row.media ?? []) as any[]) {
+    if (publicMode && (m.mod !== "ok" || String(m.type).startsWith("video/"))) continue;
+    const p = pathOf(m); if (p) paths.add(p);
+  }
 
   const signed = new Map<string, string>();
   if (paths.size) {
     const { data: s } = await db.storage.from("media").createSignedUrls([...paths], TTL);
     for (const x of s ?? []) if (x.signedUrl && x.path) signed.set(x.path, x.signedUrl);
   }
+  // Public modes (board, view) are fail-closed: only images reviewed 'ok' get a URL.
+  const isPublic = body.mode !== "ledger";
   for (const row of rows) {
     row.media = (row.media ?? [])
-      .map((m) => { const p = pathOf(m); const u = p ? signed.get(p) : undefined;
-                    return u ? { type: m.type, url: u } : null; })
+      .map((m: any) => {
+        if (isPublic) {
+          if (String(m.type).startsWith("video/")) return { type: m.type, hidden: "video" };
+          if (m.mod === "blocked") return { type: m.type, hidden: "blocked" };
+          if (m.mod === "hold") return { type: m.type, hidden: "held" };
+          if (m.mod !== "ok") return { type: m.type, hidden: "pending" };
+        }
+        const p = pathOf(m); const u = p ? signed.get(p) : undefined;
+        return u ? { type: m.type, url: u } : null;
+      })
       .filter(Boolean) as Media[];
   }
   return new Response(JSON.stringify(data), { headers: { ...CORS, "content-type": "application/json" } });
