@@ -106,6 +106,10 @@
   .fetchvid img.vsit{position:absolute; inset:0; width:78px; height:120px; object-fit:cover; border-radius:12px; background:#e9edf1}
   .mcard{background:var(--card); border:1px solid var(--line); border-radius:16px; padding:12px; margin:0 0 12px;
       box-shadow:0 1px 2px rgba(16,24,40,.05)}
+  .mtitle{display:flex; align-items:center; gap:8px; margin:0 0 10px; flex-wrap:wrap}
+  .mtitle .mlink{margin-left:auto}
+  .mtitle input{flex:1; min-width:120px; font-size:16px; padding:8px 10px; border:1px solid var(--line); border-radius:10px}
+  .mtitle .mbtn{width:auto; margin:0; padding:8px 12px; font-size:13px}
   .plusbtn{flex:0 0 64px !important; position:relative}
   .plusbtn b{position:absolute; left:50%; top:-18px; transform:translateX(-50%); width:54px; height:54px; border-radius:50%;
       background:var(--gold); color:#2a2418; font-size:32px; font-weight:600; line-height:52px; text-align:center;
@@ -1354,7 +1358,7 @@ function screenPack(mode, topic0){
   }).catch(function(e){ document.getElementById('board').textContent = 'The pack is napping: ' + e.message; });
 }
 
-var APP_VERSION = "20260929213839";
+var APP_VERSION = "20260929214050";
 (function(){
   try {
     fetch('/version.json?t=' + Date.now(), { cache: 'no-store' }).then(function(r){ return r.json(); }).then(function(j){
@@ -1611,11 +1615,28 @@ function screenManage(){
     rows += mrow('<img src="/pup-watch.jpg" alt="">', '🐶 Pups', '',
       (GOOGLE_READY && !KIOSK && !(email && backed) ? '<button class="btn ghost mbtn" id="mpups">My backed-up pups</button><div id="mrslot"></div>' : '') +
       '<button class="btn ghost mbtn" id="mnew">＋ Start another pup</button><button class="btn ghost mbtn" id="mtour">▶ Take the tour</button>');
-    root.innerHTML = nav() + '<div class="q" style="font-size:20px; margin-bottom:10px">' + nm + ' ⚙️</div>' + rows +
+    root.innerHTML = nav() + '<div class="mtitle" id="mtitle"><span class="q" style="font-size:20px">' + nm + ' ⚙️</span>' +
+      (KIOSK ? '' : '<a href="#" class="mlink" id="mrename">✏️ Rename</a>') + '</div>' + rows +
       '<footer><a href="/privacy.html">Privacy</a> · <a href="mailto:hi@voterpup.com">hi@voterpup.com</a></footer>' + tabbar('manage');
     wireTabs(); wireHero();
     var on = function(id, fn){ var el = document.getElementById(id); if (el) el.onclick = fn; };
     on('mshare', function(){ if (n) showCandidate(tail, L.name); });
+    on('mrename', function(ev){
+      ev.preventDefault();
+      var t = document.getElementById('mtitle');
+      t.innerHTML = '<input id="mnewname" maxlength="24" value="' + nm + '"><button class="btn gold mbtn" id="msavename">Save</button>' +
+        '<button class="btn ghost mbtn" id="mcancelname">Cancel</button>';
+      var inp = document.getElementById('mnewname'); inp.focus(); inp.select();
+      var save = function(){
+        var v = inp.value.trim(); if (!v || v === L.name) { screenManage(); return; }
+        rpc('vp_rename_ledger', { p_tail: tail, p_name: v }).then(function(r){
+          saveLocal(tail, r.name); toast('Say hi to ' + esc(r.name) + ' 🐾'); screenManage();
+        }).catch(function(e){ alert(e.message); });
+      };
+      document.getElementById('msavename').onclick = save;
+      inp.onkeydown = function(e){ if (e.key === 'Enter') save(); if (e.key === 'Escape') screenManage(); };
+      document.getElementById('mcancelname').onclick = function(){ screenManage(); };
+    });
     on('mcopy', function(){ var b = this; navigator.clipboard.writeText(url).then(function(){ b.textContent = 'Copied ✓'; }); });
     on('mstk', function(){ makeSticker(L.name, url); });
     on('mshowkey', function(ev){ ev.preventDefault(); var k = document.getElementById('mkey'); k.hidden = false; this.style.display = 'none';
