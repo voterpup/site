@@ -3,7 +3,7 @@
 // SUPABASE_URL + SUPABASE_SERVICE_ROLE_KEY are auto-injected by Supabase.
 import { createClient } from "npm:@supabase/supabase-js@2";
 
-const TOPICS = ["housing","transit","safety","cost of living","health","climate","cleanliness","parks","other"];
+const TOPICS = ["housing","homelessness","transit","safety","cost of living","health","climate","cleanliness","parks","other"];
 
 Deno.serve(async () => {
   const db = createClient(
@@ -12,7 +12,7 @@ Deno.serve(async () => {
   );
   const { data: rows, error } = await db
     .from("entries").select("id, body")
-    .eq("shared", true).is("topic", null).neq("body", "").limit(20);
+    .eq("shared", true).eq("topic_src", "rule").neq("body", "").limit(20);
   if (error) return new Response("db error: " + error.message, { status: 500 });
   if (!rows?.length) return new Response("nothing to label");
 
@@ -30,7 +30,7 @@ Deno.serve(async () => {
         role: "user",
         content: "Label each civic gripe with exactly ONE topic from this list: " +
           TOPICS.join(", ") +
-          ". Reply with ONLY a JSON array of {\"id\":\"...\",\"topic\":\"...\"} — no prose.\n" +
+          ". Tents, encampments or unhoused people are "homelessness", never "safety". Reply with ONLY a JSON array of {\"id\":\"...\",\"topic\":\"...\"} — no prose.\n" +
           JSON.stringify(rows),
       }],
     }),
@@ -46,7 +46,7 @@ Deno.serve(async () => {
   let n = 0;
   for (const l of labels) {
     if (!TOPICS.includes(l.topic)) continue;
-    const { error: ue } = await db.from("entries").update({ topic: l.topic }).eq("id", l.id);
+    const { error: ue } = await db.from("entries").update({ topic: l.topic, topic_src: "ai" }).eq("id", l.id).neq("topic_src", "user");
     if (!ue) n++;
   }
   return new Response(`labeled ${n}`);

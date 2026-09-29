@@ -387,6 +387,15 @@ function renderMoments(list, groupDecisions){
   if (voice.length) out.push(groupedVoiceRow(voice, groupDecisions ? 6 : 10));
   return out.join('');
 }
+var TOPIC_LIST = ['housing','homelessness','transit','safety','cost of living','health','climate','cleanliness','parks','other'];
+function ensurePlace(){
+  return new Promise(function(res){
+    if (getPlace() || !navigator.geolocation) { res(getPlace()); return; }
+    var done = false; var fin = function(p){ if (!done) { done = true; res(p || getPlace()); } };
+    detectPlace(fin);
+    setTimeout(function(){ fin(null); }, 9000);
+  });
+}
 function pupURL(tail){ return BASE + '/p/' + tail; }
 function saveLocal(tail, name){ try{ localStorage.setItem('vp.pup', JSON.stringify({tail:tail,name:name})); }catch(e){} }
 function loadLocal(){ try{ return JSON.parse(localStorage.getItem('vp.pup')||'null'); }catch(e){ return null; } }
@@ -441,7 +450,7 @@ function screenUnbox(name, gripe){
     '</div>' +
     '<div class="reveal" id="reveal"></div>';
   var animDone = new Promise(function(res){ setTimeout(res, 3300); });
-  var mint = uploadPending().then(function(media){
+  var mint = ensurePlace().then(function(){ return uploadPending(); }).then(function(media){
     return rpc('vp_create_ledger', { p_name: name }).then(function(l){
       return rpc('vp_add_entry', { p_tail: l.tail, p_body: gripe, p_shared: false, p_media: media, p_place: getPlace() })
              .then(function(){ pendingFiles = []; return l; });
@@ -528,7 +537,7 @@ function screenLedger(tail){
     document.getElementById('fpick').addEventListener('change', function(){ setTimeout(upd, 50); });
     function submit(shared){
       document.getElementById('priv').disabled = true; document.getElementById('share').disabled = true;
-      uploadPending().then(function(media){
+      ensurePlace().then(function(){ return uploadPending(); }).then(function(media){
         return rpc('vp_add_entry', { p_tail: tail, p_body: ta.value.trim(), p_shared: shared, p_media: media, p_place: getPlace() });
       }).then(function(){ pendingFiles = []; screenLedger(tail); })
         .catch(function(e){ alert('The pup stumbled: ' + e.message); upd(); });
@@ -543,7 +552,7 @@ function screenLedger(tail){
       return '<div class="card">' +
         (e.body ? '<div class="entry-body">' + esc(e.body) + '</div>' : '') + mediaHTML(e.media) +
         '<div class="ts">' + new Date(e.ts).toLocaleString() + '</div>' +
-        '<div class="chips">' + placeChip(e.place, e.topic) + (e.topic ? '<a class="topicchip" href="/pack?t=' + encodeURIComponent(e.topic) + '">#' + esc(e.topic) + '</a>' : '') + (e.shared
+        '<div class="chips">' + placeChip(e.place, e.topic) + (e.topic ? '<a class="topicchip" href="/pack?t=' + encodeURIComponent(e.topic) + '">#' + esc(e.topic) + '</a>' : '') + '<span class="chip" data-edit="' + e.id + '" title="change topic">\u270e</span>' + (e.shared
           ? '<span class="chip goldfill">🌿 Counted with the community</span>' +
             '<span class="chip" data-a="unshare" data-id="'+e.id+'">↩ make private</span>'
           : '<span class="chip" style="cursor:default">🔒 Private</span>' +
@@ -551,6 +560,22 @@ function screenLedger(tail){
         '</div></div>';
     }).join('');
     fillEntryElections();
+    Array.prototype.forEach.call(box.querySelectorAll('[data-edit]'), function(c){
+      c.onclick = function(){
+        var id = c.getAttribute('data-edit');
+        var row = c.parentNode;
+        row.innerHTML = TOPIC_LIST.map(function(t){
+          return '<span class="chip goldline" data-pick="' + esc(t) + '">#' + esc(t) + '</span>';
+        }).join('');
+        Array.prototype.forEach.call(row.querySelectorAll('[data-pick]'), function(p){
+          p.onclick = function(){
+            rpc('vp_set_topic', { p_tail: tail, p_id: id, p_topic: p.getAttribute('data-pick') })
+              .then(function(){ _elCache = {}; screenLedger(tail); })
+              .catch(function(e){ alert('Could not change topic: ' + e.message); });
+          };
+        });
+      };
+    });
     Array.prototype.forEach.call(box.querySelectorAll('[data-a]'), function(c){
       c.onclick = function(){
         rpc('vp_set_shared', { p_tail: tail, p_id: c.getAttribute('data-id'),
