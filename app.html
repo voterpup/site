@@ -106,6 +106,11 @@
   .fetchvid img.vsit{position:absolute; inset:0; width:78px; height:120px; object-fit:cover; border-radius:12px; background:#e9edf1}
   .mcard{background:var(--card); border:1px solid var(--line); border-radius:16px; padding:12px; margin:0 0 12px;
       box-shadow:0 1px 2px rgba(16,24,40,.05)}
+  .mcard .mimg{width:100%; height:120px; object-fit:cover; border-radius:12px; margin-bottom:10px; display:block; background:#f3eee2}
+  .sharemain{display:block; text-align:center; text-decoration:none; background:#faf3df; border:1.5px solid var(--gold);
+      color:#7a5a0c; font-weight:800; font-size:15px; border-radius:14px; padding:10px 12px; margin:0 0 12px}
+  .sharemain small{display:block; font-weight:600; font-size:11.5px; color:#8a6a14; margin-top:2px}
+  .sharemain.off{opacity:.6}
   .mcard .mh{font-size:15px; font-weight:800; margin-bottom:4px}
   .mcard .mp{font-size:12.5px; color:var(--sub); margin:0 0 8px}
   .mcard .btn{margin-top:6px}
@@ -839,17 +844,7 @@ function screenLedger(tail){
     var n = L.entries.length;
     pendingFiles = [];
     root.innerHTML = nav() +
-      '<div class="herorow"><div class="fetchcard"><div class="fetchvid">' +
-        '<img class="vsit" src="/pup-sit.webp" alt="">' +
-        (window._vpFetchPlayed ? '' : '<video class="vtop" id="vfetch" src="/pup-fetch.mp4" muted autoplay playsinline preload="auto"></video>') +
-      '</div>' +
-        '<div class="ft">' + esc(L.name) + ' fetches your issues for you.' +
-        '<small>It brings them back the day you can vote on them. 🗳️</small>' +
-      '</div></div>' +
-      '<div class="sharetile">' + slotMedia('share') +
-        '<div class="shcap">Make them earn your vote.</div>' +
-        (KIOSK ? '' : '<a href="#" class="hpill' + (n > 0 ? '' : ' off') + '" id="navshow">📤 Share my issues</a>') +
-      '</div></div>' +
+      (KIOSK ? '' : '<a href="#" class="sharemain' + (n > 0 ? '' : ' off') + '" id="navshow">📤 Share my issues<small>Make them earn your vote</small></a>') +
       say('What made you think<br>&ldquo;someone should fix this&rdquo;?', 'tell ' + esc(L.name) + ' — 5 words is plenty') +
       '<div class="composer">' +
         '<textarea id="gripe" placeholder="Tell ' + esc(L.name) + '..."></textarea>' +
@@ -868,19 +863,6 @@ function screenLedger(tail){
         : esc(L.name) + ' remembers ' + n + ' thing' + (n===1?'':'s')) + '</div>' +
       '<div id="entries" class="grid2"></div>' + '<div id="backedbox"></div>' + tabbar('pup');
     wireAttach(); wireTabs(); wireSlots(); renderVoteStrip(); refreshPlaceIfStale();
-    (function(){
-      var vf = document.getElementById('vfetch');
-      if (!vf) return;
-      window._vpFetchPlayed = true;
-      var done = function(){
-        var vs = document.querySelector('.fetchvid .vsit');
-
-        vf.style.opacity = 0; setTimeout(function(){ if (vf.parentNode) vf.parentNode.removeChild(vf); }, 400);
-      };
-      vf.addEventListener('ended', done);
-      vf.addEventListener('error', done);
-      var p = vf.play(); if (p && p.catch) p.catch(done);
-    })();
     if (!window._vpVisWired) { window._vpVisWired = true;
       document.addEventListener('visibilitychange', function(){
         if (!document.hidden) refreshPlaceIfStale();
@@ -1047,9 +1029,10 @@ function say(text, small, name){
   return '<div class="say"><img class="avatar" src="/pup-face.jpg" alt="">' +
     '<div class="balloon">' + text + (small ? '<small>' + small + '</small>' : '') + '</div></div>';
 }
+function tabName(){ var s = loadLocal(); return s && s.name ? (s.name.length > 12 ? s.name.slice(0, 11) + '…' : s.name) : 'My pup'; }
 function tabbar(active){
   return '<div class="tabbar">' +
-    '<a href="#" id="tab-pup" class="' + (active==='pup'?'on':'') + '">🐶<span>My pup</span></a>' +
+    '<a href="#" id="tab-pup" class="' + (active==='pup'?'on':'') + '">🐶<span>' + esc(tabName()) + '</span></a>' +
     '<a href="/pack" class="' + (active==='pack'?'on':'') + '">🐾<span>The Pack</span></a>' +
     '<a href="/manage" class="' + (active==='manage'?'on':'') + '">⚙️<span>Manage pup</span></a>' +
   '</div>';
@@ -1264,7 +1247,7 @@ function screenPack(mode, topic0){
   }).catch(function(e){ document.getElementById('board').textContent = 'The pack is napping: ' + e.message; });
 }
 
-var APP_VERSION = "20260929200351";
+var APP_VERSION = "20260929203456";
 (function(){
   try {
     fetch('/version.json?t=' + Date.now(), { cache: 'no-store' }).then(function(r){ return r.json(); }).then(function(j){
@@ -1469,6 +1452,29 @@ function screenView(tok){
   }).catch(function(e){ root.innerHTML = nav() + say('Couldn’t load this.', esc(e.message)); });
 }
 
+var BACKUP_IMG = '/pup-face.jpg';  // replace with the 'puppy has a home' picture
+function heroCards(name, n){
+  return '<div class="herorow"><div class="fetchcard"><div class="fetchvid">' +
+        '<img class="vsit" src="/pup-sit.webp" alt="">' +
+        (window._vpFetchPlayed ? '' : '<video class="vtop" id="vfetch" src="/pup-fetch.mp4" muted autoplay playsinline preload="auto"></video>') +
+      '</div>' +
+        '<div class="ft">' + esc(name) + ' fetches your issues for you.' +
+        '<small>It brings them back the day you can vote on them. 🗳️</small>' +
+      '</div></div>' +
+      '<div class="sharetile">' + slotMedia('share') +
+        '<div class="shcap">Make them earn your vote.</div>' +
+        (KIOSK ? '' : '<a href="#" class="hpill' + (n > 0 ? '' : ' off') + '" id="navshow">📤 Share my issues</a>') +
+      '</div></div>';
+}
+function wireHero(){
+  wireSlots();
+  var vf = document.getElementById('vfetch');
+  if (!vf) return;
+  window._vpFetchPlayed = true;
+  var done = function(){ vf.style.opacity = 0; setTimeout(function(){ if (vf.parentNode) vf.parentNode.removeChild(vf); }, 400); };
+  vf.addEventListener('ended', done); vf.addEventListener('error', done);
+  var p = vf.play(); if (p && p.catch) p.catch(done);
+}
 function screenManage(){
   var s = loadLocal();
   if (!s) { location.href = '/app.html'; return; }
@@ -1479,19 +1485,17 @@ function screenManage(){
     var n = L.entries.length, nm = esc(L.name), backed = isBackedUp(tail);
     root.innerHTML = nav() +
       '<div class="q" style="font-size:20px; margin-bottom:10px">Manage ' + nm + ' 🐾</div>' +
+      heroCards(L.name, n) +
       '<div class="mcard"><div class="mh">🔑 ' + nm + '&rsquo;s link</div>' +
         '<p class="mp">The only key to ' + nm + '. Anyone with it can read your entries, so keep it like a key.</p>' +
         '<div class="linkbox">' + esc(url) + '</div>' +
         '<div class="btnrow" style="margin-top:8px"><button class="btn ghost" id="mcopy">Copy link</button>' +
         '<button class="btn ghost" id="mstk">🏷️ Sticker</button></div></div>' +
-      (GOOGLE_READY && !KIOSK ? '<div class="mcard"><div class="mh">🔐 Backup</div>' +
+      (GOOGLE_READY && !KIOSK ? '<div class="mcard"><img class="mimg" src="' + BACKUP_IMG + '" alt=""><div class="mh">🔐 Backup</div>' +
         (backed ? '<p class="mp">✅ ' + nm + ' is backed up to your Google account. Sign in on any device to bring it back.</p>'
                 : '<p class="mp">Don&rsquo;t lose ' + nm + '. We use your email only to restore it on any device. No mail, ever.</p>' +
                   '<button class="btn gold" id="mbackup">Back up with Google</button><div id="mslot"></div>') +
         '</div>' : '') +
-      (KIOSK ? '' : '<div class="mcard"><div class="mh">📤 Share my issues</div>' +
-        '<p class="mp">A read-only code for candidates: they see what you need fixed, never your name or email.</p>' +
-        '<button class="btn ghost" id="mshare"' + (n ? '' : ' disabled') + '>' + (n ? 'Open my share code' : 'Tell ' + nm + ' one issue first') + '</button></div>') +
       '<div class="mcard"><div class="mh">🐶 Pups</div>' +
         (GOOGLE_READY && !KIOSK ? '<button class="btn ghost" id="mpups">My backed-up pups</button><div id="mrslot"></div>' : '') +
         '<button class="btn ghost" id="mnew">＋ Start another pup</button></div>' +
@@ -1512,8 +1516,9 @@ function screenManage(){
         } else startBackup(tail, document.getElementById('mslot'), screenManage);
       });
     };
-    var ms = document.getElementById('mshare');
-    if (ms && n) ms.onclick = function(){ showCandidate(tail, L.name); };
+    wireHero();
+    var ms = document.getElementById('navshow');
+    if (ms) ms.onclick = function(ev){ ev.preventDefault(); if (n) showCandidate(tail, L.name); };
     var mp = document.getElementById('mpups');
     if (mp) mp.onclick = function(){ mp.style.display = 'none'; startRestore(document.getElementById('mrslot')); };
     document.getElementById('mnew').onclick = function(){ location.href = '/app.html?new=1'; };
