@@ -1354,7 +1354,7 @@ function screenPack(mode, topic0){
   }).catch(function(e){ document.getElementById('board').textContent = 'The pack is napping: ' + e.message; });
 }
 
-var APP_VERSION = "20260929213341";
+var APP_VERSION = "20260929213839";
 (function(){
   try {
     fetch('/version.json?t=' + Date.now(), { cache: 'no-store' }).then(function(r){ return r.json(); }).then(function(j){
@@ -1629,7 +1629,9 @@ function screenManage(){
     });
     on('mpups', function(){ if (sess) screenRestore(); else { this.style.display = 'none'; startRestore(document.getElementById('mrslot')); } });
     on('mout', function(){ sb.auth.signOut().then(function(){ screenManage(); }); });
-    on('mnew', function(){ location.href = '/app.html?new=1'; });
+    on('mnew', function(){
+      if (!(email && backed) && !confirm(L.name + ' isn\u2019t backed up yet. This device will switch to the new pup, and ' + L.name + ' will only be reachable through its private link. Continue?')) return;
+      location.href = '/app.html?new=1'; });
     on('mtour', function(){ try { sessionStorage.setItem('vp.tour', '1'); } catch (e) {} location.href = url; });
     on('minv', function(){
       var b = this, msg = 'I gave my city&rsquo;s issues to a pup that remembers them at voting time. Get yours:'.replace('&rsquo;', '’');
