@@ -824,7 +824,7 @@ function screenLedger(tail){
       bb.innerHTML = '<div class="count">🐾 ' + esc(L.name) + ' also backs ' + bk.length + ' issue' + (bk.length === 1 ? '' : 's') + ' from the Pack</div>' +
         '<div class="grid2">' + bk.map(function(e){
           return '<div class="card">' +
-            (e.body ? '<div class="entry-body">' + esc(e.body) + '</div>' : '') +
+            (e.body ? '<div class="entry-body">' + esc(e.body) + '</div>' : '') + mediaHTML(e.media) +
             '<div class="ts">— ' + esc(e.pup) + ' · ' + new Date(e.ts).toLocaleDateString() + '</div>' +
             '<div class="chips">' + placeChip(e.place, e.topic) +
               (e.topic ? '<a class="topicchip" href="/pack?t=' + encodeURIComponent(e.topic) + '">#' + esc(e.topic) + '</a>' : '') +
@@ -1157,7 +1157,7 @@ function screenPack(mode, topic0){
   }).catch(function(e){ document.getElementById('board').textContent = 'The pack is napping: ' + e.message; });
 }
 
-var APP_VERSION = "20260929182606";
+var APP_VERSION = "20260929182617";
 (function(){
   try {
     fetch('/version.json?t=' + Date.now(), { cache: 'no-store' }).then(function(r){ return r.json(); }).then(function(j){
