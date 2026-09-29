@@ -4,13 +4,14 @@ create table if not exists backs (
   entry_id   uuid not null references entries(id) on delete cascade,
   tail       text not null references ledgers(tail) on delete cascade,
   created_at timestamptz not null default now(),
+  place      text,   -- backer's place when they backed it: lets counts be split local / province / national later
   primary key (entry_id, tail)
 );
 create index if not exists backs_tail_idx on backs(tail);
 alter table backs enable row level security;
 grant all on backs to service_role;
 
-create or replace function vp_back(p_tail text, p_id uuid, p_on boolean)
+create or replace function vp_back(p_tail text, p_id uuid, p_on boolean, p_place text default null)
 returns json language plpgsql security definer set search_path = public as $$
 declare e entries%rowtype;
 begin
@@ -22,15 +23,16 @@ begin
     if (select count(*) from backs where tail = p_tail and created_at > now() - interval '1 day') >= 100 then
       raise exception 'that is a lot of backing for one day - try tomorrow';
     end if;
-    insert into backs(entry_id, tail) values (p_id, p_tail) on conflict do nothing;
+    insert into backs(entry_id, tail, place) values (p_id, p_tail, nullif(left(trim(coalesce(p_place,'')), 120), ''))
+      on conflict do nothing;
   else
     delete from backs where entry_id = p_id and tail = p_tail;
   end if;
   return json_build_object('backs', (select count(*) from backs where entry_id = p_id),
                            'backed', exists (select 1 from backs where entry_id = p_id and tail = p_tail));
 end $$;
-revoke all on function vp_back(text, uuid, boolean) from public;
-grant execute on function vp_back(text, uuid, boolean) to anon;
+revoke all on function vp_back(text, uuid, boolean, text) from public;
+grant execute on function vp_back(text, uuid, boolean, text) to anon;
 
 -- Pack rows carry id + backing count
 create or replace function vp_shared_board(p_place text default null)

@@ -1019,7 +1019,7 @@ function screenPack(mode, topic0){
       if (!saved) { alert('Name your own pup first (it takes 10 seconds). Then it can back this issue and remind you at voting time.'); location.href = '/app.html'; return; }
       var id = c.getAttribute('data-back'), on = !backed[id];
       c.style.opacity = .5;
-      rpc('vp_back', { p_tail: saved.tail, p_id: id, p_on: on }).then(function(r){
+      rpc('vp_back', { p_tail: saved.tail, p_id: id, p_on: on, p_place: getPlace() || null }).then(function(r){
         if (r.backed) backed[id] = 1; else delete backed[id];
         rows.concat(backedList).forEach(function(x){ if (x.id === id) x.backs = r.backs; });
         Array.prototype.forEach.call(b.querySelectorAll('[data-back="' + id + '"]'), function(el){
@@ -1157,7 +1157,7 @@ function screenPack(mode, topic0){
   }).catch(function(e){ document.getElementById('board').textContent = 'The pack is napping: ' + e.message; });
 }
 
-var APP_VERSION = "20260929181852";
+var APP_VERSION = "20260929182340";
 (function(){
   try {
     fetch('/version.json?t=' + Date.now(), { cache: 'no-store' }).then(function(r){ return r.json(); }).then(function(j){
