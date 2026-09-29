@@ -85,6 +85,17 @@
   .reveal{opacity:0; transition:opacity .5s ease}
   .reveal.show{opacity:1}
   .namefield{margin-top:10px}
+  .unboxwrap{position:relative; width:100%; max-width:300px; margin:8px auto 4px; border-radius:18px; overflow:hidden;
+      aspect-ratio:9/16; max-height:58vh; background:#e9edf1; box-shadow:0 6px 24px rgba(16,24,40,.12)}
+  .unboxwrap video{width:100%; height:100%; object-fit:cover; display:block}
+  .unboxwrap .tag{bottom:14px; left:50%; transform:translateX(-50%) scale(0)}
+  @keyframes poptag{0%{opacity:0; transform:translateX(-50%) scale(0)}70%{opacity:1; transform:translateX(-50%) scale(1.15)}100%{opacity:1; transform:translateX(-50%) scale(1)}}
+  .unboxwrap .tag{animation:poptag .45s cubic-bezier(.34,1.56,.64,1) 3.1s forwards}
+  .fetchcard{display:flex; gap:12px; align-items:center; background:var(--card); border:1px solid var(--line);
+      border-radius:16px; padding:8px; margin:0 0 12px; box-shadow:0 1px 2px rgba(16,24,40,.05)}
+  .fetchcard video{width:78px; height:120px; object-fit:cover; border-radius:12px; flex:0 0 auto; background:#e9edf1}
+  .fetchcard .ft{font-size:14px; font-weight:700; line-height:1.35}
+  .fetchcard .ft small{display:block; font-weight:500; color:var(--sub); font-size:12px; margin-top:3px}
   .linkbox{background:var(--chip); border:1px dashed var(--gold); border-radius:12px; padding:12px;
            font-size:13px; word-break:break-all; margin-top:10px}
   .qrwrap{display:flex; justify-content:center; margin:14px 0}
@@ -439,17 +450,24 @@ function screenCapture(prefGripe, prefName){
 }
 
 function screenUnbox(name, gripe){
+  var still = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   root.innerHTML = nav() +
-    '<div class="scene">' +
-      '<span class="paw p1">🐾</span><span class="paw p2">🐾</span><span class="paw p3">🐾</span>' +
-      '<span class="paw p4">🐾</span><span class="paw p5">🐾</span>' +
-      '<img class="pupimg" src="/pup-face.jpg" alt="">' +
-      '<div class="gift">🎁</div>' +
-      '<div class="cap">🧢</div>' +
+    '<div class="unboxwrap">' +
+      (still
+        ? '<img src="/pup-face.jpg" alt="" style="width:100%;height:100%;object-fit:cover">'
+        : '<video id="unboxvid" src="/pup-unbox.mp4" muted autoplay playsinline preload="auto"></video>') +
       '<div class="tag">' + esc(name.toUpperCase()) + '</div>' +
     '</div>' +
     '<div class="reveal" id="reveal"></div>';
-  var animDone = new Promise(function(res){ setTimeout(res, 3300); });
+  var animDone = new Promise(function(res){
+    var v = document.getElementById('unboxvid');
+    var fin = function(){ res(); };
+    if (!v) { setTimeout(fin, 1200); return; }
+    v.addEventListener('ended', fin);
+    v.addEventListener('error', function(){ setTimeout(fin, 800); });
+    setTimeout(fin, 5200);                       // never hang if autoplay is blocked
+    var p = v.play(); if (p && p.catch) p.catch(function(){ setTimeout(fin, 600); });
+  });
   var mint = ensurePlace().then(function(){ return uploadPending(); }).then(function(media){
     return rpc('vp_create_ledger', { p_name: name }).then(function(l){
       return rpc('vp_add_entry', { p_tail: l.tail, p_body: gripe, p_shared: false, p_media: media, p_place: getPlace() })
@@ -504,6 +522,9 @@ function screenLedger(tail){
     var n = L.entries.length;
     pendingFiles = [];
     root.innerHTML = nav() +
+      '<div class="fetchcard"><video src="/pup-fetch.mp4" muted autoplay loop playsinline preload="metadata"></video>' +
+        '<div class="ft">' + esc(L.name) + ' fetches your issues for you.' +
+        '<small>Tell ' + esc(L.name) + ' what should be fixed — it brings them back the day you can vote on them. 🗳️</small></div></div>' +
       say('What made you think<br>&ldquo;someone should fix this&rdquo;?', 'tell ' + esc(L.name) + ' — 5 words is plenty') +
       '<div class="votestrip" id="votestrip"></div>' +
       '<div class="composer">' +
