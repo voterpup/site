@@ -106,6 +106,23 @@
   .fetchvid img.vsit{position:absolute; inset:0; width:78px; height:120px; object-fit:cover; border-radius:12px; background:#e9edf1}
   .mcard{background:var(--card); border:1px solid var(--line); border-radius:16px; padding:12px; margin:0 0 12px;
       box-shadow:0 1px 2px rgba(16,24,40,.05)}
+  .mrow{display:flex; gap:12px; align-items:center; background:var(--card); border:1px solid var(--line); border-radius:16px;
+      padding:10px; margin:0 0 10px; box-shadow:0 1px 2px rgba(16,24,40,.05)}
+  .mthumb{position:relative; width:96px; height:96px; flex:0 0 auto; border-radius:12px; overflow:hidden; background:#f1ede3}
+  .mthumb img,.mthumb video{position:absolute; inset:0; width:100%; height:100%; object-fit:cover; display:block}
+  .mthumb .vtop{z-index:2; transition:opacity .35s}
+  .mthumb .slotmedia{position:absolute; inset:0; height:auto; border-radius:0}
+  .mthumb .slotmedia video,.mthumb .slotmedia img{object-position:35% 50%}
+  .mthumb #invthumb{object-fit:contain; background:#fff}
+  .mkeythumb{position:absolute; inset:0; display:flex; align-items:center; justify-content:center; font-size:40px; background:#faf3df}
+  .mbody{flex:1; min-width:0}
+  .mbody .mh{font-size:14.5px; font-weight:800; line-height:1.3}
+  .mbody .mp{font-size:12px; color:var(--sub); margin:3px 0 0; line-height:1.4}
+  .mact{display:flex; flex-wrap:wrap; gap:6px; margin-top:8px}
+  .mact .mbtn{width:auto; margin:0; padding:7px 11px; font-size:12.5px}
+  .mact .linkbox{font-size:11px; padding:8px; width:100%}
+  .mlink{font-size:11.5px; color:#3b6fb6; align-self:center}
+  .appstrip a{color:#7a5a0c; font-weight:800}
   .mcard .mimg{width:100%; height:120px; object-fit:cover; border-radius:12px; margin-bottom:10px; display:block; background:#f3eee2}
   .sharemain{display:block; text-align:center; text-decoration:none; background:#faf3df; border:1.5px solid var(--gold);
       color:#7a5a0c; font-weight:800; font-size:15px; border-radius:14px; padding:10px 12px; margin:0 0 12px}
@@ -948,7 +965,8 @@ function screenLedger(tail){
 }
 
 // sticker: 50x30mm-ish label PNG via canvas -> download / share
-function renderSticker(name, url, cb){
+function renderSticker(name, url, cb, words){
+  words = words || { l1: 'remembers what', l2: 'you care about.', cta: 'Scan to visit your pup →' };
   var W = 900, H = 540, c = document.createElement('canvas'); c.width = W; c.height = H;
   var x = c.getContext('2d');
   x.fillStyle = '#fff'; x.fillRect(0, 0, W, H);
@@ -964,8 +982,8 @@ function renderSticker(name, url, cb){
     var fs = 58; do { x.font = '900 ' + fs + 'px sans-serif'; fs -= 2; } while (fs > 18 && x.measureText(name.toUpperCase()).width > 250);
     x.fillText(name.toUpperCase(), 200, 140);
     x.font = '600 32px sans-serif'; x.fillStyle = '#55677a';
-    x.fillText('remembers what', 44, 270); x.fillText('you care about.', 44, 312);
-    x.font = '600 24px sans-serif'; x.fillText('Scan to visit your pup →', 44, 380);
+    x.fillText(words.l1, 44, 270); x.fillText(words.l2, 44, 312);
+    x.font = '600 24px sans-serif'; x.fillText(words.cta, 44, 380);
     x.font = '800 36px sans-serif'; x.fillStyle = '#2a2418'; x.fillText('voterpup.com', 44, 480);
     cb(c);
   }
@@ -1022,7 +1040,8 @@ function showSticker(canvas, name, url){
   });
 }
 
-function nav(extra){ return '<div class="appstrip">📱 The VoterPup app is coming — this link will bring your pup along</div>' +
+function nav(extra){ return '<div class="appstrip" id="appstrip">📱 The VoterPup app is coming. ' +
+  (GOOGLE_READY && !KIOSK ? '<a href="#" class="appsignin">Sign in with Google</a> to bring your pup along.' : 'Your pup will come along.') + '</div>' +
   '<div class="nav"><div class="brand">Voter<b>Pup</b> 🐾</div><div class="navr">' + (extra || '') +
   (GOOGLE_READY && !KIOSK ? '<a href="#" class="acct" id="navacct">Sign in</a>' : '') + '</div></div>'; }
 function say(text, small, name){
@@ -1247,7 +1266,7 @@ function screenPack(mode, topic0){
   }).catch(function(e){ document.getElementById('board').textContent = 'The pack is napping: ' + e.message; });
 }
 
-var APP_VERSION = "20260929203456";
+var APP_VERSION = "20260929204118";
 (function(){
   try {
     fetch('/version.json?t=' + Date.now(), { cache: 'no-store' }).then(function(r){ return r.json(); }).then(function(j){
@@ -1374,6 +1393,9 @@ function refreshAcct(){
   sb.auth.getSession().then(function(r){
     var s = r.data && r.data.session;
     a.textContent = s ? 'My pups' : 'Sign in';
+    var st = document.getElementById('appstrip');
+    if (st && s && s.user && s.user.email)
+      st.innerHTML = '📱 The VoterPup app is coming. Signed in as <b>' + esc(s.user.email) + '</b>: your pups come along.';
   });
 }
 function screenSignIn(){
@@ -1384,6 +1406,10 @@ function screenSignIn(){
   wireTabs();
   googleButton(document.getElementById('sislot'), screenRestore);
 }
+document.addEventListener('click', function(ev){
+  var a = ev.target && ev.target.closest ? ev.target.closest('.appsignin') : null;
+  if (a) { ev.preventDefault(); if (loadLocal()) location.href = '/manage'; else screenSignIn(); }
+});
 document.addEventListener('click', function(ev){
   var t = ev.target && ev.target.closest ? ev.target.closest('#navacct') : null;
   if (!t || !sb) return;
@@ -1453,19 +1479,6 @@ function screenView(tok){
 }
 
 var BACKUP_IMG = '/pup-face.jpg';  // replace with the 'puppy has a home' picture
-function heroCards(name, n){
-  return '<div class="herorow"><div class="fetchcard"><div class="fetchvid">' +
-        '<img class="vsit" src="/pup-sit.webp" alt="">' +
-        (window._vpFetchPlayed ? '' : '<video class="vtop" id="vfetch" src="/pup-fetch.mp4" muted autoplay playsinline preload="auto"></video>') +
-      '</div>' +
-        '<div class="ft">' + esc(name) + ' fetches your issues for you.' +
-        '<small>It brings them back the day you can vote on them. 🗳️</small>' +
-      '</div></div>' +
-      '<div class="sharetile">' + slotMedia('share') +
-        '<div class="shcap">Make them earn your vote.</div>' +
-        (KIOSK ? '' : '<a href="#" class="hpill' + (n > 0 ? '' : ' off') + '" id="navshow">📤 Share my issues</a>') +
-      '</div></div>';
-}
 function wireHero(){
   wireSlots();
   var vf = document.getElementById('vfetch');
@@ -1475,53 +1488,73 @@ function wireHero(){
   vf.addEventListener('ended', done); vf.addEventListener('error', done);
   var p = vf.play(); if (p && p.catch) p.catch(done);
 }
+function mrow(thumb, title, text, actions){
+  return '<div class="mrow"><div class="mthumb">' + thumb + '</div><div class="mbody"><div class="mh">' + title + '</div>' +
+    (text ? '<p class="mp">' + text + '</p>' : '') + (actions ? '<div class="mact">' + actions + '</div>' : '') + '</div></div>';
+}
+var INVITE_URL = BASE + '/app.html?src=invite';
+var INVITE_WORDS = { l1: 'tell a pup what', l2: 'your city should fix.', cta: 'Scan to get your own pup →' };
 function screenManage(){
   var s = loadLocal();
   if (!s) { location.href = '/app.html'; return; }
   var tail = s.tail, url = pupURL(tail);
   root.innerHTML = nav() + '<div class="hint">Loading…</div>' + tabbar('manage'); wireTabs();
-  readLedger(tail).then(function(L){
+  Promise.all([readLedger(tail), (sb && GOOGLE_READY) ? sb.auth.getSession().catch(function(){ return null; }) : Promise.resolve(null)]).then(function(res){
+    var L = res[0], sess = res[1] && res[1].data && res[1].data.session, email = sess && sess.user && sess.user.email;
     if (!L) { root.innerHTML = nav() + say('This pup couldn&rsquo;t be found.', 'start a new one') + tabbar('manage'); wireTabs(); return; }
     var n = L.entries.length, nm = esc(L.name), backed = isBackedUp(tail);
-    root.innerHTML = nav() +
-      '<div class="q" style="font-size:20px; margin-bottom:10px">Manage ' + nm + ' 🐾</div>' +
-      heroCards(L.name, n) +
-      '<div class="mcard"><div class="mh">🔑 ' + nm + '&rsquo;s link</div>' +
-        '<p class="mp">The only key to ' + nm + '. Anyone with it can read your entries, so keep it like a key.</p>' +
-        '<div class="linkbox">' + esc(url) + '</div>' +
-        '<div class="btnrow" style="margin-top:8px"><button class="btn ghost" id="mcopy">Copy link</button>' +
-        '<button class="btn ghost" id="mstk">🏷️ Sticker</button></div></div>' +
-      (GOOGLE_READY && !KIOSK ? '<div class="mcard"><img class="mimg" src="' + BACKUP_IMG + '" alt=""><div class="mh">🔐 Backup</div>' +
-        (backed ? '<p class="mp">✅ ' + nm + ' is backed up to your Google account. Sign in on any device to bring it back.</p>'
-                : '<p class="mp">Don&rsquo;t lose ' + nm + '. We use your email only to restore it on any device. No mail, ever.</p>' +
-                  '<button class="btn gold" id="mbackup">Back up with Google</button><div id="mslot"></div>') +
-        '</div>' : '') +
-      '<div class="mcard"><div class="mh">🐶 Pups</div>' +
-        (GOOGLE_READY && !KIOSK ? '<button class="btn ghost" id="mpups">My backed-up pups</button><div id="mrslot"></div>' : '') +
-        '<button class="btn ghost" id="mnew">＋ Start another pup</button></div>' +
-      '<footer><a href="/privacy.html">Privacy</a> · <a href="mailto:hi@voterpup.com">hi@voterpup.com</a></footer>' +
-      tabbar('manage');
-    wireTabs();
-    document.getElementById('mcopy').onclick = function(){
-      var b = this; navigator.clipboard.writeText(url).then(function(){ b.textContent = 'Copied ✓'; });
-    };
-    document.getElementById('mstk').onclick = function(){ makeSticker(L.name, url); };
-    var mb = document.getElementById('mbackup');
-    if (mb) mb.onclick = function(){
-      mb.style.display = 'none';
-      sb.auth.getSession().then(function(r){
-        if (r.data && r.data.session) {
-          sb.rpc('vp_claim_ledger', { p_tail: tail }).then(function(x){ if (x.error) throw new Error(x.error.message); markBackedUp(tail); screenManage(); })
-            .catch(function(e){ mb.style.display = ''; alert('Backup didn\u2019t finish: ' + e.message); });
-        } else startBackup(tail, document.getElementById('mslot'), screenManage);
-      });
-    };
-    wireHero();
-    var ms = document.getElementById('navshow');
-    if (ms) ms.onclick = function(ev){ ev.preventDefault(); if (n) showCandidate(tail, L.name); };
-    var mp = document.getElementById('mpups');
-    if (mp) mp.onclick = function(){ mp.style.display = 'none'; startRestore(document.getElementById('mrslot')); };
-    document.getElementById('mnew').onclick = function(){ location.href = '/app.html?new=1'; };
+    var fetchThumb = '<img src="/pup-sit.webp" alt="">' +
+      (window._vpFetchPlayed ? '' : '<video class="vtop" id="vfetch" src="/pup-fetch.mp4" muted autoplay playsinline preload="auto"></video>');
+    var rows = mrow(fetchThumb, nm + ' fetches your issues for you.', 'It brings them back the day you can vote on them. 🗳️', '') +
+      (KIOSK ? '' : mrow(slotMedia('share'), 'Make them earn your vote.', 'A read-only code for candidates: your issues, never your name or email.',
+        '<button class="btn gold mbtn" id="mshare"' + (n ? '' : ' disabled') + '>' + (n ? '📤 Share my issues' : 'Tell ' + nm + ' one issue first') + '</button>'));
+    if (GOOGLE_READY && !KIOSK) {
+      if (email && backed) rows += mrow('<img src="' + BACKUP_IMG + '" alt="">', '✅ ' + nm + ' has a home',
+        'Saved to <b>' + esc(email) + '</b>. Sign in on any device, or in the app when it arrives, to bring ' + nm + ' along.',
+        '<button class="btn ghost mbtn" id="mpups">My pups</button><button class="btn ghost mbtn" id="mout">Sign out</button>' +
+        '<a href="#" class="mlink" id="mshowkey">show private link</a><div id="mkey" hidden></div>');
+      else rows += mrow('<img src="' + BACKUP_IMG + '" alt="">', '🔐 Give ' + nm + ' a home',
+        (email ? 'Signed in as <b>' + esc(email) + '</b>. Add ' + nm + ' to your account so it&rsquo;s never lost.'
+               : 'Sign in with Google so you never lose ' + nm + ', and it comes along to the app. We use your email only for this. No mail, ever.'),
+        '<button class="btn gold mbtn" id="mbackup">' + (email ? 'Add ' + nm + ' to my account' : 'Back up with Google') + '</button><div id="mslot"></div>');
+    }
+    if (!(email && backed)) rows += mrow('<div class="mkeythumb">🔑</div>', nm + '&rsquo;s private link',
+      'Until you sign in, this link is the only key to ' + nm + '. Anyone with it can read your entries.',
+      '<button class="btn ghost mbtn" id="mcopy">Copy link</button><button class="btn ghost mbtn" id="mstk">🏷️ Key sticker</button>');
+    rows += mrow('<img id="invthumb" alt="">', '🐾 Invite your friends',
+      'Their own pup, their own issues. More neighbours, louder together.',
+      '<button class="btn gold mbtn" id="minv">Share invite</button><button class="btn ghost mbtn" id="minvstk">🏷️ Invite sticker</button>');
+    rows += mrow('<img src="/pup-watch.jpg" alt="">', '🐶 Pups', '',
+      (GOOGLE_READY && !KIOSK && !(email && backed) ? '<button class="btn ghost mbtn" id="mpups">My backed-up pups</button><div id="mrslot"></div>' : '') +
+      '<button class="btn ghost mbtn" id="mnew">＋ Start another pup</button>');
+    root.innerHTML = nav() + '<div class="q" style="font-size:20px; margin-bottom:10px">Manage ' + nm + ' 🐾</div>' + rows +
+      '<footer><a href="/privacy.html">Privacy</a> · <a href="mailto:hi@voterpup.com">hi@voterpup.com</a></footer>' + tabbar('manage');
+    wireTabs(); wireHero();
+    var on = function(id, fn){ var el = document.getElementById(id); if (el) el.onclick = fn; };
+    on('mshare', function(){ if (n) showCandidate(tail, L.name); });
+    on('mcopy', function(){ var b = this; navigator.clipboard.writeText(url).then(function(){ b.textContent = 'Copied ✓'; }); });
+    on('mstk', function(){ makeSticker(L.name, url); });
+    on('mshowkey', function(ev){ ev.preventDefault(); var k = document.getElementById('mkey'); k.hidden = false; this.style.display = 'none';
+      k.innerHTML = '<div class="linkbox">' + esc(url) + '</div><button class="btn ghost mbtn" id="mcopy2">Copy link</button>';
+      on('mcopy2', function(){ var b = this; navigator.clipboard.writeText(url).then(function(){ b.textContent = 'Copied ✓'; }); }); });
+    on('mbackup', function(){
+      var mb = this; mb.style.display = 'none';
+      if (sess) sb.rpc('vp_claim_ledger', { p_tail: tail }).then(function(x){ if (x.error) throw new Error(x.error.message); markBackedUp(tail); screenManage(); })
+        .catch(function(e){ mb.style.display = ''; alert('Backup didn’t finish: ' + e.message); });
+      else startBackup(tail, document.getElementById('mslot'), screenManage);
+    });
+    on('mpups', function(){ if (sess) screenRestore(); else { this.style.display = 'none'; startRestore(document.getElementById('mrslot')); } });
+    on('mout', function(){ sb.auth.signOut().then(function(){ screenManage(); }); });
+    on('mnew', function(){ location.href = '/app.html?new=1'; });
+    on('minv', function(){
+      var b = this, msg = 'I gave my city&rsquo;s issues to a pup that remembers them at voting time. Get yours:'.replace('&rsquo;', '’');
+      if (navigator.share) navigator.share({ title: 'VoterPup', text: msg, url: INVITE_URL }).catch(function(){});
+      else navigator.clipboard.writeText(msg + ' ' + INVITE_URL).then(function(){ b.textContent = 'Copied ✓'; });
+    });
+    renderSticker('Join the pack', INVITE_URL, function(c){
+      var im = document.getElementById('invthumb'); if (im) im.src = c.toDataURL('image/png');
+      on('minvstk', function(){ showSticker(c, 'Join the pack', INVITE_URL); });
+    }, INVITE_WORDS);
   }).catch(function(e){ root.innerHTML = nav() + say('Couldn&rsquo;t load this.', esc(e.message)) + tabbar('manage'); wireTabs(); });
 }
 
