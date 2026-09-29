@@ -133,10 +133,11 @@
   .media img,.media video{width:100%; border-radius:10px; margin-top:8px; max-height:340px; object-fit:cover; background:#000}
   .appstrip{background:#faf3df; border:1px solid var(--gold); color:#8a6a14; border-radius:10px;
       font-size:11.5px; font-weight:700; padding:5px 10px; text-align:center; margin-bottom:10px}
-  .votestrip{background:var(--card); border:1px solid var(--line); border-radius:12px; padding:9px 12px;
-      font-size:12.5px; color:var(--sub); margin-bottom:10px; display:flex; align-items:center; gap:8px;
+  .votestrip{background:var(--card); border:1px solid var(--line); border-radius:12px; padding:8px 12px;
+      font-size:12.5px; color:var(--sub); margin-bottom:10px; display:block;
       box-shadow:0 1px 2px rgba(16,24,40,.04)}
   .votestrip b{color:var(--ink)}
+  .vsrow{display:flex; align-items:center; gap:8px; padding:2.5px 0}
   .votestrip .days{margin-left:auto; background:var(--accent); color:#f2f9f5; border-radius:999px;
       padding:3px 10px; font-weight:800; font-size:12px; white-space:nowrap}
   .votestrip .days.red{background:#a94b4b}
@@ -282,11 +283,13 @@ function renderVoteStrip(){
     };
     return;
   }
-  rpc('vp_find_election', { p_place: place }).then(function(e){
-    if (!e) { el.innerHTML = '🗳️ No upcoming election on file for <b>' + esc(place.split(',')[0]) + '</b> yet.'; return; }
-    var cls = e.kind === 'election' ? 'days red' : 'days';
-    el.innerHTML = '🗳️ <b>' + esc(e.name) + '</b><span class="' + cls + '">' +
-      (e.days === 0 ? 'TODAY' : 'in ' + e.days + ' day' + (e.days===1?'':'s')) + '</span>';
+  rpc('vp_upcoming', { p_place: place }).then(function(list){
+    if (!list || !list.length) { el.innerHTML = '🗳️ No upcoming votes on file for <b>' + esc(place.split(',')[0]) + '</b> yet.'; return; }
+    el.innerHTML = list.map(function(e){
+      var cls = e.kind === 'election' ? 'days red' : 'days';
+      return '<div class="vsrow">🗳️ <b>' + esc(e.name) + '</b><span class="' + cls + '">' +
+        (e.days === 0 ? 'TODAY' : 'in ' + e.days + ' day' + (e.days===1?'':'s')) + '</span></div>';
+    }).join('');
   }).catch(function(){ el.innerHTML = ''; });
 }
 var _elCache = {};
