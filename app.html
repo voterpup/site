@@ -110,6 +110,12 @@
       display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden;
       transition:opacity .45s}
   .tile.mine{color:var(--goldink)}
+  .tile .tbg{position:absolute; inset:0; background-size:cover; background-position:center; transition:opacity .7s ease}
+  .tile .tcount,.tile .tsnippet,.tile .tname{position:relative; z-index:1}
+  .tile .tcount{position:absolute}
+  .mombody .vitem{margin-top:6px}
+  .mombody .vitem a{margin:0; font-weight:700}
+  .mombody .vitem span{color:var(--sub)}
   .grid2{display:grid; grid-template-columns:1fr 1fr; gap:10px; align-items:start}
   .grid2 .card{margin-top:0}
   .grid2 .entry-body{font-size:13.5px; display:-webkit-box; -webkit-line-clamp:4; -webkit-box-orient:vertical; overflow:hidden}
@@ -352,15 +358,33 @@ function groupedQuestionsRow(qs){
       return '<div class="qname">' + esc(q.name) + '</div>' + (q.how ? '<div>' + esc(q.how) + '</div>' : '');
     }).join('') + '<div>' + actionLinks(links) + '</div></div></details>';
 }
+function shortDate(d){ return new Date(d + 'T12:00:00').toLocaleDateString('en-CA', { month: 'short', day: 'numeric' }); }
+function voiceItems(vs, cap){
+  var shown = vs.slice(0, cap);
+  return shown.map(function(v){
+    var nm = v.name.replace(/^Have your say:\s*/, '');
+    var link = v.source_url || (v.actions && v.actions[0] && v.actions[0].url) || '#';
+    return '<div class="vitem"><a href="' + esc(link) + '" target="_blank" rel="noopener noreferrer">↗ ' + esc(nm) + '</a>' +
+      ' <span>· closes ' + shortDate(v.vote_date) + '</span></div>';
+  }).join('') + (vs.length > cap ? '<div class="vitem"><span>+ ' + (vs.length - cap) + ' more on Shape Your City</span></div>' : '');
+}
+function groupedVoiceRow(vs, cap){
+  return '<details class="mom"><summary class="vsrow">🗣️ <b>' + vs.length + ' way' + (vs.length===1?'':'s') + ' to have your say</b>' +
+    '<span class="days blue">next closes ' + daysText(vs[0].days) + '</span></summary>' +
+    '<div class="mombody"><div>Anyone can comment — you don’t need to be a citizen or a voter.</div>' +
+    voiceItems(vs, cap) + '</div></details>';
+}
 function renderMoments(list, groupDecisions){
-  var out = [], byDate = {}, order = [];
+  var out = [], byDate = {}, order = [], voice = [];
   list.forEach(function(e){
+    if (e.kind === 'voice') { voice.push(e); return; }
     if (groupDecisions && e.kind === 'decision') {
       if (!byDate[e.vote_date]) { byDate[e.vote_date] = []; order.push({ q: e.vote_date }); }
       byDate[e.vote_date].push(e);
     } else order.push(e);
   });
   order.forEach(function(r){ out.push(r.q ? groupedQuestionsRow(byDate[r.q]) : momentRow(r)); });
+  if (voice.length) out.push(groupedVoiceRow(voice, groupDecisions ? 6 : 10));
   return out.join('');
 }
 function pupURL(tail){ return BASE + '/p/' + tail; }
@@ -665,33 +689,61 @@ function screenPack(mode, topic0){
       rpc('vp_upcoming', { p_place: place }).then(function(list){ _upCache = list; build(list); }).catch(function(){ cb(''); });
     }
 
+    function tileImgs(list){
+      var out = [];
+      list.forEach(function(r){ (r.media || []).forEach(function(m){
+        if (m.type && m.type.indexOf('image') === 0 && out.indexOf(m.url) < 0) out.push(m.url);
+      }); });
+      return out;
+    }
+    var GRAD = 'linear-gradient(rgba(20,26,33,.25), rgba(20,26,33,.72))';
+    var reduceMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
     function tilesView(){
       clearInterval(window._packT);
+      var imgsByTile = tiles.map(function(t){ return tileImgs(t.list); });
+      imgsByTile.forEach(function(arr){ arr.forEach(function(u){ var im = new Image(); im.src = u; }); });
       b.innerHTML = '<div class="tilegrid">' + tiles.map(function(t, i){
-        var img = firstImg(t.list);
-        var bg = img
-          ? 'background-image:linear-gradient(rgba(20,26,33,.25), rgba(20,26,33,.72)), url(' + esc(img) + ')'
+        var imgs = imgsByTile[i];
+        var bgStyle = imgs.length
+          ? 'background-image:' + GRAD + ', url(' + esc(imgs[0]) + ')'
           : 'background:' + t.color;
-        return '<div class="tile' + (t.mine ? ' mine' : '') + '" data-i="' + i + '" style="' + bg + '">' +
+        return '<div class="tile' + (t.mine ? ' mine' : '') + '" data-i="' + i + '" style="background:' + t.color + '">' +
+          '<div class="tbg" id="tbg' + i + '" style="' + bgStyle + '"></div>' +
           '<div class="tcount">' + t.list.length + '</div>' +
-          '<div class="tsnippet" id="tsnip' + i + '">' + esc((t.list[0].body || '\ud83d\udcf7').slice(0, 90)) + '</div>' +
+          '<div class="tsnippet" id="tsnip' + i + '">' + esc((t.list[0].body || '📷').slice(0, 90)) + '</div>' +
           '<div class="tname">' + esc(t.name) + '</div></div>';
       }).join('') + '</div>';
       Array.prototype.forEach.call(b.querySelectorAll('.tile'), function(el){
         el.onclick = function(){ feedView(tiles[+el.getAttribute('data-i')]); };
       });
+      if (reduceMotion) return;
       var tick = 0;
       window._packT = setInterval(function(){
         tick++;
         tiles.forEach(function(t, i){
-          if (t.list.length < 2) return;
-          var sn = document.getElementById('tsnip' + i); if (!sn) return;
-          sn.style.opacity = 0;
-          setTimeout(function(){
-            var r = t.list[tick % t.list.length];
-            sn.textContent = (r.body || '\ud83d\udcf7').slice(0, 90);
-            sn.style.opacity = 1;
-          }, 450);
+          if (t.list.length > 1) {
+            var sn = document.getElementById('tsnip' + i);
+            if (sn) {
+              sn.style.opacity = 0;
+              setTimeout(function(){
+                var r = t.list[tick % t.list.length];
+                sn.textContent = (r.body || '📷').slice(0, 90);
+                sn.style.opacity = 1;
+              }, 450);
+            }
+          }
+          var imgs = imgsByTile[i];
+          if (imgs.length > 1) {
+            var bg = document.getElementById('tbg' + i);
+            if (bg) {
+              bg.style.opacity = 0;
+              setTimeout(function(){
+                bg.style.backgroundImage = GRAD + ', url(' + imgs[tick % imgs.length] + ')';
+                bg.style.opacity = 1;
+              }, 700);
+            }
+          }
         });
       }, 3500);
     }
