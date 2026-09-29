@@ -137,6 +137,7 @@
       border:1px solid var(--line); border-radius:999px; background:var(--card)}
   .navr{display:flex; gap:6px; align-items:center}
   .acct.show{color:#8a6a14; border-color:var(--gold); background:#faf3df}
+  @media (max-width:380px){ .acct{padding:5px 8px; font-size:12px} .brand{font-size:15px} }
   .viewsum{display:flex; flex-wrap:wrap; gap:6px; margin:4px 0 12px}
   .switchrow{display:flex; align-items:center; gap:10px; font-size:13px; color:var(--ink); margin:10px 2px}
   .switchrow input{width:auto; transform:scale(1.2)}
@@ -630,7 +631,7 @@ function screenLedger(tail){
     saveLocal(tail, L.name);
     var n = L.entries.length;
     pendingFiles = [];
-    root.innerHTML = nav(n > 0 && !KIOSK ? '<a href="#" class="acct show" id="navshow">🗳️ Show</a>' : '') +
+    root.innerHTML = nav(n > 0 && !KIOSK ? '<a href="#" class="acct show" id="navshow">📤 Share my issues</a>' : '') +
       '<div class="fetchcard"><div class="fetchvid">' +
         '<video class="vsit" src="/pup-sit.mp4" muted autoplay loop playsinline preload="auto"></video>' +
         (window._vpFetchPlayed ? '' : '<video class="vtop" id="vfetch" src="/pup-fetch.mp4" muted autoplay playsinline preload="auto"></video>') +
@@ -1019,7 +1020,7 @@ function screenPack(mode, topic0){
   }).catch(function(e){ document.getElementById('board').textContent = 'The pack is napping: ' + e.message; });
 }
 
-var APP_VERSION = "20260929072418";
+var APP_VERSION = "20260929072631";
 (function(){
   try {
     fetch('/version.json?t=' + Date.now(), { cache: 'no-store' }).then(function(r){ return r.json(); }).then(function(j){
