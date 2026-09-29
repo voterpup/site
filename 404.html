@@ -35,6 +35,9 @@
   .chip{background:var(--chip); border:1px solid var(--line); color:var(--sub); border-radius:999px;
         padding:6px 12px; font-size:12.5px; cursor:pointer}
   .chip.goldline{border-color:var(--gold); color:var(--gold)}
+  .chip.same{border-color:#d9c38a; color:#8a6a14; background:#fff; font-weight:700; cursor:pointer}
+  .chip.same.on{background:#faf3df; border-color:var(--gold); color:#7a5a0c}
+  .chip.same.static{cursor:default}
   .chip.goldfill{background:#faf3df; border-color:var(--gold); color:var(--gold); font-weight:700; cursor:default}
   .card{background:var(--card); border:1px solid var(--line); border-radius:14px; padding:14px; margin-top:10px}
   .privacy{color:var(--sub); font-size:12.5px; margin:12px 0 2px}
@@ -319,6 +322,11 @@ function uploadPending(){
     });
   });
   return Promise.all(ups);
+}
+function sameChip(id, n, on, mine){
+  if (!id) return '';
+  if (mine) return n ? '<span class="chip same on static">🐾 ' + n + (n === 1 ? ' neighbour feels' : ' neighbours feel') + ' the same</span>' : '';
+  return '<span class="chip same' + (on ? ' on' : '') + '" data-back="' + esc(id) + '">🐾 Same here' + (n ? ' · ' + n : '') + '</span>';
 }
 function mediaHold(x){
   if (x.hidden === 'video') return '<div class="chip" style="display:inline-block;margin-top:8px;cursor:default">🎥 video · not shown publicly</div>';
@@ -749,7 +757,7 @@ function screenLedger(tail){
       '<div class="momwrap" id="votestrip"></div>' +
       '<div class="count">' + (n === 0 ? esc(L.name) + ' is waiting for a first memory'
         : esc(L.name) + ' remembers ' + n + ' thing' + (n===1?'':'s')) + '</div>' +
-      '<div id="entries" class="grid2"></div>' + tabbar('pup');
+      '<div id="entries" class="grid2"></div>' + '<div id="backedbox"></div>' + tabbar('pup');
     wireAttach(); wireTabs(); renderVoteStrip(); refreshPlaceIfStale();
     (function(){
       var vf = document.getElementById('vfetch');
@@ -803,13 +811,33 @@ function screenLedger(tail){
         (e.body ? '<div class="entry-body">' + esc(e.body) + '</div>' : '') + mediaHTML(e.media) +
         '<div class="ts">' + new Date(e.ts).toLocaleString() + '</div>' +
         '<div class="chips">' + placeChip(e.place, e.topic) + (e.topic ? '<a class="topicchip" href="/pack?t=' + encodeURIComponent(e.topic) + '">#' + esc(e.topic) + '</a>' : '') + '<span class="chip" data-edit="' + e.id + '" title="change topic">\u270e</span>' + (e.shared
-          ? '<span class="chip goldfill">🌿 Counted with the community</span>' +
+          ? '<span class="chip goldfill">🌿 Counted with the community</span>' + sameChip(e.id, e.backs || 0, true, true) +
             '<span class="chip" data-a="unshare" data-id="'+e.id+'">↩ make private</span>'
           : '<span class="chip" style="cursor:default">🔒 Private</span>' +
             '<span class="chip goldline" data-a="share" data-id="'+e.id+'">🌱 Make it count</span>') +
         '</div></div>';
     }).join('');
     fillEntryElections();
+    var bk = L.backed || [];
+    var bb = document.getElementById('backedbox');
+    if (bb && bk.length) {
+      bb.innerHTML = '<div class="count">🐾 ' + esc(L.name) + ' also backs ' + bk.length + ' issue' + (bk.length === 1 ? '' : 's') + ' from the Pack</div>' +
+        '<div class="grid2">' + bk.map(function(e){
+          return '<div class="card">' +
+            (e.body ? '<div class="entry-body">' + esc(e.body) + '</div>' : '') +
+            '<div class="ts">— ' + esc(e.pup) + ' · ' + new Date(e.ts).toLocaleDateString() + '</div>' +
+            '<div class="chips">' + placeChip(e.place, e.topic) +
+              (e.topic ? '<a class="topicchip" href="/pack?t=' + encodeURIComponent(e.topic) + '">#' + esc(e.topic) + '</a>' : '') +
+              sameChip(e.id, e.backs || 0, true, false) + '</div></div>';
+        }).join('') + '</div>';
+      Array.prototype.forEach.call(bb.querySelectorAll('[data-back]'), function(c){
+        c.onclick = function(){
+          rpc('vp_back', { p_tail: tail, p_id: c.getAttribute('data-back'), p_on: false })
+            .then(function(){ screenLedger(tail); })
+            .catch(function(e){ alert(e.message); });
+        };
+      });
+    }
     Array.prototype.forEach.call(box.querySelectorAll('[data-edit]'), function(c){
       c.onclick = function(){
         var id = c.getAttribute('data-edit');
@@ -962,7 +990,10 @@ function screenPack(mode, topic0){
   ]).then(function(res){
     var rows = res[0] || [];
     var mine = (res[1] && res[1].entries || []).filter(function(e){ return e.shared; })
-      .map(function(e){ return { body: e.body, ts: e.ts, pup: saved.name, media: e.media, topic: e.topic, place: e.place }; });
+      .map(function(e){ return { id: e.id, backs: e.backs || 0, body: e.body, ts: e.ts, pup: saved.name, media: e.media, topic: e.topic, place: e.place }; });
+    var myIds = {}; mine.forEach(function(e){ myIds[e.id] = 1; });
+    var backedList = (res[1] && res[1].backed) || [];
+    var backed = {}; backedList.forEach(function(e){ backed[e.id] = 1; });
     var b = document.getElementById('board');
     if (!rows.length && !mine.length) {
       b.innerHTML = mode === 'local'
@@ -978,8 +1009,24 @@ function screenPack(mode, topic0){
           (r.topic ? '<a class="topicchip" href="/pack?t=' + encodeURIComponent(r.topic) + '">#' + esc(r.topic) + '</a> ' : '') +
           (r.place ? '<span class="chip" style="cursor:default">\ud83d\udccd ' + esc(r.place.split(',')[0]) + '</span>' : '') + '</div>' : '') +
         (r.body ? '<div class="entry-body">' + esc(r.body) + '</div>' : '') + mediaHTML(r.media) +
-        '<div class="ts">\u2014 ' + esc(r.pup) + ' \u00b7 ' + new Date(r.ts).toLocaleDateString() + '</div></div>';
+        '<div class="ts">\u2014 ' + esc(r.pup) + ' \u00b7 ' + new Date(r.ts).toLocaleDateString() + '</div>' +
+        (r.id ? '<div class="chips" style="margin-top:6px">' + sameChip(r.id, r.backs || 0, !!backed[r.id], !!myIds[r.id]) + '</div>' : '') +
+        '</div>';
     }
+    b.addEventListener('click', function(ev){
+      var c = ev.target.closest ? ev.target.closest('[data-back]') : null;
+      if (!c) return;
+      if (!saved) { alert('Name your own pup first (it takes 10 seconds). Then it can back this issue and remind you at voting time.'); location.href = '/app.html'; return; }
+      var id = c.getAttribute('data-back'), on = !backed[id];
+      c.style.opacity = .5;
+      rpc('vp_back', { p_tail: saved.tail, p_id: id, p_on: on }).then(function(r){
+        if (r.backed) backed[id] = 1; else delete backed[id];
+        rows.concat(backedList).forEach(function(x){ if (x.id === id) x.backs = r.backs; });
+        Array.prototype.forEach.call(b.querySelectorAll('[data-back="' + id + '"]'), function(el){
+          el.outerHTML = sameChip(id, r.backs, r.backed, false);
+        });
+      }).catch(function(e){ c.style.opacity = 1; alert(e.message); });
+    });
     function feedHTML(list){ return '<div class="grid2">' + list.map(cardHTML).join('') + '</div>'; }
 
     var byTopic = {};
@@ -997,6 +1044,7 @@ function screenPack(mode, topic0){
 
     var tiles = [];
     if (mine.length) tiles.push({ key: '__mine', name: '\u2b50 My shared', list: mine, color: 'var(--gold)', mine: true });
+    if (backedList.length) tiles.push({ key: '__backed', name: '\ud83d\udc3e I back', list: backedList, color: '#b3702d', mine: true });
     topics.forEach(function(t, i){
       tiles.push({ key: t, name: '#' + t, list: byTopic[t], color: TILE_COLORS[i % TILE_COLORS.length] });
     });
@@ -1109,7 +1157,7 @@ function screenPack(mode, topic0){
   }).catch(function(e){ document.getElementById('board').textContent = 'The pack is napping: ' + e.message; });
 }
 
-var APP_VERSION = "20260929083330";
+var APP_VERSION = "20260929181852";
 (function(){
   try {
     fetch('/version.json?t=' + Date.now(), { cache: 'no-store' }).then(function(r){ return r.json(); }).then(function(j){
