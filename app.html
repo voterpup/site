@@ -106,6 +106,25 @@
   .fetchvid img.vsit{position:absolute; inset:0; width:78px; height:120px; object-fit:cover; border-radius:12px; background:#e9edf1}
   .mcard{background:var(--card); border:1px solid var(--line); border-radius:16px; padding:12px; margin:0 0 12px;
       box-shadow:0 1px 2px rgba(16,24,40,.05)}
+  .plusbtn{flex:0 0 64px !important; position:relative}
+  .plusbtn b{position:absolute; left:50%; top:-18px; transform:translateX(-50%); width:54px; height:54px; border-radius:50%;
+      background:var(--gold); color:#2a2418; font-size:32px; font-weight:600; line-height:52px; text-align:center;
+      box-shadow:0 4px 14px rgba(180,130,20,.45); border:3px solid var(--card)}
+  .iconnav{display:inline-flex; width:36px; height:36px; align-items:center; justify-content:center; border-radius:50%;
+      background:var(--card); border:1px solid var(--line); text-decoration:none; font-size:17px}
+  .puphead{display:flex; align-items:center; gap:12px; margin:2px 0 10px}
+  .pupav{width:52px; height:52px; border-radius:50%; object-fit:cover; border:2px solid var(--gold)}
+  .pupname{font-size:20px; font-weight:800} .pupsub{font-size:12.5px; color:var(--sub)}
+  .addsheet .addhead{font-size:17px; font-weight:800; margin-bottom:8px}
+  .addsheet textarea{width:100%; min-height:90px; border:1px solid var(--line); border-radius:12px; padding:10px; font:inherit; resize:vertical}
+  .addfoot{display:flex; gap:8px; align-items:center; margin-top:10px}
+  .addfoot .btn{flex:1; margin:0}
+  .toast{position:fixed; left:16px; right:16px; bottom:84px; z-index:70; background:#1f2733; color:#fff; border-radius:14px;
+      padding:11px 14px; font-size:13.5px; font-weight:700; text-align:center; max-width:440px; margin:0 auto;
+      box-shadow:0 8px 24px rgba(0,0,0,.25)}
+  .toast a{color:#f3cf6d}
+  .newbie{background:#eef6f2; border:1px solid #cfe5da; color:#2f7d5f; border-radius:12px; padding:9px 12px;
+      font-size:13px; margin:0 0 10px}
   .tourdim{position:fixed; inset:0; z-index:60}
   .tourhole{position:fixed; z-index:61; border-radius:14px; box-shadow:0 0 0 200vmax rgba(16,22,29,.62); cursor:pointer;
       outline:3px solid var(--gold)}
@@ -762,7 +781,7 @@ function screenCapture(prefGripe, prefName){
   var saved = loadLocal();
   pendingFiles = [];
   root.innerHTML = nav() +
-    say('What made you think<br>&ldquo;someone should fix this&rdquo;?', 'your street, your city, your country — 5 words is plenty') +
+    say('What should your city fix?', 'five words is plenty') +
     '<div class="composer">' +
       '<textarea id="gripe" placeholder="Tell it..."></textarea>' +
       '<div id="thumbs" class="attach"></div>' +
@@ -777,7 +796,7 @@ function screenCapture(prefGripe, prefName){
         return '<span class="chip" data-n="'+s+'">'+s+'</span>'; }).join('') + '</div>' +
     '<button class="btn gold" id="open" disabled>Open the box 🎁</button>' +
     (saved && !KIOSK ? '<button class="btn ghost" id="resume">Continue with ' + esc(saved.name) + ' →</button>' : '') +
-    '<p class="privacy">🔒 No account needed. You&rsquo;ll get a private link — that link is yours alone.</p>' +
+    '<p class="privacy">🔒 Private by default. No account needed.</p>' +
     (GOOGLE_READY && !saved && !KIOSK ? '<p class="privacy"><a href="#" id="grestore" style="color:#3b6fb6;font-weight:700">Backed up a pup before? Find it →</a></p><div id="grslot"></div>' : '') +
     tabbar('pup');
   wireAttach(); wireTabs();
@@ -856,14 +875,9 @@ function screenUnbox(name, gripe){
 function startTour(name, k0){
   var nm = esc(name);
   var steps = [
-    { sel: '.composer', text: '<b>Tell ' + nm + '</b> anything your city should fix. Five words is plenty, 📷 adds a photo.' },
-    { sel: '#priv', text: '<b>Give it to ' + nm + '</b>: private. Only you ever see it.' },
-    { sel: '#share', text: '<b>Be counted 🌱</b>: shares it to The Pack, where neighbours tap 🐾 Same here.' },
-    { sel: '#entries', text: nm + ' <b>already remembers</b> your first issue. Tap 🌱 Make it count on any card to share it later.' },
-    { sel: '#votestrip', text: '<b>When you can act 🗳️</b>: your elections and deadlines, with countdowns. ' + nm + ' brings your issues back then.' },
-    { sel: '#navshow', text: '<b>Make them earn your vote 📤</b>: show candidates a read-only list of what you need fixed.' },
-    { sel: '.tabbar a[href="/pack"]', text: '<b>The Pack 🐾</b>: what your neighbours want fixed, sorted by what you care about.' },
-    { sel: '.tabbar a[href="/manage"]', text: '<b>Manage ' + nm + '</b>: back up with Google so you never lose ' + nm + ', invite friends, get your sticker.', last: true }
+    { sel: '#tab-plus', text: 'Tap <b>+</b> anytime to tell ' + nm + ' what should be fixed.' },
+    { sel: '#votestrip', text: '<b>When you can act 🗳️</b> ' + nm + ' brings your issues back at voting time.' },
+    { sel: '#navman', text: '<b>⚙️ Back up ' + nm + '</b> with Google so you never lose it.', last: true }
   ].filter(function(s){ return document.querySelector(s.sel); });
   if (!steps.length) return;
   var k = Math.min(k0 || 0, steps.length - 1);
@@ -915,26 +929,12 @@ function screenLedger(tail){
     saveLocal(tail, L.name);
     var n = L.entries.length;
     pendingFiles = [];
-    root.innerHTML = nav() +
-      (KIOSK ? '' : '<a href="#" class="sharemain' + (n > 0 ? '' : ' off') + '" id="navshow">📤 Share my issues<small>Make them earn your vote</small></a>') +
-      say('What made you think<br>&ldquo;someone should fix this&rdquo;?', 'tell ' + esc(L.name) + ' — 5 words is plenty') +
-      '<div class="composer">' +
-        '<textarea id="gripe" placeholder="Tell ' + esc(L.name) + '..."></textarea>' +
-        '<div id="thumbs" class="attach"></div>' +
-        '<div class="cfoot">' +
-          '<div class="iconbtn" id="addmedia">📷</div>' +
-          '<input id="fpick" type="file" accept="image/*,video/*" multiple hidden>' +
-          '<div class="spacer"></div>' +
-          '<button class="btn compact" id="priv" disabled>Give it to ' + esc(L.name) + ' 🐾<div class="sub">(private)</div></button>' +
-          '<button class="btn gold compact" id="share" disabled>Be counted 🌱<div class="sub">(share)</div></button>' +
-        '</div>' +
-      '</div>' +
-      '<p class="privacy">🔒 Everything you give ' + esc(L.name) + ' is private. Sharing is your choice — reversible anytime.</p>' +
+    root.innerHTML = nav(KIOSK ? '' : '<a href="#" class="iconnav" id="navshow" title="Share my issues">📤</a><a href="/manage" class="iconnav" id="navman" title="Manage">⚙️</a>') +
+      '<div class="puphead"><img class="pupav" src="/pup-face.jpg" alt=""><div><div class="pupname">' + esc(L.name) + '</div>' +
+        '<div class="pupsub">' + (n ? 'remembers ' + n + ' thing' + (n === 1 ? '' : 's') : 'tap + to tell ' + esc(L.name) + ' something') + '</div></div></div>' +
       '<div class="momwrap" id="votestrip"></div>' +
-      '<div class="count">' + (n === 0 ? esc(L.name) + ' is waiting for a first memory'
-        : esc(L.name) + ' remembers ' + n + ' thing' + (n===1?'':'s')) + '</div>' +
       '<div id="entries" class="grid2"></div>' + '<div id="backedbox"></div>' + tabbar('pup');
-    wireAttach(); wireTabs(); wireSlots(); renderVoteStrip(); refreshPlaceIfStale();
+    wireTabs(); renderVoteStrip(); refreshPlaceIfStale();
     var wantTour = false; try { wantTour = sessionStorage.getItem('vp.tour') === '1'; sessionStorage.removeItem('vp.tour'); } catch (e) {}
     if (wantTour && !KIOSK) setTimeout(function(){ startTour(L.name); }, 700);
     if (!window._vpVisWired) { window._vpVisWired = true;
@@ -942,24 +942,10 @@ function screenLedger(tail){
         if (!document.hidden) refreshPlaceIfStale();
       });
     }
-    var ta = document.getElementById('gripe');
-    function upd(){ var ok = !!(ta.value.trim() || pendingFiles.length);
-      document.getElementById('priv').disabled = !ok; document.getElementById('share').disabled = !ok; }
-    ta.oninput = upd;
-    document.getElementById('fpick').addEventListener('change', function(){ setTimeout(upd, 50); });
-    function submit(shared){
-      document.getElementById('priv').disabled = true; document.getElementById('share').disabled = true;
-      ensurePlace().then(function(){ return uploadPending(); }).then(function(media){
-        return rpc('vp_add_entry', { p_tail: tail, p_body: ta.value.trim(), p_shared: shared, p_media: media, p_place: getPlace() });
-      }).then(function(){ pendingFiles = []; screenLedger(tail); })
-        .catch(function(e){ alert('The pup stumbled: ' + e.message); upd(); });
-    }
-    document.getElementById('priv').onclick = function(){ submit(false); };
-    document.getElementById('share').onclick = function(){ submit(true); };
     var ns = document.getElementById('navshow');
     if (ns) ns.onclick = function(ev){ ev.preventDefault();
       if (n > 0) showCandidate(tail, L.name);
-      else { ns.textContent = 'Tell ' + L.name + ' one first'; setTimeout(function(){ ns.textContent = '📤 Share my issues'; }, 2200); } };
+      else toast('Tell ' + esc(L.name) + ' one thing first, then share it with candidates.'); };
     var box = document.getElementById('entries');
     box.innerHTML = L.entries.map(function(e){
       return '<div class="card">' +
@@ -1097,10 +1083,7 @@ function showSticker(canvas, name, url){
   });
 }
 
-function nav(extra){ return '<div class="appstrip" id="appstrip">📱 The VoterPup app is coming. ' +
-  (GOOGLE_READY && !KIOSK ? '<a href="#" class="appsignin">Sign in with Google</a> to bring your pup along.' : 'Your pup will come along.') + '</div>' +
-  '<div class="nav"><div class="brand">Voter<b>Pup</b> 🐾</div><div class="navr">' + (extra || '') +
-  (GOOGLE_READY && !KIOSK ? '<a href="#" class="acct" id="navacct">Sign in</a>' : '') + '</div></div>'; }
+function nav(extra){ return '<div class="nav"><div class="brand">Voter<b>Pup</b> 🐾</div><div class="navr">' + (extra || '') + '</div></div>'; }
 function say(text, small, name){
   return '<div class="say"><img class="avatar" src="/pup-face.jpg" alt="">' +
     '<div class="balloon">' + text + (small ? '<small>' + small + '</small>' : '') + '</div></div>';
@@ -1108,15 +1091,62 @@ function say(text, small, name){
 function tabName(){ var s = loadLocal(); return s && s.name ? (s.name.length > 12 ? s.name.slice(0, 11) + '…' : s.name) : 'My pup'; }
 function tabbar(active){
   return '<div class="tabbar">' +
-    '<a href="#" id="tab-pup" class="' + (active==='pup'?'on':'') + '">🐶<span>' + esc(tabName()) + '</span></a>' +
-    '<a href="/pack" class="' + (active==='pack'?'on':'') + '">🐾<span>The Pack</span></a>' +
-    '<a href="/manage" class="' + (active==='manage'?'on':'') + '">⚙️<span>Manage pup</span></a>' +
+    '<a href="/pack" class="' + (active==='pack'?'on':'') + '">🐾<span>Pack</span></a>' +
+    '<a href="#" class="plusbtn" id="tab-plus" aria-label="Tell your pup"><b>+</b></a>' +
+    '<a href="#" id="tab-pup" class="' + (active==='pup'||active==='manage'?'on':'') + '">🐶<span>' + esc(tabName()) + '</span></a>' +
   '</div>';
 }
 function wireTabs(){
   var t = document.getElementById('tab-pup');
   if (t) t.onclick = function(ev){ ev.preventDefault();
-    var s = loadLocal(); location.href = s ? pupURL(s.tail) : '/app.html'; };
+    var s = loadLocal(); location.href = s ? pupURL(s.tail) : '/app.html?new=1'; };
+  var pl = document.getElementById('tab-plus');
+  if (pl) pl.onclick = function(ev){ ev.preventDefault(); openAdd(); };
+}
+function toast(html, ms){
+  var old = document.querySelector('.toast'); if (old) old.parentNode.removeChild(old);
+  var t = document.createElement('div'); t.className = 'toast'; t.innerHTML = html;
+  document.body.appendChild(t); setTimeout(function(){ if (t.parentNode) t.parentNode.removeChild(t); }, ms || 3500);
+}
+// + : tell your pup from anywhere. First time -> name the pup (and the unboxing).
+function openAdd(){
+  var s = loadLocal();
+  if (!s || KIOSK) { location.href = '/app.html?new=1'; return; }
+  pendingFiles = [];
+  var nm = esc(s.name);
+  var ov = document.createElement('div'); ov.className = 'stkover'; document.body.appendChild(ov);
+  function close(){ if (ov.parentNode) ov.parentNode.removeChild(ov); pendingFiles = []; }
+  ov.onclick = function(ev){ if (ev.target === ov) close(); };
+  ov.innerHTML = '<div class="stksheet addsheet"><div class="addhead">🐾 Tell ' + nm + '</div>' +
+    '<textarea id="gripe" placeholder="What should be fixed? Five words is plenty."></textarea>' +
+    '<div id="thumbs" class="attach"></div>' +
+    '<div class="addfoot"><div class="iconbtn" id="addmedia">📷</div>' +
+      '<input id="fpick" type="file" accept="image/*,video/*" multiple hidden>' +
+      '<button class="btn compact" id="priv" disabled>🔒 Keep private</button>' +
+      '<button class="btn gold compact" id="share" disabled>🌱 Be counted</button></div></div>';
+  wireAttach();
+  var ta = document.getElementById('gripe'); ta.focus();
+  function upd(){ var ok = !!(ta.value.trim() || pendingFiles.length);
+    document.getElementById('priv').disabled = !ok; document.getElementById('share').disabled = !ok; }
+  ta.oninput = upd;
+  document.getElementById('fpick').addEventListener('change', function(){ setTimeout(upd, 50); });
+  function submit(shared){
+    document.getElementById('priv').disabled = true; document.getElementById('share').disabled = true;
+    ensurePlace().then(function(){ return uploadPending(); }).then(function(media){
+      return rpc('vp_add_entry', { p_tail: s.tail, p_body: ta.value.trim(), p_shared: shared, p_media: media, p_place: getPlace() });
+    }).then(function(){
+      close();
+      var c = 0; try { c = +(localStorage.getItem('vp.adds') || 0) + 1; localStorage.setItem('vp.adds', String(c)); } catch (e) {}
+      if (c === 3 && GOOGLE_READY && !isBackedUp(s.tail))
+        toast(nm + ' remembers this 🐾<br><a href="/manage">Give ' + nm + ' a home so you never lose it →</a>', 6000);
+      else toast(nm + ' remembers this 🐾' + (shared ? ' · shared to the Pack 🌱' : ''));
+      if (location.pathname === '/pack') screenPack();
+      else if (location.pathname.indexOf('/p/') === 0) screenLedger(s.tail);
+      else location.href = pupURL(s.tail);
+    }).catch(function(e){ alert('The pup stumbled: ' + e.message); upd(); });
+  }
+  document.getElementById('priv').onclick = function(){ submit(false); };
+  document.getElementById('share').onclick = function(){ submit(true); };
 }
 
 var TILE_COLORS = ['#2f7d5f','#b3702d','#5f6caf','#a94b4b','#3d8f8f','#6b8e23','#8a5fae','#556270','#996633','#2c6e8f','#8f5a2c','#6a4c93','#3f7f5f'];
@@ -1127,7 +1157,8 @@ function screenPack(mode, topic0){
   var city = place ? place.split(',')[0] : null;
   root.innerHTML = nav() +
     '<div class="packhero">' + slotMedia('pack') +
-      '<div class="ft">The Pack \ud83d\udc3e<small>What your neighbours want fixed. Tap \ud83d\udc3e Same here on anything you&rsquo;ve seen too.</small></div></div>' +
+      '<div class="ft">The Pack \ud83d\udc3e<small>What neighbours want fixed.</small></div></div>' +
+    (loadLocal() ? '' : '<div class="newbie">\ud83d\udc4b New here? Tap <b>+</b> to get your own pup.</div>') +
     '<div class="chips" style="margin:0 0 10px">' +
       (city ? '<span class="chip ' + (mode==='local'?'goldfill':'goldline') + '" id="mlocal">\ud83d\udccd ' + esc(city) + '</span><span class="chip goldline chgloc">change</span>'
             : '<span class="chip goldline" id="mfind">\ud83d\udccd use my location</span>') +
@@ -1323,7 +1354,7 @@ function screenPack(mode, topic0){
   }).catch(function(e){ document.getElementById('board').textContent = 'The pack is napping: ' + e.message; });
 }
 
-var APP_VERSION = "20260929212325";
+var APP_VERSION = "20260929213341";
 (function(){
   try {
     fetch('/version.json?t=' + Date.now(), { cache: 'no-store' }).then(function(r){ return r.json(); }).then(function(j){
@@ -1560,31 +1591,27 @@ function screenManage(){
     var L = res[0], sess = res[1] && res[1].data && res[1].data.session, email = sess && sess.user && sess.user.email;
     if (!L) { root.innerHTML = nav() + say('This pup couldn&rsquo;t be found.', 'start a new one') + tabbar('manage'); wireTabs(); return; }
     var n = L.entries.length, nm = esc(L.name), backed = isBackedUp(tail);
-    var fetchThumb = '<img src="/pup-sit.webp" alt="">' +
-      (window._vpFetchPlayed ? '' : '<video class="vtop" id="vfetch" src="/pup-fetch.mp4" muted autoplay playsinline preload="auto"></video>');
-    var rows = mrow(fetchThumb, nm + ' fetches your issues for you.', 'It brings them back the day you can vote on them. 🗳️', '') +
-      (KIOSK ? '' : mrow(slotMedia('share'), 'Make them earn your vote.', 'A read-only code for candidates: your issues, never your name or email.',
+    var rows = (KIOSK ? '' : mrow(slotMedia('share'), 'Make them earn your vote', 'Candidates see your issues, never you.',
         '<button class="btn gold mbtn" id="mshare"' + (n ? '' : ' disabled') + '>' + (n ? '📤 Share my issues' : 'Tell ' + nm + ' one issue first') + '</button>'));
     if (GOOGLE_READY && !KIOSK) {
       if (email && backed) rows += mrow('<img src="' + BACKUP_IMG + '" alt="">', '✅ ' + nm + ' has a home',
-        'Saved to <b>' + esc(email) + '</b>. Sign in on any device, or in the app when it arrives, to bring ' + nm + ' along.',
+        'Saved to <b>' + esc(email) + '</b>',
         '<button class="btn ghost mbtn" id="mpups">My pups</button><button class="btn ghost mbtn" id="mout">Sign out</button>' +
         '<a href="#" class="mlink" id="mshowkey">show private link</a><div id="mkey" hidden></div>');
       else rows += mrow('<img src="' + BACKUP_IMG + '" alt="">', '🔐 Give ' + nm + ' a home',
-        (email ? 'Signed in as <b>' + esc(email) + '</b>. Add ' + nm + ' to your account so it&rsquo;s never lost.'
-               : 'Sign in with Google so you never lose ' + nm + ', and it comes along to the app. We use your email only for this. No mail, ever.'),
+        (email ? 'Signed in as <b>' + esc(email) + '</b>' : 'Never lose ' + nm + '. No mail, ever.'),
         '<button class="btn gold mbtn" id="mbackup">' + (email ? 'Add ' + nm + ' to my account' : 'Back up with Google') + '</button><div id="mslot"></div>');
     }
-    if (!(email && backed)) rows += mrow('<div class="mkeythumb">🔑</div>', nm + '&rsquo;s private link',
-      'Until you sign in, this link is the only key to ' + nm + '. Anyone with it can read your entries.',
+    if (!(email && backed)) rows += mrow('<div class="mkeythumb">🔑</div>', 'Private link',
+      'Your only key until you back up.',
       '<button class="btn ghost mbtn" id="mcopy">Copy link</button><button class="btn ghost mbtn" id="mstk">🏷️ Key sticker</button>');
     rows += mrow('<img id="invthumb" alt="">', '🐾 Invite your friends',
-      'Their own pup, their own issues. More neighbours, louder together.',
+      '',
       '<button class="btn gold mbtn" id="minv">Share invite</button><button class="btn ghost mbtn" id="minvstk">🏷️ Invite sticker</button>');
     rows += mrow('<img src="/pup-watch.jpg" alt="">', '🐶 Pups', '',
       (GOOGLE_READY && !KIOSK && !(email && backed) ? '<button class="btn ghost mbtn" id="mpups">My backed-up pups</button><div id="mrslot"></div>' : '') +
       '<button class="btn ghost mbtn" id="mnew">＋ Start another pup</button><button class="btn ghost mbtn" id="mtour">▶ Take the tour</button>');
-    root.innerHTML = nav() + '<div class="q" style="font-size:20px; margin-bottom:10px">Manage ' + nm + ' 🐾</div>' + rows +
+    root.innerHTML = nav() + '<div class="q" style="font-size:20px; margin-bottom:10px">' + nm + ' ⚙️</div>' + rows +
       '<footer><a href="/privacy.html">Privacy</a> · <a href="mailto:hi@voterpup.com">hi@voterpup.com</a></footer>' + tabbar('manage');
     wireTabs(); wireHero();
     var on = function(id, fn){ var el = document.getElementById(id); if (el) el.onclick = fn; };
@@ -1625,7 +1652,8 @@ function screenManage(){
   else if (m) screenLedger(decodeURIComponent(m[1]));
   else if (location.pathname === '/pack') screenPack(undefined, new URLSearchParams(location.search).get('t') || null);
   else if (location.pathname === '/manage') screenManage();
-  else screenCapture();
+  else if (qs.get('new') === '1' || KIOSK) screenCapture();
+  else screenPack();
 })();
 </script>
 <script>
