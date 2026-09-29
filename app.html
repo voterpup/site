@@ -112,6 +112,16 @@
       box-shadow:0 1px 2px rgba(16,24,40,.05); display:flex; flex-direction:column; gap:7px; min-width:0}
   .slotmedia{position:relative; width:100%; border-radius:12px; overflow:hidden; background:#e9edf1}
   .slotmedia video,.slotmedia img{position:absolute; inset:0; width:100%; height:100%; object-fit:cover; display:block}
+  .slotmedia .slotonce{z-index:2; transition:opacity .35s}
+  .hpill{display:flex; align-items:center; justify-content:center; gap:6px; font-size:11.5px; font-weight:800; color:#7a5a0c;
+      background:#faf3df; border:1px solid var(--gold); border-radius:999px; padding:4px 8px; text-decoration:none;
+      white-space:nowrap; cursor:pointer; margin-top:7px}
+  .hpill.off{opacity:.55}
+  .hacts .bkbadge,.hacts .bklink{margin:7px 0 0 0}
+  .hpill .stkthumb,.hpill .stkthumb img{width:40px; height:24px; border-radius:4px}
+  .sharetile .cap{font-size:12.5px; font-weight:800; line-height:1.25}
+  .herorow .fetchcard .ft{display:flex; flex-direction:column; min-height:120px}
+  .herorow .hacts{margin-top:auto; display:flex; flex-wrap:wrap; align-items:center; gap:4px}
   .sharetile .slotmedia{height:64px}
   .shbtn{display:block; text-align:center; font-size:12px; font-weight:800; color:#7a5a0c; background:#faf3df;
       border:1px solid var(--gold); border-radius:999px; padding:6px 4px; text-decoration:none; white-space:nowrap}
@@ -343,14 +353,31 @@ function uploadPending(){
   return Promise.all(ups);
 }
 var SLOT_MEDIA = {
-  share: { video: '/pup-share.mp4', poster: '/pup-share.jpg' },
+  share: { video: '/pup-share.mp4', loop: '/pup-share-loop.mp4', poster: '/pup-share.jpg' },
   pack:  { video: null, poster: '/pup-watch.jpg' }   // e.g. '/pup-pack.mp4'
 };
+// With a loop clip: the full video plays once per page load, then only the loop repeats.
 function slotMedia(key){
   var s = SLOT_MEDIA[key];
+  if (s.loop) {
+    var once = !window['_vpSlot_' + key];
+    return '<div class="slotmedia" data-slot="' + key + '">' +
+      '<video src="' + s.loop + '" poster="' + s.poster + '" muted autoplay loop playsinline preload="auto"></video>' +
+      (once ? '<video class="slotonce" src="' + s.video + '" poster="' + s.poster + '" muted autoplay playsinline preload="auto"></video>' : '') +
+      '</div>';
+  }
   return '<div class="slotmedia">' + (s.video
     ? '<video src="' + s.video + '" poster="' + s.poster + '" muted autoplay loop playsinline preload="auto"></video>'
     : '<img src="' + s.poster + '" alt="">') + '</div>';
+}
+function wireSlots(){
+  Array.prototype.forEach.call(document.querySelectorAll('.slotonce'), function(v){
+    var key = v.parentNode.getAttribute('data-slot');
+    window['_vpSlot_' + key] = true;
+    var done = function(){ v.style.opacity = 0; setTimeout(function(){ if (v.parentNode) v.parentNode.removeChild(v); }, 400); };
+    v.addEventListener('ended', done); v.addEventListener('error', done);
+    var p = v.play(); if (p && p.catch) p.catch(done);
+  });
 }
 function sameChip(id, n, on, mine){
   if (!id) return '';
@@ -788,14 +815,15 @@ function screenLedger(tail){
       '</div>' +
         '<div class="ft">' + esc(L.name) + ' fetches your issues for you.' +
         '<small>It brings them back the day you can vote on them. 🗳️</small>' +
+        '<div class="hacts"><div class="hpill stkcard" id="stkcard"><div class="stkthumb"><img id="stkimg" alt="' + esc(L.name) + '\u2019s sticker">' +
+          '<div class="stkblur"></div></div>your link \u203a</div>' +
         (GOOGLE_READY ? (isBackedUp(tail)
           ? '<span class="bkbadge" title="' + esc(L.name) + ' is backed up to your Google account">✅ backed up</span>'
           : '<a href="#" class="bklink" id="gbackup">🔐 back up</a>') : '') +
-      '</div></div>' +
+      '</div></div></div>' +
       '<div class="sharetile">' + slotMedia('share') +
-        (KIOSK ? '' : '<a href="#" class="shbtn' + (n > 0 ? '' : ' off') + '" id="navshow">📤 Share my issues</a>') +
-        '<div class="stkcard" id="stkcard"><div class="stkthumb"><img id="stkimg" alt="' + esc(L.name) + '\u2019s sticker">' +
-        '<div class="stkblur"></div></div><span class="stkcap">sticker \u203a</span></div>' +
+        '<div class="cap">Make them earn your vote.</div>' +
+        (KIOSK ? '' : '<a href="#" class="hpill' + (n > 0 ? '' : ' off') + '" id="navshow">📤 Share my issues</a>') +
       '</div></div>' +
       (GOOGLE_READY && !isBackedUp(tail) ? '<div class="backup" id="gwrap" hidden><div id="gslot"></div>' +
           '<p class="privacy">Don&rsquo;t lose ' + esc(L.name) + '. We use your email only to restore it on any device. No mail, ever.</p></div>' : '') +
@@ -816,7 +844,7 @@ function screenLedger(tail){
       '<div class="count">' + (n === 0 ? esc(L.name) + ' is waiting for a first memory'
         : esc(L.name) + ' remembers ' + n + ' thing' + (n===1?'':'s')) + '</div>' +
       '<div id="entries" class="grid2"></div>' + '<div id="backedbox"></div>' + tabbar('pup');
-    wireAttach(); wireTabs(); renderVoteStrip(); refreshPlaceIfStale();
+    wireAttach(); wireTabs(); wireSlots(); renderVoteStrip(); refreshPlaceIfStale();
     (function(){
       var vf = document.getElementById('vfetch');
       if (!vf) return;
@@ -1224,7 +1252,7 @@ function screenPack(mode, topic0){
   }).catch(function(e){ document.getElementById('board').textContent = 'The pack is napping: ' + e.message; });
 }
 
-var APP_VERSION = "20260929191122";
+var APP_VERSION = "20260929191813";
 (function(){
   try {
     fetch('/version.json?t=' + Date.now(), { cache: 'no-store' }).then(function(r){ return r.json(); }).then(function(j){
