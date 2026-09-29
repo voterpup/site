@@ -145,6 +145,8 @@
   .momgrid{display:grid; grid-template-columns:1fr 1fr; gap:10px}
   .mtile{border-radius:14px; color:#fff; padding:11px 12px; min-height:104px; cursor:pointer; position:relative;
       display:flex; flex-direction:column; justify-content:space-between; box-shadow:0 1px 3px rgba(16,24,40,.12)}
+  .mtile.red{background:#a94b4b} .mtile.est{background:repeating-linear-gradient(135deg,#a94b4b 0 10px,#9a4343 10px 20px); opacity:.92}
+  .offices{font-size:11.5px; color:var(--sub); margin:8px 2px 0} .offices a{color:#3b6fb6; font-weight:700; text-decoration:none; margin-right:8px; white-space:nowrap}
   .mtile.red{background:#a94b4b} .mtile.green{background:#2f7d5f} .mtile.blue{background:#3b6fb6}
   .mtile .mk{font-size:10.5px; font-weight:800; letter-spacing:.5px; opacity:.9; text-transform:uppercase}
   .mtile .md{font-size:24px; font-weight:900; line-height:1}
@@ -502,6 +504,21 @@ function notePlace(place){
   return _noted[place];
 }
 var _placePoll = null;
+var OFFICE_WORD = { city: 'Local', province: 'State/Province', federal: 'National' };
+function addOffices(el, place){
+  rpc('vp_offices', { p_place: place }).then(function(list){
+    if (!list || !list.length || getPlace() !== place) return;
+    var html = '<div class="offices">🏛️ Your election offices: ' + list.map(function(o){
+      return '<a href="' + esc(o.url) + '" target="_blank" rel="noopener">' + esc(o.label || OFFICE_WORD[o.level]) + ' ↗</a>';
+    }).join('') + '</div>';
+    var tries = 0;
+    (function put(){
+      if (el.querySelector('.offices')) return;
+      if (el.firstChild) el.insertAdjacentHTML('beforeend', html);
+      else if (++tries < 20) setTimeout(put, 150);
+    })();
+  }).catch(function(){});
+}
 function renderVoteStrip(){
   var el = document.getElementById('votestrip'); if (!el) return;
   var place = getPlace();
@@ -525,6 +542,7 @@ function renderVoteStrip(){
           el.innerHTML = '<div class="votestrip">🗳️ No upcoming votes found on official sources for <b>' + city + '</b>' +
             (s.last_checked ? ' (checked ' + new Date(s.last_checked).toLocaleDateString() + ')' : '') +
             '. Our pup rechecks regularly.' + chg + '</div>';
+          addOffices(el, place);
           return;
         }
         el.innerHTML = '<div class="votestrip">🔎 First time we&rsquo;ve seen <b>' + city + '</b> — our pup is checking official sources now. ' +
@@ -546,6 +564,7 @@ function renderVoteStrip(){
       return;
     }
     notePlace(place);
+    addOffices(el, place);
     mountMoments(el, list, true, 'When you can act · 📍 ' + esc(place.split(',')[0]) + ' · <a href="#" class="chgloc" style="color:#3b6fb6;text-transform:none">change</a>');
   }).catch(function(){ el.innerHTML = ''; });
 }
@@ -639,6 +658,9 @@ function momentTiles(list, groupDecisions){
               '<div>' + actionLinks(links) + '</div>' };
     }
     var e = it.e;
+    if (e.estimated) return { cls: 'red est', kind: 'Election · estimated', days: e.days, est: true, title: e.name,
+      body: '<b>' + esc(e.name) + '</b>\n<i>Estimated: ' + esc(e.estimate_note || 'no date announced yet') +
+            '. Official sources say when it&rsquo;s due, but no date is set yet. We&rsquo;ll replace this with the real date.</i>\n' + momentBody(e) };
     return { cls: e.kind === 'election' ? 'red' : (e.kind === 'voice' ? 'blue' : 'green'),
       kind: e.kind === 'election' ? 'Election' : (e.kind === 'voice' ? 'Have your say' : 'Ballot question'),
       days: e.days, title: e.name, body: '<b>' + esc(e.name) + '</b>\n' + momentBody(e) };
@@ -654,7 +676,8 @@ function mountMoments(el, list, groupDecisions, heading){
   el.innerHTML = '<div class="mhead">' + (heading || 'When you can act') + '</div><div class="momgrid">' +
     tiles.map(function(t, i){
       return '<div class="mtile ' + t.cls + '" data-mi="' + i + '"><div class="mk">' + t.kind + '</div>' +
-        '<div class="md">' + (t.days === 0 ? 'TODAY' : t.days + '<small> day' + (t.days === 1 ? '' : 's') + '</small>') + '</div>' +
+        '<div class="md">' + (t.est ? '~' + Math.max(1, Math.round(t.days / 30.4)) + '<small> months</small>'
+          : t.days === 0 ? 'TODAY' : t.days + '<small> day' + (t.days === 1 ? '' : 's') + '</small>') + '</div>' +
         '<div class="mn">' + esc(t.title) + '</div></div>';
     }).join('') + '</div><div class="mpanel" hidden></div>';
   var panel = el.querySelector('.mpanel');
@@ -1241,7 +1264,7 @@ function screenPack(mode, topic0){
   }).catch(function(e){ document.getElementById('board').textContent = 'The pack is napping: ' + e.message; });
 }
 
-var APP_VERSION = "20260929195413";
+var APP_VERSION = "20260929200351";
 (function(){
   try {
     fetch('/version.json?t=' + Date.now(), { cache: 'no-store' }).then(function(r){ return r.json(); }).then(function(j){
