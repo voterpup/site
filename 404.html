@@ -434,10 +434,11 @@ document.addEventListener('click', function(ev){
 });
 var _noted = {};
 function notePlace(place){
-  if (!place || _noted[place]) return;
-  _noted[place] = 1;
-  rpc('vp_note_place', { p_place: place }).catch(function(){});
+  if (!place) return Promise.resolve(null);
+  if (!_noted[place]) _noted[place] = rpc('vp_note_place', { p_place: place }).catch(function(){ return null; });
+  return _noted[place];
 }
+var _placePoll = null;
 function renderVoteStrip(){
   var el = document.getElementById('votestrip'); if (!el) return;
   var place = getPlace();
@@ -451,9 +452,34 @@ function renderVoteStrip(){
   }
   rpc('vp_upcoming', { p_place: place }).then(function(list){
     if (!list || !list.length) {
-      el.innerHTML = '<div class="votestrip">🔎 Our pup is checking official sources for votes in <b>' + esc(place.split(',')[0]) + '</b>. Check back later today. ' +
-        '<a href="#" class="chgloc" style="color:#3b6fb6;white-space:nowrap">change place</a></div>';
-      notePlace(place);
+      var city = esc(place.split(',')[0]);
+      var chg = ' <a href="#" class="chgloc" style="color:#3b6fb6;white-space:nowrap">change place</a>';
+      el.innerHTML = '<div class="votestrip">🔎 Looking up votes in <b>' + city + '</b>…' + chg + '</div>';
+      notePlace(place).then(function(s){
+        if (getPlace() !== place || !document.getElementById('votestrip')) return;
+        var st = s && s.status;
+        if (st === 'checked') {
+          el.innerHTML = '<div class="votestrip">🗳️ No upcoming votes found on official sources for <b>' + city + '</b>' +
+            (s.last_checked ? ' (checked ' + new Date(s.last_checked).toLocaleDateString() + ')' : '') +
+            '. Our pup rechecks regularly.' + chg + '</div>';
+          return;
+        }
+        el.innerHTML = '<div class="votestrip">🔎 First time we&rsquo;ve seen <b>' + city + '</b> — our pup is checking official sources now. ' +
+          (st === 'busy' ? 'It&rsquo;s a busy day, so this may take a few hours.' : 'Usually a few minutes; this updates by itself.') + chg + '</div>';
+        clearTimeout(_placePoll);
+        var tries = 0;
+        (function poll(){
+          _placePoll = setTimeout(function(){
+            if (getPlace() !== place || !document.getElementById('votestrip')) return;
+            rpc('vp_upcoming', { p_place: place }).then(function(l2){
+              if (l2 && l2.length) { renderVoteStrip(); return; }
+              if (++tries < 12) { poll(); return; }
+              delete _noted[place];
+              renderVoteStrip();
+            }).catch(function(){ if (++tries < 12) poll(); });
+          }, 45000);
+        })();
+      });
       return;
     }
     notePlace(place);
@@ -1157,7 +1183,7 @@ function screenPack(mode, topic0){
   }).catch(function(e){ document.getElementById('board').textContent = 'The pack is napping: ' + e.message; });
 }
 
-var APP_VERSION = "20260929182617";
+var APP_VERSION = "20260929183040";
 (function(){
   try {
     fetch('/version.json?t=' + Date.now(), { cache: 'no-store' }).then(function(r){ return r.json(); }).then(function(j){
