@@ -106,6 +106,17 @@
   .fetchvid img.vsit{position:absolute; inset:0; width:78px; height:120px; object-fit:cover; border-radius:12px; background:#e9edf1}
   .mcard{background:var(--card); border:1px solid var(--line); border-radius:16px; padding:12px; margin:0 0 12px;
       box-shadow:0 1px 2px rgba(16,24,40,.05)}
+  .tour{display:flex; flex-direction:column; min-height:calc(100vh - 40px); padding-top:6px}
+  .tourtop{display:flex; justify-content:space-between; font-size:12.5px; color:var(--sub); font-weight:700; margin-bottom:10px}
+  .tourtop a{color:var(--sub)}
+  .tourmedia{position:relative; width:100%; aspect-ratio:4/3; border-radius:18px; overflow:hidden; background:#f1ede3;
+      box-shadow:0 2px 10px rgba(16,24,40,.1)}
+  .tourmedia img,.tourmedia video{position:absolute; inset:0; width:100%; height:100%; object-fit:cover}
+  .tourtitle{font-size:21px; font-weight:800; line-height:1.25; margin:18px 2px 6px}
+  .tourtext{font-size:14.5px; color:var(--sub); line-height:1.5; margin:0 2px 14px}
+  .tourdots{display:flex; gap:6px; justify-content:center; margin:auto 0 14px}
+  .tourdots i{width:7px; height:7px; border-radius:50%; background:#d9dde5} .tourdots i.on{background:var(--gold); width:18px; border-radius:4px}
+  .tourback{display:block; text-align:center; font-size:13px; color:var(--sub); margin-top:10px}
   .mrow{display:flex; gap:12px; align-items:center; background:var(--card); border:1px solid var(--line); border-radius:16px;
       padding:10px; margin:0 0 10px; box-shadow:0 1px 2px rgba(16,24,40,.05)}
   .mthumb{position:relative; width:96px; height:96px; flex:0 0 auto; border-radius:12px; overflow:hidden; background:#f1ede3}
@@ -828,26 +839,54 @@ function screenUnbox(name, gripe){
       document.getElementById('sticker').onclick = function(){ makeSticker(l.name, url); };
       document.getElementById('newpup').onclick = function(){ location.href = location.pathname + '?kiosk=1'; };
     } else {
-      r.innerHTML =
-        '<div style="text-align:center; font-size:16.5px; font-weight:700; margin-bottom:8px">' + esc(l.name) + ' is ready to remember. 🐾</div>' +
-        '<div class="linkbox">' + esc(url) + '</div>' +
-        '<div class="btnrow" style="margin-top:10px">' +
-          '<button class="btn ghost" id="copy">Copy link</button>' +
-          '<button class="btn ghost" id="sticker">Sticker</button>' +
-        '</div>' +
-        '<button class="btn gold pulse" id="enter">Go to ' + esc(l.name) + ' →</button>' +
-        '<p class="privacy">Save that link — it&rsquo;s the only key to your pup. Treat it like a key.</p>';
-      document.getElementById('copy').onclick = function(){
-        navigator.clipboard.writeText(url).then(function(){ document.getElementById('copy').textContent = 'Copied ✓'; });
-      };
-      document.getElementById('sticker').onclick = function(){ makeSticker(l.name, url); };
-      document.getElementById('enter').onclick = function(){ location.href = url; };
+      history.replaceState(null, '', '/p/' + l.tail);
+      screenTour(l.tail, l.name);
+      return;
     }
     r.className = 'reveal show';
   }).catch(function(e){
     alert('The pup stumbled: ' + e.message);
     screenCapture(gripe, name);
   });
+}
+
+// First-run tour: one card per feature, same media frame on every card. Skippable, replayable from Manage.
+function screenTour(tail, name){
+  var nm = esc(name);
+  var steps = [
+    { media: '<img src="/pup-sit.webp" alt="" style="object-position:50% 12%">', title: nm + ' remembers your first issue 🐾',
+      text: 'Tell ' + nm + ' anything your city should fix: five words or a photo. It stays private unless you choose to share it.' },
+    { media: '<img src="/pup-watch.jpg" alt="">', title: 'Be counted 🌱',
+      text: 'Share an issue to add it to The Pack. Neighbours see what needs fixing and tap 🐾 Same here on what they&rsquo;ve seen too.' },
+    { media: '<img src="/pup-face.jpg" alt="">', title: nm + ' fetches it back at voting time 🗳️',
+      text: 'Your elections, ballot questions and comment deadlines, with countdowns, so you know when your voice counts.' },
+    { media: '<video src="/pup-share-loop.mp4" poster="/pup-share.jpg" muted autoplay loop playsinline></video>', title: 'Make them earn your vote 📤',
+      text: 'Show candidates a read-only list of what you need fixed. Never your name or email.' },
+    { media: '<img src="/pup-home.jpg" alt="">', title: 'Give ' + nm + ' a home 🔐',
+      text: 'Until you sign in, ' + nm + '&rsquo;s link is its only key. Back up with Google under ⚙️ Manage pup so you never lose it.' }
+  ];
+  var k = 0;
+  function finish(toManage){
+    try { localStorage.setItem('vp.toured', '1'); } catch (e) {}
+    if (toManage) location.href = '/manage'; else screenLedger(tail);
+  }
+  function draw(){
+    var s = steps[k], last = k === steps.length - 1;
+    root.innerHTML = '<div class="tour">' +
+      '<div class="tourtop"><span>' + (k + 1) + ' / ' + steps.length + '</span><a href="#" id="tskip">Skip</a></div>' +
+      '<div class="tourmedia">' + s.media + '</div>' +
+      '<div class="tourtitle">' + s.title + '</div><p class="tourtext">' + s.text + '</p>' +
+      '<div class="tourdots">' + steps.map(function(_, i){ return '<i class="' + (i === k ? 'on' : '') + '"></i>'; }).join('') + '</div>' +
+      (last && GOOGLE_READY && !KIOSK
+        ? '<button class="btn gold" id="tmanage">🔐 Back up ' + nm + ' now</button><button class="btn ghost" id="tnext">Start using ' + nm + ' →</button>'
+        : '<button class="btn gold" id="tnext">' + (last ? 'Start using ' + nm + ' →' : 'Next') + '</button>') +
+      (k ? '<a href="#" id="tback" class="tourback">‹ Back</a>' : '') + '</div>';
+    document.getElementById('tskip').onclick = function(ev){ ev.preventDefault(); finish(false); };
+    document.getElementById('tnext').onclick = function(){ if (last) finish(false); else { k++; draw(); } };
+    var tb = document.getElementById('tback'); if (tb) tb.onclick = function(ev){ ev.preventDefault(); k--; draw(); };
+    var tm = document.getElementById('tmanage'); if (tm) tm.onclick = function(){ finish(true); };
+  }
+  draw();
 }
 
 function screenLedger(tail){
@@ -1266,7 +1305,7 @@ function screenPack(mode, topic0){
   }).catch(function(e){ document.getElementById('board').textContent = 'The pack is napping: ' + e.message; });
 }
 
-var APP_VERSION = "20260929204647";
+var APP_VERSION = "20260929211324";
 (function(){
   try {
     fetch('/version.json?t=' + Date.now(), { cache: 'no-store' }).then(function(r){ return r.json(); }).then(function(j){
@@ -1526,7 +1565,7 @@ function screenManage(){
       '<button class="btn gold mbtn" id="minv">Share invite</button><button class="btn ghost mbtn" id="minvstk">🏷️ Invite sticker</button>');
     rows += mrow('<img src="/pup-watch.jpg" alt="">', '🐶 Pups', '',
       (GOOGLE_READY && !KIOSK && !(email && backed) ? '<button class="btn ghost mbtn" id="mpups">My backed-up pups</button><div id="mrslot"></div>' : '') +
-      '<button class="btn ghost mbtn" id="mnew">＋ Start another pup</button>');
+      '<button class="btn ghost mbtn" id="mnew">＋ Start another pup</button><button class="btn ghost mbtn" id="mtour">▶ Take the tour</button>');
     root.innerHTML = nav() + '<div class="q" style="font-size:20px; margin-bottom:10px">Manage ' + nm + ' 🐾</div>' + rows +
       '<footer><a href="/privacy.html">Privacy</a> · <a href="mailto:hi@voterpup.com">hi@voterpup.com</a></footer>' + tabbar('manage');
     wireTabs(); wireHero();
@@ -1546,6 +1585,7 @@ function screenManage(){
     on('mpups', function(){ if (sess) screenRestore(); else { this.style.display = 'none'; startRestore(document.getElementById('mrslot')); } });
     on('mout', function(){ sb.auth.signOut().then(function(){ screenManage(); }); });
     on('mnew', function(){ location.href = '/app.html?new=1'; });
+    on('mtour', function(){ history.pushState(null, '', '/p/' + tail); screenTour(tail, L.name); });
     on('minv', function(){
       var b = this, msg = 'I gave my city&rsquo;s issues to a pup that remembers them at voting time. Get yours:'.replace('&rsquo;', '’');
       if (navigator.share) navigator.share({ title: 'VoterPup', text: msg, url: INVITE_URL }).catch(function(){});
