@@ -234,8 +234,8 @@
 var SUPABASE_URL = "https://setyjmgijsbplgyqynlh.supabase.co";
 var SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNldHlqbWdpanNicGxneXF5bmxoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTA1NDU0NTAsImV4cCI6MjEwNjEyMTQ1MH0.v8tjuc2UZrTw5whfDXtpEPW4CHggusgjq8Mkdh6ZMw8";
 // Flip to true once Google is enabled in Supabase Auth -> Providers.
-var GOOGLE_READY = false;
-var GOOGLE_CLIENT_ID = '';   // paste the OAuth Web client ID (public, safe in page)
+var GOOGLE_READY = true;
+var GOOGLE_CLIENT_ID = '1084138810740-b2p2ln24ulfnrkb8mofppeist551u8bm.apps.googleusercontent.com';   // paste the OAuth Web client ID (public, safe in page)
 var sb = null;
 try { sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY,
         { auth: { flowType: 'pkce', detectSessionInUrl: true, persistSession: true } }); } catch (e) {}
@@ -997,7 +997,7 @@ function screenPack(mode, topic0){
   }).catch(function(e){ document.getElementById('board').textContent = 'The pack is napping: ' + e.message; });
 }
 
-var APP_VERSION = "20260929065339";
+var APP_VERSION = "20260929070836";
 (function(){
   try {
     fetch('/version.json?t=' + Date.now(), { cache: 'no-store' }).then(function(r){ return r.json(); }).then(function(j){
