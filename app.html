@@ -3,6 +3,11 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<link rel="manifest" href="/manifest.webmanifest">
+<link rel="apple-touch-icon" href="/icon-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="VoterPup">
+<meta name="theme-color" content="#e8b84b">
 <title>VoterPup — your pup remembers</title>
 <meta name="robots" content="noindex">
 <meta name="referrer" content="no-referrer">
@@ -134,12 +139,26 @@
   .fdate small{font-size:10.5px; color:#8793a5}
   .fcol{flex:1; display:flex; flex-direction:column; gap:8px; border-left:2px solid #2d3848; padding-left:10px}
   .fcard{background:#f7f4ec; color:#1f2733; border-radius:14px; padding:10px 12px; border-left:4px solid var(--gold);
-      opacity:0; animation:roll .45s cubic-bezier(.2,.8,.2,1) forwards; transform-origin:top center}
+      transform-origin:top center}
   .fcard.fbacked{border-left-color:#b3702d; background:#f3ebe0}
   @keyframes roll{from{opacity:0; transform:perspective(600px) rotateX(-60deg) translateY(-8px)} to{opacity:1; transform:none}}
   .fcard img{width:100%; max-height:150px; object-fit:cover; border-radius:10px; margin-bottom:8px; display:block}
   .fbody{font-size:14.5px; font-weight:700; line-height:1.35} .fmeta{font-size:11.5px; color:#6b7387; margin-top:4px}
   .fend{text-align:center; color:#aab4c3; font-size:12.5px; margin:10px 0 20px; line-height:1.5}
+  .fcalwrap{position:absolute; inset:0; z-index:5; background:#141a22; display:flex; flex-direction:column; align-items:center;
+      justify-content:center; transition:opacity .35s ease; perspective:900px}
+  .fcalwrap.gone{opacity:0}
+  .fcalstack{position:relative; width:220px; height:250px}
+  .fcalpage{position:absolute; inset:0; background:#fbf8f1; border-radius:18px; overflow:hidden; text-align:center; color:#1f2733;
+      box-shadow:0 14px 34px rgba(0,0,0,.45); transform-origin:top center; transition:transform .38s cubic-bezier(.5,0,.75,0), opacity .38s ease}
+  .fcalpage.flip{transform:rotateX(105deg); opacity:0}
+  .fcaltop{background:#c0463f; color:#fff; font-weight:800; font-size:15px; padding:12px 0; letter-spacing:.4px}
+  .fcalday{font-size:96px; font-weight:900; line-height:1.05; margin-top:14px}
+  .fcalwk{font-size:14px; color:#6b7387; font-weight:700}
+  .fcalcount{margin-top:10px; font-size:12.5px; font-weight:800; color:#8a6a14}
+  .fcalhint{margin-top:18px; font-size:11.5px; color:#6b7a8f}
+  .remchips{margin:6px 0 10px} .remtime{display:flex; align-items:center; gap:8px; font-size:14px; margin:0 0 10px}
+  .remtime input{font-size:16px; padding:7px 10px; border:1px solid var(--line); border-radius:10px}
   .plusbtn{flex:0 0 64px !important; position:relative}
   .plusbtn b{position:absolute; left:50%; top:-18px; transform:translateX(-50%); width:54px; height:54px; border-radius:50%;
       background:var(--gold); color:#2a2418; font-size:32px; font-weight:600; line-height:52px; text-align:center;
@@ -149,7 +168,8 @@
   .puphead{display:flex; align-items:center; gap:12px; margin:2px 0 10px}
   .pupav{width:52px; height:52px; border-radius:50%; object-fit:cover; border:2px solid var(--gold)}
   .pupname{font-size:20px; font-weight:800} .pupsub{font-size:12.5px; color:var(--sub)}
-  .addsheet .addhead{font-size:17px; font-weight:800; margin-bottom:8px}
+  .addhead{font-size:17px; font-weight:800; margin-bottom:8px}
+  .stksheet .mp{font-size:12.5px; color:var(--sub); margin:0 0 8px; line-height:1.45}
   .addsheet textarea{width:100%; min-height:90px; border:1px solid var(--line); border-radius:12px; padding:10px; font:inherit; resize:vertical}
   .addfoot{display:flex; gap:8px; align-items:center; margin-top:10px}
   .addfoot .btn{flex:1; margin:0}
@@ -477,7 +497,7 @@ function wireSlots(){
 }
 function sameChip(id, n, on, mine){
   if (!id) return '';
-  if (mine) return n ? '<span class="chip same on static">🐾 ' + n + (n === 1 ? ' neighbour feels' : ' neighbours feel') + ' the same</span>' : '';
+  if (mine) return n ? '<span class="chip same on static">🐾 ' + n + (n === 1 ? ' person feels' : ' people feel') + ' the same</span>' : '';
   return '<span class="chip same' + (on ? ' on' : '') + '" data-back="' + esc(id) + '">🐾 Same here' + (n ? ' · ' + n : '') + '</span>';
 }
 function mediaHold(x){
@@ -923,6 +943,8 @@ function startTour(name, k0){
     [dim, hole, tip].forEach(function(x){ if (x.parentNode) x.parentNode.removeChild(x); });
     window.removeEventListener('resize', place); window.removeEventListener('scroll', place, true);
     try { localStorage.setItem('vp.toured', '1'); } catch (e) {}
+    var s0 = loadLocal(); var asked = false; try { asked = !!localStorage.getItem('vp.remasked'); } catch (e) {}
+    if (s0 && !remPref() && !asked && !KIOSK) setTimeout(function(){ reminderSheet(s0.tail, s0.name); }, 300);
   }
   function place(){
     var s = steps[k], el = document.querySelector(s.sel);
@@ -1167,7 +1189,7 @@ function openFlashback(L){
   var ov = document.createElement('div'); ov.className = 'flashov';
   function card(it, k){
     var img = null; (it.media || []).forEach(function(m){ if (!img && m.url && m.type && m.type.indexOf('image') === 0) img = m.url; });
-    return '<div class="fcard' + (it.backed ? ' fbacked' : '') + '" style="animation-delay:' + Math.min(k * 70, 1400) + 'ms">' +
+    return '<div class="fcard' + (it.backed ? ' fbacked' : '') + '">' +
       (img ? '<img src="' + esc(img) + '" alt="">' : '') +
       '<div class="fbody">' + esc(it.body || '📷') + '</div>' +
       '<div class="fmeta">' + (it.topic ? '#' + esc(it.topic) + ' · ' : '') +
@@ -1199,7 +1221,102 @@ function openFlashback(L){
       var g = document.getElementById('fg' + a.getAttribute('data-g')); if (g) g.scrollIntoView({ behavior: 'smooth', block: 'start' }); };
   });
   var st = ov.querySelector('.fstrip'); st.scrollLeft = st.scrollWidth;
+  var still = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  if (still || !byDay.length) return;
+  var days = byDay.slice().reverse();                      // oldest -> newest
+  if (days.length > 8) { var pick = []; for (var i = 0; i < 8; i++) pick.push(days[Math.round(i * (days.length - 1) / 7)]); days = pick; }
+  var cal = document.createElement('div'); cal.className = 'fcalwrap';
+  cal.innerHTML = '<div class="fcalstack"></div><div class="fcalhint">tap to skip</div>';
+  ov.appendChild(cal);
+  var stack = cal.querySelector('.fcalstack'), timers = [], done = false;
+  function page(g){
+    var d = document.createElement('div'); d.className = 'fcalpage';
+    d.innerHTML = '<div class="fcaltop">' + g.d.toLocaleDateString(undefined, { month: 'long' }) + ' ' + g.d.getFullYear() + '</div>' +
+      '<div class="fcalday">' + g.d.getDate() + '</div><div class="fcalwk">' + g.d.toLocaleDateString(undefined, { weekday: 'long' }) + '</div>' +
+      '<div class="fcalcount">' + g.list.length + ' issue' + (g.list.length === 1 ? '' : 's') + '</div>';
+    return d;
+  }
+  function finish(){
+    if (done) return; done = true; timers.forEach(clearTimeout);
+    cal.classList.add('gone'); setTimeout(function(){ if (cal.parentNode) cal.parentNode.removeChild(cal); }, 400);
+  }
+  cal.onclick = finish;
+  var pages = days.map(page), step = 320;
+  for (var j = pages.length - 1; j >= 0; j--) stack.appendChild(pages[j]);   // oldest on top
+  pages.forEach(function(pg, i){
+    if (i === pages.length - 1) return;
+    timers.push(setTimeout(function(){ pg.classList.add('flip'); }, 500 + i * step));
+  });
+  timers.push(setTimeout(finish, 500 + (pages.length - 1) * step + 900));
 }
+// ---------- reminders (web push). Default: daily at 9 pm, the person's own local time ----------
+var VAPID_PUBLIC = 'BM4T5OPo9hkRj22Ch9KUJPTMyHauGD5maNPSL8TzbR7Vu4gjTGLXAiHUq0MJznyG4YLMXswXgeQ-GSFnqWsZKh8';
+var REM_DEFAULT = { freq: 'daily', hour: 21, minute: 0 };
+var REM_WORD = { daily: 'Daily', '2days': 'Every 2 days', weekly: 'Weekly' };
+function remPref(){ try { return JSON.parse(localStorage.getItem('vp.rem') || 'null'); } catch (e) { return null; } }
+function remLabel(p){
+  if (!p || p.off) return 'Off';
+  var d = new Date(); d.setHours(p.hour, p.minute, 0, 0);
+  return REM_WORD[p.freq] + ' at ' + d.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+}
+function pushOK(){ return 'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window; }
+function isIOS(){ return /iphone|ipad|ipod/i.test(navigator.userAgent); }
+function isInstalled(){ return (window.matchMedia && matchMedia('(display-mode: standalone)').matches) || navigator.standalone === true; }
+function b64u(s){ var p = '='.repeat((4 - s.length % 4) % 4), b = atob((s + p).replace(/-/g, '+').replace(/_/g, '/'));
+  var a = new Uint8Array(b.length); for (var i = 0; i < b.length; i++) a[i] = b.charCodeAt(i); return a; }
+function saveReminder(tail, p){
+  if (p.off) return navigator.serviceWorker.ready.then(function(reg){ return reg.pushManager.getSubscription(); }).then(function(sub){
+      if (!sub) return; return rpc('vp_reminder_off', { p_endpoint: sub.endpoint }).catch(function(){}).then(function(){ return sub.unsubscribe(); });
+    }).then(function(){ localStorage.setItem('vp.rem', JSON.stringify({ off: true })); });
+  return Notification.requestPermission().then(function(perm){
+    if (perm !== 'granted') throw new Error('Notifications are blocked for VoterPup. Allow them in your browser or phone settings, then try again.');
+    return navigator.serviceWorker.register('/sw.js').then(function(){ return navigator.serviceWorker.ready; });
+  }).then(function(reg){
+    return reg.pushManager.getSubscription().then(function(s){ return s || reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: b64u(VAPID_PUBLIC) }); });
+  }).then(function(sub){
+    var j = sub.toJSON();
+    return rpc('vp_set_reminder', { p_tail: tail, p_endpoint: j.endpoint, p_p256dh: j.keys.p256dh, p_auth: j.keys.auth,
+      p_tz: Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC', p_freq: p.freq, p_hour: p.hour, p_minute: p.minute });
+  }).then(function(){ localStorage.setItem('vp.rem', JSON.stringify(p)); });
+}
+function reminderSheet(tail, name, after){
+  var nm = esc(name), cur = remPref(), p = (cur && !cur.off) ? cur : Object.assign({}, REM_DEFAULT), off = !!(cur && cur.off);
+  var ov = document.createElement('div'); ov.className = 'stkover'; document.body.appendChild(ov);
+  function close(){ if (ov.parentNode) ov.parentNode.removeChild(ov); if (after) after(); }
+  ov.onclick = function(ev){ if (ev.target === ov) close(); };
+  if (!pushOK()) {
+    ov.innerHTML = '<div class="stksheet"><div class="addhead">🔔 Reminders</div><p class="mp" style="font-size:13.5px">' +
+      (isIOS() && !isInstalled()
+        ? 'On iPhone, reminders work once VoterPup is on your home screen: tap <b>Share</b> ⎋ then <b>Add to Home Screen</b>, open VoterPup from there, and turn reminders on.'
+        : 'This browser can&rsquo;t show reminders. Try Chrome, Edge, Firefox or Safari.') +
+      '</p><button class="btn gold" id="remok">Got it</button></div>';
+    document.getElementById('remok').onclick = close; return;
+  }
+  var tv = ('0' + p.hour).slice(-2) + ':' + ('0' + p.minute).slice(-2);
+  ov.innerHTML = '<div class="stksheet"><div class="addhead">🔔 When should ' + nm + ' ask?</div>' +
+    '<p class="mp">' + nm + ' asks if anything needs fixing. Your local time, this device.</p>' +
+    '<div class="chips remchips">' + ['daily','2days','weekly','off'].map(function(f){
+      var on = off ? f === 'off' : f === p.freq;
+      return '<span class="chip ' + (on ? 'goldfill' : 'goldline') + '" data-f="' + f + '">' + (f === 'off' ? 'Off' : REM_WORD[f]) + '</span>'; }).join('') + '</div>' +
+    '<label class="remtime" id="remtimerow"' + (off ? ' hidden' : '') + '>at <input type="time" id="remtime" value="' + tv + '"></label>' +
+    '<button class="btn gold" id="remsave">Save</button><button class="btn ghost" id="remcancel">Not now</button>' +
+    '<p class="privacy" id="remerr"></p></div>';
+  var sel = off ? 'off' : p.freq;
+  Array.prototype.forEach.call(ov.querySelectorAll('[data-f]'), function(c){
+    c.onclick = function(){ sel = c.getAttribute('data-f');
+      Array.prototype.forEach.call(ov.querySelectorAll('[data-f]'), function(x){ x.className = 'chip ' + (x === c ? 'goldfill' : 'goldline'); });
+      document.getElementById('remtimerow').hidden = sel === 'off'; };
+  });
+  document.getElementById('remcancel').onclick = function(){ if (!remPref()) try { localStorage.setItem('vp.remasked', '1'); } catch (e) {} close(); };
+  document.getElementById('remsave').onclick = function(){
+    var b = this, t = (document.getElementById('remtime').value || '21:00').split(':');
+    var np = sel === 'off' ? { off: true } : { freq: sel, hour: +t[0], minute: +t[1] };
+    b.disabled = true; b.textContent = 'Saving…';
+    saveReminder(tail, np).then(function(){ toast(np.off ? 'Reminders off' : '🔔 ' + nm + ' will ask: ' + remLabel(np).toLowerCase()); close(); })
+      .catch(function(e){ b.disabled = false; b.textContent = 'Save'; document.getElementById('remerr').textContent = e.message; });
+  };
+}
+if ('serviceWorker' in navigator && !KIOSK) navigator.serviceWorker.register('/sw.js').catch(function(){});
 function toast(html, ms){
   var old = document.querySelector('.toast'); if (old) old.parentNode.removeChild(old);
   var t = document.createElement('div'); t.className = 'toast'; t.innerHTML = html;
@@ -1254,7 +1371,7 @@ function screenPack(mode, topic0){
   var city = place ? place.split(',')[0] : null;
   root.innerHTML = nav() +
     '<div class="packhero">' + slotMedia('pack') +
-      '<div class="ft">The Pack \ud83d\udc3e<small>What neighbours want fixed.</small></div></div>' +
+      '<div class="ft">The Pack \ud83d\udc3e<small>What everyone wants fixed.</small></div></div>' +
     (loadLocal() ? '' : '<div class="newbie">\ud83d\udc4b New here? Tap <b>+</b> to get your own pup.</div>') +
     '<div class="chips" style="margin:0 0 10px">' +
       (city ? '<span class="chip ' + (mode==='local'?'goldfill':'goldline') + '" id="mlocal">\ud83d\udccd ' + esc(city) + '</span><span class="chip goldline chgloc">change</span>'
@@ -1451,7 +1568,7 @@ function screenPack(mode, topic0){
   }).catch(function(e){ document.getElementById('board').textContent = 'The pack is napping: ' + e.message; });
 }
 
-var APP_VERSION = "20260929232256";
+var APP_VERSION = "20260929232944";
 (function(){
   try {
     fetch('/version.json?t=' + Date.now(), { cache: 'no-store' }).then(function(r){ return r.json(); }).then(function(j){
@@ -1702,6 +1819,8 @@ function screenManage(){
     if (!(email && backed)) rows += mrow('<div class="mkeythumb">🔑</div>', 'Private link',
       'Your only key until you back up.',
       '<button class="btn ghost mbtn" id="mcopy">Copy link</button><button class="btn ghost mbtn" id="mstk">🏷️ Key sticker</button>');
+    if (!KIOSK) rows += mrow('<img src="/pup-sit.webp" alt="" style="object-position:50% 12%">', '🔔 Reminders', remLabel(remPref()),
+      '<button class="btn ' + (remPref() && !remPref().off ? 'ghost' : 'gold') + ' mbtn" id="mrem">' + (remPref() && !remPref().off ? 'Change' : 'Turn on') + '</button>');
     rows += mrow('<img id="invthumb" alt="">', '🐾 Invite your friends',
       '',
       '<button class="btn gold mbtn" id="minv">Share invite</button><button class="btn ghost mbtn" id="minvstk">🏷️ Invite sticker</button>');
@@ -1714,6 +1833,7 @@ function screenManage(){
     wireTabs(); wireHero();
     var on = function(id, fn){ var el = document.getElementById(id); if (el) el.onclick = fn; };
     on('mshare', function(){ if (n) showCandidate(tail, L.name); });
+    on('mrem', function(){ reminderSheet(tail, L.name, screenManage); });
     on('mrename', function(ev){
       ev.preventDefault();
       var t = document.getElementById('mtitle');
