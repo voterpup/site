@@ -100,6 +100,7 @@
   .fetchvid{position:relative; width:78px; height:120px; flex:0 0 auto}
   .fetchvid video{position:absolute; inset:0; width:78px; height:120px; object-fit:cover; border-radius:12px; background:#e9edf1}
   .fetchvid .vtop{z-index:2; transition:opacity .35s}
+  .fetchvid img.vsit{position:absolute; inset:0; width:78px; height:120px; object-fit:cover; border-radius:12px; background:#e9edf1}
   .momwrap{margin:14px 0 4px}
   .momwrap .mhead{font-size:12px; font-weight:800; color:var(--sub); text-transform:uppercase; letter-spacing:.5px; margin:0 2px 8px}
   .momgrid{display:grid; grid-template-columns:1fr 1fr; gap:10px}
@@ -126,6 +127,10 @@
   .stksheet .hint{margin:8px 2px 0; text-align:center}
   .stkcard{cursor:pointer; display:inline-flex; align-items:center; gap:6px; margin-top:7px}
   .stkcard .stkcap{font-size:11.5px; font-weight:700; color:#8a6a14}
+  .bkbadge,.bklink{display:inline-block; margin:7px 0 0 8px; font-size:11px; font-weight:700; vertical-align:middle;
+      padding:3px 8px; border-radius:999px; text-decoration:none}
+  .bkbadge{color:#2f7d5f; background:#eef6f2; border:1px solid #cfe5da}
+  .bklink{color:#3b6fb6; background:var(--card); border:1px solid var(--line)}
   .stkthumb{position:relative; width:72px; height:43px; border-radius:6px; overflow:hidden; border:1px solid var(--line); background:#fff; flex:0 0 auto}
   .stkthumb img{width:72px; height:43px; display:block}
   .stkblur{position:absolute; top:0; right:0; bottom:0; width:50%; backdrop-filter:blur(3px); -webkit-backdrop-filter:blur(3px);
@@ -696,18 +701,19 @@ function screenLedger(tail){
     pendingFiles = [];
     root.innerHTML = nav(n > 0 && !KIOSK ? '<a href="#" class="acct show" id="navshow">📤 Share my issues</a>' : '') +
       '<div class="fetchcard"><div class="fetchvid">' +
-        '<video class="vsit" src="/pup-sit.mp4" muted autoplay loop playsinline preload="auto"></video>' +
+        '<img class="vsit" src="/pup-sit.webp" alt="">' +
         (window._vpFetchPlayed ? '' : '<video class="vtop" id="vfetch" src="/pup-fetch.mp4" muted autoplay playsinline preload="auto"></video>') +
       '</div>' +
         '<div class="ft">' + esc(L.name) + ' fetches your issues for you.' +
         '<small>Tell ' + esc(L.name) + ' what should be fixed — it brings them back the day you can vote on them. 🗳️</small>' +
         '<div class="stkcard" id="stkcard"><div class="stkthumb"><img id="stkimg" alt="' + esc(L.name) + '\u2019s sticker">' +
         '<div class="stkblur"></div></div><span class="stkcap">your sticker \u203a</span></div>' +
+        (GOOGLE_READY ? (isBackedUp(tail)
+          ? '<span class="bkbadge" title="' + esc(L.name) + ' is backed up to your Google account">✅ backed up</span>'
+          : '<a href="#" class="bklink" id="gbackup">🔐 back up</a>') : '') +
       '</div></div>' +
-      (GOOGLE_READY ? (isBackedUp(tail)
-        ? '<div class="banner">✅ ' + esc(L.name) + ' is backed up to your Google account.</div>'
-        : '<div class="backup"><button class="btn ghost" id="gbackup">🔐 Don&rsquo;t lose ' + esc(L.name) + ' — back up with Google</button><div id="gslot"></div>' +
-          '<p class="privacy">We use your email only to restore ' + esc(L.name) + ' on any device. No mail, ever.</p></div>') : '') +
+      (GOOGLE_READY && !isBackedUp(tail) ? '<div class="backup" id="gwrap" hidden><div id="gslot"></div>' +
+          '<p class="privacy">Don&rsquo;t lose ' + esc(L.name) + '. We use your email only to restore it on any device. No mail, ever.</p></div>' : '') +
       say('What made you think<br>&ldquo;someone should fix this&rdquo;?', 'tell ' + esc(L.name) + ' — 5 words is plenty') +
       '<div class="composer">' +
         '<textarea id="gripe" placeholder="Tell ' + esc(L.name) + '..."></textarea>' +
@@ -735,7 +741,7 @@ function screenLedger(tail){
       window._vpFetchPlayed = true;
       var done = function(){
         var vs = document.querySelector('.fetchvid .vsit');
-        if (vs) { try { vs.currentTime = 1.0; vs.play(); } catch (e) {} }
+
         vf.style.opacity = 0; setTimeout(function(){ if (vf.parentNode) vf.parentNode.removeChild(vf); }, 400);
       };
       vf.addEventListener('ended', done);
@@ -766,8 +772,10 @@ function screenLedger(tail){
     mountHomeSticker(L.name, pupURL(tail));
     var ns = document.getElementById('navshow');
     if (ns) ns.onclick = function(ev){ ev.preventDefault(); showCandidate(tail, L.name); };
-    var gb = document.getElementById('gbackup'); if (gb) gb.onclick = function(){
+    var gb = document.getElementById('gbackup'); if (gb) gb.onclick = function(ev){
+      if (ev) ev.preventDefault();
       gb.style.display = 'none';
+      var gw = document.getElementById('gwrap'); if (gw) gw.hidden = false;
       sb.auth.getSession().then(function(r){
         if (r.data && r.data.session) {
           sb.rpc('vp_claim_ledger', { p_tail: tail }).then(function(x){ if (x.error) throw new Error(x.error.message); markBackedUp(tail); screenLedger(tail); })
@@ -1083,7 +1091,7 @@ function screenPack(mode, topic0){
   }).catch(function(e){ document.getElementById('board').textContent = 'The pack is napping: ' + e.message; });
 }
 
-var APP_VERSION = "20260929073518";
+var APP_VERSION = "20260929073914";
 (function(){
   try {
     fetch('/version.json?t=' + Date.now(), { cache: 'no-store' }).then(function(r){ return r.json(); }).then(function(j){
