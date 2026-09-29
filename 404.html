@@ -320,9 +320,15 @@ function uploadPending(){
   });
   return Promise.all(ups);
 }
+function mediaHold(x){
+  if (x.hidden === 'video') return '<div class="chip" style="display:inline-block;margin-top:8px;cursor:default">🎥 video · not shown publicly</div>';
+  if (x.hidden === 'blocked') return '<div class="chip" style="display:inline-block;margin-top:8px;cursor:default">🚫 image removed</div>';
+  return '<div class="chip" style="display:inline-block;margin-top:8px;cursor:default">🕑 photo under review</div>';
+}
 function mediaHTML(m){
   if (!m || !m.length) return '';
   return '<div class="media">' + m.map(function(x){
+    if (!x.url) return mediaHold(x);
     return x.type && x.type.indexOf('video') === 0
       ? '<video src="' + esc(x.url) + '" controls playsinline preload="metadata"></video>'
       : '<img src="' + esc(x.url) + '" loading="lazy">';
@@ -417,6 +423,12 @@ document.addEventListener('click', function(ev){
   var t = ev.target && ev.target.closest ? ev.target.closest('.chgloc') : null;
   if (!t) return; ev.preventDefault(); changePlaceSheet();
 });
+var _noted = {};
+function notePlace(place){
+  if (!place || _noted[place]) return;
+  _noted[place] = 1;
+  rpc('vp_note_place', { p_place: place }).catch(function(){});
+}
 function renderVoteStrip(){
   var el = document.getElementById('votestrip'); if (!el) return;
   var place = getPlace();
@@ -429,7 +441,13 @@ function renderVoteStrip(){
     return;
   }
   rpc('vp_upcoming', { p_place: place }).then(function(list){
-    if (!list || !list.length) { el.innerHTML = '<div class="votestrip">🗳️ No upcoming votes on file for <b>' + esc(place.split(',')[0]) + '</b> yet.</div>'; return; }
+    if (!list || !list.length) {
+      el.innerHTML = '<div class="votestrip">🔎 Our pup is checking official sources for votes in <b>' + esc(place.split(',')[0]) + '</b>. Check back later today. ' +
+        '<a href="#" class="chgloc" style="color:#3b6fb6;white-space:nowrap">change place</a></div>';
+      notePlace(place);
+      return;
+    }
+    notePlace(place);
     mountMoments(el, list, true, 'When you can act · 📍 ' + esc(place.split(',')[0]) + ' · <a href="#" class="chgloc" style="color:#3b6fb6;text-transform:none">change</a>');
   }).catch(function(){ el.innerHTML = ''; });
 }
@@ -1091,7 +1109,7 @@ function screenPack(mode, topic0){
   }).catch(function(e){ document.getElementById('board').textContent = 'The pack is napping: ' + e.message; });
 }
 
-var APP_VERSION = "20260929073914";
+var APP_VERSION = "20260929075016";
 (function(){
   try {
     fetch('/version.json?t=' + Date.now(), { cache: 'no-store' }).then(function(r){ return r.json(); }).then(function(j){
