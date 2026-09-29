@@ -5,6 +5,7 @@ import { createClient } from "npm:@supabase/supabase-js@2";
 
 const anthropic = new Anthropic({ apiKey: Deno.env.get("ANTHROPIC_API_KEY")! });
 const MAX_IMAGES_PER_RUN = 8;
+const DAILY_CAP = 500;  // images/day; past it, photos simply stay "under review"
 const REVIEWABLE = /^image\/(jpeg|png|gif|webp)$/;
 
 const RULES = `You review photos that people attach to civic complaints ("this should be fixed") before they appear on a public community board.
@@ -60,9 +61,14 @@ Deno.serve(async () => {
   const { data: rows, error } = await db.rpc("vp_mod_queue", { p_limit: 200 });
   if (error) return new Response("db: " + error.message, { status: 500 });
 
-  let reviewed = 0, blocked = 0, held = 0, failed = 0;
+  const day = new Date().toISOString().slice(0, 10);
+  const { data: log } = await db.from("mod_log").select("reviews").eq("day", day).maybeSingle();
+  const doneToday = log?.reviews ?? 0;
+  const budget = Math.min(MAX_IMAGES_PER_RUN, DAILY_CAP - doneToday);
+
+  let reviewed = 0, blocked = 0, held = 0, failed = 0, abort = "";
   for (const row of rows ?? []) {
-    if (reviewed >= MAX_IMAGES_PER_RUN) break;
+    if (reviewed >= budget || abort) break;
     const media = (row.media ?? []) as any[];
     if (!media.some((m) => !m.mod)) continue;
     let changed = false;
@@ -70,7 +76,7 @@ Deno.serve(async () => {
       if (m.mod) continue;
       // Videos and formats the reviewer can't read (e.g. HEIC) are never shown publicly.
       if (!REVIEWABLE.test(String(m.type))) { m.mod = "hold"; held++; changed = true; continue; }
-      if (reviewed >= MAX_IMAGES_PER_RUN) break;
+      if (reviewed >= budget || abort) break;
       const { data: s } = await db.storage.from("media").createSignedUrl(m.path, 300);
       if (!s?.signedUrl) { failed++; continue; }
       try {
@@ -79,13 +85,20 @@ Deno.serve(async () => {
         m.mod_reason = r.reason;
         if (m.mod === "blocked") blocked++;
         reviewed++; changed = true;
-      } catch (e) {
-        // stays hidden; retried on the next sweep, parked as "hold" after 3 failures
-        m.mod_fail = (m.mod_fail ?? 0) + 1; changed = true; failed++;
-        if (m.mod_fail >= 3) { m.mod = "hold"; m.mod_reason = String((e as Error).message ?? e).slice(0, 200); }
+      } catch (e: any) {
+        failed++;
+        const msg = String(e?.message ?? e);
+        // Only an error about THIS image counts against it; anything else (auth, rate limit, outage,
+        // a bad request shape) stops the run and leaves every image untouched for the next sweep.
+        if (e?.status === 400 && /image|media|download|fetch|url/i.test(msg)) {
+          m.mod_fail = (m.mod_fail ?? 0) + 1; changed = true;
+          if (m.mod_fail >= 3) { m.mod = "hold"; m.mod_reason = msg.slice(0, 200); }
+        } else { abort = msg.slice(0, 300); }
       }
     }
     if (changed) await db.from("entries").update({ media }).eq("id", row.id);
   }
-  return new Response(JSON.stringify({ reviewed, blocked, held, failed }));
+  if (reviewed) await db.from("mod_log").upsert({ day, reviews: doneToday + reviewed });
+  return new Response(JSON.stringify({ reviewed, blocked, held, failed, abort: abort || undefined, doneToday: doneToday + reviewed }),
+                      { status: abort ? 502 : 200 });
 });

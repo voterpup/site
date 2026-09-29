@@ -6,7 +6,7 @@ alter table elections add column if not exists parent text;        -- city rows:
 alter table elections add column if not exists dkey text;          -- discovery dedupe key
 alter table elections add column if not exists source_quote text;  -- verbatim text the date was verified against
 alter table elections add column if not exists discovered_at timestamptz;
-create unique index if not exists elections_dkey_uq on elections(dkey) where dkey is not null;
+create unique index if not exists elections_dkey_uq on elections(dkey);  -- NULLs stay distinct; full index so upsert(on_conflict=dkey) works
 
 -- existing city rows are all in BC (so "Vancouver, Washington" no longer matches them)
 update elections set parent = 'british columbia' where level in ('city','council') and parent is null;
@@ -114,6 +114,10 @@ returns table(id uuid, media jsonb) language sql security definer set search_pat
 $$;
 revoke all on function vp_mod_queue(int) from public, anon, authenticated;
 grant execute on function vp_mod_queue(int) to service_role;
+
+create table if not exists mod_log (day date primary key, reviews int not null default 0);
+alter table mod_log enable row level security;
+grant all on mod_log to service_role;
 
 -- kick the reviewer the moment something becomes public (async; never blocks the write)
 create or replace function vp_kick_moderation() returns trigger language plpgsql security definer set search_path = public as $$
