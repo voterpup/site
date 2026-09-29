@@ -3,7 +3,7 @@
 // SUPABASE_URL + SUPABASE_SERVICE_ROLE_KEY are auto-injected by Supabase.
 import { createClient } from "npm:@supabase/supabase-js@2";
 
-const TOPICS = ["housing","homelessness","transit","safety","cost of living","health","climate","cleanliness","parks","other"];
+const TOPICS = ["housing","homelessness","transit","infrastructure","utilities","safety","cost of living","health","education","climate","cleanliness","parks","other"];
 
 Deno.serve(async () => {
   const db = createClient(
@@ -30,7 +30,7 @@ Deno.serve(async () => {
         role: "user",
         content: "Label each civic gripe with exactly ONE topic from this list: " +
           TOPICS.join(", ") +
-          ". Tents, encampments or unhoused people are 'homelessness', never 'safety'. Reply with ONLY a JSON array of {\"id\":\"...\",\"topic\":\"...\"} — no prose.\n" +
+          ". Tents, encampments or unhoused people are 'homelessness', never 'safety'. Sidewalks, potholes, roads, bridges, railings, streetlights, snow/ice clearing are 'infrastructure'. Water, power, electricity, sewage, drainage, internet outages are 'utilities'. Use 'other' only if nothing fits. Reply with ONLY a JSON array of {\"id\":\"...\",\"topic\":\"...\"} — no prose.\n" +
           JSON.stringify(rows),
       }],
     }),

@@ -5,7 +5,7 @@ import { createClient } from "npm:@supabase/supabase-js@2";
 
 const UA = "VoterPupBot/0.1 (+https://voterpup.com; hi@voterpup.com)";
 const BASE = "https://www.shapeyourcity.ca";
-const TOPICS = ["housing","homelessness","transit","safety","cost of living","health","climate","cleanliness","parks","other"];
+const TOPICS = ["housing","homelessness","transit","infrastructure","utilities","safety","cost of living","health","education","climate","cleanliness","parks","other"];
 const MONTHS: Record<string, number> = { january:1,february:2,march:3,april:4,may:5,june:6,july:7,
   august:8,september:9,october:10,november:11,december:12 };
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
@@ -36,7 +36,8 @@ function scopeOf(name: string) {
 function ruleTopic(name: string) {
   const n = name.toLowerCase();
   if (/rezoning|development application|developent application|text amendment|odp amendment/.test(n)) return "housing";
-  if (/\b(traffic|bikes?|pedestrian|streets?|transit|bus|roads?|bridges?)\b/.test(n)) return "transit";
+  if (/\b(roads?|bridges?|sidewalks?|streets?cape|streetlights?)\b/.test(n)) return "infrastructure";
+  if (/\b(traffic|bikes?|pedestrian|transit|bus|greenway)\b/.test(n)) return "transit";
   if (/park|playground|off-leash|beach|garden/.test(n)) return "parks";
   if (/shelter|homeless|supportive housing/.test(n)) return "homelessness";
   if (/rezoning|development|housing|residential|rental|text amendment|odp/.test(n)) return "housing";

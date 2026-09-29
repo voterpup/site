@@ -327,28 +327,91 @@ var PLACE_TTL = 7*24*3600*1000;
 function getPlace(){ try{ return localStorage.getItem('vp.place'); }catch(e){ return null; } }
 function placeStale(){ try{ var t = +localStorage.getItem('vp.place_ts') || 0; return (Date.now() - t) > PLACE_TTL; }catch(e){ return false; } }
 function refreshPlaceIfStale(){
-  if (!getPlace() || !placeStale() || !navigator.permissions) return;
+  if (!getPlace() || placeIsManual() || !placeStale() || !navigator.permissions) return;
   navigator.permissions.query({ name: 'geolocation' }).then(function(st){
     if (st.state !== 'granted') return;             // never surprise-prompt
     var before = getPlace();
     detectPlace(function(p){ if (p && p !== before) renderVoteStrip(); });
   }).catch(function(){});
 }
+function osmLabel(ad){
+  var city = ad.city || ad.town || ad.village || ad.municipality || ad.county || '';
+  var region = ad.state || ad.province || ad.region || '';
+  return [city, region, ad.country || ''].filter(Boolean).join(', ');
+}
+function savePlace(place, manual){
+  try {
+    localStorage.setItem('vp.place', place);
+    localStorage.setItem('vp.place_ts', String(Date.now()));
+    if (manual) localStorage.setItem('vp.place_manual', '1'); else localStorage.removeItem('vp.place_manual');
+  } catch (e) {}
+}
+function placeIsManual(){ try { return localStorage.getItem('vp.place_manual') === '1'; } catch (e) { return false; } }
 function detectPlace(cb){
   if (!navigator.geolocation) { cb(null); return; }
   navigator.geolocation.getCurrentPosition(function(pos){
-    fetch('https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=' + pos.coords.latitude +
-          '&longitude=' + pos.coords.longitude + '&localityLanguage=en')
+    fetch('https://nominatim.openstreetmap.org/reverse?format=jsonv2&zoom=10&addressdetails=1&accept-language=en&lat=' +
+          pos.coords.latitude + '&lon=' + pos.coords.longitude)
       .then(function(r){ return r.json(); })
       .then(function(g){
-        var rawCity = (g.city || g.locality || '');
-        var city = rawCity.replace(/\b(Metro|Greater|Regional District|District of|City of)\b/gi, '').replace(/\s+/g,' ').trim() || rawCity;
-        var place = [city, g.principalSubdivision, g.countryName].filter(Boolean).join(', ');
-        try{ localStorage.setItem('vp.place', place); localStorage.setItem('vp.place_ts', String(Date.now())); }catch(e){}
+        var place = osmLabel(g.address || {});
+        if (!place) { cb(null); return; }
+        savePlace(place, false);
         cb(place);
       }).catch(function(){ cb(null); });
   }, function(){ cb(null); }, { timeout: 8000 });
 }
+function afterPlaceChange(){
+  _elCache = {};
+  if (document.getElementById('votestrip')) renderVoteStrip();
+  else if (location.pathname === '/pack') screenPack('local');
+}
+function changePlaceSheet(){
+  var ov = document.createElement('div'); ov.className = 'stkover';
+  document.body.appendChild(ov);
+  function close(){ if (ov.parentNode) ov.parentNode.removeChild(ov); }
+  ov.onclick = function(ev){ if (ev.target === ov) close(); };
+  var cur = getPlace();
+  ov.innerHTML = '<div class="stksheet">' +
+    '<div class="q" style="font-size:17px; margin:0 0 4px">Where do you vote? 📍</div>' +
+    '<p class="hint" style="text-align:left; margin:0 0 8px">' + (cur ? 'Now: <b>' + esc(cur) + '</b>. ' : '') +
+      'Your elections and deadlines follow this place. Entries you already logged keep the place they were logged in.</p>' +
+    '<div style="display:flex; gap:8px"><input id="plq" placeholder="Type a city, e.g. Burnaby" style="flex:1">' +
+    '<button class="btn compact" id="plgo">Search</button></div>' +
+    '<div id="plres"></div>' +
+    '<button class="btn ghost" id="plgps">📍 Use my current location</button>' +
+    '<button class="btn ghost" id="plclose">Close</button>' +
+    '<p class="hint" style="font-size:11px">Search by © OpenStreetMap contributors</p></div>';
+  document.getElementById('plclose').onclick = close;
+  var busy = false;
+  function search(){
+    var q = document.getElementById('plq').value.trim(); if (!q || busy) return;
+    busy = true; document.getElementById('plres').innerHTML = '<p class="hint">Searching…</p>';
+    fetch('https://nominatim.openstreetmap.org/search?format=jsonv2&addressdetails=1&limit=6&accept-language=en&q=' + encodeURIComponent(q))
+      .then(function(r){ return r.json(); })
+      .then(function(rows){
+        var seen = {}, out = [];
+        (rows || []).forEach(function(r){ var l = osmLabel(r.address || {}); if (l && !seen[l]) { seen[l] = 1; out.push(l); } });
+        var box = document.getElementById('plres');
+        box.innerHTML = out.length ? out.map(function(l, i){ return '<button class="btn ghost" data-pl="' + i + '">' + esc(l) + '</button>'; }).join('')
+                                   : '<p class="hint">No places found — try adding the province or country.</p>';
+        Array.prototype.forEach.call(box.querySelectorAll('[data-pl]'), function(b){
+          b.onclick = function(){ savePlace(out[+b.getAttribute('data-pl')], true); close(); afterPlaceChange(); };
+        });
+      }).catch(function(){ document.getElementById('plres').innerHTML = '<p class="hint">Search failed — try again.</p>'; })
+      .then(function(){ busy = false; });
+  }
+  document.getElementById('plgo').onclick = search;
+  document.getElementById('plq').onkeydown = function(ev){ if (ev.key === 'Enter') search(); };
+  document.getElementById('plgps').onclick = function(){
+    this.textContent = '📍 finding you…';
+    detectPlace(function(){ close(); afterPlaceChange(); });
+  };
+}
+document.addEventListener('click', function(ev){
+  var t = ev.target && ev.target.closest ? ev.target.closest('.chgloc') : null;
+  if (!t) return; ev.preventDefault(); changePlaceSheet();
+});
 function renderVoteStrip(){
   var el = document.getElementById('votestrip'); if (!el) return;
   var place = getPlace();
@@ -362,7 +425,7 @@ function renderVoteStrip(){
   }
   rpc('vp_upcoming', { p_place: place }).then(function(list){
     if (!list || !list.length) { el.innerHTML = '<div class="votestrip">🗳️ No upcoming votes on file for <b>' + esc(place.split(',')[0]) + '</b> yet.</div>'; return; }
-    mountMoments(el, list, true);
+    mountMoments(el, list, true, 'When you can act · 📍 ' + esc(place.split(',')[0]) + ' · <a href="#" class="chgloc" style="color:#3b6fb6;text-transform:none">change</a>');
   }).catch(function(){ el.innerHTML = ''; });
 }
 var _elCache = {};
@@ -496,7 +559,7 @@ function renderMoments(list, groupDecisions){
   if (voice.length) out.push(groupedVoiceRow(voice, groupDecisions ? 6 : 10));
   return out.join('');
 }
-var TOPIC_LIST = ['housing','homelessness','transit','safety','cost of living','health','climate','cleanliness','parks','other'];
+var TOPIC_LIST = ['housing','homelessness','transit','infrastructure','utilities','safety','cost of living','health','education','climate','cleanliness','parks','other'];
 function ensurePlace(){
   return new Promise(function(res){
     if (getPlace() || !navigator.geolocation) { res(getPlace()); return; }
@@ -843,7 +906,7 @@ function wireTabs(){
     var s = loadLocal(); location.href = s ? pupURL(s.tail) : '/app.html'; };
 }
 
-var TILE_COLORS = ['#2f7d5f','#b3702d','#5f6caf','#a94b4b','#3d8f8f','#6b8e23','#8a5fae','#556270','#996633'];
+var TILE_COLORS = ['#2f7d5f','#b3702d','#5f6caf','#a94b4b','#3d8f8f','#6b8e23','#8a5fae','#556270','#996633','#2c6e8f','#8f5a2c','#6a4c93','#3f7f5f'];
 
 function screenPack(mode, topic0){
   var place = getPlace();
@@ -852,7 +915,7 @@ function screenPack(mode, topic0){
   root.innerHTML = nav() +
     '<div class="q" style="font-size:20px; margin-bottom:8px">The Pack \ud83d\udc3e</div>' +
     '<div class="chips" style="margin:0 0 10px">' +
-      (city ? '<span class="chip ' + (mode==='local'?'goldfill':'goldline') + '" id="mlocal">\ud83d\udccd ' + esc(city) + '</span>'
+      (city ? '<span class="chip ' + (mode==='local'?'goldfill':'goldline') + '" id="mlocal">\ud83d\udccd ' + esc(city) + '</span><span class="chip goldline chgloc">change</span>'
             : '<span class="chip goldline" id="mfind">\ud83d\udccd use my location</span>') +
       '<span class="chip ' + (mode==='all'?'goldfill':'goldline') + '" id="mall">\ud83c\udf0d Everywhere</span>' +
     '</div>' +
@@ -1020,7 +1083,7 @@ function screenPack(mode, topic0){
   }).catch(function(e){ document.getElementById('board').textContent = 'The pack is napping: ' + e.message; });
 }
 
-var APP_VERSION = "20260929072631";
+var APP_VERSION = "20260929073505";
 (function(){
   try {
     fetch('/version.json?t=' + Date.now(), { cache: 'no-store' }).then(function(r){ return r.json(); }).then(function(j){
