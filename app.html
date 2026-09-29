@@ -416,7 +416,7 @@ function renderVoteStrip(){
   var el = document.getElementById('votestrip'); if (!el) return;
   var place = getPlace();
   if (!place) {
-    el.innerHTML = '<div class="votestrip" style="display:flex;align-items:center;gap:8px">📍 <b>Find your next election</b><span class="days" id="findloc" style="cursor:pointer;margin-left:auto">use my location</span></div>';
+    el.innerHTML = '<div class="votestrip" style="display:flex;align-items:center;gap:8px">📍 <b>Find your next election</b><span class="days" id="findloc" style="cursor:pointer;margin-left:auto">use my location</span><a href="#" class="chgloc" style="font-size:12px;color:#3b6fb6;white-space:nowrap">or type a city</a></div>';
     document.getElementById('findloc').onclick = function(){
       el.innerHTML = '📍 sniffing around...';
       detectPlace(function(p){ renderVoteStrip(); });
@@ -1083,7 +1083,7 @@ function screenPack(mode, topic0){
   }).catch(function(e){ document.getElementById('board').textContent = 'The pack is napping: ' + e.message; });
 }
 
-var APP_VERSION = "20260929073505";
+var APP_VERSION = "20260929073518";
 (function(){
   try {
     fetch('/version.json?t=' + Date.now(), { cache: 'no-store' }).then(function(r){ return r.json(); }).then(function(j){
