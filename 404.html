@@ -911,6 +911,18 @@ function screenPack(mode, topic0){
   }).catch(function(e){ document.getElementById('board').textContent = 'The pack is napping: ' + e.message; });
 }
 
+var APP_VERSION = "20260929044835";
+(function(){
+  try {
+    fetch('/version.json?t=' + Date.now(), { cache: 'no-store' }).then(function(r){ return r.json(); }).then(function(j){
+      if (j && j.v && j.v !== APP_VERSION && sessionStorage.getItem('vp.reloaded') !== j.v) {
+        sessionStorage.setItem('vp.reloaded', j.v);
+        location.reload();
+      }
+    }).catch(function(){});
+  } catch (e) {}
+})();
+
 // ---------- router ----------
 (function(){
   var m = location.pathname.match(/^\/p\/(.+)$/);
