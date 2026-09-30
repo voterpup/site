@@ -217,7 +217,7 @@
   .chip.spotlink{text-decoration:none; color:#3b6fb6}
   .chip.react{cursor:pointer} .chip.react.on{background:#faf3df; border-color:var(--gold); color:#7a5a0c; font-weight:700}
   .dreact{margin-top:6px} .dreact .chip{font-size:10.5px; padding:3px 7px}
-  .mapbtn{position:fixed; right:16px; bottom:84px; z-index:8; display:flex; align-items:center; gap:6px; padding:10px 14px 10px 12px;
+  .mapbtn{position:fixed; right:16px; bottom:84px; z-index:1001; display:flex; align-items:center; gap:6px; padding:10px 14px 10px 12px;
       border-radius:999px; background:#1f2733; color:#fff; text-decoration:none; font-size:18px; box-shadow:0 6px 18px rgba(0,0,0,.25)}
   .mapbtn span{font-size:12.5px; font-weight:800}
   .packmap{height:calc(100vh - 300px); min-height:320px; border-radius:16px; overflow:hidden; border:1px solid var(--line); background:#e9edf1}
@@ -2001,7 +2001,7 @@ function screenPack(mode, topic0){
   }).catch(function(e){ document.getElementById('board').textContent = 'The pack is napping: ' + e.message; });
 }
 
-var APP_VERSION = "20260930181612";
+var APP_VERSION = "20260930181834";
 (function(){
   try {
     fetch('/version.json?t=' + Date.now(), { cache: 'no-store' }).then(function(r){ return r.json(); }).then(function(j){
