@@ -536,25 +536,37 @@ function renderSpot(){
   c.hidden = !pendingSpot; b.classList.toggle('on', !!pendingSpot);
   if (pendingSpot) { c.innerHTML = '📍 ' + esc(pendingSpot.spot) + ' <b>✕</b>'; c.querySelector('b').onclick = function(){ pendingSpot = null; renderSpot(); }; }
 }
+function grabSpot(done, fail){
+  if (!navigator.geolocation) { fail && fail('nogeo'); return; }
+  if (window._lastSpot && Date.now() - window._lastSpot.ts < 120000) { done(window._lastSpot.spot); return; }
+  navigator.geolocation.getCurrentPosition(function(pos){
+    var la = Math.round(pos.coords.latitude * 1e4) / 1e4, lo = Math.round(pos.coords.longitude * 1e4) / 1e4;
+    fetch('https://nominatim.openstreetmap.org/reverse?format=jsonv2&zoom=18&addressdetails=1&accept-language=en&lat=' + la + '&lon=' + lo)
+      .then(function(r){ return r.json(); }).then(function(g){
+        var a = g.address || {};
+        var label = [a.road || a.pedestrian || a.footway || a.park || a.amenity || '', a.neighbourhood || a.suburb || a.quarter || '']
+          .filter(Boolean).join(', ') || (la + ', ' + lo);
+        if (!getPlace() && a.city) savePlace(osmLabel(a), false);
+        var sp = { lat: la, lng: lo, spot: label.slice(0, 80) }; window._lastSpot = { spot: sp, ts: Date.now() }; done(sp);
+      }).catch(function(){ done({ lat: la, lng: lo, spot: la + ', ' + lo }); });
+  }, function(err){ fail && fail(err && err.code === 1 ? 'denied' : 'error'); }, { enableHighAccuracy: true, timeout: 10000 });
+}
+// Location is on by default: opening the box asks the phone (permission popup if needed) and fills the chip. ✕ removes it.
+function autoSpot(){
+  var b = document.getElementById('addspot'); if (!b || pendingSpot) return;
+  var go = function(){ b.textContent = '…'; grabSpot(function(sp){ pendingSpot = sp; b.textContent = '📍'; renderSpot(); }, function(){ b.textContent = '📍'; }); };
+  if (navigator.permissions && navigator.permissions.query) navigator.permissions.query({ name: 'geolocation' }).then(function(st){ if (st.state !== 'denied') go(); }).catch(go);
+  else go();
+}
 function wireSpot(){
   var b = document.getElementById('addspot'); if (!b) return;
   b.onclick = function(){
     if (pendingSpot) { pendingSpot = null; renderSpot(); return; }
-    if (!navigator.geolocation) { toast('This browser can’t share a location.'); return; }
     b.textContent = '…';
-    navigator.geolocation.getCurrentPosition(function(pos){
-      var la = Math.round(pos.coords.latitude * 1e4) / 1e4, lo = Math.round(pos.coords.longitude * 1e4) / 1e4;
-      fetch('https://nominatim.openstreetmap.org/reverse?format=jsonv2&zoom=18&addressdetails=1&accept-language=en&lat=' + la + '&lon=' + lo)
-        .then(function(r){ return r.json(); }).then(function(g){
-          var a = g.address || {};
-          var label = [a.road || a.pedestrian || a.footway || a.park || a.amenity || '', a.neighbourhood || a.suburb || a.quarter || '']
-            .filter(Boolean).join(', ') || (la + ', ' + lo);
-          pendingSpot = { lat: la, lng: lo, spot: label.slice(0, 80) };
-          if (!getPlace() && a.city) savePlace(osmLabel(a), false);
-          b.textContent = '📍'; renderSpot();
-        }).catch(function(){ pendingSpot = { lat: la, lng: lo, spot: la + ', ' + lo }; b.textContent = '📍'; renderSpot(); });
-    }, function(){ b.textContent = '📍'; toast('Location is off for this site. Allow it in your browser settings.'); }, { enableHighAccuracy: true, timeout: 10000 });
+    grabSpot(function(sp){ pendingSpot = sp; b.textContent = '📍'; renderSpot(); },
+             function(why){ b.textContent = '📍'; toast(why === 'nogeo' ? 'This browser can’t share a location.' : 'Location is off for this site. Allow it in your browser settings.'); });
   };
+  autoSpot();
 }
 function spotArgs(){ return pendingSpot ? { p_lat: pendingSpot.lat, p_lng: pendingSpot.lng, p_spot: pendingSpot.spot } : {}; }
 function spotChip(e){
@@ -2080,7 +2092,7 @@ function screenPack(mode, topic0){
   }).catch(function(e){ document.getElementById('board').textContent = 'The pack is napping: ' + e.message; });
 }
 
-var APP_VERSION = "20260930202820";
+var APP_VERSION = "20260930202930";
 (function(){
   try {
     fetch('/version.json?t=' + Date.now(), { cache: 'no-store' }).then(function(r){ return r.json(); }).then(function(j){
