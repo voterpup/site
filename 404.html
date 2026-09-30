@@ -1330,7 +1330,9 @@ function saveReminder(tail, p){
     }).then(function(){ localStorage.setItem('vp.rem', JSON.stringify({ off: true })); });
   return Notification.requestPermission().then(function(perm){
     if (perm !== 'granted') throw new Error('Notifications are blocked for VoterPup. Allow them in your browser or phone settings, then try again.');
-    return navigator.serviceWorker.register('/sw.js').then(function(){ return navigator.serviceWorker.ready; });
+    return navigator.serviceWorker.register('/sw.js').then(function(reg){
+      return Promise.race([navigator.serviceWorker.ready, new Promise(function(res){ setTimeout(function(){ res(reg); }, 5000); })]);
+    });
   }).then(function(reg){
     return reg.pushManager.getSubscription().then(function(s){ return s || reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: b64u(VAPID_PUBLIC) }); });
   }).then(function(sub){
@@ -1447,10 +1449,16 @@ function screenReport(tail){
           if (isIOS() && !isInstalled()) { installApp(); document.getElementById('rperr').innerHTML = 'After adding, open VoterPup from your home screen and turn on reminders in ⚙️.'; }
           b.disabled = false; b.textContent = 'Continue →'; b.onclick = go; return;
         }
+        var slow = setTimeout(function(){
+          document.getElementById('rperr').innerHTML = 'Taking longer than usual. You can continue now and turn reminders on in ⚙️ any time.';
+          b.disabled = false; b.textContent = 'Continue →'; b.onclick = go;
+        }, 12000);
         return saveReminder(tail, Object.assign({}, REM_DEFAULT)).then(function(){
+          clearTimeout(slow);
           toast('🔔 ' + nm + ' will report back tonight at 9');
-          if (_installEvt) { _installEvt.prompt(); return _installEvt.userChoice.then(function(){ _installEvt = null; }); }
+          if (_installEvt) { try { _installEvt.prompt(); return _installEvt.userChoice.then(function(){ _installEvt = null; }); } catch (e) { _installEvt = null; } }
         }).then(go).catch(function(e){
+          clearTimeout(slow);
           document.getElementById('rperr').innerHTML = esc(e.message) + ' You can turn reminders on later in ⚙️.';
           b.disabled = false; b.textContent = 'Continue →'; b.onclick = go;
           document.getElementById('rpskip').textContent = 'Try again'; document.getElementById('rpskip').onclick = function(ev){ ev.preventDefault(); screenReport(tail); };
@@ -1470,7 +1478,6 @@ function dailyFetch(L, tail){
   var gained = L.entries.filter(function(e){ return (e.backs || 0) > (seen[e.id] || 0) && (e.id in seen); });
   try { localStorage.setItem(KB, JSON.stringify(snap)); } catch (e) {}
   var already = false; try { already = localStorage.getItem(K) === today; } catch (e) {}
-  if ((already || new Date(L.created_at).toDateString() === today) && !gained.length) return;
   var nm = esc(L.name), pick = null;
   if (gained.length) {
     var g = gained.sort(function(a, b){ return (b.backs - (seen[b.id] || 0)) - (a.backs - (seen[a.id] || 0)); })[0];
@@ -1478,7 +1485,7 @@ function dailyFetch(L, tail){
     pick = { kind: 'backs', title: (d === 1 ? 'Someone feels the same' : d + ' more people feel the same'),
       body: '&ldquo;' + esc(g.body || '📷 your photo') + '&rdquo; now has ' + g.backs + ' 🐾',
       actions: '<a class="btn gold mbtn" href="/pack' + (g.topic ? '?t=' + encodeURIComponent(g.topic) : '') + '">See the Pack</a>' };
-  } else {
+  } else if (!already) {
     var old = L.entries.filter(function(e){ return !e.fixed_at && (Date.now() - new Date(e.ts)) > 5 * 864e5; });
     if (old.length) {
       var m = old[Math.floor(Math.random() * old.length)], days = Math.round((Date.now() - new Date(m.ts)) / 864e5);
@@ -1489,7 +1496,7 @@ function dailyFetch(L, tail){
   }
   function render(p){
     if (!p) return;
-    try { localStorage.setItem(K, today); } catch (e) {}
+    if (p.kind !== 'pack') try { localStorage.setItem(K, today); } catch (e) {}
     host.innerHTML = '<div class="fetchcard dfetch"><div class="fetchvid">' +
       '<img class="vsit" src="/pup-sit.webp" alt=""><video class="vtop" id="dfvid" src="/pup-fetch.mp4" muted autoplay playsinline preload="auto"></video></div>' +
       '<div class="ft"><div class="dfk">🐾 ' + nm + ' fetched this for you</div><b>' + p.title + '</b><small>' + p.body + '</small>' +
@@ -1502,6 +1509,7 @@ function dailyFetch(L, tail){
         if (a === 'fixed') rpc('vp_set_fixed', { p_tail: tail, p_id: p.id, p_fixed: true }).then(function(){ toast('🎉 One fixed. ' + nm + ' remembers who did it.'); screenLedger(tail); });
         else if (a === 'broken') { host.innerHTML = ''; toast(nm + ' keeps it. It comes back when you can vote. 🗳️'); }
         else if (a === 'same') rpc('vp_back', { p_tail: tail, p_id: p.id, p_on: true, p_place: getPlace() || null }).then(function(){ toast('🐾 Backed. It lives in your pup now.'); screenLedger(tail); }).catch(function(e){ alert(e.message); });
+        else if (a === 'next') { host.innerHTML = ''; dailyFetch(L, tail); }
       };
     });
   }
@@ -1510,11 +1518,14 @@ function dailyFetch(L, tail){
   var mine = {}; L.entries.forEach(function(e){ mine[e.id] = 1; }); (L.backed || []).forEach(function(e){ mine[e.id] = 1; });
   readBoard(getPlace() || null).then(function(rows){
     var c = (rows || []).filter(function(r){ return r.id && !mine[r.id]; });
-    if (!c.length) return;
+    if (!c.length) return readBoard(null).then(function(all){ var c2 = (all || []).filter(function(r){ return r.id && !mine[r.id]; }); if (c2.length) pickPack(c2); });
+    pickPack(c);
+  }).catch(function(){});
+  function pickPack(c){
     var r = c[Math.floor(Math.random() * Math.min(c.length, 10))];
     render({ kind: 'pack', id: r.id, title: 'Seen this too?', body: '&ldquo;' + esc(r.body || '📷') + '&rdquo; &mdash; ' + esc(r.pup) + (r.place ? ', ' + esc(r.place.split(',')[0]) : ''),
-      actions: '<button class="btn gold mbtn" data-df="same">🐾 Same here</button><a class="btn ghost mbtn" href="/pack">Browse</a>' });
-  }).catch(function(){});
+      actions: '<button class="btn gold mbtn" data-df="same">🐾 Same here</button><button class="btn ghost mbtn" data-df="next">Show another</button>' });
+  }
 }
 function toast(html, ms){
   var old = document.querySelector('.toast'); if (old) old.parentNode.removeChild(old);
@@ -1783,7 +1794,7 @@ function screenPack(mode, topic0){
   }).catch(function(e){ document.getElementById('board').textContent = 'The pack is napping: ' + e.message; });
 }
 
-var APP_VERSION = "20260930083654";
+var APP_VERSION = "20260930084204";
 (function(){
   try {
     fetch('/version.json?t=' + Date.now(), { cache: 'no-store' }).then(function(r){ return r.json(); }).then(function(j){
