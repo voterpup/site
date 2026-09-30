@@ -217,11 +217,19 @@
   .chip.spotlink{text-decoration:none; color:#3b6fb6}
   .chip.react{cursor:pointer} .chip.react.on{background:#faf3df; border-color:var(--gold); color:#7a5a0c; font-weight:700}
   .dreact{margin-top:6px} .dreact .chip{font-size:10.5px; padding:3px 7px}
-  .mapbtn{position:fixed; right:16px; bottom:84px; z-index:1001; display:flex; align-items:center; gap:6px; padding:10px 14px 10px 12px;
+  .mapbtn{position:fixed; right:16px; bottom:84px; z-index:8; display:flex; align-items:center; gap:6px; padding:10px 14px 10px 12px;
       border-radius:999px; background:#1f2733; color:#fff; text-decoration:none; font-size:18px; box-shadow:0 6px 18px rgba(0,0,0,.25)}
   .mapbtn span{font-size:12.5px; font-weight:800}
-  .packmap{height:calc(100vh - 300px); min-height:320px; border-radius:16px; overflow:hidden; border:1px solid var(--line); background:#e9edf1}
+  .packmap{position:relative; z-index:0; height:calc(100vh - 300px); min-height:320px; border-radius:16px; overflow:hidden; border:1px solid var(--line); background:#e9edf1}
   .leaflet-popup-content{margin:10px 12px; font:inherit; font-size:13px} .mpop .ts{font-size:11px; color:var(--sub)}
+  .packhero .slotmedia,.pupav{cursor:pointer}
+  .whysheet{text-align:left}
+  .whymedia{width:100%; height:150px; border-radius:14px; overflow:hidden; background:#e9edf1}
+  .whymedia img,.whymedia video{width:100%; height:100%; object-fit:cover; display:block}
+  .whylines{margin:14px 2px 16px}
+  .whyline{font-size:18px; line-height:1.35; margin:6px 0; opacity:0; animation:whyin .45s ease forwards}
+  .whyline b{color:#7a5a0c}
+  @keyframes whyin{from{opacity:0; transform:translateY(6px)} to{opacity:1; transform:none}}
   .plusbtn{flex:0 0 64px !important; position:relative}
   .plusbtn b{position:absolute; left:50%; top:-18px; transform:translateX(-50%); width:54px; height:54px; border-radius:50%;
       background:var(--gold); color:#2a2418; font-size:32px; font-weight:600; line-height:52px; text-align:center;
@@ -1697,6 +1705,37 @@ function loadLeaflet(){
   return _leaf;
 }
 function itemImgAny(r){ var u = null; (r.media || []).forEach(function(m){ if (!u && m.url && m.type && m.type.indexOf('image') === 0) u = m.url; }); return u; }
+// ---------- "why" sheets: tap the Pack picture or your pup's face ----------
+function whySheet(kind, name){
+  var nm = esc(name || 'Your pup');
+  var lines = kind === 'pack' ? [
+      'One voice is a complaint.', '<b>A pack is a demand.</b>',
+      'Every line here was said by a neighbour.', 'No names. No parties. No ads.',
+      'Seen it too? <b>🐾 Same here.</b>', 'Numbers move councils.'
+    ] : [
+      'You forget. <b>' + nm + ' doesn&rsquo;t.</b>',
+      'Give it what your city should fix.', 'Private, unless you say so.',
+      'The morning you vote, ' + nm + ' hands you your list.',
+      '<b>Make them earn it.</b>'
+    ];
+  var media = kind === 'pack' ? '<img src="/pup-watch.jpg" alt="">'
+    : '<video src="/pup-fetch.mp4" poster="/pup-face.jpg" muted autoplay playsinline></video>';
+  var ov = document.createElement('div'); ov.className = 'stkover'; document.body.appendChild(ov);
+  function close(){ if (ov.parentNode) ov.parentNode.removeChild(ov); }
+  ov.onclick = function(ev){ if (ev.target === ov) close(); };
+  ov.innerHTML = '<div class="stksheet whysheet"><div class="whymedia">' + media + '</div>' +
+    '<div class="whylines">' + lines.map(function(l, i){ return '<div class="whyline" style="animation-delay:' + (200 + i * 260) + 'ms">' + l + '</div>'; }).join('') + '</div>' +
+    '<button class="btn gold" id="whygo">' + (kind === 'pack' ? '＋ Add yours' : '＋ Tell ' + nm) + '</button>' +
+    '<a href="#" class="rpskip" id="whyx">Close</a></div>';
+  document.getElementById('whyx').onclick = function(ev){ ev.preventDefault(); close(); };
+  document.getElementById('whygo').onclick = function(){ close(); openAdd(); };
+}
+document.addEventListener('click', function(ev){
+  var t = ev.target && ev.target.closest ? ev.target.closest('.packhero .slotmedia, .pupav') : null;
+  if (!t) return; ev.preventDefault();
+  var s = loadLocal();
+  whySheet(t.classList.contains('pupav') ? 'pup' : 'pack', s && s.name);
+});
 function toast(html, ms){
   var old = document.querySelector('.toast'); if (old) old.parentNode.removeChild(old);
   var t = document.createElement('div'); t.className = 'toast'; t.innerHTML = html;
@@ -2009,7 +2048,7 @@ function screenPack(mode, topic0){
   }).catch(function(e){ document.getElementById('board').textContent = 'The pack is napping: ' + e.message; });
 }
 
-var APP_VERSION = "20260930181929";
+var APP_VERSION = "20260930185042";
 (function(){
   try {
     fetch('/version.json?t=' + Date.now(), { cache: 'no-store' }).then(function(r){ return r.json(); }).then(function(j){
