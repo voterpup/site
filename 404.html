@@ -236,6 +236,15 @@
   .manifesto{margin:4px 2px 14px}
   .manifesto b{display:block; font-size:22px; line-height:1.2; letter-spacing:-.2px}
   .manifesto span{display:block; font-size:14px; color:var(--sub); margin-top:8px; line-height:1.4}
+  .sh-h{font-size:18px; font-weight:800; line-height:1.25}
+  .sh-l{font-size:13.5px; color:var(--sub); margin-top:4px; line-height:1.4} .sh-l b{color:var(--ink)}
+  .sh-status{display:flex; gap:6px; align-items:center; justify-content:center; flex-wrap:wrap; margin:4px 0 10px}
+  .switchchip{cursor:pointer; display:inline-flex; align-items:center; gap:6px} .switchchip input{width:auto; margin:0}
+  .sh-links{display:flex; justify-content:center; gap:14px; margin-top:10px; font-size:12px; color:var(--sub)}
+  .sh-links a{color:var(--sub)}
+  .steps{margin:10px 0 14px} .steps>div{display:flex; align-items:center; gap:10px; padding:8px 0; border-bottom:1px solid var(--line); font-size:14px}
+  .steps i{font-style:normal; width:24px; height:24px; border-radius:50%; background:var(--gold); color:#2a2418; font-weight:800; font-size:12px; display:inline-flex; align-items:center; justify-content:center; flex:0 0 auto}
+  .steps span{color:var(--sub); font-size:12.5px}
   .plusbtn{flex:0 0 64px !important; position:relative}
   .plusbtn b{position:absolute; left:50%; top:-18px; transform:translateX(-50%); width:54px; height:54px; border-radius:50%;
       background:var(--gold); color:#2a2418; font-size:32px; font-weight:600; line-height:52px; text-align:center;
@@ -249,8 +258,10 @@
   .pupav{width:52px; height:52px; border-radius:50%; object-fit:cover; border:2px solid var(--gold)}
   .pupname{font-size:20px; font-weight:800} .pupsub{font-size:12.5px; color:var(--sub)}
   .addhead{font-size:17px; font-weight:800; margin-bottom:8px}
-  .addvid{height:84px; border-radius:12px; overflow:hidden; margin:0 0 10px; background:#e9edf1}
-  .addvid video{width:100%; height:100%; object-fit:cover; object-position:50% 60%; display:block}
+  .addtop{display:flex; align-items:center; gap:10px; margin-bottom:10px}
+  .addthumb{width:46px; height:46px; border-radius:12px; overflow:hidden; flex:0 0 auto; background:#e9edf1}
+  .addthumb video{width:100%; height:100%; object-fit:cover; object-position:50% 60%; display:block}
+  .addtag{font-size:12px; font-weight:900; letter-spacing:.6px; text-transform:uppercase; color:#b8860b; margin-top:2px}
   .stksheet .mp{font-size:12.5px; color:var(--sub); margin:0 0 8px; line-height:1.45}
   .addsheet textarea{width:100%; min-height:90px; border:1px solid var(--line); border-radius:12px; padding:10px; font:inherit; resize:vertical}
   .addfoot{display:flex; gap:8px; align-items:center; margin-top:10px}
@@ -685,13 +696,12 @@ function changePlaceSheet(){
   ov.onclick = function(ev){ if (ev.target === ov) close(); };
   var cur = getPlace();
   ov.innerHTML = '<div class="stksheet">' +
-    '<div class="q" style="font-size:17px; margin:0 0 4px">Where do you vote? 📍</div>' +
-    '<p class="hint" style="text-align:left; margin:0 0 8px">' + (cur ? 'Now: <b>' + esc(cur) + '</b>. ' : '') +
-      'Your elections and deadlines follow this place. Entries you already logged keep the place they were logged in.</p>' +
+    '<div class="sh-h">Where do you vote? 📍</div>' +
+    '<div class="sh-l">' + (cur ? 'Now <b>' + esc(cur.split(',')[0]) + '</b> · ' : '') + 'your votes and deadlines follow this.</div>' +
     '<div style="display:flex; gap:8px"><input id="plq" placeholder="Type a city, e.g. Burnaby" style="flex:1">' +
     '<button class="btn compact" id="plgo">Search</button></div>' +
     '<div id="plres"></div>' +
-    '<button class="btn ghost" id="plgps">📍 Use my current location</button>' +
+    '<button class="btn ghost" id="plgps">📍 Use my location</button>' +
     '<button class="btn ghost" id="plclose">Close</button>' +
     '<p class="hint" style="font-size:11px">Search by © OpenStreetMap contributors</p></div>';
   document.getElementById('plclose').onclick = close;
@@ -766,14 +776,13 @@ function renderVoteStrip(){
         if (getPlace() !== place || !document.getElementById('votestrip')) return;
         var st = s && s.status;
         if (st === 'checked') {
-          el.innerHTML = '<div class="votestrip">🗳️ No upcoming votes found on official sources for <b>' + city + '</b>' +
-            (s.last_checked ? ' (checked ' + new Date(s.last_checked).toLocaleDateString() + ')' : '') +
-            '. Our pup rechecks regularly.' + chg + '</div>';
+          el.innerHTML = '<div class="votestrip">🗳️ No votes on file for <b>' + city + '</b> yet' +
+            (s.last_checked ? ' · checked ' + new Date(s.last_checked).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) : '') + chg + '</div>';
           addOffices(el, place);
           return;
         }
-        el.innerHTML = '<div class="votestrip">🔎 First time we&rsquo;ve seen <b>' + city + '</b> — our pup is checking official sources now. ' +
-          (st === 'busy' ? 'It&rsquo;s a busy day, so this may take a few hours.' : 'Usually a few minutes; this updates by itself.') + chg + '</div>';
+        el.innerHTML = '<div class="votestrip">🔎 New place. Checking official sources for <b>' + city + '</b>' +
+          (st === 'busy' ? ' · busy today, a few hours' : ' · a few minutes, updates itself') + chg + '</div>';
         clearTimeout(_placePoll);
         var tries = 0;
         (function poll(){
@@ -1261,18 +1270,17 @@ function showSticker(canvas, name, url){
   var ov = document.createElement('div');
   ov.className = 'stkover';
   ov.innerHTML = '<div class="stksheet">' +
-    '<div class="q" style="font-size:17px; margin:0 0 10px">' + esc(name) + '’s sticker 🐾</div>' +
-    '<img src="' + dataURL + '" alt="sticker preview">' +
-    '<p class="hint">This QR is ' + esc(name) + '’s private key — anyone who scans it sees these entries.</p>' +
-    '<button class="btn gold" id="stksave">Save as image</button>' +
+    '<div class="sh-h">' + esc(name) + '&rsquo;s sticker 🐾</div>' +
+    '<div class="sh-l">The QR is the key. <b>Whoever scans it sees your issues.</b></div>' +
+    '<img src="' + dataURL + '" alt="sticker preview" style="margin-top:10px">' +
+    '<button class="btn gold" id="stksave">Save image</button>' +
     '<div class="btnrow"><button class="btn ghost" id="stkshare">Share / print</button>' +
     '<button class="btn ghost" id="stkcopy">Copy link</button></div>' +
-    '<button class="btn ghost" id="stkclose">Close</button>' +
-    '<p class="hint" style="font-size:11.5px">On iPhone: long-press the sticker → Save to Photos.</p></div>';
+    '<div class="sh-links"><a href="#" id="stkclose">Close</a><span>iPhone: long-press → Save to Photos</span></div></div>';
   document.body.appendChild(ov);
   function close(){ if (ov.parentNode) ov.parentNode.removeChild(ov); }
   ov.onclick = function(ev){ if (ev.target === ov) close(); };
-  document.getElementById('stkclose').onclick = close;
+  document.getElementById('stkclose').onclick = function(ev){ ev.preventDefault(); close(); };
   document.getElementById('stkcopy').onclick = function(){
     var b = this; navigator.clipboard.writeText(url).then(function(){ b.textContent = 'Copied ✓'; });
   };
@@ -1454,7 +1462,6 @@ function reminderSheet(tail, name, after){
   }
   var tv = ('0' + p.hour).slice(-2) + ':' + ('0' + p.minute).slice(-2);
   ov.innerHTML = '<div class="stksheet"><div class="addhead">🔔 When should ' + nm + ' ask?</div>' +
-    '<p class="mp">' + nm + ' asks if anything needs fixing. Your local time, this device.</p>' +
     '<div class="chips remchips">' + ['daily','2days','weekly','off'].map(function(f){
       var on = off ? f === 'off' : f === p.freq;
       return '<span class="chip ' + (on ? 'goldfill' : 'goldline') + '" data-f="' + f + '">' + (f === 'off' ? 'Off' : REM_WORD[f]) + '</span>'; }).join('') + '</div>' +
@@ -1503,8 +1510,9 @@ function installApp(){
   var ov = document.createElement('div'); ov.className = 'stkover'; document.body.appendChild(ov);
   ov.onclick = function(ev){ if (ev.target === ov || ev.target.id === 'instok') ov.parentNode.removeChild(ov); };
   ov.innerHTML = '<div class="stksheet"><div class="addhead">📲 Put VoterPup on your home screen</div>' +
-    (isIOS() ? '<p class="mp" style="font-size:14px">1. Tap <b>Share</b> (the square with an arrow) at the bottom of Safari.<br>2. Scroll and tap <b>Add to Home Screen</b>.<br>3. Tap <b>Add</b>. Open VoterPup from your home screen, then turn on reminders.</p>'
-             : '<p class="mp" style="font-size:14px">Open your browser menu <b>⋮</b> and tap <b>Install app</b> or <b>Add to Home screen</b>.</p>') +
+    (isIOS() ? '<div class="steps"><div><i>1</i><b>Share</b> <span>the ⎋ box at the bottom of Safari</span></div>' +
+                 '<div><i>2</i><b>Add to Home Screen</b></div><div><i>3</i><b>Add</b> <span>then open VoterPup from your home screen</span></div></div>'
+             : '<div class="steps"><div><i>1</i><b>⋮ menu</b></div><div><i>2</i><b>Install app</b> <span>or Add to Home screen</span></div></div>') +
     '<button class="btn gold" id="instok">Got it</button></div>';
 }
 // ---------- "Oreo reports back": the one screen that earns the install + notifications ----------
@@ -1765,8 +1773,9 @@ function openAdd(){
   var ov = document.createElement('div'); ov.className = 'stkover'; document.body.appendChild(ov);
   function close(){ if (ov.parentNode) ov.parentNode.removeChild(ov); pendingFiles = []; pendingSpot = null; }
   ov.onclick = function(ev){ if (ev.target === ov) close(); };
-  ov.innerHTML = '<div class="stksheet addsheet"><div class="addhead">🐾 Tell ' + nm + '</div>' +
-    '<div class="addvid"><video src="/pup-robo.mp4" poster="/pup-robo.jpg" muted autoplay loop playsinline></video></div>' +
+  ov.innerHTML = '<div class="stksheet addsheet"><div class="addtop">' +
+      '<div class="addthumb"><video src="/pup-robo.mp4" poster="/pup-robo.jpg" muted autoplay loop playsinline></video></div>' +
+      '<div><div class="addhead" style="margin:0">🐾 Tell ' + nm + '</div><div class="addtag">Break the Algo</div></div></div>' +
     '<textarea id="gripe" placeholder="What should they fix? Five words is plenty."></textarea>' +
     '<div id="thumbs" class="attach"></div>' + spotLineHTML() +
     '<div class="addfoot"><div class="iconbtn" id="addmedia">📷</div>' + spotButtonHTML() +
@@ -2064,7 +2073,7 @@ function screenPack(mode, topic0){
   }).catch(function(e){ document.getElementById('board').textContent = 'The pack is napping: ' + e.message; });
 }
 
-var APP_VERSION = "20260930193605";
+var APP_VERSION = "20260930194007";
 (function(){
   try {
     fetch('/version.json?t=' + Date.now(), { cache: 'no-store' }).then(function(r){ return r.json(); }).then(function(j){
@@ -2226,24 +2235,23 @@ function showCandidate(tail, name){
   function draw(info){
     var url = viewURL(info.token);
     ov.innerHTML = '<div class="stksheet">' +
-      '<div class="q" style="font-size:17px; margin:0 0 4px">Make them earn your vote 🗳️</div>' +
-      '<p class="hint" style="text-align:left; margin:0 0 8px">Candidates will knock and ask for your vote. Before you give it, make them look at what you actually need fixed. They scan — they read. Never your name or email.</p>' +
-      '<div class="qrwrap sharqr" style="margin:6px 0"><img src="' + qrDataURL(url, 7) + '" alt="read-only QR"></div>' +
-      '<p class="hint" style="text-align:left"><b>' + info.count + ' entr' + (info.count === 1 ? 'y' : 'ies') + '</b> will be visible — ' +
-        (info.view_all ? 'all of them, including private ones.' : 'only the ones you shared 🌱.') +
-        ' Anything you add later shows up too.</p>' +
-      '<label class="switchrow"><input type="checkbox" id="vall"' + (info.view_all ? ' checked' : '') + '> Include my private entries</label>' +
-      '<div class="btnrow"><button class="btn ghost" id="vprev">Preview</button><button class="btn ghost" id="vcopy">Copy link</button></div>' +
-      '<button class="btn ghost" id="vreset">Reset link (the old code stops working)</button>' +
-      '<button class="btn gold" id="vclose">Done</button></div>';
+      '<div class="sh-h">Make them earn your vote 🗳️</div>' +
+      '<div class="sh-l">They scan. They see your issues. <b>Never your name.</b></div>' +
+      '<div class="qrwrap sharqr" style="margin:10px 0 6px"><img src="' + qrDataURL(url, 7) + '" alt="read-only QR"></div>' +
+      '<div class="sh-status"><span class="chip goldfill">' + (info.view_all ? '🔓 ' : '🌱 ') + info.count + ' issue' + (info.count === 1 ? '' : 's') + ' visible</span>' +
+        '<label class="chip switchchip"><input type="checkbox" id="vall"' + (info.view_all ? ' checked' : '') + '> include private</label></div>' +
+      '<div class="btnrow"><button class="btn ghost" id="vcopy">Copy link</button><button class="btn ghost" id="vprev">Preview</button></div>' +
+      '<button class="btn gold" id="vclose">Done</button>' +
+      '<div class="sh-links"><a href="#" id="vreset">Reset code</a></div></div>';
     document.getElementById('vclose').onclick = close;
     document.getElementById('vprev').onclick = function(){ window.open(url, '_blank', 'noopener'); };
     document.getElementById('vcopy').onclick = function(){ navigator.clipboard.writeText(url); this.textContent = 'Copied ✓'; };
     document.getElementById('vall').onchange = function(){
       rpc('vp_set_view_all', { p_tail: tail, p_all: this.checked }).then(draw).catch(function(e){ alert(e.message); });
     };
-    document.getElementById('vreset').onclick = function(){
-      if (!confirm('Make a new code? Anyone holding the old one loses access.')) return;
+    document.getElementById('vreset').onclick = function(ev){
+      ev.preventDefault();
+      if (!confirm('New code? The old one stops working.')) return;
       rpc('vp_rotate_view_token', { p_tail: tail }).then(draw).catch(function(e){ alert(e.message); });
     };
   }
