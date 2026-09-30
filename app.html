@@ -855,6 +855,7 @@ function screenCapture(prefGripe, prefName){
     '<button class="btn gold" id="open" disabled>Open the box 🎁</button>' +
     (saved && !KIOSK ? '<button class="btn ghost" id="resume">Continue with ' + esc(saved.name) + ' →</button>' : '') +
     '<p class="privacy">🔒 Private by default. No account needed.</p>' +
+    (!saved && !KIOSK ? '<p class="privacy"><a href="/pack" style="color:#3b6fb6;font-weight:700">Just looking? Peek at The Pack →</a></p>' : '') +
     (GOOGLE_READY && !saved && !KIOSK ? '<p class="privacy"><a href="#" id="grestore" style="color:#3b6fb6;font-weight:700">Backed up a pup before? Find it →</a></p><div id="grslot"></div>' : '') +
     tabbar('pup');
   wireAttach(); wireTabs();
@@ -1587,7 +1588,7 @@ function screenPack(mode, topic0){
   }).catch(function(e){ document.getElementById('board').textContent = 'The pack is napping: ' + e.message; });
 }
 
-var APP_VERSION = "20260929235754";
+var APP_VERSION = "20260930000348";
 (function(){
   try {
     fetch('/version.json?t=' + Date.now(), { cache: 'no-store' }).then(function(r){ return r.json(); }).then(function(j){
@@ -1907,7 +1908,7 @@ function screenManage(){
   else if (m) screenLedger(decodeURIComponent(m[1]));
   else if (location.pathname === '/pack') screenPack(undefined, new URLSearchParams(location.search).get('t') || null);
   else if (location.pathname === '/manage') screenManage();
-  else if (qs.get('new') === '1' || KIOSK) screenCapture();
+  else if (qs.get('new') === '1' || KIOSK || !loadLocal()) screenCapture();   // first visit: make your pup
   else screenPack();
 })();
 </script>
