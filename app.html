@@ -174,6 +174,7 @@
   .dfetch .ft{flex:1; min-width:0} .dfetch .dfk{font-size:11px; font-weight:800; color:#8a6a14; text-transform:uppercase; letter-spacing:.4px; margin-bottom:3px}
   .dfetch .ft small{margin-top:4px} .dfetch .mact{margin-top:8px}
   .dfx{position:absolute; top:6px; right:10px; color:var(--sub); text-decoration:none; font-size:15px}
+  .rankchip{background:#fff3d6; border-color:var(--gold); color:#7a5a0c; font-weight:800}
   .fixedcard{opacity:.72} .fixedchip{background:#eef6f2; border-color:#cfe5da; color:#2f7d5f; font-weight:700}
   .report{padding:6px 2px 40px}
   .rphead{display:flex; align-items:center; gap:12px; margin:8px 0 16px}
@@ -1181,6 +1182,7 @@ function screenLedger(tail){
         (e.fixed_at ? '<span class="chip fixedchip" data-fix="' + e.id + '" data-on="1" title="tap if it broke again">✅ Fixed ' + new Date(e.fixed_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) + '</span>'
                     : '<span class="chip" data-fix="' + e.id + '" data-on="0" title="mark as fixed">✔</span>') + (e.shared
           ? '<span class="chip goldfill">🌿 Counted with the community</span>' + sameChip(e.id, e.backs || 0, true, true) +
+            (e.rank && e.rank <= 10 ? '<span class="chip rankchip">🏆 #' + e.rank + (e.city ? ' in ' + esc(e.city) : '') + ' this week</span>' : '') +
             '<span class="chip" data-a="unshare" data-id="'+e.id+'">↩ make private</span>'
           : '<span class="chip" style="cursor:default">🔒 Private</span>' +
             '<span class="chip goldline" data-a="share" data-id="'+e.id+'">🌱 Make it count</span>') +
@@ -1601,6 +1603,9 @@ function dailyFetch(L, tail){
   var today = new Date().toDateString(), K = 'vp.fetch.' + tail, KB = 'vp.backs.' + tail;
   var seen = {}; try { seen = JSON.parse(localStorage.getItem(KB) || '{}'); } catch (e) {}
   var snap = {}; L.entries.forEach(function(e){ snap[e.id] = e.backs || 0; });
+  var KR = 'vp.rank.' + tail, seenRank = {}; try { seenRank = JSON.parse(localStorage.getItem(KR) || '{}'); } catch (e) {}
+  var rsnap = {}; L.entries.forEach(function(e){ if (e.rank) rsnap[e.id] = e.rank; });
+  try { localStorage.setItem(KR, JSON.stringify(rsnap)); } catch (e) {}
   var gained = L.entries.filter(function(e){ return (e.backs || 0) > (seen[e.id] || 0) && (e.id in seen); });
   try { localStorage.setItem(KB, JSON.stringify(snap)); } catch (e) {}
   var already = false; try { already = localStorage.getItem(K) === today; } catch (e) {}
@@ -1611,6 +1616,11 @@ function dailyFetch(L, tail){
     pick = { kind: 'backs', title: (d === 1 ? 'Someone feels the same' : d + ' more people feel the same'),
       body: '&ldquo;' + esc(g.body || '📷 your photo') + '&rdquo; now has ' + g.backs + ' 🐾',
       actions: '<a class="btn gold mbtn" href="/pack' + (g.topic ? '?t=' + encodeURIComponent(g.topic) : '') + '">See the Pack</a>' };
+  } else if (L.entries.some(function(e){ return e.rank && e.rank <= 10 && e.rank < (seenRank[e.id] || 99); })) {
+    var rr = L.entries.filter(function(e){ return e.rank && e.rank <= 10 && e.rank < (seenRank[e.id] || 99); }).sort(function(a, b){ return a.rank - b.rank; })[0];
+    pick = { kind: 'rank', title: 'Your issue climbed to #' + rr.rank + (rr.city ? ' in ' + esc(rr.city) : ''),
+      body: '&ldquo;' + esc(rr.body || '📷 your photo') + '&rdquo; · ' + (rr.backs || 0) + ' 🐾 this week',
+      actions: '<a class="btn gold mbtn" href="/pack' + (rr.topic ? '?t=' + encodeURIComponent(rr.topic) : '') + '">See the Pack</a>' };
   } else if (L.entries.some(function(e){ return !e.fixed_at && (e.fixedv || 0) > 0 && !seenFixedAsk(e.id); })) {
     var fx = L.entries.filter(function(e){ return !e.fixed_at && (e.fixedv || 0) > 0 && !seenFixedAsk(e.id); })[0];
     markFixedAsk(fx.id);
@@ -2092,7 +2102,7 @@ function screenPack(mode, topic0){
   }).catch(function(e){ document.getElementById('board').textContent = 'The pack is napping: ' + e.message; });
 }
 
-var APP_VERSION = "20260930202930";
+var APP_VERSION = "20260930211246";
 (function(){
   try {
     fetch('/version.json?t=' + Date.now(), { cache: 'no-store' }).then(function(r){ return r.json(); }).then(function(j){

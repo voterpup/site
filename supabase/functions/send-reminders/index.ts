@@ -48,6 +48,8 @@ Deno.serve(async (req) => {
       if (!s.last_sent && f?.city && (st.issues_week ?? 0) >= 3)
         line = `${s.name}'s first report: ${st.issues_week} issues raised in ${f.city} this week` +
                (st.top_topic ? `, most on #${st.top_topic}` : "") + ". Anything to add?";
+      else if (f?.top?.rank && f.top.rank <= 5)
+        line = `\u201c${String(f.top.body || "your photo").slice(0, 40)}\u201d is #${f.top.rank}${f.top.city ? " in " + f.top.city : ""} this week. Anything new today?`;
       else if ((f?.backs ?? 0) > 0)
         line = `${f.backs} ${f.backs === 1 ? "person feels" : "people feel"} the same as you so far. Anything new today?`;
       else if ((f?.entries ?? 0) === 0)
