@@ -256,6 +256,7 @@
   .steps i{font-style:normal; width:24px; height:24px; border-radius:50%; background:var(--gold); color:#2a2418; font-weight:800; font-size:12px; display:inline-flex; align-items:center; justify-content:center; flex:0 0 auto}
   .steps span{color:var(--sub); font-size:12.5px}
   .tagrow{display:flex; flex-wrap:wrap; gap:6px; margin-top:8px} .tagrow .chip{cursor:pointer}
+  .chip.htag{background:#eef2ff; border-color:#c9d3ff; color:#3b4fb6; text-decoration:none}
   .tagrow small{font-weight:500; opacity:.75; margin-left:2px}
   .plusbtn{flex:0 0 64px !important; position:relative}
   .plusbtn b{position:absolute; left:50%; top:-18px; transform:translateX(-50%); width:54px; height:54px; border-radius:50%;
@@ -551,26 +552,51 @@ var TOPIC_RULES = [
 ];
 function guessTopic(t){ for (var i = 0; i < TOPIC_RULES.length; i++) if (TOPIC_RULES[i][0].test(t)) return TOPIC_RULES[i][1]; return 'other'; }
 function tagRowHTML(){ return '<div class="tagrow" id="tagrow" hidden></div>'; }
-// Suggest a tag once typing pauses; tap it to pick another. The chosen tag wins over the server's guess.
+var pendingTags = [];      // hashtags added from the suggestion (typed #tags are read from the text itself)
+function typedTags(text){ var out = []; (text.match(/#[A-Za-z0-9_]{2,24}/g) || []).forEach(function(t){ t = t.slice(1).toLowerCase(); if (out.indexOf(t) < 0) out.push(t); }); return out; }
+function allTags(text){ var out = typedTags(text); pendingTags.forEach(function(t){ if (out.indexOf(t) < 0) out.push(t); }); return out.slice(0, 5); }
+var _tagSvc = { text: '', res: null, calls: 0 };
+function askTagService(text, cb){
+  if (_tagSvc.text === text) { cb(_tagSvc.res); return; }
+  if (_tagSvc.calls >= 4) { cb(null); return; }
+  _tagSvc.calls++; _tagSvc.text = text;
+  fetch(SUPABASE_URL + '/functions/v1/suggest-tag', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ text: text }) })
+    .then(function(r){ return r.json(); }).then(function(r){ _tagSvc.res = r; cb(r); }).catch(function(){ cb(null); });
+}
+// Suggest a topic once typing pauses; tap it to pick another. Hashtags: type #anything, or accept the pup's proposal.
 function wireTags(ta){
   var row = document.getElementById('tagrow'); if (!row || !ta) return;
-  pendingTopic = null; var timer = null, open = false;
+  pendingTopic = null; pendingTags = []; _tagSvc = { text: '', res: null, calls: 0 }; var timer = null, open = false, svc = null;
   function draw(){
     var text = ta.value.trim();
     if (text.length < 3) { row.hidden = true; return; }
-    var sug = guessTopic(text), cur = pendingTopic || sug;
+    var sug = guessTopic(text);
+    if (sug === 'other' && svc && svc.topic && svc.topic !== 'other') sug = svc.topic;   // the service found a fit
+    var cur = pendingTopic || sug, tags = allTags(text);
     row.hidden = false;
+    var html = '';
     if (open) {
-      row.innerHTML = TOPIC_LIST.map(function(t){ return '<span class="chip ' + (t === cur ? 'goldfill' : 'goldline') + '" data-tag="' + esc(t) + '">#' + esc(t) + '</span>'; }).join('');
-      Array.prototype.forEach.call(row.querySelectorAll('[data-tag]'), function(c){ c.onclick = function(){ pendingTopic = c.getAttribute('data-tag'); open = false; draw(); }; });
+      html = TOPIC_LIST.map(function(t){ return '<span class="chip ' + (t === cur ? 'goldfill' : 'goldline') + '" data-tag="' + esc(t) + '">#' + esc(t) + '</span>'; }).join('');
     } else {
-      row.innerHTML = '<span class="chip goldfill" id="tagpick" title="tap to change">#' + esc(cur) + (pendingTopic ? '' : ' <small>suggested</small>') + ' ✎</span>';
-      document.getElementById('tagpick').onclick = function(){ open = true; draw(); };
+      html = '<span class="chip goldfill" id="tagpick" title="tap to change">#' + esc(cur) + (pendingTopic ? '' : ' <small>suggested</small>') + ' ✎</span>' +
+        tags.map(function(t){ return '<span class="chip htag" data-ht="' + esc(t) + '">#' + esc(t) + (pendingTags.indexOf(t) >= 0 ? ' ✕' : '') + '</span>'; }).join('') +
+        (svc && svc.hashtag && tags.indexOf(svc.hashtag) < 0 ? '<span class="chip goldline" id="tagadd">+ #' + esc(svc.hashtag) + '</span>' : '');
     }
+    row.innerHTML = html;
+    Array.prototype.forEach.call(row.querySelectorAll('[data-tag]'), function(c){ c.onclick = function(){ pendingTopic = c.getAttribute('data-tag'); open = false; draw(); }; });
+    var tp = document.getElementById('tagpick'); if (tp) tp.onclick = function(){ open = true; draw(); };
+    var ad = document.getElementById('tagadd'); if (ad) ad.onclick = function(){ pendingTags.push(svc.hashtag); draw(); };
+    Array.prototype.forEach.call(row.querySelectorAll('[data-ht]'), function(c){ c.onclick = function(){ var t = c.getAttribute('data-ht'); var k = pendingTags.indexOf(t); if (k >= 0) { pendingTags.splice(k, 1); draw(); } }; });
   }
-  ta.addEventListener('input', function(){ clearTimeout(timer); if (!pendingTopic) row.hidden = row.hidden && ta.value.trim().length < 3; timer = setTimeout(draw, 500); });
-  draw();
+  function settle(){
+    draw();
+    var text = ta.value.trim();
+    if (text.length >= 10 && guessTopic(text) === 'other' && !pendingTopic) askTagService(text, function(r){ svc = r; draw(); });
+  }
+  ta.addEventListener('input', function(){ clearTimeout(timer); timer = setTimeout(settle, 600); });
+  settle();
 }
+function tagArgs(ta){ var t = allTags(ta ? ta.value : ''); return t.length ? { p_tags: t } : {}; }
 function topicArgs(){ return pendingTopic ? { p_topic: pendingTopic } : {}; }
 function applyChosenTopic(tail, id, serverTopic){
   if (pendingTopic && id && pendingTopic !== serverTopic) return rpc('vp_set_topic', { p_tail: tail, p_id: id, p_topic: pendingTopic }).catch(function(){});
@@ -616,6 +642,7 @@ function wireSpot(){
   autoSpot();
 }
 function spotArgs(){ return pendingSpot ? { p_lat: pendingSpot.lat, p_lng: pendingSpot.lng, p_spot: pendingSpot.spot } : {}; }
+function hashChips(e){ return (e && e.tags && e.tags.length) ? e.tags.map(function(t){ return '<a class="chip htag" href="/pack?q=%23' + encodeURIComponent(t) + '">#' + esc(t) + '</a>'; }).join('') : ''; }
 function spotChip(e){
   if (!e || !e.spot) return '';
   var href = (e.lat != null && e.lng != null) ? 'https://www.openstreetmap.org/?mlat=' + e.lat + '&mlon=' + e.lng + '#map=18/' + e.lat + '/' + e.lng : null;
@@ -1087,8 +1114,9 @@ function screenUnbox(name, gripe){
     var p = v.play(); if (p && p.catch) p.catch(function(){ setTimeout(fin, 600); });
   });
   var mint = ensurePlace().then(function(){ return uploadPending(); }).then(function(media){
+    var firstTags = tagArgs({ value: gripe });
     return rpc('vp_create_ledger', { p_name: name }).then(function(l){
-      return rpc('vp_add_entry', Object.assign({ p_tail: l.tail, p_body: gripe, p_shared: false, p_media: media, p_place: getPlace() }, spotArgs()))
+      return rpc('vp_add_entry', Object.assign({ p_tail: l.tail, p_body: gripe, p_shared: false, p_media: media, p_place: getPlace() }, spotArgs(), firstTags))
              .then(function(r){ pendingFiles = []; pendingSpot = null; l.first = r && r.id; return applyChosenTopic(l.tail, r && r.id, r && r.topic).then(function(){ pendingTopic = null; return l; }); });
     });
   });
@@ -1224,7 +1252,7 @@ function screenLedger(tail){
       return '<div class="card' + (e.fixed_at ? ' fixedcard' : '') + '">' +
         (e.body ? '<div class="entry-body">' + esc(e.body) + '</div>' : '') + mediaHTML(e.media) +
         '<div class="ts">' + new Date(e.ts).toLocaleString() + '</div>' +
-        '<div class="chips">' + placeChip(e.place, e.topic) + spotChip(e) + (e.topic ? '<a class="topicchip" href="/pack?t=' + encodeURIComponent(e.topic) + '">#' + esc(e.topic) + '</a>' : '') + '<span class="chip" data-edit="' + e.id + '" title="change topic">\u270e</span>' + reactChips(e, null, true) +
+        '<div class="chips">' + placeChip(e.place, e.topic) + spotChip(e) + (e.topic ? '<a class="topicchip" href="/pack?t=' + encodeURIComponent(e.topic) + '">#' + esc(e.topic) + '</a>' : '') + hashChips(e) + '<span class="chip" data-edit="' + e.id + '" title="change topic">\u270e</span>' + reactChips(e, null, true) +
         (e.fixed_at ? '<span class="chip fixedchip" data-fix="' + e.id + '" data-on="1" title="tap if it broke again">✅ Fixed ' + new Date(e.fixed_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) + '</span>'
                     : '<span class="chip" data-fix="' + e.id + '" data-on="0" title="mark as fixed">✔</span>') + (e.shared
           ? '<span class="chip goldfill">🌿 Counted with the community</span>' + sameChip(e.id, e.backs || 0, true, true) +
@@ -1866,7 +1894,7 @@ function openAdd(){
   function submit(shared){
     document.getElementById('priv').disabled = true; document.getElementById('share').disabled = true;
     ensurePlace().then(function(){ return uploadPending(); }).then(function(media){
-      return rpc('vp_add_entry', Object.assign({ p_tail: s.tail, p_body: ta.value.trim(), p_shared: shared, p_media: media, p_place: getPlace() }, spotArgs()));
+      return rpc('vp_add_entry', Object.assign({ p_tail: s.tail, p_body: ta.value.trim(), p_shared: shared, p_media: media, p_place: getPlace() }, spotArgs(), tagArgs(ta)));
     }).then(function(r){ return applyChosenTopic(s.tail, r && r.id, r && r.topic).then(function(){ return r; }); }).then(function(r){
       var tag = pendingTopic || (r && r.topic); pendingTopic = null;
       close();
@@ -1945,7 +1973,7 @@ function screenPack(mode, topic0){
           (r.place ? '<span class="chip" style="cursor:default">\ud83d\udccd ' + esc(r.place.split(',')[0]) + '</span>' : '') + '</div>' : '') +
         (r.body ? '<div class="entry-body">' + esc(r.body) + '</div>' : '') + mediaHTML(r.media) +
         '<div class="ts">\u2014 ' + esc(r.pup) + ' \u00b7 ' + new Date(r.ts).toLocaleDateString() + '</div>' +
-        (r.id ? '<div class="chips" style="margin-top:6px">' + spotChip(r) + sameChip(r.id, r.backs || 0, !!backed[r.id], !!myIds[r.id]) +
+        (r.id ? '<div class="chips" style="margin-top:6px">' + spotChip(r) + hashChips(r) + sameChip(r.id, r.backs || 0, !!backed[r.id], !!myIds[r.id]) +
           (myIds[r.id] ? reactChips(r, null, true) : reactChips(r, myReacts[r.id], false)) + '</div>' : '') +
         '</div>';
     }
@@ -2135,7 +2163,7 @@ function screenPack(mode, topic0){
       if (!q) { tilesView(); return; }
       clearInterval(window._packT);
       var hit = all.filter(function(r){
-        return (r.body || '').toLowerCase().indexOf(q) >= 0 ||
+        return (r.body || '').toLowerCase().indexOf(q) >= 0 || (r.tags || []).some(function(t){ return ('#' + t).indexOf(q) >= 0; }) ||
                (r.topic || '').toLowerCase().indexOf(q) >= 0 ||
                (r.pup || '').toLowerCase().indexOf(q) >= 0 ||
                (r.place || '').toLowerCase().indexOf(q) >= 0;
@@ -2147,7 +2175,7 @@ function screenPack(mode, topic0){
   }).catch(function(e){ document.getElementById('board').textContent = 'The pack is napping: ' + e.message; });
 }
 
-var APP_VERSION = "20260930212734";
+var APP_VERSION = "20260930213504";
 (function(){
   try {
     fetch('/version.json?t=' + Date.now(), { cache: 'no-store' }).then(function(r){ return r.json(); }).then(function(j){
@@ -2469,7 +2497,8 @@ function screenManage(){
   if (vm) screenView(vm[1]);
   else if (m && qs.get('report') === '1') screenReport(decodeURIComponent(m[1]));
   else if (m) screenLedger(decodeURIComponent(m[1]));
-  else if (location.pathname === '/pack') screenPack(undefined, new URLSearchParams(location.search).get('t') || null);
+  else if (location.pathname === '/pack') { screenPack(undefined, qs.get('t') || null);
+    var q0 = qs.get('q'); if (q0) setTimeout(function(){ var sb0 = document.getElementById('packsearch'); if (sb0) { sb0.value = q0; sb0.dispatchEvent(new Event('input')); } }, 1500); }
   else if (location.pathname === '/manage') screenManage();
   else if (qs.get('new') === '1' || KIOSK || !loadLocal()) screenCapture();   // first visit: make your pup
   else screenPack();
