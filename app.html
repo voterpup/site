@@ -451,7 +451,12 @@
   .attach img,.attach video{width:64px; height:64px; object-fit:cover; border-radius:10px; border:1px solid var(--line)}
   .attach .rm{position:absolute; top:-6px; right:-6px; background:var(--ink); color:var(--card);
           border-radius:50%; width:20px; height:20px; font-size:12px; line-height:20px; text-align:center; cursor:pointer}
-  .media img,.media video{width:100%; border-radius:10px; margin-top:8px; max-height:340px; object-fit:cover; background:#000}
+  .media img,.media video{width:100%; border-radius:10px; margin-top:8px; max-height:340px; object-fit:cover; background:#000; cursor:zoom-in}
+  .vwrap{position:relative; display:block} .vwrap i{position:absolute; left:50%; top:50%; transform:translate(-50%,-50%); width:44px; height:44px; border-radius:50%;
+      background:rgba(0,0,0,.55); color:#fff; font-style:normal; font-size:18px; display:flex; align-items:center; justify-content:center; pointer-events:none}
+  .lb{position:fixed; inset:0; z-index:200; background:rgba(8,10,14,.94); display:flex; align-items:center; justify-content:center; touch-action:none}
+  .lb img,.lb video{max-width:100vw; max-height:100vh; object-fit:contain; touch-action:none; user-select:none; -webkit-user-select:none; transform-origin:center; will-change:transform}
+  .fcard img,.slotimg,.mpop img{cursor:zoom-in}
   .appstrip{background:#faf3df; border:1px solid var(--gold); color:#8a6a14; border-radius:10px;
       font-size:11.5px; font-weight:700; padding:5px 10px; text-align:center; margin-bottom:10px}
   .votestrip{background:var(--card); border:1px solid var(--line); border-radius:12px; padding:8px 12px;
@@ -735,10 +740,40 @@ function mediaHTML(m){
   return '<div class="media">' + m.map(function(x){
     if (!x.url) return mediaHold(x);
     return x.type && x.type.indexOf('video') === 0
-      ? '<video src="' + esc(x.url) + '" controls playsinline preload="metadata"></video>'
-      : '<img src="' + esc(x.url) + '" loading="lazy">';
+      ? '<span class="vwrap"><video src="' + esc(x.url) + '" playsinline muted preload="metadata" data-full="' + esc(x.url) + '"></video><i>▶</i></span>'
+      : '<img src="' + esc(x.url) + '" loading="lazy" data-full="' + esc(x.url) + '">';
   }).join('') + '</div>';
 }
+// ---------- lightbox: tap any photo or video to view it big; pinch or double-tap to zoom; tap outside to close ----------
+function openLightbox(url, isVideo){
+  var ov = document.createElement('div'); ov.className = 'lb';
+  ov.innerHTML = isVideo ? '<video src="' + esc(url) + '" controls autoplay playsinline></video>' : '<img src="' + esc(url) + '" alt="">';
+  document.body.appendChild(ov); document.body.style.overflow = 'hidden';
+  var el = ov.firstChild, scale = 1, tx = 0, ty = 0, pts = {}, d0 = 0, s0 = 1, lastTap = 0, drag = null;
+  function apply(){ el.style.transform = 'translate(' + tx + 'px,' + ty + 'px) scale(' + scale + ')'; }
+  function close(){ document.body.style.overflow = ''; if (ov.parentNode) ov.parentNode.removeChild(ov); }
+  ov.addEventListener('click', function(ev){ if (ev.target === ov) close(); });
+  if (isVideo) return;
+  el.addEventListener('pointerdown', function(e){ pts[e.pointerId] = e; el.setPointerCapture(e.pointerId);
+    var ids = Object.keys(pts);
+    if (ids.length === 2) { var a = pts[ids[0]], b = pts[ids[1]]; d0 = Math.hypot(a.clientX - b.clientX, a.clientY - b.clientY); s0 = scale; }
+    else if (ids.length === 1) { drag = { x: e.clientX - tx, y: e.clientY - ty }; var now = Date.now(); if (now - lastTap < 300) { scale = scale > 1 ? 1 : 2.5; if (scale === 1) { tx = ty = 0; } apply(); } lastTap = now; }
+  });
+  el.addEventListener('pointermove', function(e){ if (!pts[e.pointerId]) return; pts[e.pointerId] = e;
+    var ids = Object.keys(pts);
+    if (ids.length === 2) { var a = pts[ids[0]], b = pts[ids[1]]; scale = Math.min(6, Math.max(1, s0 * Math.hypot(a.clientX - b.clientX, a.clientY - b.clientY) / d0)); apply(); }
+    else if (drag && scale > 1) { tx = e.clientX - drag.x; ty = e.clientY - drag.y; apply(); }
+  });
+  var up = function(e){ delete pts[e.pointerId]; if (!Object.keys(pts).length) drag = null; if (scale === 1) { tx = ty = 0; apply(); } };
+  el.addEventListener('pointerup', up); el.addEventListener('pointercancel', up);
+}
+document.addEventListener('click', function(ev){
+  var t = ev.target;
+  if (!t || t.closest('.lb')) return;
+  var v = t.closest && t.closest('.vwrap'); if (v) { ev.preventDefault(); var vid = v.querySelector('video'); openLightbox(vid.getAttribute('data-full'), true); return; }
+  if (t.tagName === 'IMG' && t.getAttribute('data-full') && !t.closest('.dcard')) { ev.preventDefault(); openLightbox(t.getAttribute('data-full'), false); }
+  else if (t.tagName === 'IMG' && (t.closest('.fcard') || t.closest('.slotrow') || t.closest('.mpop')) && t.src) { ev.preventDefault(); openLightbox(t.src, false); }
+});
 var PLACE_TTL = 7*24*3600*1000;
 function getPlace(){ try{ return localStorage.getItem('vp.place'); }catch(e){ return null; } }
 function placeStale(){ try{ var t = +localStorage.getItem('vp.place_ts') || 0; return (Date.now() - t) > PLACE_TTL; }catch(e){ return false; } }
@@ -2175,7 +2210,7 @@ function screenPack(mode, topic0){
   }).catch(function(e){ document.getElementById('board').textContent = 'The pack is napping: ' + e.message; });
 }
 
-var APP_VERSION = "20260930213504";
+var APP_VERSION = "20260930221449";
 (function(){
   try {
     fetch('/version.json?t=' + Date.now(), { cache: 'no-store' }).then(function(r){ return r.json(); }).then(function(j){
