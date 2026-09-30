@@ -539,10 +539,10 @@ function renderSpot(){
 }
 function grabSpot(done, fail){
   if (!navigator.geolocation) { fail && fail('nogeo'); return; }
-  if (window._lastSpot && Date.now() - window._lastSpot.ts < 120000) { done(window._lastSpot.spot); return; }
+  if (window._lastSpot && Date.now() - window._lastSpot.ts < 600000) { done(window._lastSpot.spot); return; }
   navigator.geolocation.getCurrentPosition(function(pos){
     var la = Math.round(pos.coords.latitude * 1e4) / 1e4, lo = Math.round(pos.coords.longitude * 1e4) / 1e4;
-    fetch('https://nominatim.openstreetmap.org/reverse?format=jsonv2&zoom=18&addressdetails=1&accept-language=en&lat=' + la + '&lon=' + lo)
+    fetch('https://nominatim.openstreetmap.org/reverse?format=jsonv2&zoom=18&addressdetails=1&accept-language=en&email=hi%40voterpup.com&lat=' + la + '&lon=' + lo)
       .then(function(r){ return r.json(); }).then(function(g){
         var a = g.address || {};
         var label = [a.road || a.pedestrian || a.footway || a.park || a.amenity || '', a.neighbourhood || a.suburb || a.quarter || '']
@@ -693,7 +693,7 @@ function placeIsManual(){ try { return localStorage.getItem('vp.place_manual') =
 function detectPlace(cb){
   if (!navigator.geolocation) { cb(null); return; }
   navigator.geolocation.getCurrentPosition(function(pos){
-    fetch('https://nominatim.openstreetmap.org/reverse?format=jsonv2&zoom=10&addressdetails=1&accept-language=en&lat=' +
+    fetch('https://nominatim.openstreetmap.org/reverse?format=jsonv2&zoom=10&addressdetails=1&accept-language=en&email=hi%40voterpup.com&lat=' +
           pos.coords.latitude + '&lon=' + pos.coords.longitude)
       .then(function(r){ return r.json(); })
       .then(function(g){
@@ -729,7 +729,7 @@ function changePlaceSheet(){
   function search(){
     var q = document.getElementById('plq').value.trim(); if (!q || busy) return;
     busy = true; document.getElementById('plres').innerHTML = '<p class="hint">Searching…</p>';
-    fetch('https://nominatim.openstreetmap.org/search?format=jsonv2&addressdetails=1&limit=6&accept-language=en&q=' + encodeURIComponent(q))
+    fetch('https://nominatim.openstreetmap.org/search?format=jsonv2&addressdetails=1&limit=6&accept-language=en&email=hi%40voterpup.com&q=' + encodeURIComponent(q))
       .then(function(r){ return r.json(); })
       .then(function(rows){
         var seen = {}, out = [];
@@ -2047,7 +2047,13 @@ function screenPack(mode, topic0){
         var el0 = document.getElementById('packmap'); if (!el0 || !mapOn) return; el0.innerHTML = '';
         var m = L.map(el0, { zoomControl: false, attributionControl: true });
         L.control.zoom({ position: 'topright' }).addTo(m);
-        L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19, attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>' }).addTo(m);
+        var ATTR = '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>';
+        var tl = L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', { maxZoom: 19, subdomains: 'abcd', attribution: ATTR }).addTo(m);
+        var swapped = false;
+        tl.on('tileerror', function(){   // provider down or blocked: fall back to OpenStreetMap's own tiles once
+          if (swapped) return; swapped = true; m.removeLayer(tl);
+          L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19, attribution: ATTR }).addTo(m);
+        });
         var pts = [];
         pinned.forEach(function(r, i){
           var mk = L.circleMarker([r.lat, r.lng], { radius: 9, color: '#fff', weight: 2, fillColor: TILE_COLORS[(TOPIC_LIST.indexOf(r.topic) + 13) % TILE_COLORS.length], fillOpacity: .95 }).addTo(m);
@@ -2102,7 +2108,7 @@ function screenPack(mode, topic0){
   }).catch(function(e){ document.getElementById('board').textContent = 'The pack is napping: ' + e.message; });
 }
 
-var APP_VERSION = "20260930211246";
+var APP_VERSION = "20260930211946";
 (function(){
   try {
     fetch('/version.json?t=' + Date.now(), { cache: 'no-store' }).then(function(r){ return r.json(); }).then(function(j){
