@@ -1446,7 +1446,7 @@ function screenReport(tail){
       var p0 = (sh && sh.checked && first) ? rpc('vp_set_shared', { p_tail: tail, p_id: first, p_shared: true }).catch(function(){}) : Promise.resolve();
       p0.then(function(){
         if (!pushOK()) {                                   // iPhone Safari: notifications need the home-screen app first
-          if (isIOS() && !isInstalled()) { installApp(); document.getElementById('rperr').innerHTML = 'After adding, open VoterPup from your home screen and turn on reminders in ⚙️.'; }
+          if (isIOS() && !isInstalled()) { installApp(); document.getElementById('rperr').innerHTML = 'iPhone needs one extra step (above). After adding, open VoterPup from your home screen and tap <b>Let ' + nm + ' report back</b> again.'; }
           b.disabled = false; b.textContent = 'Continue →'; b.onclick = go; return;
         }
         var slow = setTimeout(function(){
@@ -1456,7 +1456,6 @@ function screenReport(tail){
         return saveReminder(tail, Object.assign({}, REM_DEFAULT)).then(function(){
           clearTimeout(slow);
           toast('🔔 ' + nm + ' will report back tonight at 9');
-          if (_installEvt) { try { _installEvt.prompt(); return _installEvt.userChoice.then(function(){ _installEvt = null; }); } catch (e) { _installEvt = null; } }
         }).then(go).catch(function(e){
           clearTimeout(slow);
           document.getElementById('rperr').innerHTML = esc(e.message) + ' You can turn reminders on later in ⚙️.';
@@ -1794,7 +1793,7 @@ function screenPack(mode, topic0){
   }).catch(function(e){ document.getElementById('board').textContent = 'The pack is napping: ' + e.message; });
 }
 
-var APP_VERSION = "20260930084253";
+var APP_VERSION = "20260930084544";
 (function(){
   try {
     fetch('/version.json?t=' + Date.now(), { cache: 'no-store' }).then(function(r){ return r.json(); }).then(function(j){
