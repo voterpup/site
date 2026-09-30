@@ -523,7 +523,7 @@ try { sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY,
 var BASE = location.origin;
 var KIOSK = new URLSearchParams(location.search).get('kiosk') === '1';
 (function(){ var q = new URLSearchParams(location.search), s = q.get('src'), pl = q.get('place');
-  if (s) try { sessionStorage.setItem('vp.src', s.slice(0, 20)); } catch (e) {}
+  if (s) try { sessionStorage.setItem('vp.src', s.slice(0, 20)); if (!localStorage.getItem('vp.src0')) localStorage.setItem('vp.src0', s.slice(0, 20)); } catch (e) {}
   if (pl && /^[A-Za-z .'’()-]+(, [A-Za-z .'’()-]+){1,3}$/.test(pl.trim())) savePlace(pl.trim(), true); })();
 function fromBooth(){ try { return sessionStorage.getItem('vp.src') === 'booth'; } catch (e) { return false; } }
 var root = document.getElementById('root');
@@ -545,6 +545,20 @@ function rpc(fn, args) {
 function esc(s){ var d=document.createElement('div'); d.textContent=s; return d.innerHTML; }
 function qrDataURL(text, cell){ var q=qrcode(0,'M'); q.addData(text); q.make(); return q.createDataURL(cell||6, 2); }
 var pendingFiles = [];
+// ---------- measurement: anonymous counts (random device id, no names, no coordinates) ----------
+function devId(){ try { var d = localStorage.getItem('vp.dev'); if (!d) { d = Array.from(crypto.getRandomValues(new Uint8Array(8))).map(function(b){ return b.toString(16).padStart(2, '0'); }).join(''); localStorage.setItem('vp.dev', d); } return d; } catch (e) { return 'nostorage'; } }
+function srcTag(){ try { return localStorage.getItem('vp.src0') || sessionStorage.getItem('vp.src') || 'direct'; } catch (e) { return 'direct'; } }
+function track(ev, meta){
+  if (KIOSK) return;
+  var s = loadLocal();
+  try { rpc('vp_track', { p_dev: devId(), p_event: ev, p_tail: s ? s.tail : null, p_src: srcTag(), p_meta: meta || {} }).catch(function(){}); } catch (e) {}
+}
+function trackOpen(screen){
+  var day = new Date().toDateString(), k = 'vp.open_day';
+  try { if (localStorage.getItem(k) === day) return; localStorage.setItem(k, day); } catch (e) {}
+  track('open', { screen: screen, installed: isInstalled() });
+  if (isInstalled()) track('standalone_open', {});
+}
 var pendingSpot = null;
 var pendingTopic = null;   // tag the person chose while typing (null = accept the suggestion)
 var TOPIC_RULES = [
@@ -1157,6 +1171,7 @@ function screenUnbox(name, gripe){
   var mint = ensurePlace().then(function(){ return uploadPending(); }).then(function(media){
     var firstTags = tagArgs({ value: gripe });
     return rpc('vp_create_ledger', { p_name: name }).then(function(l){
+      saveLocal(l.tail, l.name); track('pup_created', {}); track('issue', { shared: false, first: true });
       return rpc('vp_add_entry', Object.assign({ p_tail: l.tail, p_body: gripe, p_shared: false, p_media: media, p_place: getPlace() }, spotArgs(), firstTags))
              .then(function(r){ pendingFiles = []; pendingSpot = null; l.first = r && r.id; return applyChosenTopic(l.tail, r && r.id, r && r.topic).then(function(){ pendingTopic = null; return l; }); });
     });
@@ -1277,8 +1292,8 @@ function screenLedger(tail){
     renderIsland(tail, L.name);
 
     var q0 = new URLSearchParams(location.search);
-    if (q0.get('add') === '1' && !KIOSK) { history.replaceState(null, '', location.pathname); setTimeout(openAdd, 250); }   // from a reminder
-    if (q0.get('flash') === '1') { history.replaceState(null, '', location.pathname); setTimeout(function(){ openFlashback(L); }, 400); }   // vote morning
+    if (q0.get('add') === '1' && !KIOSK) { history.replaceState(null, '', location.pathname); track('notif_open', { kind: 'reminder' }); setTimeout(openAdd, 250); }   // from a reminder
+    if (q0.get('flash') === '1') { history.replaceState(null, '', location.pathname); track('notif_open', { kind: 'vote' }); setTimeout(function(){ openFlashback(L); }, 400); }   // vote morning
     var wantTour = false; try { wantTour = sessionStorage.getItem('vp.tour') === '1'; sessionStorage.removeItem('vp.tour'); } catch (e) {}
     if (wantTour && !KIOSK) setTimeout(function(){ startTour(L.name); }, 700);
     if (!window._vpVisWired) { window._vpVisWired = true;
@@ -1469,6 +1484,7 @@ var FLASH_DEMO = [
   { body: 'Litter after every weekend market', topic: 'cleanliness', days: 3, mine: true }
 ];
 function openFlashback(L){
+  track('flashback', {});
   var items = [];
   (L.entries || []).forEach(function(e){ items.push({ body: e.body, topic: e.topic, ts: e.ts, media: e.media, shared: e.shared, mine: true }); });
   (L.backed || []).forEach(function(e){ items.push({ body: e.body, topic: e.topic, ts: e.ts, media: e.media, backed: true, pup: e.pup }); });
@@ -1571,7 +1587,7 @@ function b64u(s){ var p = '='.repeat((4 - s.length % 4) % 4), b = atob((s + p).r
 function saveReminder(tail, p){
   if (p.off) return navigator.serviceWorker.ready.then(function(reg){ return reg.pushManager.getSubscription(); }).then(function(sub){
       if (!sub) return; return rpc('vp_reminder_off', { p_endpoint: sub.endpoint }).catch(function(){}).then(function(){ return sub.unsubscribe(); });
-    }).then(function(){ localStorage.setItem('vp.rem', JSON.stringify({ off: true })); });
+    }).then(function(){ localStorage.setItem('vp.rem', JSON.stringify({ off: true })); track('reminder_off', {}); });
   return Notification.requestPermission().then(function(perm){
     if (perm !== 'granted') throw new Error('Notifications are blocked for VoterPup. Allow them in your browser or phone settings, then try again.');
     return navigator.serviceWorker.register('/sw.js').then(function(reg){
@@ -1583,7 +1599,7 @@ function saveReminder(tail, p){
     var j = sub.toJSON();
     return rpc('vp_set_reminder', { p_tail: tail, p_endpoint: j.endpoint, p_p256dh: j.keys.p256dh, p_auth: j.keys.auth,
       p_tz: Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC', p_freq: p.freq, p_hour: p.hour, p_minute: p.minute });
-  }).then(function(){ localStorage.setItem('vp.rem', JSON.stringify(p)); });
+  }).then(function(){ localStorage.setItem('vp.rem', JSON.stringify(p)); track('reminder_on', { freq: p.freq, hour: p.hour }); });
 }
 function reminderSheet(tail, name, after){
   var nm = esc(name), cur = remPref(), p = (cur && !cur.off) ? cur : Object.assign({}, REM_DEFAULT), off = !!(cur && cur.off);
@@ -1637,7 +1653,7 @@ if ('serviceWorker' in navigator && !KIOSK) navigator.serviceWorker.register('/s
 // ---------- install to home screen (the app, before the stores) ----------
 var _installEvt = null;
 window.addEventListener('beforeinstallprompt', function(e){ e.preventDefault(); _installEvt = e; });
-window.addEventListener('appinstalled', function(){ _installEvt = null; toast('🐾 VoterPup is on your home screen'); });
+window.addEventListener('appinstalled', function(){ _installEvt = null; toast('🐾 VoterPup is on your home screen'); track('install', {}); });
 document.addEventListener('click', function(ev){
   var c = ev.target && ev.target.closest ? ev.target.closest('.installchip') : null;
   if (c) { ev.preventDefault(); installApp(); }
@@ -1683,7 +1699,8 @@ function screenReport(tail){
       '<button class="btn gold" id="rpgo">Let ' + nm + ' report back 🔔</button>' +
       '<a href="#" class="rpskip" id="rpskip">Not now</a>' +
       '<p class="privacy" id="rperr"></p></div>';
-    document.getElementById('rpskip').onclick = function(ev){ ev.preventDefault(); try { localStorage.setItem('vp.remasked', '1'); } catch (e) {} go(); };
+    track('report_seen', {});
+    document.getElementById('rpskip').onclick = function(ev){ ev.preventDefault(); track('report_skip', {}); try { localStorage.setItem('vp.remasked', '1'); } catch (e) {} go(); };
     document.getElementById('rpgo').onclick = function(){
       var b = this; b.disabled = true; b.textContent = 'One sec…';
       var sh = document.getElementById('rpshare');
@@ -1784,6 +1801,7 @@ function dailyFetch(L, tail){
   }
   function render(p){
     if (!p) return;
+    track('fetch', { kind: p.kind });
     if (p.kind !== 'pack') try { localStorage.setItem(K, today); } catch (e) {}
     host.innerHTML = '<div class="fetchcard dfetch"><div class="fetchvid">' +
       '<img class="vsit" src="/pup-sit.webp" alt=""><video class="vtop" id="dfvid" src="/pup-fetch.mp4" muted autoplay playsinline preload="auto"></video></div>' +
@@ -1831,7 +1849,7 @@ function dailyFetch(L, tail){
     }
     // dir: 'yes' (→ same here), 'no' (← skip), 'up' (↑ fixed now)
     function decide(card, dir){
-      var r = deck[idx]; idx++;
+      var r = deck[idx]; idx++; track('swipe', { dir: dir });
       card.style.transition = 'transform .35s ease, opacity .35s ease';
       card.style.transform = dir === 'up' ? 'translateY(-420px) scale(.9)' : 'translateX(' + (dir === 'yes' ? 1 : -1) * 420 + 'px) rotate(' + (dir === 'yes' ? 18 : -18) + 'deg)';
       card.style.opacity = 0;
@@ -1969,6 +1987,7 @@ function openAdd(){
       return rpc('vp_add_entry', Object.assign({ p_tail: s.tail, p_body: ta.value.trim(), p_shared: shared, p_media: media, p_place: getPlace() }, spotArgs(), tagArgs(ta)));
     }).then(function(r){ return applyChosenTopic(s.tail, r && r.id, r && r.topic).then(function(){ return r; }); }).then(function(r){
       var tag = pendingTopic || (r && r.topic); pendingTopic = null;
+      track('issue', { shared: !!shared, first: false, spot: !!pendingSpot });
       close();
       var c = 0; try { c = +(localStorage.getItem('vp.adds') || 0) + 1; localStorage.setItem('vp.adds', String(c)); } catch (e) {}
       if (c === 3 && GOOGLE_READY && !isBackedUp(s.tail))
@@ -2186,7 +2205,7 @@ function screenPack(mode, topic0){
     var pinned = rows.filter(function(r){ return r.lat != null && r.lng != null; });
     var mb = document.getElementById('mapbtn'), mapOn = false;
     function mapView(){
-      clearInterval(window._packT); mapOn = true; mb.innerHTML = '▦<span>Tiles</span>';
+      clearInterval(window._packT); mapOn = true; track('map', {}); mb.innerHTML = '▦<span>Tiles</span>';
       try { sessionStorage.setItem('vp.packmap', '1'); } catch (e) {}
       b.className = ''; b.innerHTML = '<div id="packmap" class="packmap"><div class="hint" style="padding:40px 12px">Loading map…</div></div>' +
         (pinned.length ? '' : '<div class="hint" style="text-align:center">No pinned issues here yet. Tap 📍 when you write one and it lands on the map.</div>');
@@ -2247,7 +2266,7 @@ function screenPack(mode, topic0){
   }).catch(function(e){ document.getElementById('board').textContent = 'The pack is napping: ' + e.message; });
 }
 
-var APP_VERSION = "20260930222511";
+var APP_VERSION = "20260930223707";
 (function(){
   try {
     fetch('/version.json?t=' + Date.now(), { cache: 'no-store' }).then(function(r){ return r.json(); }).then(function(j){
@@ -2430,6 +2449,7 @@ function showCandidate(tail, name){
     };
   }
   ov.innerHTML = '<div class="stksheet"><p class="hint">Preparing your code…</p></div>';
+  track('share_code', {});
   rpc('vp_view_info', { p_tail: tail }).then(draw).catch(function(e){
     ov.innerHTML = '<div class="stksheet"><p class="hint">Couldn’t make a code: ' + esc(e.message) + '</p><button class="btn" id="vclose2">Close</button></div>';
     document.getElementById('vclose2').onclick = close;
@@ -2571,6 +2591,7 @@ function screenManage(){
   var m = location.pathname.match(/^\/p\/(.+)$/);
   var qs = new URLSearchParams(location.search);
   var vm = location.pathname.match(/^\/v\/([0-9a-f]{20})$/);
+  trackOpen(vm ? 'view' : m ? 'pup' : location.pathname === '/pack' ? 'pack' : location.pathname === '/manage' ? 'manage' : 'start');
   if (vm) screenView(vm[1]);
   else if (m && qs.get('report') === '1') screenReport(decodeURIComponent(m[1]));
   else if (m) screenLedger(decodeURIComponent(m[1]));
