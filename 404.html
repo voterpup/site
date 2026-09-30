@@ -1569,10 +1569,14 @@ function screenPack(mode, topic0){
   var wall = new URLSearchParams(location.search).get('wall') === '1';
   document.body.classList.toggle('wall', wall);
   clearInterval(window._wallT);
+  if (wall && place) rpc('vp_place_stats', { p_place: place }).then(function(st){
+    var el = document.getElementById('wallstat');
+    if (el && st && st.issues_week) el.textContent = st.issues_week + ' issues from ' + st.pups_week + ' people this week · scan the sticker, name a pup, add yours';
+  }).catch(function(){});
   if (!mode) mode = (wall && place) ? 'local' : 'all';
   var city = place ? place.split(',')[0] : null;
   root.innerHTML = nav() +
-    (wall ? '<div class="wallhead">🐾 What ' + esc(city || 'the Pack') + ' wants fixed<small>voterpup.com · scan the sticker, name a pup, add yours</small></div>' : '') +
+    (wall ? '<div class="wallhead">🐾 What ' + esc(city || 'the Pack') + ' wants fixed<small id="wallstat">voterpup.com · scan the sticker, name a pup, add yours</small></div>' : '') +
     '<div class="packhero">' + slotMedia('pack') +
       '<div class="ft">The Pack \ud83d\udc3e<small>What everyone wants fixed.</small></div></div>' +
     (loadLocal() ? '' : '<div class="newbie">\ud83d\udc4b New here? Tap <b>+</b> to get your own pup.</div>') +
@@ -1779,7 +1783,7 @@ function screenPack(mode, topic0){
   }).catch(function(e){ document.getElementById('board').textContent = 'The pack is napping: ' + e.message; });
 }
 
-var APP_VERSION = "20260930083449";
+var APP_VERSION = "20260930083654";
 (function(){
   try {
     fetch('/version.json?t=' + Date.now(), { cache: 'no-store' }).then(function(r){ return r.json(); }).then(function(j){
