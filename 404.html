@@ -224,8 +224,8 @@
   .leaflet-popup-content{margin:10px 12px; font:inherit; font-size:13px} .mpop .ts{font-size:11px; color:var(--sub)}
   .packhero .slotmedia,.pupav{cursor:pointer}
   .whysheet{text-align:left}
-  .whymedia{width:100%; height:150px; border-radius:14px; overflow:hidden; background:#e9edf1}
-  .whymedia img,.whymedia video{width:100%; height:100%; object-fit:cover; display:block}
+  .whymedia{width:100%; height:210px; border-radius:14px; overflow:hidden; background:#e9edf1}
+  .whymedia img,.whymedia video{width:100%; height:100%; object-fit:cover; object-position:50% 20%; display:block}
   .whylines{margin:14px 2px 16px}
   .whyline{font-size:18px; line-height:1.35; margin:6px 0; opacity:0; animation:whyin .45s ease forwards}
   .whyline b{color:#7a5a0c}
@@ -1712,7 +1712,7 @@ function whySheet(kind, name){
       'One voice is a complaint.', '<b>A pack is a demand.</b>',
       'Every line here was said by a neighbour.', 'No names. No parties. No ads.',
       'Seen it too? <b>🐾 Same here.</b>',
-      'Numbers move councils.', 'Councils move provinces.', 'Provinces move countries.', '<b>Countries move the world.</b>'
+      'Numbers move councils.', 'Councils move states and provinces.', 'States and provinces move countries.', '<b>Countries move the world.</b>'
     ] : [
       'You forget. <b>' + nm + ' doesn&rsquo;t.</b>',
       'Give it what your city should fix.', 'Private, unless you say so.',
@@ -2049,7 +2049,7 @@ function screenPack(mode, topic0){
   }).catch(function(e){ document.getElementById('board').textContent = 'The pack is napping: ' + e.message; });
 }
 
-var APP_VERSION = "20260930185444";
+var APP_VERSION = "20260930185631";
 (function(){
   try {
     fetch('/version.json?t=' + Date.now(), { cache: 'no-store' }).then(function(r){ return r.json(); }).then(function(j){
