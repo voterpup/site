@@ -217,6 +217,11 @@
   .chip.spotlink{text-decoration:none; color:#3b6fb6}
   .chip.react{cursor:pointer} .chip.react.on{background:#faf3df; border-color:var(--gold); color:#7a5a0c; font-weight:700}
   .dreact{margin-top:6px} .dreact .chip{font-size:10.5px; padding:3px 7px}
+  .mapbtn{position:fixed; right:16px; bottom:84px; z-index:8; display:flex; align-items:center; gap:6px; padding:10px 14px 10px 12px;
+      border-radius:999px; background:#1f2733; color:#fff; text-decoration:none; font-size:18px; box-shadow:0 6px 18px rgba(0,0,0,.25)}
+  .mapbtn span{font-size:12.5px; font-weight:800}
+  .packmap{height:calc(100vh - 300px); min-height:320px; border-radius:16px; overflow:hidden; border:1px solid var(--line); background:#e9edf1}
+  .leaflet-popup-content{margin:10px 12px; font:inherit; font-size:13px} .mpop .ts{font-size:11px; color:var(--sub)}
   .plusbtn{flex:0 0 64px !important; position:relative}
   .plusbtn b{position:absolute; left:50%; top:-18px; transform:translateX(-50%); width:54px; height:54px; border-radius:50%;
       background:var(--gold); color:#2a2418; font-size:32px; font-weight:600; line-height:52px; text-align:center;
@@ -1680,6 +1685,17 @@ document.addEventListener('click', function(ev){
     });
   }).catch(function(e){ c.style.opacity = 1; toast(e.message); });
 });
+var CITY_CENTRES = { vancouver: [49.2827, -123.1207], burnaby: [49.2488, -122.9805], surrey: [49.1913, -122.849], richmond: [49.1666, -123.1336], toronto: [43.6532, -79.3832], ottawa: [45.4215, -75.6972], seattle: [47.6062, -122.3321], austin: [30.2672, -97.7431] };
+var _leaf = null;
+function loadLeaflet(){
+  if (window.L && window.L.map) return Promise.resolve();
+  if (_leaf) return _leaf;
+  _leaf = new Promise(function(res, rej){
+    var css = document.createElement('link'); css.rel = 'stylesheet'; css.href = 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css'; document.head.appendChild(css);
+    var s = document.createElement('script'); s.src = 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js'; s.onload = res; s.onerror = rej; document.head.appendChild(s);
+  });
+  return _leaf;
+}
 function itemImgAny(r){ var u = null; (r.media || []).forEach(function(m){ if (!u && m.url && m.type && m.type.indexOf('image') === 0) u = m.url; }); return u; }
 function toast(html, ms){
   var old = document.querySelector('.toast'); if (old) old.parentNode.removeChild(old);
@@ -1752,6 +1768,7 @@ function screenPack(mode, topic0){
     '</div>' +
     '<input class="searchbar" id="packsearch" placeholder="\ud83d\udd0d Search the pack...">' +
     '<div id="board" class="hint">fetching the pack...</div>' +
+    (wall ? '' : '<a href="#" class="mapbtn" id="mapbtn" hidden>🗺️<span>Map</span></a>') +
     '<footer>Only what people chose to share. \ud83c\udf31 \u00b7 <a href="mailto:hi@voterpup.com">hi@voterpup.com</a></footer>' +
     tabbar('pack');
   wireTabs();
@@ -1925,6 +1942,40 @@ function screenPack(mode, topic0){
       });
     }
 
+    // ---- map view: every shared issue that carries a 📍 spot ----
+    var pinned = rows.filter(function(r){ return r.lat != null && r.lng != null; });
+    var mb = document.getElementById('mapbtn'), mapOn = false;
+    function mapView(){
+      clearInterval(window._packT); mapOn = true; mb.innerHTML = '▦<span>Tiles</span>';
+      try { sessionStorage.setItem('vp.packmap', '1'); } catch (e) {}
+      b.className = ''; b.innerHTML = '<div id="packmap" class="packmap"><div class="hint" style="padding:40px 12px">Loading map…</div></div>' +
+        (pinned.length ? '' : '<div class="hint" style="text-align:center">No pinned issues here yet. Tap 📍 when you write one and it lands on the map.</div>');
+      loadLeaflet().then(function(){
+        var el0 = document.getElementById('packmap'); if (!el0 || !mapOn) return; el0.innerHTML = '';
+        var m = L.map(el0, { zoomControl: false, attributionControl: true });
+        L.control.zoom({ position: 'topright' }).addTo(m);
+        L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19, attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>' }).addTo(m);
+        var pts = [];
+        pinned.forEach(function(r, i){
+          var mk = L.circleMarker([r.lat, r.lng], { radius: 9, color: '#fff', weight: 2, fillColor: TILE_COLORS[(TOPIC_LIST.indexOf(r.topic) + 13) % TILE_COLORS.length], fillOpacity: .95 }).addTo(m);
+          mk.bindPopup('<div class="mpop">' + (r.topic ? '<span class="topicchip">#' + esc(r.topic) + '</span> ' : '') +
+            '<div class="entry-body" style="margin:6px 0">' + esc(r.body || '📷') + '</div>' +
+            '<div class="ts">— ' + esc(r.pup) + (r.spot ? ' · 📍 ' + esc(r.spot) : '') + '</div>' +
+            '<div class="chips" style="margin-top:6px">' + sameChip(r.id, r.backs || 0, !!backed[r.id], !!myIds[r.id]) +
+              (myIds[r.id] ? '' : reactChips(r, myReacts[r.id], false)) + '</div></div>', { maxWidth: 260 });
+          pts.push([r.lat, r.lng]);
+        });
+        if (pts.length) m.fitBounds(pts, { padding: [30, 30], maxZoom: 15 });
+        else if (place) { var c0 = CITY_CENTRES[place.split(',')[0].toLowerCase()]; m.setView(c0 || [49.2827, -123.1207], c0 ? 12 : 3); }
+        else m.setView([49.2827, -123.1207], 11);
+        setTimeout(function(){ m.invalidateSize(); }, 200);
+      });
+    }
+    function tilesOff(){ mapOn = false; mb.innerHTML = '🗺️<span>Map</span>'; try { sessionStorage.removeItem('vp.packmap'); } catch (e) {} tilesView(); }
+    if (mb) { mb.hidden = false; mb.onclick = function(ev){ ev.preventDefault(); if (mapOn) tilesOff(); else mapView(); }; }
+    var wantMap = false; try { wantMap = sessionStorage.getItem('vp.packmap') === '1'; } catch (e) {}
+    if (mb && wantMap && !topic0) { mapView(); return; }
+
     if (topic0) {
       var hit0 = null;
       tiles.forEach(function(t){ if (t.key === topic0) hit0 = t; });
@@ -1950,7 +2001,7 @@ function screenPack(mode, topic0){
   }).catch(function(e){ document.getElementById('board').textContent = 'The pack is napping: ' + e.message; });
 }
 
-var APP_VERSION = "20260930180654";
+var APP_VERSION = "20260930181612";
 (function(){
   try {
     fetch('/version.json?t=' + Date.now(), { cache: 'no-store' }).then(function(r){ return r.json(); }).then(function(j){
