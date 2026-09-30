@@ -258,10 +258,12 @@
   .tagrow{display:flex; flex-wrap:wrap; gap:6px; margin-top:8px} .tagrow .chip{cursor:pointer}
   .chip.htag{background:#eef2ff; border-color:#c9d3ff; color:#3b4fb6; text-decoration:none}
   .tagrow small{font-weight:500; opacity:.75; margin-left:2px}
-  .island{margin:0 -16px 10px} .isl{display:flex; gap:8px; overflow-x:auto; padding:2px 16px 6px; scrollbar-width:none; scroll-snap-type:x proximity}
-  .isl::-webkit-scrollbar{display:none}
-  .ischip{flex:0 0 auto; height:36px; display:inline-flex; align-items:center; padding:0 12px; border-radius:999px; background:var(--card); border:1px solid var(--line);
-      color:var(--ink); font-weight:700; font-size:12.5px; text-decoration:none; white-space:nowrap; scroll-snap-align:start; box-shadow:0 1px 2px rgba(16,24,40,.05)}
+  .island{display:flex; flex-direction:column; align-items:flex-end; margin:-4px 0 10px}
+  .ischip{height:36px; width:min(62vw, 250px); display:inline-flex; align-items:center; justify-content:center; padding:0 12px; border-radius:999px; overflow:hidden;
+      background:#faf3df; border:1px solid var(--gold); color:#7a5a0c; font-weight:800; font-size:12.5px; text-decoration:none; white-space:nowrap; box-shadow:0 1px 2px rgba(16,24,40,.05)}
+  .isin{display:inline-block; transition:transform .3s ease, opacity .3s ease} .isin.out{transform:translateY(-14px); opacity:0} .isin.in{animation:isin .3s ease}
+  @keyframes isin{from{transform:translateY(14px); opacity:0} to{transform:none; opacity:1}}
+  .isdots{display:flex; gap:4px; margin:4px 12px 0 0} .isdots i{width:5px; height:5px; border-radius:50%; background:#d9dde5} .isdots i.on{background:var(--gold)}
   .plusbtn{flex:0 0 64px !important; position:relative}
   .plusbtn b{position:absolute; left:50%; top:-18px; transform:translateX(-50%); width:54px; height:54px; border-radius:50%;
       background:var(--gold); color:#2a2418; font-size:32px; font-weight:600; line-height:52px; text-align:center;
@@ -458,8 +460,8 @@
   .media img,.media video{width:100%; border-radius:10px; margin-top:8px; max-height:340px; object-fit:cover; background:#000; cursor:zoom-in}
   .vwrap{position:relative; display:block} .vwrap i{position:absolute; left:50%; top:50%; transform:translate(-50%,-50%); width:44px; height:44px; border-radius:50%;
       background:rgba(0,0,0,.55); color:#fff; font-style:normal; font-size:18px; display:flex; align-items:center; justify-content:center; pointer-events:none}
-  .lb{position:fixed; inset:0; z-index:200; background:rgba(8,10,14,.94); display:flex; align-items:center; justify-content:center; touch-action:none}
-  .lb img,.lb video{max-width:100vw; max-height:100vh; object-fit:contain; touch-action:none; user-select:none; -webkit-user-select:none; transform-origin:center; will-change:transform}
+  .lb{position:fixed; inset:0; z-index:200; background:rgba(8,10,14,.55); display:flex; align-items:center; justify-content:center; touch-action:none}
+  .lb img,.lb video{max-width:75vw; max-height:75vh; border-radius:14px; box-shadow:0 14px 40px rgba(0,0,0,.45); object-fit:contain; touch-action:none; user-select:none; -webkit-user-select:none; transform-origin:center; will-change:transform}
   .fcard img,.slotimg,.mpop img{cursor:zoom-in}
   .appstrip{background:#faf3df; border:1px solid var(--gold); color:#8a6a14; border-radius:10px;
       font-size:11.5px; font-weight:700; padding:5px 10px; text-align:center; margin-bottom:10px}
@@ -1551,9 +1553,9 @@ function openFlashback(L){
   timers.push(setTimeout(function(){ cal.classList.add('landed'); }, 400 + (reel.length - 1) * STEP + ROLL));
   timers.push(setTimeout(finish, 400 + (reel.length - 1) * STEP + 1300));
 }
-// ---------- reminders (web push). Default: daily at 9 pm, the person's own local time ----------
+// ---------- reminders (web push). Default: daily at 7 pm, the person's own local time ----------
 var VAPID_PUBLIC = 'BM4T5OPo9hkRj22Ch9KUJPTMyHauGD5maNPSL8TzbR7Vu4gjTGLXAiHUq0MJznyG4YLMXswXgeQ-GSFnqWsZKh8';
-var REM_DEFAULT = { freq: 'daily', hour: 21, minute: 0 };
+var REM_DEFAULT = { freq: 'daily', hour: 19, minute: 0 };
 var REM_WORD = { daily: 'Daily', '2days': 'Every 2 days', weekly: 'Weekly' };
 function remPref(){ try { return JSON.parse(localStorage.getItem('vp.rem') || 'null'); } catch (e) { return null; } }
 function remLabel(p){
@@ -1673,7 +1675,7 @@ function screenReport(tail){
         (st.top_topic ? ' · most on <b>#' + esc(st.top_topic) + '</b>' : '') + '</div>' : '';
     root.innerHTML = '<div class="report">' +
       '<div class="rphead"><img src="/pup-face.jpg" alt=""><div><div class="rpk">From now on</div><div class="rpt">' + nm + ' reports back</div></div></div>' +
-      '<div class="rprow"><span>🔔</span><div><b>Tonight at 9</b><small>how many people feel the same as you</small></div></div>' +
+      '<div class="rprow"><span>🔔</span><div><b>Tonight at 7</b><small>how many people feel the same as you</small></div></div>' +
       '<div class="rprow"><span>🗳️</span><div><b>' + voteLine + '</b><small>your Flashback, and what&rsquo;s on your ballot</small></div></div>' +
       '<div class="rprow"><span>📋</span><div><b>After the vote</b><small>what they promised vs. what got fixed</small></div></div>' +
       proof +
@@ -1697,7 +1699,10 @@ function screenReport(tail){
         }, 12000);
         return saveReminder(tail, Object.assign({}, REM_DEFAULT)).then(function(){
           clearTimeout(slow);
-          toast('🔔 ' + nm + ' will report back tonight at 9');
+          toast('🔔 ' + nm + ' will report back tonight at 7');
+          // last step: the home-screen app (Android's own prompt; iPhone gets the steps). Never blocks.
+          if (_installEvt) { try { _installEvt.prompt(); return _installEvt.userChoice.then(function(){ _installEvt = null; }); } catch (e) { _installEvt = null; } }
+          else if (isIOS() && !isInstalled()) { installApp(); return new Promise(function(res){ var t = setInterval(function(){ if (!document.querySelector('.stkover')) { clearInterval(t); res(); } }, 300); }); }
         }).then(go).catch(function(e){
           clearTimeout(slow);
           document.getElementById('rperr').innerHTML = esc(e.message) + ' You can turn reminders on later in ⚙️.';
@@ -1720,8 +1725,19 @@ function renderIsland(tail, name){
   items.push({ k: 'inv', t: '🐾 Invite friends', f: function(){ location.href = '/manage?do=invite'; } });
   if (!items.length) { el.hidden = true; return; }
   el.hidden = false;
-  el.innerHTML = '<div class="isl">' + items.map(function(it, i){ return '<a href="#" class="ischip" data-i="' + i + '">' + it.t + '</a>'; }).join('') + '</div>';
-  Array.prototype.forEach.call(el.querySelectorAll('.ischip'), function(c){ c.onclick = function(ev){ ev.preventDefault(); items[+c.getAttribute('data-i')].f(); }; });
+  clearInterval(window._islT);
+  var k = 0;
+  el.innerHTML = '<a href="#" class="ischip" id="ischip"><span class="isin">' + items[0].t + '</span></a>' +
+    (items.length > 1 ? '<span class="isdots">' + items.map(function(_, i){ return '<i class="' + (i ? '' : 'on') + '"></i>'; }).join('') + '</span>' : '');
+  var chip = document.getElementById('ischip');
+  chip.onclick = function(ev){ ev.preventDefault(); items[k].f(); };
+  if (items.length > 1 && !reduceMotionPref()) window._islT = setInterval(function(){
+    var span = chip.querySelector('.isin'); if (!span || !document.body.contains(chip)) { clearInterval(window._islT); return; }
+    span.classList.add('out');
+    setTimeout(function(){ k = (k + 1) % items.length; span.textContent = items[k].t; span.classList.remove('out'); span.classList.add('in');
+      Array.prototype.forEach.call(el.querySelectorAll('.isdots i'), function(d, i){ d.className = i === k ? 'on' : ''; });
+      setTimeout(function(){ span.classList.remove('in'); }, 300); }, 300);
+  }, 3200);
 }
 
 // ---------- the daily fetch: once a day the pup brings ONE thing back ----------
@@ -2231,7 +2247,7 @@ function screenPack(mode, topic0){
   }).catch(function(e){ document.getElementById('board').textContent = 'The pack is napping: ' + e.message; });
 }
 
-var APP_VERSION = "20260930221751";
+var APP_VERSION = "20260930222511";
 (function(){
   try {
     fetch('/version.json?t=' + Date.now(), { cache: 'no-store' }).then(function(r){ return r.json(); }).then(function(j){
