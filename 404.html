@@ -158,6 +158,7 @@
   .slottext{font-size:16px; font-weight:800; line-height:1.3; display:-webkit-box; -webkit-line-clamp:3; -webkit-box-orient:vertical; overflow:hidden}
   .slotglare{position:absolute; left:10px; right:10px; top:10px; bottom:10px; border-radius:12px; pointer-events:none;
       background:linear-gradient(rgba(20,26,34,.35), rgba(20,26,34,0) 30%, rgba(20,26,34,0) 70%, rgba(20,26,34,.35))}
+  .slotimg{flex:0 0 72px; width:72px; height:72px; object-fit:cover; border-radius:10px; display:block}
   .slotcount{margin-top:12px; font-size:12px; font-weight:800; color:#e8b84b; letter-spacing:.5px; min-height:16px}
   .fcalwrap.landed .slotbox{animation:slotpop .35s ease}
   @keyframes slotpop{50%{transform:scale(1.04)}}
@@ -1244,9 +1245,11 @@ function openFlashback(L){
   var ROW = 96, STEP = 900, ROLL = 360;                     // each issue: 360 ms roll in, then held
   var cal = document.createElement('div'); cal.className = 'fcalwrap';
   cal.innerHTML = '<div class="slotbox"><div class="slotwin"><div class="slotstrip">' + reel.map(function(it){
-      var d = new Date(it.ts);
+      var d = new Date(it.ts), img = null;
+      (it.media || []).forEach(function(m){ if (!img && m.url && m.type && m.type.indexOf('image') === 0) img = m.url; });
       return '<div class="slotrow"><div class="slotdate"><b>' + d.getDate() + '</b><span>' + d.toLocaleDateString(undefined, { month: 'short' }) +
-        '</span></div><div class="slottext">' + esc(it.body || '📷 photo') + '</div></div>';
+        '</span></div>' + (img ? '<img class="slotimg" src="' + esc(img) + '" alt="">' : '') +
+        '<div class="slottext">' + esc(it.body || '📷 photo') + '</div></div>';
     }).join('') + '</div></div><div class="slotglare"></div></div><div class="slotcount" id="slotcount"></div><div class="fcalhint">tap to skip</div>';
   ov.appendChild(cal);
   var strip = cal.querySelector('.slotstrip'), cnt = cal.querySelector('#slotcount'), done = false, timers = [];
@@ -1614,7 +1617,7 @@ function screenPack(mode, topic0){
   }).catch(function(e){ document.getElementById('board').textContent = 'The pack is napping: ' + e.message; });
 }
 
-var APP_VERSION = "20260930073442";
+var APP_VERSION = "20260930074131";
 (function(){
   try {
     fetch('/version.json?t=' + Date.now(), { cache: 'no-store' }).then(function(r){ return r.json(); }).then(function(j){
