@@ -203,6 +203,10 @@
   .dstamp{position:absolute; top:12px; font-size:13px; font-weight:900; letter-spacing:1px; padding:3px 8px; border:3px solid; border-radius:8px; opacity:0; transform:rotate(-12deg)}
   .dstamp.yes{left:10px; color:#2f7d5f; border-color:#2f7d5f} .dstamp.no{right:10px; color:#a94b4b; border-color:#a94b4b; transform:rotate(12deg)}
   .dcard.lean-yes .dstamp.yes,.dcard.lean-no .dstamp.no{opacity:1}
+  .dcard.nudge{animation:nudge 1s ease-in-out 1}
+  .dcard.nudge .dstamp.yes{animation:stampyes 1s ease-in-out 1} .dcard.nudge .dstamp.no{animation:stampno 1s ease-in-out 1}
+  @keyframes nudge{0%{transform:none} 30%{transform:translateX(46px) rotate(4deg)} 50%{transform:none} 75%{transform:translateX(-34px) rotate(-3deg)} 100%{transform:none}}
+  @keyframes stampyes{0%,50%,100%{opacity:0} 30%{opacity:1}} @keyframes stampno{0%,55%,100%{opacity:0} 75%{opacity:1}}
   .dcard.done{align-items:center; justify-content:center; text-align:center; background:#fffdf5}
   .deckbtns{display:flex; gap:8px} .deckbtns .mbtn{flex:1; width:auto; margin:0}
   .deckhint{text-align:center; font-size:10.5px; color:var(--sub); margin-top:6px}
@@ -1575,7 +1579,7 @@ function dailyFetch(L, tail){
     }
     function wire(card){
       var x0 = null, dx = 0;
-      card.addEventListener('pointerdown', function(e){ x0 = e.clientX; dx = 0; card.setPointerCapture(e.pointerId); card.style.transition = 'none'; });
+      card.addEventListener('pointerdown', function(e){ x0 = e.clientX; dx = 0; card.setPointerCapture(e.pointerId); card.classList.remove('nudge'); card.style.transition = 'none'; });
       card.addEventListener('pointermove', function(e){
         if (x0 === null) return; dx = e.clientX - x0;
         card.style.transform = 'translateX(' + dx + 'px) rotate(' + dx / 14 + 'deg)';
@@ -1588,11 +1592,18 @@ function dailyFetch(L, tail){
       };
       card.addEventListener('pointerup', up); card.addEventListener('pointercancel', up);
     }
+    // a one-second nudge on first load: the top card peeks right, then left, so people know it swipes
+    var nudged = false; try { nudged = sessionStorage.getItem('vp.decknudge') === '1'; } catch (e) {}
+    if (!nudged && !reduceMotionPref()) {
+      try { sessionStorage.setItem('vp.decknudge', '1'); } catch (e) {}
+      setTimeout(function(){ var c = el.lastElementChild; if (c && !c.classList.contains('done')) c.classList.add('nudge'); }, 350);
+    }
     document.getElementById('dksame').onclick = function(){ var c = el.lastElementChild; if (c && !c.classList.contains('done')) decide(c, true); };
     document.getElementById('dkskip').onclick = function(){ var c = el.lastElementChild; if (c && !c.classList.contains('done')) decide(c, false); };
     draw();
   });
 }
+function reduceMotionPref(){ return window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches; }
 function itemImgAny(r){ var u = null; (r.media || []).forEach(function(m){ if (!u && m.url && m.type && m.type.indexOf('image') === 0) u = m.url; }); return u; }
 function toast(html, ms){
   var old = document.querySelector('.toast'); if (old) old.parentNode.removeChild(old);
@@ -1861,7 +1872,7 @@ function screenPack(mode, topic0){
   }).catch(function(e){ document.getElementById('board').textContent = 'The pack is napping: ' + e.message; });
 }
 
-var APP_VERSION = "20260930174424";
+var APP_VERSION = "20260930174748";
 (function(){
   try {
     fetch('/version.json?t=' + Date.now(), { cache: 'no-store' }).then(function(r){ return r.json(); }).then(function(j){
