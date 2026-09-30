@@ -255,6 +255,8 @@
   .steps{margin:10px 0 14px} .steps>div{display:flex; align-items:center; gap:10px; padding:8px 0; border-bottom:1px solid var(--line); font-size:14px}
   .steps i{font-style:normal; width:24px; height:24px; border-radius:50%; background:var(--gold); color:#2a2418; font-weight:800; font-size:12px; display:inline-flex; align-items:center; justify-content:center; flex:0 0 auto}
   .steps span{color:var(--sub); font-size:12.5px}
+  .tagrow{display:flex; flex-wrap:wrap; gap:6px; margin-top:8px} .tagrow .chip{cursor:pointer}
+  .tagrow small{font-weight:500; opacity:.75; margin-left:2px}
   .plusbtn{flex:0 0 64px !important; position:relative}
   .plusbtn b{position:absolute; left:50%; top:-18px; transform:translateX(-50%); width:54px; height:54px; border-radius:50%;
       background:var(--gold); color:#2a2418; font-size:32px; font-weight:600; line-height:52px; text-align:center;
@@ -531,7 +533,49 @@ function rpc(fn, args) {
 function esc(s){ var d=document.createElement('div'); d.textContent=s; return d.innerHTML; }
 function qrDataURL(text, cell){ var q=qrcode(0,'M'); q.addData(text); q.make(); return q.createDataURL(cell||6, 2); }
 var pendingFiles = [];
-var pendingSpot = null;   // {lat, lng, spot} attached to the issue being written
+var pendingSpot = null;
+var pendingTopic = null;   // tag the person chose while typing (null = accept the suggestion)
+var TOPIC_RULES = [
+  [/\b(tents?|encampments?|homeless(ness)?|unhoused|shelters?|sleeping rough)\b/i, 'homelessness'],
+  [/\b(hospitals?|doctors?|clinics?|health|hygiene|unhygienic|mental|overdoses?|nurses?|pharmac\w*|er wait)\b/i, 'health'],
+  [/\b(water|power|electricity|outages?|blackouts?|power cuts?|sewage|sewers?|drainage|internet|load.?shedding)\b/i, 'utilities'],
+  [/\b(sidewalks?|crosswalks?|potholes?|roads?|bridges?|railings?|streetlights?|street lights?|icy|ice|snow|construction|curbs?|pavements?|signage|traffic lights?)\b/i, 'infrastructure'],
+  [/\b(bus|buses|trains?|skytrain|transit|traffic|bikes?|cycling|cyclists?|parking|commute|pedestrians?|speeding|intersections?)\b/i, 'transit'],
+  [/\b(rent|rents|renters?|landlords?|housing|apartments?|condos?|evict\w*|mortgages?|rezoning|density|home prices?)\b/i, 'housing'],
+  [/\b(schools?|teachers?|classrooms?|universit(y|ies)|colleges?|tuition|daycare|childcare)\b/i, 'education'],
+  [/\b(crime|theft|stolen|break.?ins?|unsafe|police|assaults?|drugs?|needles?|violence|robber(y|ies))\b/i, 'safety'],
+  [/\b(garbage|trash|litter\w*|dirty|graffiti|smell\w*|poop|waste|recycling|filthy)\b/i, 'cleanliness'],
+  [/\b(parks?|playgrounds?|bench(es)?|trees?|beach(es)?|off.?leash|gardens?|pools?|community cent\w*|rinks?|librar(y|ies))\b/i, 'parks'],
+  [/\b(climate|pollution|emissions?|heat ?waves?|smoke|air quality|floods?|flooding|noise|noisy)\b/i, 'climate'],
+  [/\b(prices?|expensive|costs?|grocer\w*|tax|taxes|fees?|inflation|wages?|afford\w*)\b/i, 'cost of living']
+];
+function guessTopic(t){ for (var i = 0; i < TOPIC_RULES.length; i++) if (TOPIC_RULES[i][0].test(t)) return TOPIC_RULES[i][1]; return 'other'; }
+function tagRowHTML(){ return '<div class="tagrow" id="tagrow" hidden></div>'; }
+// Suggest a tag once typing pauses; tap it to pick another. The chosen tag wins over the server's guess.
+function wireTags(ta){
+  var row = document.getElementById('tagrow'); if (!row || !ta) return;
+  pendingTopic = null; var timer = null, open = false;
+  function draw(){
+    var text = ta.value.trim();
+    if (text.length < 3) { row.hidden = true; return; }
+    var sug = guessTopic(text), cur = pendingTopic || sug;
+    row.hidden = false;
+    if (open) {
+      row.innerHTML = TOPIC_LIST.map(function(t){ return '<span class="chip ' + (t === cur ? 'goldfill' : 'goldline') + '" data-tag="' + esc(t) + '">#' + esc(t) + '</span>'; }).join('');
+      Array.prototype.forEach.call(row.querySelectorAll('[data-tag]'), function(c){ c.onclick = function(){ pendingTopic = c.getAttribute('data-tag'); open = false; draw(); }; });
+    } else {
+      row.innerHTML = '<span class="chip goldfill" id="tagpick" title="tap to change">#' + esc(cur) + (pendingTopic ? '' : ' <small>suggested</small>') + ' ✎</span>';
+      document.getElementById('tagpick').onclick = function(){ open = true; draw(); };
+    }
+  }
+  ta.addEventListener('input', function(){ clearTimeout(timer); if (!pendingTopic) row.hidden = row.hidden && ta.value.trim().length < 3; timer = setTimeout(draw, 500); });
+  draw();
+}
+function topicArgs(){ return pendingTopic ? { p_topic: pendingTopic } : {}; }
+function applyChosenTopic(tail, id, serverTopic){
+  if (pendingTopic && id && pendingTopic !== serverTopic) return rpc('vp_set_topic', { p_tail: tail, p_id: id, p_topic: pendingTopic }).catch(function(){});
+  return Promise.resolve();
+}   // {lat, lng, spot} attached to the issue being written
 function spotButtonHTML(){ return '<div class="iconbtn" id="addspot" title="attach where this is">📍</div>'; }
 function spotLineHTML(){ return '<div class="spotchip" id="spotchip" hidden></div>'; }
 function renderSpot(){
@@ -990,7 +1034,7 @@ function screenCapture(prefGripe, prefName){
       '<span>Algorithms make you forget what mattered. Your pup fetches them back.</span></div>' +
     '<div class="composer">' +
       '<textarea id="gripe" placeholder="What should they fix? Five words is plenty."></textarea>' +
-      '<div id="thumbs" class="attach"></div>' + spotLineHTML() +
+      '<div id="thumbs" class="attach"></div>' + tagRowHTML() + spotLineHTML() +
       '<div class="cfoot">' +
         '<div class="iconbtn" id="addmedia">📷</div>' + spotButtonHTML() +
         '<input id="fpick" type="file" accept="image/*,video/*" multiple hidden>' +
@@ -1006,7 +1050,7 @@ function screenCapture(prefGripe, prefName){
     (!saved && !KIOSK ? '<p class="privacy"><a href="/pack" style="color:#3b6fb6;font-weight:700">Just looking? Peek at The Pack →</a></p>' : '') +
     (GOOGLE_READY && !saved && !KIOSK ? '<p class="privacy"><a href="#" id="grestore" style="color:#3b6fb6;font-weight:700">Backed up a pup before? Find it →</a></p><div id="grslot"></div>' : '') +
     tabbar('pup');
-  wireAttach(); wireTabs(); pendingSpot = null; wireSpot();
+  wireAttach(); wireTabs(); pendingSpot = null; wireSpot(); wireTags(document.getElementById('gripe'));
   var gr = document.getElementById('grestore'); if (gr) gr.onclick = function(ev){ ev.preventDefault(); gr.style.display = 'none'; startRestore(document.getElementById('grslot')); };
   var ta = document.getElementById('gripe'), inp = document.getElementById('pname');
   if (prefGripe) ta.value = prefGripe;
@@ -1045,7 +1089,7 @@ function screenUnbox(name, gripe){
   var mint = ensurePlace().then(function(){ return uploadPending(); }).then(function(media){
     return rpc('vp_create_ledger', { p_name: name }).then(function(l){
       return rpc('vp_add_entry', Object.assign({ p_tail: l.tail, p_body: gripe, p_shared: false, p_media: media, p_place: getPlace() }, spotArgs()))
-             .then(function(r){ pendingFiles = []; pendingSpot = null; l.first = r && r.id; return l; });
+             .then(function(r){ pendingFiles = []; pendingSpot = null; l.first = r && r.id; return applyChosenTopic(l.tail, r && r.id, r && r.topic).then(function(){ pendingTopic = null; return l; }); });
     });
   });
   Promise.all([mint, animDone]).then(function(vals){
@@ -1808,13 +1852,13 @@ function openAdd(){
       '<div class="addthumb"><video src="/pup-robo.mp4" poster="/pup-robo.jpg" muted autoplay loop playsinline></video></div>' +
       '<div><div class="addhead" style="margin:0">🐾 Tell ' + nm + '</div><div class="addtag">Break the Algo</div></div></div>' +
     '<textarea id="gripe" placeholder="What should they fix? Five words is plenty."></textarea>' +
-    '<div id="thumbs" class="attach"></div>' + spotLineHTML() +
+    '<div id="thumbs" class="attach"></div>' + tagRowHTML() + spotLineHTML() +
     '<div class="addfoot"><div class="iconbtn" id="addmedia">📷</div>' + spotButtonHTML() +
       '<input id="fpick" type="file" accept="image/*,video/*" multiple hidden>' +
       '<button class="btn compact" id="priv" disabled>🔒 Keep private</button>' +
       '<button class="btn gold compact" id="share" disabled>🌱 Be counted</button></div></div>';
   wireAttach(); pendingSpot = null; wireSpot();
-  var ta = document.getElementById('gripe'); ta.focus();
+  var ta = document.getElementById('gripe'); ta.focus(); wireTags(ta);
   function upd(){ var ok = !!(ta.value.trim() || pendingFiles.length);
     document.getElementById('priv').disabled = !ok; document.getElementById('share').disabled = !ok; }
   ta.oninput = upd;
@@ -1823,12 +1867,13 @@ function openAdd(){
     document.getElementById('priv').disabled = true; document.getElementById('share').disabled = true;
     ensurePlace().then(function(){ return uploadPending(); }).then(function(media){
       return rpc('vp_add_entry', Object.assign({ p_tail: s.tail, p_body: ta.value.trim(), p_shared: shared, p_media: media, p_place: getPlace() }, spotArgs()));
-    }).then(function(){
+    }).then(function(r){ return applyChosenTopic(s.tail, r && r.id, r && r.topic).then(function(){ return r; }); }).then(function(r){
+      var tag = pendingTopic || (r && r.topic); pendingTopic = null;
       close();
       var c = 0; try { c = +(localStorage.getItem('vp.adds') || 0) + 1; localStorage.setItem('vp.adds', String(c)); } catch (e) {}
       if (c === 3 && GOOGLE_READY && !isBackedUp(s.tail))
         toast(nm + ' remembers this 🐾<br><a href="/manage">Give ' + nm + ' a home so you never lose it →</a>', 6000);
-      else toast(nm + ' remembers this 🐾' + (shared ? ' · shared to the Pack 🌱' : ''));
+      else toast(nm + ' remembers this 🐾' + (tag && tag !== 'other' ? ' · #' + esc(tag) : '') + (shared ? ' · shared to the Pack 🌱' : ''));
       if (location.pathname === '/pack') screenPack();
       else if (location.pathname.indexOf('/p/') === 0) screenLedger(s.tail);
       else location.href = pupURL(s.tail);
@@ -2102,7 +2147,7 @@ function screenPack(mode, topic0){
   }).catch(function(e){ document.getElementById('board').textContent = 'The pack is napping: ' + e.message; });
 }
 
-var APP_VERSION = "20260930212240";
+var APP_VERSION = "20260930212734";
 (function(){
   try {
     fetch('/version.json?t=' + Date.now(), { cache: 'no-store' }).then(function(r){ return r.json(); }).then(function(j){
