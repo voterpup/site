@@ -1538,7 +1538,7 @@ function screenReport(tail){
     root.innerHTML = '<div class="report">' +
       '<div class="rphead"><img src="/pup-face.jpg" alt=""><div><div class="rpk">From now on</div><div class="rpt">' + nm + ' reports back</div></div></div>' +
       '<div class="rprow"><span>🔔</span><div><b>Tonight at 9</b><small>how many people feel the same as you</small></div></div>' +
-      '<div class="rprow"><span>🗳️</span><div><b>' + voteLine + '</b><small>your whole list, and what&rsquo;s on your ballot</small></div></div>' +
+      '<div class="rprow"><span>🗳️</span><div><b>' + voteLine + '</b><small>your Flashback, and what&rsquo;s on your ballot</small></div></div>' +
       '<div class="rprow"><span>📋</span><div><b>After the vote</b><small>what they promised vs. what got fixed</small></div></div>' +
       proof +
       (first ? '<label class="switchrow" style="margin:12px 2px"><input type="checkbox" id="rpshare"> Count my first issue on The Pack 🌱 <small style="color:var(--sub)">(public, no name)</small></label>' : '') +
@@ -1738,7 +1738,7 @@ function whySheet(kind, name){
     ] : [
       'Algorithms make you forget what mattered.', '<b>' + nm + ' fetches them back.</b>',
       'Give it what they should fix.', 'Private, unless you say so.',
-      'The morning you vote, ' + nm + ' hands you your list.',
+      'The morning you vote, ' + nm + ' hands you your Flashback.',
       '<b>Make them earn it.</b>'
     ];
   var media = kind === 'pack' ? '<img src="/pup-watch.jpg" alt="">'
@@ -2073,7 +2073,7 @@ function screenPack(mode, topic0){
   }).catch(function(e){ document.getElementById('board').textContent = 'The pack is napping: ' + e.message; });
 }
 
-var APP_VERSION = "20260930194007";
+var APP_VERSION = "20260930194231";
 (function(){
   try {
     fetch('/version.json?t=' + Date.now(), { cache: 'no-store' }).then(function(r){ return r.json(); }).then(function(j){
