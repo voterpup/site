@@ -1963,8 +1963,16 @@ function screenPack(mode, topic0){
             '<div class="ts">— ' + esc(r.pup) + (r.spot ? ' · 📍 ' + esc(r.spot) : '') + '</div>' +
             '<div class="chips" style="margin-top:6px">' + sameChip(r.id, r.backs || 0, !!backed[r.id], !!myIds[r.id]) +
               (myIds[r.id] ? '' : reactChips(r, myReacts[r.id], false)) + '</div></div>', { maxWidth: 260 });
+          // tap: glide down to street level on that pin, then open its card
+          mk.off('click');   // Leaflet's default opens the popup at once; we glide first
+          mk.on('click', function(){
+            var z = Math.max(m.getZoom(), 17);
+            m.once('moveend', function(){ mk.openPopup(); });
+            m.flyTo([r.lat, r.lng], z, { animate: true, duration: 1.1, easeLinearity: 0.25 });
+          });
           pts.push([r.lat, r.lng]);
         });
+
         if (pts.length) m.fitBounds(pts, { padding: [30, 30], maxZoom: 15 });
         else if (place) { var c0 = CITY_CENTRES[place.split(',')[0].toLowerCase()]; m.setView(c0 || [49.2827, -123.1207], c0 ? 12 : 3); }
         else m.setView([49.2827, -123.1207], 11);
@@ -2001,7 +2009,7 @@ function screenPack(mode, topic0){
   }).catch(function(e){ document.getElementById('board').textContent = 'The pack is napping: ' + e.message; });
 }
 
-var APP_VERSION = "20260930181834";
+var APP_VERSION = "20260930181929";
 (function(){
   try {
     fetch('/version.json?t=' + Date.now(), { cache: 'no-store' }).then(function(r){ return r.json(); }).then(function(j){
