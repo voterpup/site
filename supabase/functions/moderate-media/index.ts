@@ -5,7 +5,7 @@ import { createClient } from "npm:@supabase/supabase-js@2";
 
 const anthropic = new Anthropic({ apiKey: Deno.env.get("ANTHROPIC_API_KEY")! });
 const MAX_IMAGES_PER_RUN = 8;
-const DAILY_BUDGET_USD = 5;   // past it, photos simply stay "under review" until tomorrow
+const DAILY_BUDGET_USD = 2;   // past it, photos simply stay "under review" until tomorrow (Haiku: ~1,000 photos)
 // Haiku 4.5: $1 / $5 per million input / output tokens. A 768px image is ~800 tokens: ~0.1-0.2 cents per photo.
 const MODEL = "claude-haiku-4-5-20251001";
 const PRICE_IN = 1e-6, PRICE_OUT = 5e-6;
