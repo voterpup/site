@@ -188,6 +188,7 @@
   body.wall .tilegrid{grid-template-columns:repeat(3, 1fr); gap:14px} body.wall .tile{min-height:180px} body.wall .tname{font-size:18px} body.wall .tsnippet{font-size:16px}
   body.wall #root{padding:18px 24px 0; max-width:none}
   .wallhead{font-size:34px; font-weight:800; margin:4px 0 16px; letter-spacing:-.3px}
+  .wallhead em{display:block; font-style:normal; font-size:20px; font-weight:700; color:#7a5a0c; margin-top:6px}
   .wallhead small{display:block; font-size:16px; font-weight:600; color:var(--sub); margin-top:4px}
   .tile.land{animation:land .9s cubic-bezier(.2,.9,.3,1.2); outline:3px solid var(--gold); outline-offset:3px; z-index:1}
   @keyframes land{0%{transform:scale(1.35) translateY(-40px); opacity:0} 60%{transform:scale(1.04) translateY(0); opacity:1} 100%{transform:none}}
@@ -1808,9 +1809,9 @@ function screenPack(mode, topic0){
   if (!mode) mode = (wall && place) ? 'local' : 'all';
   var city = place ? place.split(',')[0] : null;
   root.innerHTML = nav() +
-    (wall ? '<div class="wallhead">🐾 What ' + esc(city || 'the Pack') + ' wants fixed<small id="wallstat">voterpup.com · scan the sticker, name a pup, add yours</small></div>' : '') +
+    (wall ? '<div class="wallhead">🐾 What ' + esc(city || 'the Pack') + ' wants fixed<em>They set the agenda. Time we set it for them.</em><small id="wallstat">voterpup.com · scan the sticker, name a pup, add yours</small></div>' : '') +
     '<div class="packhero">' + slotMedia('pack') +
-      '<div class="ft">The Pack \ud83d\udc3e<small>What everyone wants fixed.</small></div></div>' +
+      '<div class="ft">The Pack \ud83d\udc3e<small>They set the agenda. Time we set it for them.</small></div></div>' +
     (loadLocal() ? '' : '<div class="newbie">\ud83d\udc4b New here? Tap <b>+</b> to get your own pup.</div>') +
     '<div class="chips" style="margin:0 0 10px">' +
       (city ? '<span class="chip ' + (mode==='local'?'goldfill':'goldline') + '" id="mlocal">\ud83d\udccd ' + esc(city) + '</span><span class="chip goldline chgloc">change</span>'
@@ -2060,7 +2061,7 @@ function screenPack(mode, topic0){
   }).catch(function(e){ document.getElementById('board').textContent = 'The pack is napping: ' + e.message; });
 }
 
-var APP_VERSION = "20260930190644";
+var APP_VERSION = "20260930191150";
 (function(){
   try {
     fetch('/version.json?t=' + Date.now(), { cache: 'no-store' }).then(function(r){ return r.json(); }).then(function(j){
@@ -2267,7 +2268,7 @@ function screenView(tok){
           (e.spot ? '<div class="chips"><span class="chip" style="cursor:default">📍 ' + esc(e.spot) + '</span></div>' : '') +
           '<div class="ts">' + new Date(e.ts).toLocaleDateString() + (e.fixed_at ? ' · ✅ fixed' : '') + '</div></div>';
       }).join('') + '</div>' : '<div class="hint">Nothing shared here yet.</div>') +
-      '<div class="banner" style="font-weight:700; color:var(--ink)">Want this vote? Tell this voter how you’ll fix these.</div>' +
+      '<div class="banner" style="font-weight:700; color:var(--ink)">They set the agenda. Time we set it for them.<br><span style="font-weight:500">Want this vote? Say how you&rsquo;ll fix these.</span></div>' +
       '<footer>VoterPup — a voter’s memory. Not tied to any party or candidate.<br>' +
       '<a href="/app.html">Start your own pup →</a></footer>';
   }).catch(function(e){ root.innerHTML = nav() + say('Couldn’t load this.', esc(e.message)); });
