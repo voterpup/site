@@ -167,6 +167,11 @@
   .remtime input{font-size:16px; padding:7px 10px; border:1px solid var(--line); border-radius:10px}
   .installchip{align-self:center; font-size:12px; font-weight:800; color:#7a5a0c; background:#faf3df;
       border:1px solid var(--gold); border-radius:999px; padding:6px 10px; text-decoration:none; white-space:nowrap}
+  .dfetch{position:relative; border-color:var(--gold); background:#fffdf5; align-items:flex-start}
+  .dfetch .ft{flex:1; min-width:0} .dfetch .dfk{font-size:11px; font-weight:800; color:#8a6a14; text-transform:uppercase; letter-spacing:.4px; margin-bottom:3px}
+  .dfetch .ft small{margin-top:4px} .dfetch .mact{margin-top:8px}
+  .dfx{position:absolute; top:6px; right:10px; color:var(--sub); text-decoration:none; font-size:15px}
+  .fixedcard{opacity:.72} .fixedchip{background:#eef6f2; border-color:#cfe5da; color:#2f7d5f; font-weight:700}
   .plusbtn{flex:0 0 64px !important; position:relative}
   .plusbtn b{position:absolute; left:50%; top:-18px; transform:translateX(-50%); width:54px; height:54px; border-radius:50%;
       background:var(--gold); color:#2a2418; font-size:32px; font-weight:600; line-height:52px; text-align:center;
@@ -998,6 +1003,7 @@ function screenLedger(tail){
       '<div class="puphead"><img class="pupav" src="/pup-face.jpg" alt=""><div><div class="pupname">' + esc(L.name) + '</div>' +
         '<div class="pupsub">' + (n ? 'remembers ' + n + ' thing' + (n === 1 ? '' : 's') : 'tap + to tell ' + esc(L.name) + ' something') + '</div></div>' +
         '</div>' +
+      '<div id="fetchslot"></div>' +
       '<div class="momwrap" id="votestrip"></div>' +
       '<div id="entries" class="grid2"></div>' + '<div id="backedbox"></div>' +
       (KIOSK ? '' : '<a href="#" class="flashbtn" id="flashbtn" aria-label="Flashback">⚡<span>Flashback</span></a>') + tabbar('pup');
@@ -1020,10 +1026,12 @@ function screenLedger(tail){
       else toast('Tell ' + esc(L.name) + ' one thing first, then share it with candidates.'); };
     var box = document.getElementById('entries');
     box.innerHTML = L.entries.map(function(e){
-      return '<div class="card">' +
+      return '<div class="card' + (e.fixed_at ? ' fixedcard' : '') + '">' +
         (e.body ? '<div class="entry-body">' + esc(e.body) + '</div>' : '') + mediaHTML(e.media) +
         '<div class="ts">' + new Date(e.ts).toLocaleString() + '</div>' +
-        '<div class="chips">' + placeChip(e.place, e.topic) + (e.topic ? '<a class="topicchip" href="/pack?t=' + encodeURIComponent(e.topic) + '">#' + esc(e.topic) + '</a>' : '') + '<span class="chip" data-edit="' + e.id + '" title="change topic">\u270e</span>' + (e.shared
+        '<div class="chips">' + placeChip(e.place, e.topic) + (e.topic ? '<a class="topicchip" href="/pack?t=' + encodeURIComponent(e.topic) + '">#' + esc(e.topic) + '</a>' : '') + '<span class="chip" data-edit="' + e.id + '" title="change topic">\u270e</span>' +
+        (e.fixed_at ? '<span class="chip fixedchip" data-fix="' + e.id + '" data-on="1" title="tap if it broke again">✅ Fixed ' + new Date(e.fixed_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) + '</span>'
+                    : '<span class="chip" data-fix="' + e.id + '" data-on="0" title="mark as fixed">✔</span>') + (e.shared
           ? '<span class="chip goldfill">🌿 Counted with the community</span>' + sameChip(e.id, e.backs || 0, true, true) +
             '<span class="chip" data-a="unshare" data-id="'+e.id+'">↩ make private</span>'
           : '<span class="chip" style="cursor:default">🔒 Private</span>' +
@@ -1031,6 +1039,15 @@ function screenLedger(tail){
         '</div></div>';
     }).join('');
     fillEntryElections();
+    Array.prototype.forEach.call(box.querySelectorAll('[data-fix]'), function(c){
+      c.onclick = function(){
+        var on = c.getAttribute('data-on') === '1';
+        rpc('vp_set_fixed', { p_tail: tail, p_id: c.getAttribute('data-fix'), p_fixed: !on })
+          .then(function(){ if (!on) toast('🎉 One fixed. ' + esc(L.name) + ' remembers who did it.'); screenLedger(tail); })
+          .catch(function(e){ alert(e.message); });
+      };
+    });
+    dailyFetch(L, tail);
     var bk = L.backed || [];
     var bb = document.getElementById('backedbox');
     if (bb && bk.length) {
@@ -1366,6 +1383,62 @@ function installApp(){
              : '<p class="mp" style="font-size:14px">Open your browser menu <b>⋮</b> and tap <b>Install app</b> or <b>Add to Home screen</b>.</p>') +
     '<button class="btn gold" id="instok">Got it</button></div>';
 }
+// ---------- the daily fetch: once a day the pup brings ONE thing back ----------
+function dailyFetch(L, tail){
+  if (KIOSK) return;
+  var host = document.getElementById('fetchslot'); if (!host) return;
+  var today = new Date().toDateString(), K = 'vp.fetch.' + tail, KB = 'vp.backs.' + tail;
+  var seen = {}; try { seen = JSON.parse(localStorage.getItem(KB) || '{}'); } catch (e) {}
+  var snap = {}; L.entries.forEach(function(e){ snap[e.id] = e.backs || 0; });
+  var gained = L.entries.filter(function(e){ return (e.backs || 0) > (seen[e.id] || 0) && (e.id in seen); });
+  try { localStorage.setItem(KB, JSON.stringify(snap)); } catch (e) {}
+  var already = false; try { already = localStorage.getItem(K) === today; } catch (e) {}
+  if (already && !gained.length) return;
+  var nm = esc(L.name), pick = null;
+  if (gained.length) {
+    var g = gained.sort(function(a, b){ return (b.backs - (seen[b.id] || 0)) - (a.backs - (seen[a.id] || 0)); })[0];
+    var d = g.backs - (seen[g.id] || 0);
+    pick = { kind: 'backs', title: (d === 1 ? 'Someone feels the same' : d + ' more people feel the same'),
+      body: '&ldquo;' + esc(g.body || '📷 your photo') + '&rdquo; now has ' + g.backs + ' 🐾',
+      actions: '<a class="btn gold mbtn" href="/pack' + (g.topic ? '?t=' + encodeURIComponent(g.topic) : '') + '">See the Pack</a>' };
+  } else {
+    var old = L.entries.filter(function(e){ return !e.fixed_at && (Date.now() - new Date(e.ts)) > 5 * 864e5; });
+    if (old.length) {
+      var m = old[Math.floor(Math.random() * old.length)], days = Math.round((Date.now() - new Date(m.ts)) / 864e5);
+      pick = { kind: 'memory', id: m.id, title: 'Remember this? ' + days + ' days ago',
+        body: '&ldquo;' + esc(m.body || '📷 your photo') + '&rdquo;',
+        actions: '<button class="btn ghost mbtn" data-df="broken">Still broken 😤</button><button class="btn gold mbtn" data-df="fixed">Fixed! 🎉</button>' };
+    }
+  }
+  function render(p){
+    if (!p) return;
+    try { localStorage.setItem(K, today); } catch (e) {}
+    host.innerHTML = '<div class="fetchcard dfetch"><div class="fetchvid">' +
+      '<img class="vsit" src="/pup-sit.webp" alt=""><video class="vtop" id="dfvid" src="/pup-fetch.mp4" muted autoplay playsinline preload="auto"></video></div>' +
+      '<div class="ft"><div class="dfk">🐾 ' + nm + ' fetched this for you</div><b>' + p.title + '</b><small>' + p.body + '</small>' +
+      '<div class="mact">' + p.actions + '</div></div><a href="#" class="dfx" id="dfx">✕</a></div>';
+    var v = document.getElementById('dfvid'); if (v) { var done = function(){ v.style.opacity = 0; }; v.addEventListener('ended', done); v.addEventListener('error', done); var pr = v.play(); if (pr && pr.catch) pr.catch(done); }
+    document.getElementById('dfx').onclick = function(ev){ ev.preventDefault(); host.innerHTML = ''; };
+    Array.prototype.forEach.call(host.querySelectorAll('[data-df]'), function(b){
+      b.onclick = function(){
+        var a = b.getAttribute('data-df');
+        if (a === 'fixed') rpc('vp_set_fixed', { p_tail: tail, p_id: p.id, p_fixed: true }).then(function(){ toast('🎉 One fixed. ' + nm + ' remembers who did it.'); screenLedger(tail); });
+        else if (a === 'broken') { host.innerHTML = ''; toast(nm + ' keeps it. It comes back when you can vote. 🗳️'); }
+        else if (a === 'same') rpc('vp_back', { p_tail: tail, p_id: p.id, p_on: true, p_place: getPlace() || null }).then(function(){ toast('🐾 Backed. It lives in your pup now.'); screenLedger(tail); }).catch(function(e){ alert(e.message); });
+      };
+    });
+  }
+  if (pick) { render(pick); return; }
+  // nothing of your own to bring back yet: fetch one from the Pack nearby
+  var mine = {}; L.entries.forEach(function(e){ mine[e.id] = 1; }); (L.backed || []).forEach(function(e){ mine[e.id] = 1; });
+  readBoard(getPlace() || null).then(function(rows){
+    var c = (rows || []).filter(function(r){ return r.id && !mine[r.id]; });
+    if (!c.length) return;
+    var r = c[Math.floor(Math.random() * Math.min(c.length, 10))];
+    render({ kind: 'pack', id: r.id, title: 'Seen this too?', body: '&ldquo;' + esc(r.body || '📷') + '&rdquo; &mdash; ' + esc(r.pup) + (r.place ? ', ' + esc(r.place.split(',')[0]) : ''),
+      actions: '<button class="btn gold mbtn" data-df="same">🐾 Same here</button><a class="btn ghost mbtn" href="/pack">Browse</a>' });
+  }).catch(function(){});
+}
 function toast(html, ms){
   var old = document.querySelector('.toast'); if (old) old.parentNode.removeChild(old);
   var t = document.createElement('div'); t.className = 'toast'; t.innerHTML = html;
@@ -1617,7 +1690,7 @@ function screenPack(mode, topic0){
   }).catch(function(e){ document.getElementById('board').textContent = 'The pack is napping: ' + e.message; });
 }
 
-var APP_VERSION = "20260930074131";
+var APP_VERSION = "20260930074818";
 (function(){
   try {
     fetch('/version.json?t=' + Date.now(), { cache: 'no-store' }).then(function(r){ return r.json(); }).then(function(j){
