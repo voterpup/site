@@ -1347,7 +1347,7 @@ if ('serviceWorker' in navigator && !KIOSK) navigator.serviceWorker.register('/s
 var _installEvt = null;
 window.addEventListener('beforeinstallprompt', function(e){ e.preventDefault(); _installEvt = e; });
 window.addEventListener('appinstalled', function(){ _installEvt = null; toast('🐾 VoterPup is on your home screen'); });
-function canOfferInstall(){ return !isInstalled() && !KIOSK && (!!_installEvt || isIOS()); }
+function canOfferInstall(){ return !isInstalled() && !KIOSK && /android|iphone|ipad|ipod/i.test(navigator.userAgent); }
 function installApp(){
   if (_installEvt) { _installEvt.prompt(); _installEvt.userChoice.then(function(){ _installEvt = null; }); return; }
   var ov = document.createElement('div'); ov.className = 'stkover'; document.body.appendChild(ov);
@@ -1608,7 +1608,7 @@ function screenPack(mode, topic0){
   }).catch(function(e){ document.getElementById('board').textContent = 'The pack is napping: ' + e.message; });
 }
 
-var APP_VERSION = "20260930072627";
+var APP_VERSION = "20260930072928";
 (function(){
   try {
     fetch('/version.json?t=' + Date.now(), { cache: 'no-store' }).then(function(r){ return r.json(); }).then(function(j){
