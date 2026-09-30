@@ -192,6 +192,20 @@
   .tnew{position:absolute; top:8px; left:8px; background:var(--gold); color:#2a2418; font-size:11px; font-weight:800; border-radius:999px; padding:2px 8px;
       animation:tnew 6s forwards} @keyframes tnew{0%,80%{opacity:1} 100%{opacity:0}}
   body.wall .tnew{font-size:14px; padding:4px 12px}
+  .deckwrap{display:block; padding:10px 10px 8px}
+  .deck{position:relative; height:200px; margin:8px 0 6px; touch-action:pan-y}
+  .dcard{position:absolute; inset:0; background:#fff; border:1px solid var(--line); border-radius:14px; padding:12px; overflow:hidden;
+      box-shadow:0 4px 14px rgba(16,24,40,.12); user-select:none; -webkit-user-select:none; cursor:grab; display:flex; flex-direction:column}
+  .dcard img{width:100%; height:96px; object-fit:cover; border-radius:10px; margin-bottom:8px; pointer-events:none}
+  .dbody{font-size:15px; font-weight:800; line-height:1.3; display:-webkit-box; -webkit-line-clamp:3; -webkit-box-orient:vertical; overflow:hidden}
+  .dmeta{font-size:11.5px; color:var(--sub); margin-top:auto; padding-top:6px}
+  .dunder{position:absolute; inset:0; transform:scale(.95) translateY(8px); opacity:.7} .dunder .dcard{cursor:default}
+  .dstamp{position:absolute; top:12px; font-size:13px; font-weight:900; letter-spacing:1px; padding:3px 8px; border:3px solid; border-radius:8px; opacity:0; transform:rotate(-12deg)}
+  .dstamp.yes{left:10px; color:#2f7d5f; border-color:#2f7d5f} .dstamp.no{right:10px; color:#a94b4b; border-color:#a94b4b; transform:rotate(12deg)}
+  .dcard.lean-yes .dstamp.yes,.dcard.lean-no .dstamp.no{opacity:1}
+  .dcard.done{align-items:center; justify-content:center; text-align:center; background:#fffdf5}
+  .deckbtns{display:flex; gap:8px} .deckbtns .mbtn{flex:1; width:auto; margin:0}
+  .deckhint{text-align:center; font-size:10.5px; color:var(--sub); margin-top:6px}
   .plusbtn{flex:0 0 64px !important; position:relative}
   .plusbtn b{position:absolute; left:50%; top:-18px; transform:translateX(-50%); width:54px; height:54px; border-radius:50%;
       background:var(--gold); color:#2a2418; font-size:32px; font-weight:600; line-height:52px; text-align:center;
@@ -1013,7 +1027,19 @@ function startTour(name, k0){
   show();
 }
 
+function prefetchDeck(){
+  var place = getPlace() || null, now = Date.now();
+  if (window._deckP && window._deckPlace === place && now - window._deckAt < 120000) return window._deckP;
+  window._deckPlace = place; window._deckAt = now;
+  window._deckP = Promise.all([readBoard(place), place ? readBoard(null) : Promise.resolve([])]).then(function(r){
+    var seen = {}, out = [];
+    (r[0] || []).concat(r[1] || []).forEach(function(x){ if (x.id && !seen[x.id]) { seen[x.id] = 1; out.push(x); } });
+    return out;
+  }).catch(function(){ return []; });
+  return window._deckP;
+}
 function screenLedger(tail){
+  if (!KIOSK) prefetchDeck();
   readLedger(tail).then(function(L){
     if (!L) {
       root.innerHTML = nav() + say('No pup here.', 'check your link — every character matters') +
@@ -1513,19 +1539,61 @@ function dailyFetch(L, tail){
     });
   }
   if (pick) { render(pick); return; }
-  // nothing of your own to bring back yet: fetch one from the Pack nearby
+  // nothing of your own to bring back: a swipe deck of nearby issues (preloaded, no waiting between cards)
   var mine = {}; L.entries.forEach(function(e){ mine[e.id] = 1; }); (L.backed || []).forEach(function(e){ mine[e.id] = 1; });
-  readBoard(getPlace() || null).then(function(rows){
-    var c = (rows || []).filter(function(r){ return r.id && !mine[r.id]; });
-    if (!c.length) return readBoard(null).then(function(all){ var c2 = (all || []).filter(function(r){ return r.id && !mine[r.id]; }); if (c2.length) pickPack(c2); });
-    pickPack(c);
-  }).catch(function(){});
-  function pickPack(c){
-    var r = c[Math.floor(Math.random() * Math.min(c.length, 10))];
-    render({ kind: 'pack', id: r.id, title: 'Seen this too?', body: '&ldquo;' + esc(r.body || '📷') + '&rdquo; &mdash; ' + esc(r.pup) + (r.place ? ', ' + esc(r.place.split(',')[0]) : ''),
-      actions: '<button class="btn gold mbtn" data-df="same">🐾 Same here</button><button class="btn ghost mbtn" data-df="next">Show another</button>' });
-  }
+  prefetchDeck().then(function(rows){
+    var deck = rows.filter(function(r){ return r.id && !mine[r.id]; }).slice(0, 20);
+    if (!deck.length) return;
+    host.innerHTML = '<div class="fetchcard dfetch deckwrap"><div class="dfk">🐾 ' + nm + ' fetched these · seen it too?</div>' +
+      '<div class="deck" id="deck"></div>' +
+      '<div class="deckbtns"><button class="btn ghost mbtn" id="dkskip">👋 Not for me</button><button class="btn gold mbtn" id="dksame">🐾 Same here</button></div>' +
+      '<div class="deckhint">swipe → same here · ← not for me</div><a href="#" class="dfx" id="dfx">✕</a></div>';
+    document.getElementById('dfx').onclick = function(ev){ ev.preventDefault(); host.innerHTML = ''; };
+    var el = document.getElementById('deck'), idx = 0, backed = 0;
+    function cardHTML(r){
+      var img = itemImgAny(r);
+      return '<div class="dcard">' + (img ? '<img src="' + esc(img) + '" alt="">' : '') +
+        '<div class="dbody">' + esc(r.body || '📷') + '</div>' +
+        '<div class="dmeta">' + (r.topic ? '#' + esc(r.topic) + ' · ' : '') + esc(r.pup || '') + (r.place ? ', ' + esc(r.place.split(',')[0]) : '') +
+          (r.backs ? ' · 🐾 ' + r.backs : '') + '</div><div class="dstamp yes">🐾 SAME HERE</div><div class="dstamp no">NOT FOR ME</div></div>';
+    }
+    function draw(){
+      if (idx >= deck.length) {
+        el.innerHTML = '<div class="dcard done"><div class="dbody">That&rsquo;s everyone nearby 🐾' + (backed ? '<br>You backed ' + backed + '.' : '') + '</div>' +
+          '<a class="btn ghost mbtn" href="/pack">Browse the Pack</a></div>';
+        var bb = host.querySelector('.deckbtns'); if (bb) bb.style.display = 'none'; return;
+      }
+      el.innerHTML = (deck[idx + 1] ? '<div class="dunder">' + cardHTML(deck[idx + 1]) + '</div>' : '') + cardHTML(deck[idx]);
+      wire(el.lastElementChild);
+    }
+    function decide(card, yes){
+      var r = deck[idx]; idx++;
+      card.style.transition = 'transform .35s ease, opacity .35s ease';
+      card.style.transform = 'translateX(' + (yes ? 1 : -1) * 420 + 'px) rotate(' + (yes ? 18 : -18) + 'deg)'; card.style.opacity = 0;
+      if (yes) { backed++; rpc('vp_back', { p_tail: tail, p_id: r.id, p_on: true, p_place: getPlace() || null }).catch(function(){}); }
+      setTimeout(draw, 300);
+    }
+    function wire(card){
+      var x0 = null, dx = 0;
+      card.addEventListener('pointerdown', function(e){ x0 = e.clientX; dx = 0; card.setPointerCapture(e.pointerId); card.style.transition = 'none'; });
+      card.addEventListener('pointermove', function(e){
+        if (x0 === null) return; dx = e.clientX - x0;
+        card.style.transform = 'translateX(' + dx + 'px) rotate(' + dx / 14 + 'deg)';
+        card.classList.toggle('lean-yes', dx > 40); card.classList.toggle('lean-no', dx < -40);
+      });
+      var up = function(){
+        if (x0 === null) return; x0 = null;
+        if (Math.abs(dx) > 80) decide(card, dx > 0);
+        else { card.style.transition = 'transform .25s ease'; card.style.transform = ''; card.classList.remove('lean-yes', 'lean-no'); }
+      };
+      card.addEventListener('pointerup', up); card.addEventListener('pointercancel', up);
+    }
+    document.getElementById('dksame').onclick = function(){ var c = el.lastElementChild; if (c && !c.classList.contains('done')) decide(c, true); };
+    document.getElementById('dkskip').onclick = function(){ var c = el.lastElementChild; if (c && !c.classList.contains('done')) decide(c, false); };
+    draw();
+  });
 }
+function itemImgAny(r){ var u = null; (r.media || []).forEach(function(m){ if (!u && m.url && m.type && m.type.indexOf('image') === 0) u = m.url; }); return u; }
 function toast(html, ms){
   var old = document.querySelector('.toast'); if (old) old.parentNode.removeChild(old);
   var t = document.createElement('div'); t.className = 'toast'; t.innerHTML = html;
@@ -1793,7 +1861,7 @@ function screenPack(mode, topic0){
   }).catch(function(e){ document.getElementById('board').textContent = 'The pack is napping: ' + e.message; });
 }
 
-var APP_VERSION = "20260930084544";
+var APP_VERSION = "20260930174424";
 (function(){
   try {
     fetch('/version.json?t=' + Date.now(), { cache: 'no-store' }).then(function(r){ return r.json(); }).then(function(j){
