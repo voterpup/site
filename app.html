@@ -187,6 +187,11 @@
   body.wall #root{padding:18px 24px 0; max-width:none}
   .wallhead{font-size:34px; font-weight:800; margin:4px 0 16px; letter-spacing:-.3px}
   .wallhead small{display:block; font-size:16px; font-weight:600; color:var(--sub); margin-top:4px}
+  .tile.land{animation:land .9s cubic-bezier(.2,.9,.3,1.2); outline:3px solid var(--gold); outline-offset:3px; z-index:1}
+  @keyframes land{0%{transform:scale(1.35) translateY(-40px); opacity:0} 60%{transform:scale(1.04) translateY(0); opacity:1} 100%{transform:none}}
+  .tnew{position:absolute; top:8px; left:8px; background:var(--gold); color:#2a2418; font-size:11px; font-weight:800; border-radius:999px; padding:2px 8px;
+      animation:tnew 6s forwards} @keyframes tnew{0%,80%{opacity:1} 100%{opacity:0}}
+  body.wall .tnew{font-size:14px; padding:4px 12px}
   .plusbtn{flex:0 0 64px !important; position:relative}
   .plusbtn b{position:absolute; left:50%; top:-18px; transform:translateX(-50%); width:54px; height:54px; border-radius:50%;
       background:var(--gold); color:#2a2418; font-size:32px; font-weight:600; line-height:52px; text-align:center;
@@ -347,7 +352,7 @@
       display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden;
       transition:opacity .45s}
   .tile.mine{color:var(--goldink)}
-  .tile .tbg{position:absolute; inset:0; background-size:cover; background-position:center; transition:opacity .7s ease}
+  .tile .tbg{position:absolute; inset:0; background-size:cover; background-position:center; transition:opacity .45s ease, background-color .8s ease}
   .tile .tcount,.tile .tsnippet,.tile .tname{position:relative; z-index:1}
   .tile .tcount{position:absolute}
   .mombody .vitem{margin-top:6px}
@@ -1563,7 +1568,7 @@ function screenPack(mode, topic0){
   var place = getPlace();
   var wall = new URLSearchParams(location.search).get('wall') === '1';
   document.body.classList.toggle('wall', wall);
-  if (wall) { clearTimeout(window._wallT); window._wallT = setTimeout(function(){ screenPack(mode, topic0); }, 25000); }
+  clearInterval(window._wallT);
   if (!mode) mode = (wall && place) ? 'local' : 'all';
   var city = place ? place.split(',')[0] : null;
   root.innerHTML = nav() +
@@ -1632,6 +1637,19 @@ function screenPack(mode, topic0){
     });
     function feedHTML(list){ return '<div class="grid2">' + list.map(cardHTML).join('') + '</div>'; }
 
+    if (wall) {
+      var seen = window._wallSeen || null;
+      var ids = {}; rows.forEach(function(r){ if (r.id) ids[r.id] = 1; });
+      if (!seen) window._wallSeen = ids;
+      window._wallT = setInterval(function(){
+        readBoard((mode === 'local' && place) ? place : null).then(function(rs){
+          var fresh = {}; (rs || []).forEach(function(r){ if (r.id && !window._wallSeen[r.id]) fresh[r.id] = 1; });
+          if (!Object.keys(fresh).length) return;
+          Object.keys(fresh).forEach(function(id){ window._wallSeen[id] = 1; });
+          window._wallLand = fresh; clearInterval(window._wallT); screenPack(mode, topic0);
+        }).catch(function(){});
+      }, 8000);
+    }
     var byTopic = {};
     rows.forEach(function(r){ var t = r.topic || 'fresh'; (byTopic[t] = byTopic[t] || []).push(r); });
     // Affinity: topics this person logs or backs come first (computed on the device; nothing is sent).
@@ -1680,51 +1698,46 @@ function screenPack(mode, topic0){
     var GRAD = 'linear-gradient(rgba(20,26,33,.25), rgba(20,26,33,.72))';
     var reduceMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
+    var SOOTHE = ['#5f7f9f','#6b8e7f','#8a7f9f','#9f8a6b','#6f8fa8','#7f9a86','#9a8a7f','#7a7f9a','#6e8c94','#8c7f6e'];
+    function itemImg(r){ var u = null; (r.media || []).forEach(function(m){ if (!u && m.url && m.type && m.type.indexOf('image') === 0) u = m.url; }); return u; }
+    var landIds = window._wallLand || {}; window._wallLand = null;
     function tilesView(){
       clearInterval(window._packT);
-      var imgsByTile = tiles.map(function(t){ return tileImgs(t.list); });
-      imgsByTile.forEach(function(arr){ arr.forEach(function(u){ var im = new Image(); im.src = u; }); });
+      tiles.forEach(function(t){ t.list.forEach(function(r){ var u = itemImg(r); if (u) { var im = new Image(); im.src = u; } }); });
+      // a tile shows ONE issue at a time: its own photo if it has one, otherwise a calm colour
+      function paint(i, k, first){
+        var t = tiles[i], r = t.list[k], bg = document.getElementById('tbg' + i), sn = document.getElementById('tsnip' + i);
+        if (!bg || !sn) return;
+        var u = itemImg(r);
+        var apply = function(){
+          bg.style.backgroundImage = u ? GRAD + ', url(' + u + ')' : 'none';
+          bg.style.backgroundColor = u ? 'transparent' : SOOTHE[Math.floor(Math.random() * SOOTHE.length)];
+          sn.textContent = (r.body || '📷').slice(0, 90);
+          bg.style.opacity = 1; sn.style.opacity = 1;
+        };
+        if (first) { apply(); return; }
+        bg.style.opacity = .35; sn.style.opacity = 0; setTimeout(apply, 450);
+      }
       b.innerHTML = '<div class="tilegrid">' + tiles.map(function(t, i){
-        var imgs = imgsByTile[i];
-        var bgStyle = imgs.length
-          ? 'background-image:' + GRAD + ', url(' + esc(imgs[0]) + ')'
-          : 'background:' + t.color;
-        return '<div class="tile' + (t.mine ? ' mine' : '') + '" data-i="' + i + '" style="background:' + t.color + '">' +
-          '<div class="tbg" id="tbg' + i + '" style="' + bgStyle + '"></div>' +
+        var k0 = 0; t.list.forEach(function(r, k){ if (landIds[r.id]) k0 = k; });
+        t._k = k0;
+        return '<div class="tile' + (t.mine ? ' mine' : '') + (landIds[t.list[k0].id] ? ' land' : '') + '" data-i="' + i + '" style="background:' + t.color + '">' +
+          '<div class="tbg" id="tbg' + i + '"></div>' +
           '<div class="tcount">' + t.list.length + '</div>' +
-          '<div class="tsnippet" id="tsnip' + i + '">' + esc((t.list[0].body || '📷').slice(0, 90)) + '</div>' +
-          '<div class="tname">' + esc(t.name) + '</div></div>';
+          '<div class="tsnippet" id="tsnip' + i + '"></div>' +
+          '<div class="tname">' + esc(t.name) + '</div>' +
+          (landIds[t.list[k0].id] ? '<div class="tnew">🐾 just in</div>' : '') + '</div>';
       }).join('') + '</div>';
+      tiles.forEach(function(t, i){ paint(i, t._k, true); });
+      landIds = {};
       Array.prototype.forEach.call(b.querySelectorAll('.tile'), function(el){
         el.onclick = function(){ feedView(tiles[+el.getAttribute('data-i')]); };
       });
       if (reduceMotion) return;
-      var tick = 0;
       window._packT = setInterval(function(){
-        tick++;
         tiles.forEach(function(t, i){
-          if (t.list.length > 1) {
-            var sn = document.getElementById('tsnip' + i);
-            if (sn) {
-              sn.style.opacity = 0;
-              setTimeout(function(){
-                var r = t.list[tick % t.list.length];
-                sn.textContent = (r.body || '📷').slice(0, 90);
-                sn.style.opacity = 1;
-              }, 450);
-            }
-          }
-          var imgs = imgsByTile[i];
-          if (imgs.length > 1) {
-            var bg = document.getElementById('tbg' + i);
-            if (bg) {
-              bg.style.opacity = 0;
-              setTimeout(function(){
-                bg.style.backgroundImage = GRAD + ', url(' + imgs[tick % imgs.length] + ')';
-                bg.style.opacity = 1;
-              }, 700);
-            }
-          }
+          if (t.list.length < 2) return;
+          t._k = (t._k + 1) % t.list.length; paint(i, t._k, false);
         });
       }, 3500);
     }
@@ -1766,7 +1779,7 @@ function screenPack(mode, topic0){
   }).catch(function(e){ document.getElementById('board').textContent = 'The pack is napping: ' + e.message; });
 }
 
-var APP_VERSION = "20260930081451";
+var APP_VERSION = "20260930083449";
 (function(){
   try {
     fetch('/version.json?t=' + Date.now(), { cache: 'no-store' }).then(function(r){ return r.json(); }).then(function(j){
