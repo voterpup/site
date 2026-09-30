@@ -158,12 +158,13 @@
   .slottext{font-size:16px; font-weight:800; line-height:1.3; display:-webkit-box; -webkit-line-clamp:3; -webkit-box-orient:vertical; overflow:hidden}
   .slotglare{position:absolute; left:10px; right:10px; top:10px; bottom:10px; border-radius:12px; pointer-events:none;
       background:linear-gradient(rgba(20,26,34,.35), rgba(20,26,34,0) 30%, rgba(20,26,34,0) 70%, rgba(20,26,34,.35))}
+  .slotcount{margin-top:12px; font-size:12px; font-weight:800; color:#e8b84b; letter-spacing:.5px; min-height:16px}
   .fcalwrap.landed .slotbox{animation:slotpop .35s ease}
   @keyframes slotpop{50%{transform:scale(1.04)}}
   .fcalhint{margin-top:18px; font-size:11.5px; color:#6b7a8f}
   .remchips{margin:6px 0 10px} .remtime{display:flex; align-items:center; gap:8px; font-size:14px; margin:0 0 10px}
   .remtime input{font-size:16px; padding:7px 10px; border:1px solid var(--line); border-radius:10px}
-  .installchip{margin-left:auto; align-self:center; font-size:12px; font-weight:800; color:#7a5a0c; background:#faf3df;
+  .installchip{align-self:center; font-size:12px; font-weight:800; color:#7a5a0c; background:#faf3df;
       border:1px solid var(--gold); border-radius:999px; padding:6px 10px; text-decoration:none; white-space:nowrap}
   .plusbtn{flex:0 0 64px !important; position:relative}
   .plusbtn b{position:absolute; left:50%; top:-18px; transform:translateX(-50%); width:54px; height:54px; border-radius:50%;
@@ -995,15 +996,13 @@ function screenLedger(tail){
     root.innerHTML = nav(KIOSK ? '' : '<a href="#" class="iconnav" id="navshow" title="Share my issues">📤</a><a href="/manage" class="iconnav" id="navman" title="Manage">⚙️</a>') +
       '<div class="puphead"><img class="pupav" src="/pup-face.jpg" alt=""><div><div class="pupname">' + esc(L.name) + '</div>' +
         '<div class="pupsub">' + (n ? 'remembers ' + n + ' thing' + (n === 1 ? '' : 's') : 'tap + to tell ' + esc(L.name) + ' something') + '</div></div>' +
-        '<a href="#" class="installchip" id="installchip" hidden>📲 Get the app</a></div>' +
+        '</div>' +
       '<div class="momwrap" id="votestrip"></div>' +
       '<div id="entries" class="grid2"></div>' + '<div id="backedbox"></div>' +
       (KIOSK ? '' : '<a href="#" class="flashbtn" id="flashbtn" aria-label="Flashback">⚡<span>Flashback</span></a>') + tabbar('pup');
     wireTabs(); renderVoteStrip(); refreshPlaceIfStale();
     var fb = document.getElementById('flashbtn'); if (fb) fb.onclick = function(ev){ ev.preventDefault(); openFlashback(L); };
-    var ic = document.getElementById('installchip');
-    if (ic) { var showIc = function(){ ic.hidden = !canOfferInstall(); }; showIc(); setTimeout(showIc, 1500);
-      ic.onclick = function(ev){ ev.preventDefault(); installApp(); }; }
+
     if (new URLSearchParams(location.search).get('add') === '1' && !KIOSK) {   // opened from a reminder
       history.replaceState(null, '', location.pathname); setTimeout(openAdd, 250);
     }
@@ -1155,7 +1154,8 @@ function showSticker(canvas, name, url){
   });
 }
 
-function nav(extra){ return '<div class="nav"><div class="brand">Voter<b>Pup</b> 🐾</div><div class="navr">' + (extra || '') + '</div></div>'; }
+function nav(extra){ return '<div class="nav"><div class="brand">Voter<b>Pup</b> 🐾</div><div class="navr">' +
+  (canOfferInstall() ? '<a href="#" class="installchip">📲 Get the app</a>' : '') + (extra || '') + '</div></div>'; }
 function say(text, small, name){
   return '<div class="say"><img class="avatar" src="/pup-face.jpg" alt="">' +
     '<div class="balloon">' + text + (small ? '<small>' + small + '</small>' : '') + '</div></div>';
@@ -1238,30 +1238,32 @@ function openFlashback(L){
   var still = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   if (still || !byDay.length) return;
   // slot-machine reel: every issue (date + words) spins past the window, slows, and stops on the newest
+  // slot reel: every issue (date + words) rolls into the window one at a time, all at the same pace
   var reel = items.slice().reverse();                      // oldest -> newest
-  if (reel.length > 14) { var pk = []; for (var i = 0; i < 14; i++) pk.push(reel[Math.round(i * (reel.length - 1) / 13)]); reel = pk; }
-  var ROW = 96, spin = reel.concat(reel.length < 4 ? reel.concat(reel) : []);   // short lists spin a little longer
+  if (reel.length > 20) reel = reel.slice(-20);            // the 20 most recent; the full list is on the page
+  var ROW = 96, STEP = 900, ROLL = 360;                     // each issue: 360 ms roll in, then held
   var cal = document.createElement('div'); cal.className = 'fcalwrap';
-  cal.innerHTML = '<div class="slotbox"><div class="slotwin"><div class="slotstrip">' + spin.map(function(it){
+  cal.innerHTML = '<div class="slotbox"><div class="slotwin"><div class="slotstrip">' + reel.map(function(it){
       var d = new Date(it.ts);
       return '<div class="slotrow"><div class="slotdate"><b>' + d.getDate() + '</b><span>' + d.toLocaleDateString(undefined, { month: 'short' }) +
         '</span></div><div class="slottext">' + esc(it.body || '📷 photo') + '</div></div>';
-    }).join('') + '</div></div><div class="slotglare"></div></div><div class="fcalhint">tap to skip</div>';
+    }).join('') + '</div></div><div class="slotglare"></div></div><div class="slotcount" id="slotcount"></div><div class="fcalhint">tap to skip</div>';
   ov.appendChild(cal);
-  var strip = cal.querySelector('.slotstrip'), done = false, t1, t2;
-  var dur = Math.min(900 + spin.length * 380, 6000);      // slower than a real slot machine
+  var strip = cal.querySelector('.slotstrip'), cnt = cal.querySelector('#slotcount'), done = false, timers = [];
+  strip.style.transition = 'transform ' + ROLL + 'ms cubic-bezier(.45,0,.55,1)';
   function finish(){
-    if (done) return; done = true; clearTimeout(t1); clearTimeout(t2);
+    if (done) return; done = true; timers.forEach(clearTimeout);
     cal.classList.add('gone'); setTimeout(function(){ if (cal.parentNode) cal.parentNode.removeChild(cal); }, 400);
   }
   cal.onclick = finish;
-  strip.style.transform = 'translateY(0)';
-  requestAnimationFrame(function(){ requestAnimationFrame(function(){
-    strip.style.transition = 'transform ' + dur + 'ms cubic-bezier(.15,.55,.12,1)';
-    strip.style.transform = 'translateY(' + (-(spin.length - 1) * ROW) + 'px)';
-  }); });
-  t1 = setTimeout(function(){ cal.classList.add('landed'); }, dur);
-  t2 = setTimeout(finish, dur + 1100);
+  reel.forEach(function(_, i){
+    timers.push(setTimeout(function(){
+      strip.style.transform = 'translateY(' + (-i * ROW) + 'px)';
+      cnt.textContent = (i + 1) + ' / ' + reel.length;
+    }, 400 + i * STEP));
+  });
+  timers.push(setTimeout(function(){ cal.classList.add('landed'); }, 400 + (reel.length - 1) * STEP + ROLL));
+  timers.push(setTimeout(finish, 400 + (reel.length - 1) * STEP + 1300));
 }
 // ---------- reminders (web push). Default: daily at 9 pm, the person's own local time ----------
 var VAPID_PUBLIC = 'BM4T5OPo9hkRj22Ch9KUJPTMyHauGD5maNPSL8TzbR7Vu4gjTGLXAiHUq0MJznyG4YLMXswXgeQ-GSFnqWsZKh8';
@@ -1347,6 +1349,10 @@ if ('serviceWorker' in navigator && !KIOSK) navigator.serviceWorker.register('/s
 var _installEvt = null;
 window.addEventListener('beforeinstallprompt', function(e){ e.preventDefault(); _installEvt = e; });
 window.addEventListener('appinstalled', function(){ _installEvt = null; toast('🐾 VoterPup is on your home screen'); });
+document.addEventListener('click', function(ev){
+  var c = ev.target && ev.target.closest ? ev.target.closest('.installchip') : null;
+  if (c) { ev.preventDefault(); installApp(); }
+});
 function canOfferInstall(){ return !isInstalled() && !KIOSK && /android|iphone|ipad|ipod/i.test(navigator.userAgent); }
 function installApp(){
   if (_installEvt) { _installEvt.prompt(); _installEvt.userChoice.then(function(){ _installEvt = null; }); return; }
@@ -1608,7 +1614,7 @@ function screenPack(mode, topic0){
   }).catch(function(e){ document.getElementById('board').textContent = 'The pack is napping: ' + e.message; });
 }
 
-var APP_VERSION = "20260930072928";
+var APP_VERSION = "20260930073442";
 (function(){
   try {
     fetch('/version.json?t=' + Date.now(), { cache: 'no-store' }).then(function(r){ return r.json(); }).then(function(j){
