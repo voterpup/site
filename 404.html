@@ -230,6 +230,9 @@
   .whyline{font-size:18px; line-height:1.35; margin:6px 0; opacity:0; animation:whyin .45s ease forwards}
   .whyline b{color:#7a5a0c}
   @keyframes whyin{from{opacity:0; transform:translateY(6px)} to{opacity:1; transform:none}}
+  .manifesto{margin:4px 2px 14px}
+  .manifesto b{display:block; font-size:22px; line-height:1.2; letter-spacing:-.2px}
+  .manifesto span{display:block; font-size:14px; color:var(--sub); margin-top:8px; line-height:1.4}
   .plusbtn{flex:0 0 64px !important; position:relative}
   .plusbtn b{position:absolute; left:50%; top:-18px; transform:translateX(-50%); width:54px; height:54px; border-radius:50%;
       background:var(--gold); color:#2a2418; font-size:32px; font-weight:600; line-height:52px; text-align:center;
@@ -944,9 +947,10 @@ function screenCapture(prefGripe, prefName){
   var saved = loadLocal();
   pendingFiles = [];
   root.innerHTML = nav() +
-    say('What should your city fix?', 'five words is plenty') +
+    '<div class="manifesto"><b>They set the agenda.<br>Time we set it for them.</b>' +
+      '<span>Algorithms make you forget what mattered. Your pup fetches them back.</span></div>' +
     '<div class="composer">' +
-      '<textarea id="gripe" placeholder="Tell it..."></textarea>' +
+      '<textarea id="gripe" placeholder="What should your city fix? Five words is plenty."></textarea>' +
       '<div id="thumbs" class="attach"></div>' + spotLineHTML() +
       '<div class="cfoot">' +
         '<div class="iconbtn" id="addmedia">📷</div>' + spotButtonHTML() +
@@ -1714,7 +1718,7 @@ function whySheet(kind, name){
       'Seen it too? <b>🐾 Same here.</b>',
       'Numbers move councils.', 'Councils move states and provinces.', 'States and provinces move countries.', '<b>Countries move the world.</b>'
     ] : [
-      'You forget. <b>' + nm + ' doesn&rsquo;t.</b>',
+      'Algorithms make you forget what mattered.', '<b>' + nm + ' fetches them back.</b>',
       'Give it what your city should fix.', 'Private, unless you say so.',
       'The morning you vote, ' + nm + ' hands you your list.',
       '<b>Make them earn it.</b>'
@@ -2049,7 +2053,7 @@ function screenPack(mode, topic0){
   }).catch(function(e){ document.getElementById('board').textContent = 'The pack is napping: ' + e.message; });
 }
 
-var APP_VERSION = "20260930185631";
+var APP_VERSION = "20260930190221";
 (function(){
   try {
     fetch('/version.json?t=' + Date.now(), { cache: 'no-store' }).then(function(r){ return r.json(); }).then(function(j){
