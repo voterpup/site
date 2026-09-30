@@ -1732,7 +1732,7 @@ function whySheet(kind, name){
       '<b>Make them earn it.</b>'
     ];
   var media = kind === 'pack' ? '<img src="/pup-watch.jpg" alt="">'
-    : '<video src="/pup-fetch.mp4" poster="/pup-face.jpg" muted autoplay playsinline></video>';
+    : '<video src="/pup-robo.mp4" poster="/pup-robo.jpg" muted autoplay loop playsinline style="object-position:50% 60%"></video>';
   var ov = document.createElement('div'); ov.className = 'stkover'; document.body.appendChild(ov);
   function close(){ if (ov.parentNode) ov.parentNode.removeChild(ov); }
   ov.onclick = function(ev){ if (ev.target === ov) close(); };
@@ -2061,7 +2061,7 @@ function screenPack(mode, topic0){
   }).catch(function(e){ document.getElementById('board').textContent = 'The pack is napping: ' + e.message; });
 }
 
-var APP_VERSION = "20260930191150";
+var APP_VERSION = "20260930191849";
 (function(){
   try {
     fetch('/version.json?t=' + Date.now(), { cache: 'no-store' }).then(function(r){ return r.json(); }).then(function(j){
