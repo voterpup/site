@@ -258,6 +258,10 @@
   .tagrow{display:flex; flex-wrap:wrap; gap:6px; margin-top:8px} .tagrow .chip{cursor:pointer}
   .chip.htag{background:#eef2ff; border-color:#c9d3ff; color:#3b4fb6; text-decoration:none}
   .tagrow small{font-weight:500; opacity:.75; margin-left:2px}
+  .island{margin:0 -16px 10px} .isl{display:flex; gap:8px; overflow-x:auto; padding:2px 16px 6px; scrollbar-width:none; scroll-snap-type:x proximity}
+  .isl::-webkit-scrollbar{display:none}
+  .ischip{flex:0 0 auto; height:36px; display:inline-flex; align-items:center; padding:0 12px; border-radius:999px; background:var(--card); border:1px solid var(--line);
+      color:var(--ink); font-weight:700; font-size:12.5px; text-decoration:none; white-space:nowrap; scroll-snap-align:start; box-shadow:0 1px 2px rgba(16,24,40,.05)}
   .plusbtn{flex:0 0 64px !important; position:relative}
   .plusbtn b{position:absolute; left:50%; top:-18px; transform:translateX(-50%); width:54px; height:54px; border-radius:50%;
       background:var(--gold); color:#2a2418; font-size:32px; font-weight:600; line-height:52px; text-align:center;
@@ -1258,6 +1262,7 @@ function screenLedger(tail){
     var n = L.entries.length;
     pendingFiles = [];
     root.innerHTML = nav(KIOSK ? '' : '<a href="#" class="navpill" id="navshow" title="A read-only code for candidates">📤 My issues</a><a href="/manage" class="iconnav" id="navman" title="Manage">⚙️</a>').replace('class="nav"', 'class="nav compact"') +
+      (KIOSK ? '' : '<div class="island" id="island"></div>') +
       '<div class="puphead"><span class="pupav-wrap"><img class="pupav" src="/pup-face.jpg" alt=""></span><div><div class="pupname">' + esc(L.name) + '</div>' +
         '<div class="pupsub">' + (n ? 'remembers ' + n + ' thing' + (n === 1 ? '' : 's') : 'tap + to tell ' + esc(L.name) + ' something') + '</div></div>' +
         '</div>' +
@@ -1267,6 +1272,7 @@ function screenLedger(tail){
       (KIOSK ? '' : '<a href="#" class="flashbtn" id="flashbtn" aria-label="Flashback">⚡<span>Flashback</span></a>') + tabbar('pup');
     wireTabs(); renderVoteStrip(); refreshPlaceIfStale();
     var fb = document.getElementById('flashbtn'); if (fb) fb.onclick = function(ev){ ev.preventDefault(); openFlashback(L); };
+    renderIsland(tail, L.name);
 
     var q0 = new URLSearchParams(location.search);
     if (q0.get('add') === '1' && !KIOSK) { history.replaceState(null, '', location.pathname); setTimeout(openAdd, 250); }   // from a reminder
@@ -1701,6 +1707,21 @@ function screenReport(tail){
       });
     };
   });
+}
+
+// ---------- setup island: the things left to set up, one tap each; disappears when nothing is left ----------
+function renderIsland(tail, name){
+  var el = document.getElementById('island'); if (!el) return;
+  var rp = remPref(), items = [];
+  if (!rp || rp.off) items.push({ k: 'rem', t: '🔔 Turn on reminders', f: function(){ reminderSheet(tail, name, function(){ renderIsland(tail, name); }); } });
+  if (GOOGLE_READY && !isBackedUp(tail)) items.push({ k: 'bk', t: '🔐 Back up with Google', f: function(){ location.href = '/manage?do=backup'; } });
+  if (canOfferInstall()) items.push({ k: 'app', t: '📲 Get the app', f: installApp });
+  if (!getPlace()) items.push({ k: 'city', t: '📍 Set your city', f: changePlaceSheet });
+  items.push({ k: 'inv', t: '🐾 Invite friends', f: function(){ location.href = '/manage?do=invite'; } });
+  if (!items.length) { el.hidden = true; return; }
+  el.hidden = false;
+  el.innerHTML = '<div class="isl">' + items.map(function(it, i){ return '<a href="#" class="ischip" data-i="' + i + '">' + it.t + '</a>'; }).join('') + '</div>';
+  Array.prototype.forEach.call(el.querySelectorAll('.ischip'), function(c){ c.onclick = function(ev){ ev.preventDefault(); items[+c.getAttribute('data-i')].f(); }; });
 }
 
 // ---------- the daily fetch: once a day the pup brings ONE thing back ----------
@@ -2210,7 +2231,7 @@ function screenPack(mode, topic0){
   }).catch(function(e){ document.getElementById('board').textContent = 'The pack is napping: ' + e.message; });
 }
 
-var APP_VERSION = "20260930221449";
+var APP_VERSION = "20260930221751";
 (function(){
   try {
     fetch('/version.json?t=' + Date.now(), { cache: 'no-store' }).then(function(r){ return r.json(); }).then(function(j){
@@ -2508,6 +2529,11 @@ function screenManage(){
     });
     on('mpups', function(){ if (sess) screenRestore(); else { this.style.display = 'none'; startRestore(document.getElementById('mrslot')); } });
     on('mout', function(){ sb.auth.signOut().then(function(){ screenManage(); }); });
+    var doQ = new URLSearchParams(location.search).get('do');
+    if (doQ) { history.replaceState(null, '', '/manage'); setTimeout(function(){
+      if (doQ === 'backup') { var mb0 = document.getElementById('mbackup'); if (mb0) mb0.click(); }
+      if (doQ === 'invite') { var mi0 = document.getElementById('minv'); if (mi0) { mi0.scrollIntoView({ block: 'center' }); mi0.click(); } }
+    }, 200); }
     on('mnew', function(){
       if (!(email && backed) && !confirm(L.name + ' isn\u2019t backed up yet. This device will switch to the new pup, and ' + L.name + ' will only be reachable through its private link. Continue?')) return;
       location.href = '/app.html?new=1'; });
