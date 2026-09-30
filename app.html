@@ -146,6 +146,8 @@
   .fcard img{width:100%; max-height:150px; object-fit:cover; border-radius:10px; margin-bottom:8px; display:block}
   .fbody{font-size:14.5px; font-weight:700; line-height:1.35} .fmeta{font-size:11.5px; color:#6b7387; margin-top:4px}
   .fend{text-align:center; color:#aab4c3; font-size:12.5px; margin:10px 0 20px; line-height:1.5}
+  .ffoot{flex:0 0 auto; padding:10px 0 calc(12px + env(safe-area-inset-bottom)); background:linear-gradient(transparent, #141a22 40%)}
+  .ffoot .btn{margin:0}
   .fcalwrap{position:absolute; inset:0; z-index:5; background:#141a22; display:flex; flex-direction:column; align-items:center;
       justify-content:center; transition:opacity .35s ease; perspective:900px}
   .fcalwrap.gone{opacity:0}
@@ -237,6 +239,8 @@
   .plusbtn b{position:absolute; left:50%; top:-18px; transform:translateX(-50%); width:54px; height:54px; border-radius:50%;
       background:var(--gold); color:#2a2418; font-size:32px; font-weight:600; line-height:52px; text-align:center;
       box-shadow:0 4px 14px rgba(180,130,20,.45); border:3px solid var(--card)}
+  .navpill{display:inline-flex; align-items:center; height:36px; padding:0 12px; border-radius:999px; background:#faf3df; border:1px solid var(--gold);
+      color:#7a5a0c; font-weight:800; font-size:12.5px; text-decoration:none; white-space:nowrap}
   .iconnav{display:inline-flex; width:36px; height:36px; align-items:center; justify-content:center; border-radius:50%;
       background:var(--card); border:1px solid var(--line); text-decoration:none; font-size:17px}
   .puphead{display:flex; align-items:center; gap:12px; margin:2px 0 10px}
@@ -1111,7 +1115,7 @@ function screenLedger(tail){
     saveLocal(tail, L.name);
     var n = L.entries.length;
     pendingFiles = [];
-    root.innerHTML = nav(KIOSK ? '' : '<a href="#" class="iconnav" id="navshow" title="Share my issues">📤</a><a href="/manage" class="iconnav" id="navman" title="Manage">⚙️</a>') +
+    root.innerHTML = nav(KIOSK ? '' : '<a href="#" class="navpill" id="navshow" title="A read-only code for candidates">📤 My issues</a><a href="/manage" class="iconnav" id="navman" title="Manage">⚙️</a>') +
       '<div class="puphead"><img class="pupav" src="/pup-face.jpg" alt=""><div><div class="pupname">' + esc(L.name) + '</div>' +
         '<div class="pupsub">' + (n ? 'remembers ' + n + ' thing' + (n === 1 ? '' : 's') : 'tap + to tell ' + esc(L.name) + ' something') + '</div></div>' +
         '</div>' +
@@ -1355,11 +1359,13 @@ function openFlashback(L){
       '<a href="#" class="flashx" id="flashx">✕</a></div>' +
     (demo ? '<div class="flashdemo">DEMO · Tap + to start yours</div>' : '') +
     '<div class="fstrip">' + strip + '</div>' +
-    '<div class="froll">' + roll + '<div class="fend">That&rsquo;s everything ' + nm + ' remembers 🐾<br>It brings these back when you can vote.</div></div>';
+    '<div class="froll">' + roll + '<div class="fend">That&rsquo;s everything ' + nm + ' remembers 🐾<br>It brings these back when you can vote.</div></div>' +
+    '<div class="ffoot"><button class="btn gold" id="flashdone">Done</button></div>';
   document.body.appendChild(ov);
   document.body.style.overflow = 'hidden';
   function close(){ document.body.style.overflow = ''; if (ov.parentNode) ov.parentNode.removeChild(ov); }
   document.getElementById('flashx').onclick = function(ev){ ev.preventDefault(); close(); };
+  document.getElementById('flashdone').onclick = close;
   Array.prototype.forEach.call(ov.querySelectorAll('.fday'), function(a){
     a.onclick = function(ev){ ev.preventDefault();
       var g = document.getElementById('fg' + a.getAttribute('data-g')); if (g) g.scrollIntoView({ behavior: 'smooth', block: 'start' }); };
@@ -2053,7 +2059,7 @@ function screenPack(mode, topic0){
   }).catch(function(e){ document.getElementById('board').textContent = 'The pack is napping: ' + e.message; });
 }
 
-var APP_VERSION = "20260930190221";
+var APP_VERSION = "20260930190531";
 (function(){
   try {
     fetch('/version.json?t=' + Date.now(), { cache: 'no-store' }).then(function(r){ return r.json(); }).then(function(j){
