@@ -210,6 +210,13 @@
   .dcard.done{align-items:center; justify-content:center; text-align:center; background:#fffdf5}
   .deckbtns{display:flex; gap:8px} .deckbtns .mbtn{flex:1; width:auto; margin:0}
   .deckhint{text-align:center; font-size:10.5px; color:var(--sub); margin-top:6px}
+  .iconbtn.on{background:#faf3df; border-color:var(--gold)}
+  .spotchip{display:inline-block; font-size:12px; color:#7a5a0c; background:#faf3df; border:1px solid var(--gold); border-radius:999px; padding:4px 10px; margin-top:8px; max-width:100%;
+      overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+  .spotchip b{cursor:pointer; margin-left:4px}
+  .chip.spotlink{text-decoration:none; color:#3b6fb6}
+  .chip.react{cursor:pointer} .chip.react.on{background:#faf3df; border-color:var(--gold); color:#7a5a0c; font-weight:700}
+  .dreact{margin-top:6px} .dreact .chip{font-size:10.5px; padding:3px 7px}
   .plusbtn{flex:0 0 64px !important; position:relative}
   .plusbtn b{position:absolute; left:50%; top:-18px; transform:translateX(-50%); width:54px; height:54px; border-radius:50%;
       background:var(--gold); color:#2a2418; font-size:32px; font-weight:600; line-height:52px; text-align:center;
@@ -479,6 +486,40 @@ function rpc(fn, args) {
 function esc(s){ var d=document.createElement('div'); d.textContent=s; return d.innerHTML; }
 function qrDataURL(text, cell){ var q=qrcode(0,'M'); q.addData(text); q.make(); return q.createDataURL(cell||6, 2); }
 var pendingFiles = [];
+var pendingSpot = null;   // {lat, lng, spot} attached to the issue being written
+function spotButtonHTML(){ return '<div class="iconbtn" id="addspot" title="attach where this is">📍</div>'; }
+function spotLineHTML(){ return '<div class="spotchip" id="spotchip" hidden></div>'; }
+function renderSpot(){
+  var c = document.getElementById('spotchip'), b = document.getElementById('addspot'); if (!c || !b) return;
+  c.hidden = !pendingSpot; b.classList.toggle('on', !!pendingSpot);
+  if (pendingSpot) { c.innerHTML = '📍 ' + esc(pendingSpot.spot) + ' <b>✕</b>'; c.querySelector('b').onclick = function(){ pendingSpot = null; renderSpot(); }; }
+}
+function wireSpot(){
+  var b = document.getElementById('addspot'); if (!b) return;
+  b.onclick = function(){
+    if (pendingSpot) { pendingSpot = null; renderSpot(); return; }
+    if (!navigator.geolocation) { toast('This browser can’t share a location.'); return; }
+    b.textContent = '…';
+    navigator.geolocation.getCurrentPosition(function(pos){
+      var la = Math.round(pos.coords.latitude * 1e4) / 1e4, lo = Math.round(pos.coords.longitude * 1e4) / 1e4;
+      fetch('https://nominatim.openstreetmap.org/reverse?format=jsonv2&zoom=18&addressdetails=1&accept-language=en&lat=' + la + '&lon=' + lo)
+        .then(function(r){ return r.json(); }).then(function(g){
+          var a = g.address || {};
+          var label = [a.road || a.pedestrian || a.footway || a.park || a.amenity || '', a.neighbourhood || a.suburb || a.quarter || '']
+            .filter(Boolean).join(', ') || (la + ', ' + lo);
+          pendingSpot = { lat: la, lng: lo, spot: label.slice(0, 80) };
+          if (!getPlace() && a.city) savePlace(osmLabel(a), false);
+          b.textContent = '📍'; renderSpot();
+        }).catch(function(){ pendingSpot = { lat: la, lng: lo, spot: la + ', ' + lo }; b.textContent = '📍'; renderSpot(); });
+    }, function(){ b.textContent = '📍'; toast('Location is off for this site. Allow it in your browser settings.'); }, { enableHighAccuracy: true, timeout: 10000 });
+  };
+}
+function spotArgs(){ return pendingSpot ? { p_lat: pendingSpot.lat, p_lng: pendingSpot.lng, p_spot: pendingSpot.spot } : {}; }
+function spotChip(e){
+  if (!e || !e.spot) return '';
+  var href = (e.lat != null && e.lng != null) ? 'https://www.openstreetmap.org/?mlat=' + e.lat + '&mlon=' + e.lng + '#map=18/' + e.lat + '/' + e.lng : null;
+  return href ? '<a class="chip spotlink" href="' + href + '" target="_blank" rel="noopener">📍 ' + esc(e.spot) + '</a>' : '<span class="chip" style="cursor:default">📍 ' + esc(e.spot) + '</span>';
+}
 function attachRow_unused(){
   return '<div class="attach"><button class="chip" id="addmedia" type="button">📷 add photos / video</button>' +
          '<input id="fpick" type="file" accept="image/*,video/*" multiple hidden><div id="thumbs" style="display:flex;gap:8px;flex-wrap:wrap"></div></div>';
@@ -893,9 +934,9 @@ function screenCapture(prefGripe, prefName){
     say('What should your city fix?', 'five words is plenty') +
     '<div class="composer">' +
       '<textarea id="gripe" placeholder="Tell it..."></textarea>' +
-      '<div id="thumbs" class="attach"></div>' +
+      '<div id="thumbs" class="attach"></div>' + spotLineHTML() +
       '<div class="cfoot">' +
-        '<div class="iconbtn" id="addmedia">📷</div>' +
+        '<div class="iconbtn" id="addmedia">📷</div>' + spotButtonHTML() +
         '<input id="fpick" type="file" accept="image/*,video/*" multiple hidden>' +
         '<div class="spacer"></div>' +
       '</div>' +
@@ -909,7 +950,7 @@ function screenCapture(prefGripe, prefName){
     (!saved && !KIOSK ? '<p class="privacy"><a href="/pack" style="color:#3b6fb6;font-weight:700">Just looking? Peek at The Pack →</a></p>' : '') +
     (GOOGLE_READY && !saved && !KIOSK ? '<p class="privacy"><a href="#" id="grestore" style="color:#3b6fb6;font-weight:700">Backed up a pup before? Find it →</a></p><div id="grslot"></div>' : '') +
     tabbar('pup');
-  wireAttach(); wireTabs();
+  wireAttach(); wireTabs(); pendingSpot = null; wireSpot();
   var gr = document.getElementById('grestore'); if (gr) gr.onclick = function(ev){ ev.preventDefault(); gr.style.display = 'none'; startRestore(document.getElementById('grslot')); };
   var ta = document.getElementById('gripe'), inp = document.getElementById('pname');
   if (prefGripe) ta.value = prefGripe;
@@ -947,8 +988,8 @@ function screenUnbox(name, gripe){
   });
   var mint = ensurePlace().then(function(){ return uploadPending(); }).then(function(media){
     return rpc('vp_create_ledger', { p_name: name }).then(function(l){
-      return rpc('vp_add_entry', { p_tail: l.tail, p_body: gripe, p_shared: false, p_media: media, p_place: getPlace() })
-             .then(function(r){ pendingFiles = []; l.first = r && r.id; return l; });
+      return rpc('vp_add_entry', Object.assign({ p_tail: l.tail, p_body: gripe, p_shared: false, p_media: media, p_place: getPlace() }, spotArgs()))
+             .then(function(r){ pendingFiles = []; pendingSpot = null; l.first = r && r.id; return l; });
     });
   });
   Promise.all([mint, animDone]).then(function(vals){
@@ -1083,7 +1124,7 @@ function screenLedger(tail){
       return '<div class="card' + (e.fixed_at ? ' fixedcard' : '') + '">' +
         (e.body ? '<div class="entry-body">' + esc(e.body) + '</div>' : '') + mediaHTML(e.media) +
         '<div class="ts">' + new Date(e.ts).toLocaleString() + '</div>' +
-        '<div class="chips">' + placeChip(e.place, e.topic) + (e.topic ? '<a class="topicchip" href="/pack?t=' + encodeURIComponent(e.topic) + '">#' + esc(e.topic) + '</a>' : '') + '<span class="chip" data-edit="' + e.id + '" title="change topic">\u270e</span>' +
+        '<div class="chips">' + placeChip(e.place, e.topic) + spotChip(e) + (e.topic ? '<a class="topicchip" href="/pack?t=' + encodeURIComponent(e.topic) + '">#' + esc(e.topic) + '</a>' : '') + '<span class="chip" data-edit="' + e.id + '" title="change topic">\u270e</span>' + reactChips(e, null, true) +
         (e.fixed_at ? '<span class="chip fixedchip" data-fix="' + e.id + '" data-on="1" title="tap if it broke again">✅ Fixed ' + new Date(e.fixed_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) + '</span>'
                     : '<span class="chip" data-fix="' + e.id + '" data-on="0" title="mark as fixed">✔</span>') + (e.shared
           ? '<span class="chip goldfill">🌿 Counted with the community</span>' + sameChip(e.id, e.backs || 0, true, true) +
@@ -1110,9 +1151,9 @@ function screenLedger(tail){
           return '<div class="card">' +
             (e.body ? '<div class="entry-body">' + esc(e.body) + '</div>' : '') + mediaHTML(e.media) +
             '<div class="ts">— ' + esc(e.pup) + ' · ' + new Date(e.ts).toLocaleDateString() + '</div>' +
-            '<div class="chips">' + placeChip(e.place, e.topic) +
+            '<div class="chips">' + placeChip(e.place, e.topic) + spotChip(e) +
               (e.topic ? '<a class="topicchip" href="/pack?t=' + encodeURIComponent(e.topic) + '">#' + esc(e.topic) + '</a>' : '') +
-              sameChip(e.id, e.backs || 0, true, false) + '</div></div>';
+              sameChip(e.id, e.backs || 0, true, false) + reactChips(e, (L.reacts || {})[e.id], false) + '</div></div>';
         }).join('') + '</div>';
       Array.prototype.forEach.call(bb.querySelectorAll('[data-back]'), function(c){
         c.onclick = function(){
@@ -1498,6 +1539,8 @@ function screenReport(tail){
 }
 
 // ---------- the daily fetch: once a day the pup brings ONE thing back ----------
+function seenFixedAsk(id){ try { return (localStorage.getItem('vp.fixask') || '').indexOf(id) >= 0; } catch (e) { return false; } }
+function markFixedAsk(id){ try { localStorage.setItem('vp.fixask', ((localStorage.getItem('vp.fixask') || '') + ',' + id).slice(-2000)); } catch (e) {} }
 function dailyFetch(L, tail){
   if (KIOSK) return;
   var host = document.getElementById('fetchslot'); if (!host) return;
@@ -1514,6 +1557,12 @@ function dailyFetch(L, tail){
     pick = { kind: 'backs', title: (d === 1 ? 'Someone feels the same' : d + ' more people feel the same'),
       body: '&ldquo;' + esc(g.body || '📷 your photo') + '&rdquo; now has ' + g.backs + ' 🐾',
       actions: '<a class="btn gold mbtn" href="/pack' + (g.topic ? '?t=' + encodeURIComponent(g.topic) : '') + '">See the Pack</a>' };
+  } else if (L.entries.some(function(e){ return !e.fixed_at && (e.fixedv || 0) > 0 && !seenFixedAsk(e.id); })) {
+    var fx = L.entries.filter(function(e){ return !e.fixed_at && (e.fixedv || 0) > 0 && !seenFixedAsk(e.id); })[0];
+    markFixedAsk(fx.id);
+    pick = { kind: 'memory', id: fx.id, title: fx.fixedv + (fx.fixedv === 1 ? ' neighbour says' : ' neighbours say') + ' this looks fixed',
+      body: '&ldquo;' + esc(fx.body || '📷 your photo') + '&rdquo; &mdash; is it?',
+      actions: '<button class="btn ghost mbtn" data-df="broken">Still broken 😤</button><button class="btn gold mbtn" data-df="fixed">Fixed! 🎉</button>' };
   } else if (!already) {
     var old = L.entries.filter(function(e){ return !e.fixed_at && (Date.now() - new Date(e.ts)) > 5 * 864e5; });
     if (old.length) {
@@ -1559,7 +1608,9 @@ function dailyFetch(L, tail){
       return '<div class="dcard">' + (img ? '<img src="' + esc(img) + '" alt="">' : '') +
         '<div class="dbody">' + esc(r.body || '📷') + '</div>' +
         '<div class="dmeta">' + (r.topic ? '#' + esc(r.topic) + ' · ' : '') + esc(r.pup || '') + (r.place ? ', ' + esc(r.place.split(',')[0]) : '') +
-          (r.backs ? ' · 🐾 ' + r.backs : '') + '</div><div class="dstamp yes">🐾 SAME HERE</div><div class="dstamp no">NOT FOR ME</div></div>';
+          (r.spot ? ' · 📍 ' + esc(r.spot) : '') + (r.backs ? ' · 🐾 ' + r.backs : '') + '</div>' +
+        '<div class="chips dreact">' + reactChips(r, (L.reacts || {})[r.id], false) + '</div>' +
+        '<div class="dstamp yes">🐾 SAME HERE</div><div class="dstamp no">NOT FOR ME</div></div>';
     }
     function draw(){
       if (idx >= deck.length) {
@@ -1604,6 +1655,30 @@ function dailyFetch(L, tail){
   });
 }
 function reduceMotionPref(){ return window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches; }
+// neighbours' status on someone else's issue: 🚧 still broken / ✅ looks fixed (one per pup, latest wins)
+function reactChips(e, mine, own){
+  if (!e || !e.id) return '';
+  var s = e.still || 0, f = e.fixedv || 0;
+  if (own) return (s || f) ? '<span class="chip" style="cursor:default" title="what neighbours say">' + (s ? '🚧 ' + s + ' still broken' : '') + (s && f ? ' · ' : '') + (f ? '✅ ' + f + ' say fixed' : '') + '</span>' : '';
+  return '<span class="chip react' + (mine === 'still' ? ' on' : '') + '" data-react="still" data-id="' + esc(e.id) + '">🚧 Still broken' + (s ? ' · ' + s : '') + '</span>' +
+         '<span class="chip react' + (mine === 'fixed' ? ' on' : '') + '" data-react="fixed" data-id="' + esc(e.id) + '">✅ Looks fixed' + (f ? ' · ' + f : '') + '</span>';
+}
+document.addEventListener('click', function(ev){
+  var c = ev.target && ev.target.closest ? ev.target.closest('[data-react]') : null;
+  if (!c) return;
+  var s = loadLocal();
+  if (!s) { toast('Name your own pup first (10 seconds), then you can weigh in.'); location.href = '/app.html?new=1'; return; }
+  var id = c.getAttribute('data-id'), kind = c.getAttribute('data-react'), on = c.classList.contains('on');
+  c.style.opacity = .5;
+  rpc('vp_react', { p_tail: s.tail, p_id: id, p_kind: on ? null : kind }).then(function(r){
+    var e = { id: id, still: r.still, fixedv: r.fixed };
+    Array.prototype.forEach.call(document.querySelectorAll('[data-react][data-id="' + id + '"]'), function(x){
+      var wrap = x.parentNode, first = wrap.querySelector('[data-react][data-id="' + id + '"]');
+      if (x === first) first.insertAdjacentHTML('beforebegin', reactChips(e, r.mine, false));
+      wrap.removeChild(x);
+    });
+  }).catch(function(e){ c.style.opacity = 1; toast(e.message); });
+});
 function itemImgAny(r){ var u = null; (r.media || []).forEach(function(m){ if (!u && m.url && m.type && m.type.indexOf('image') === 0) u = m.url; }); return u; }
 function toast(html, ms){
   var old = document.querySelector('.toast'); if (old) old.parentNode.removeChild(old);
@@ -1617,16 +1692,16 @@ function openAdd(){
   pendingFiles = [];
   var nm = esc(s.name);
   var ov = document.createElement('div'); ov.className = 'stkover'; document.body.appendChild(ov);
-  function close(){ if (ov.parentNode) ov.parentNode.removeChild(ov); pendingFiles = []; }
+  function close(){ if (ov.parentNode) ov.parentNode.removeChild(ov); pendingFiles = []; pendingSpot = null; }
   ov.onclick = function(ev){ if (ev.target === ov) close(); };
   ov.innerHTML = '<div class="stksheet addsheet"><div class="addhead">🐾 Tell ' + nm + '</div>' +
     '<textarea id="gripe" placeholder="What should be fixed? Five words is plenty."></textarea>' +
-    '<div id="thumbs" class="attach"></div>' +
-    '<div class="addfoot"><div class="iconbtn" id="addmedia">📷</div>' +
+    '<div id="thumbs" class="attach"></div>' + spotLineHTML() +
+    '<div class="addfoot"><div class="iconbtn" id="addmedia">📷</div>' + spotButtonHTML() +
       '<input id="fpick" type="file" accept="image/*,video/*" multiple hidden>' +
       '<button class="btn compact" id="priv" disabled>🔒 Keep private</button>' +
       '<button class="btn gold compact" id="share" disabled>🌱 Be counted</button></div></div>';
-  wireAttach();
+  wireAttach(); pendingSpot = null; wireSpot();
   var ta = document.getElementById('gripe'); ta.focus();
   function upd(){ var ok = !!(ta.value.trim() || pendingFiles.length);
     document.getElementById('priv').disabled = !ok; document.getElementById('share').disabled = !ok; }
@@ -1635,7 +1710,7 @@ function openAdd(){
   function submit(shared){
     document.getElementById('priv').disabled = true; document.getElementById('share').disabled = true;
     ensurePlace().then(function(){ return uploadPending(); }).then(function(media){
-      return rpc('vp_add_entry', { p_tail: s.tail, p_body: ta.value.trim(), p_shared: shared, p_media: media, p_place: getPlace() });
+      return rpc('vp_add_entry', Object.assign({ p_tail: s.tail, p_body: ta.value.trim(), p_shared: shared, p_media: media, p_place: getPlace() }, spotArgs()));
     }).then(function(){
       close();
       var c = 0; try { c = +(localStorage.getItem('vp.adds') || 0) + 1; localStorage.setItem('vp.adds', String(c)); } catch (e) {}
@@ -1694,6 +1769,7 @@ function screenPack(mode, topic0){
       .map(function(e){ return { id: e.id, backs: e.backs || 0, body: e.body, ts: e.ts, pup: saved.name, media: e.media, topic: e.topic, place: e.place }; });
     var myIds = {}; mine.forEach(function(e){ myIds[e.id] = 1; });
     var backedList = (res[1] && res[1].backed) || [];
+    var myReacts = (res[1] && res[1].reacts) || {};
     var backed = {}; backedList.forEach(function(e){ backed[e.id] = 1; });
     var b = document.getElementById('board');
     if (!rows.length && !mine.length) {
@@ -1711,7 +1787,8 @@ function screenPack(mode, topic0){
           (r.place ? '<span class="chip" style="cursor:default">\ud83d\udccd ' + esc(r.place.split(',')[0]) + '</span>' : '') + '</div>' : '') +
         (r.body ? '<div class="entry-body">' + esc(r.body) + '</div>' : '') + mediaHTML(r.media) +
         '<div class="ts">\u2014 ' + esc(r.pup) + ' \u00b7 ' + new Date(r.ts).toLocaleDateString() + '</div>' +
-        (r.id ? '<div class="chips" style="margin-top:6px">' + sameChip(r.id, r.backs || 0, !!backed[r.id], !!myIds[r.id]) + '</div>' : '') +
+        (r.id ? '<div class="chips" style="margin-top:6px">' + spotChip(r) + sameChip(r.id, r.backs || 0, !!backed[r.id], !!myIds[r.id]) +
+          (myIds[r.id] ? reactChips(r, null, true) : reactChips(r, myReacts[r.id], false)) + '</div>' : '') +
         '</div>';
     }
     b.addEventListener('click', function(ev){
@@ -1872,7 +1949,7 @@ function screenPack(mode, topic0){
   }).catch(function(e){ document.getElementById('board').textContent = 'The pack is napping: ' + e.message; });
 }
 
-var APP_VERSION = "20260930174748";
+var APP_VERSION = "20260930175822";
 (function(){
   try {
     fetch('/version.json?t=' + Date.now(), { cache: 'no-store' }).then(function(r){ return r.json(); }).then(function(j){
@@ -2076,7 +2153,8 @@ function screenView(tok){
       (V.entries.length ? '<div class="grid2">' + V.entries.map(function(e){
         return '<div class="card">' + (e.topic ? '<div style="margin-bottom:6px"><span class="topicchip">#' + esc(e.topic) + '</span></div>' : '') +
           (e.body ? '<div class="entry-body">' + esc(e.body) + '</div>' : '') + mediaHTML(e.media) +
-          '<div class="ts">' + new Date(e.ts).toLocaleDateString() + '</div></div>';
+          (e.spot ? '<div class="chips"><span class="chip" style="cursor:default">📍 ' + esc(e.spot) + '</span></div>' : '') +
+          '<div class="ts">' + new Date(e.ts).toLocaleDateString() + (e.fixed_at ? ' · ✅ fixed' : '') + '</div></div>';
       }).join('') + '</div>' : '<div class="hint">Nothing shared here yet.</div>') +
       '<div class="banner" style="font-weight:700; color:var(--ink)">Want this vote? Tell this voter how you’ll fix these.</div>' +
       '<footer>VoterPup — a voter’s memory. Not tied to any party or candidate.<br>' +
