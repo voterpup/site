@@ -1711,7 +1711,8 @@ function whySheet(kind, name){
   var lines = kind === 'pack' ? [
       'One voice is a complaint.', '<b>A pack is a demand.</b>',
       'Every line here was said by a neighbour.', 'No names. No parties. No ads.',
-      'Seen it too? <b>🐾 Same here.</b>', 'Numbers move councils.'
+      'Seen it too? <b>🐾 Same here.</b>',
+      'Numbers move councils.', 'Councils move provinces.', 'Provinces move countries.', '<b>Countries move the world.</b>'
     ] : [
       'You forget. <b>' + nm + ' doesn&rsquo;t.</b>',
       'Give it what your city should fix.', 'Private, unless you say so.',
@@ -2048,7 +2049,7 @@ function screenPack(mode, topic0){
   }).catch(function(e){ document.getElementById('board').textContent = 'The pack is napping: ' + e.message; });
 }
 
-var APP_VERSION = "20260930185042";
+var APP_VERSION = "20260930185444";
 (function(){
   try {
     fetch('/version.json?t=' + Date.now(), { cache: 'no-store' }).then(function(r){ return r.json(); }).then(function(j){
