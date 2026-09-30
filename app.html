@@ -249,6 +249,8 @@
   .pupav{width:52px; height:52px; border-radius:50%; object-fit:cover; border:2px solid var(--gold)}
   .pupname{font-size:20px; font-weight:800} .pupsub{font-size:12.5px; color:var(--sub)}
   .addhead{font-size:17px; font-weight:800; margin-bottom:8px}
+  .addvid{height:84px; border-radius:12px; overflow:hidden; margin:0 0 10px; background:#e9edf1}
+  .addvid video{width:100%; height:100%; object-fit:cover; object-position:50% 60%; display:block}
   .stksheet .mp{font-size:12.5px; color:var(--sub); margin:0 0 8px; line-height:1.45}
   .addsheet textarea{width:100%; min-height:90px; border:1px solid var(--line); border-radius:12px; padding:10px; font:inherit; resize:vertical}
   .addfoot{display:flex; gap:8px; align-items:center; margin-top:10px}
@@ -956,7 +958,7 @@ function screenCapture(prefGripe, prefName){
     '<div class="manifesto"><b>They set the agenda.<br>Time we set it for them.</b>' +
       '<span>Algorithms make you forget what mattered. Your pup fetches them back.</span></div>' +
     '<div class="composer">' +
-      '<textarea id="gripe" placeholder="What should your city fix? Five words is plenty."></textarea>' +
+      '<textarea id="gripe" placeholder="What should they fix? Five words is plenty."></textarea>' +
       '<div id="thumbs" class="attach"></div>' + spotLineHTML() +
       '<div class="cfoot">' +
         '<div class="iconbtn" id="addmedia">📷</div>' + spotButtonHTML() +
@@ -1727,7 +1729,7 @@ function whySheet(kind, name){
       'Numbers move councils.', 'Councils move states and provinces.', 'States and provinces move countries.', '<b>Countries move the world.</b>'
     ] : [
       'Algorithms make you forget what mattered.', '<b>' + nm + ' fetches them back.</b>',
-      'Give it what your city should fix.', 'Private, unless you say so.',
+      'Give it what they should fix.', 'Private, unless you say so.',
       'The morning you vote, ' + nm + ' hands you your list.',
       '<b>Make them earn it.</b>'
     ];
@@ -1764,7 +1766,8 @@ function openAdd(){
   function close(){ if (ov.parentNode) ov.parentNode.removeChild(ov); pendingFiles = []; pendingSpot = null; }
   ov.onclick = function(ev){ if (ev.target === ov) close(); };
   ov.innerHTML = '<div class="stksheet addsheet"><div class="addhead">🐾 Tell ' + nm + '</div>' +
-    '<textarea id="gripe" placeholder="What should be fixed? Five words is plenty."></textarea>' +
+    '<div class="addvid"><video src="/pup-robo.mp4" poster="/pup-robo.jpg" muted autoplay loop playsinline></video></div>' +
+    '<textarea id="gripe" placeholder="What should they fix? Five words is plenty."></textarea>' +
     '<div id="thumbs" class="attach"></div>' + spotLineHTML() +
     '<div class="addfoot"><div class="iconbtn" id="addmedia">📷</div>' + spotButtonHTML() +
       '<input id="fpick" type="file" accept="image/*,video/*" multiple hidden>' +
@@ -2061,7 +2064,7 @@ function screenPack(mode, topic0){
   }).catch(function(e){ document.getElementById('board').textContent = 'The pack is napping: ' + e.message; });
 }
 
-var APP_VERSION = "20260930191849";
+var APP_VERSION = "20260930193605";
 (function(){
   try {
     fetch('/version.json?t=' + Date.now(), { cache: 'no-store' }).then(function(r){ return r.json(); }).then(function(j){
