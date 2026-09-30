@@ -239,6 +239,7 @@
   .plusbtn b{position:absolute; left:50%; top:-18px; transform:translateX(-50%); width:54px; height:54px; border-radius:50%;
       background:var(--gold); color:#2a2418; font-size:32px; font-weight:600; line-height:52px; text-align:center;
       box-shadow:0 4px 14px rgba(180,130,20,.45); border:3px solid var(--card)}
+  .nav.compact .brand{white-space:nowrap} .nav.compact .installchip span{display:none} .nav.compact .installchip{padding:6px 9px}
   .navpill{display:inline-flex; align-items:center; height:36px; padding:0 12px; border-radius:999px; background:#faf3df; border:1px solid var(--gold);
       color:#7a5a0c; font-weight:800; font-size:12.5px; text-decoration:none; white-space:nowrap}
   .iconnav{display:inline-flex; width:36px; height:36px; align-items:center; justify-content:center; border-radius:50%;
@@ -1115,7 +1116,7 @@ function screenLedger(tail){
     saveLocal(tail, L.name);
     var n = L.entries.length;
     pendingFiles = [];
-    root.innerHTML = nav(KIOSK ? '' : '<a href="#" class="navpill" id="navshow" title="A read-only code for candidates">📤 My issues</a><a href="/manage" class="iconnav" id="navman" title="Manage">⚙️</a>') +
+    root.innerHTML = nav(KIOSK ? '' : '<a href="#" class="navpill" id="navshow" title="A read-only code for candidates">📤 My issues</a><a href="/manage" class="iconnav" id="navman" title="Manage">⚙️</a>').replace('class="nav"', 'class="nav compact"') +
       '<div class="puphead"><img class="pupav" src="/pup-face.jpg" alt=""><div><div class="pupname">' + esc(L.name) + '</div>' +
         '<div class="pupsub">' + (n ? 'remembers ' + n + ' thing' + (n === 1 ? '' : 's') : 'tap + to tell ' + esc(L.name) + ' something') + '</div></div>' +
         '</div>' +
@@ -1289,7 +1290,7 @@ function showSticker(canvas, name, url){
 }
 
 function nav(extra){ return '<div class="nav"><div class="brand">Voter<b>Pup</b> 🐾</div><div class="navr">' +
-  (canOfferInstall() ? '<a href="#" class="installchip">📲 Get the app</a>' : '') + (extra || '') + '</div></div>'; }
+  (canOfferInstall() ? '<a href="#" class="installchip">📲<span> Get the app</span></a>' : '') + (extra || '') + '</div></div>'; }
 function say(text, small, name){
   return '<div class="say"><img class="avatar" src="/pup-face.jpg" alt="">' +
     '<div class="balloon">' + text + (small ? '<small>' + small + '</small>' : '') + '</div></div>';
@@ -2059,7 +2060,7 @@ function screenPack(mode, topic0){
   }).catch(function(e){ document.getElementById('board').textContent = 'The pack is napping: ' + e.message; });
 }
 
-var APP_VERSION = "20260930190531";
+var APP_VERSION = "20260930190644";
 (function(){
   try {
     fetch('/version.json?t=' + Date.now(), { cache: 'no-store' }).then(function(r){ return r.json(); }).then(function(j){
