@@ -21,9 +21,38 @@ Deno.serve(async (req) => {
   else ({ data: due, error } = await db.rpc("vp_due_reminders"));
   if (error) return new Response("db: " + error.message, { status: 500, headers: CORS });
   due = (due ?? []).map((s: any) => ({ ...s, name: s.name ?? s.ledgers?.name ?? "Your pup" }));
+
+  // vote morning: "today you vote" -> the pup's list (Flashback)
+  let votes = 0;
+  if (!body.test) {
+    const { data: vd } = await db.rpc("vp_due_vote_pushes");
+    for (const v of vd ?? []) {
+      try {
+        await webpush.sendNotification({ endpoint: v.endpoint, keys: { p256dh: v.p256dh, auth: v.auth } },
+          JSON.stringify({ title: "\ud83d\uddf3\ufe0f Today you vote" + (v.city ? " in " + v.city : ""),
+                           body: v.name + " brings you everything you said. " + v.election + ".", url: "/p/" + v.tail + "?flash=1" }),
+          { TTL: 12 * 3600, urgency: "high" });
+        await db.from("push_subs").update({ last_vote_push: new Date().toISOString().slice(0, 10) }).eq("endpoint", v.endpoint);
+        votes++;
+      } catch (e: any) {
+        if (e?.statusCode === 404 || e?.statusCode === 410) await db.from("push_subs").delete().eq("endpoint", v.endpoint);
+      }
+    }
+  }
   let sent = 0, gone = 0, failed = 0;
   for (const s of due ?? []) {
-    const line = LINES[Math.floor(Math.random() * LINES.length)](s.name);
+    let line = LINES[Math.floor(Math.random() * LINES.length)](s.name);
+    if (!body.test) {
+      const { data: f } = await db.rpc("vp_reminder_facts", { p_tail: s.tail });
+      const st = f?.stats ?? {};
+      if (!s.last_sent && f?.city && (st.issues_week ?? 0) >= 3)
+        line = `${s.name}'s first report: ${st.issues_week} issues raised in ${f.city} this week` +
+               (st.top_topic ? `, most on #${st.top_topic}` : "") + ". Anything to add?";
+      else if ((f?.backs ?? 0) > 0)
+        line = `${f.backs} ${f.backs === 1 ? "person feels" : "people feel"} the same as you so far. Anything new today?`;
+      else if ((f?.entries ?? 0) === 0)
+        line = `${s.name} hasn't heard anything yet. What should your city fix?`;
+    }
     try {
       const r = await webpush.sendNotification({ endpoint: s.endpoint, keys: { p256dh: s.p256dh, auth: s.auth } },
         JSON.stringify({ title: "🐾 " + s.name, body: body.test ? "Test reminder: this is how " + s.name + " will ask." : line, url: "/p/" + s.tail + "?add=1" }),
@@ -37,5 +66,5 @@ Deno.serve(async (req) => {
       else { failed++; }
     }
   }
-  return new Response(JSON.stringify({ due: due?.length ?? 0, sent, gone, failed }), { headers: CORS });
+  return new Response(JSON.stringify({ due: due?.length ?? 0, sent, gone, failed, votes }), { headers: CORS });
 });

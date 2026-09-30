@@ -172,6 +172,20 @@
   .dfetch .ft small{margin-top:4px} .dfetch .mact{margin-top:8px}
   .dfx{position:absolute; top:6px; right:10px; color:var(--sub); text-decoration:none; font-size:15px}
   .fixedcard{opacity:.72} .fixedchip{background:#eef6f2; border-color:#cfe5da; color:#2f7d5f; font-weight:700}
+  .report{padding:6px 2px 40px}
+  .rphead{display:flex; align-items:center; gap:12px; margin:8px 0 16px}
+  .rphead img{width:56px; height:56px; border-radius:50%; object-fit:cover; border:2px solid var(--gold)}
+  .rpk{font-size:11px; font-weight:800; color:#8a6a14; text-transform:uppercase; letter-spacing:.5px}
+  .rpt{font-size:22px; font-weight:800}
+  .rprow{display:flex; gap:12px; align-items:flex-start; background:var(--card); border:1px solid var(--line); border-radius:14px; padding:11px 12px; margin-bottom:8px}
+  .rprow span{font-size:22px; line-height:1.2} .rprow b{display:block; font-size:15px} .rprow small{display:block; color:var(--sub); font-size:12.5px; margin-top:2px}
+  .proof{background:#eef6f2; border:1px solid #cfe5da; color:#2f7d5f; border-radius:12px; padding:9px 12px; font-size:13px; margin:12px 0 4px}
+  .rpskip{display:block; text-align:center; color:var(--sub); font-size:13px; margin-top:12px}
+  body.wall .nav,body.wall .tabbar,body.wall .installchip,body.wall .searchbar,body.wall .chips,body.wall .newbie,body.wall .packhero,body.wall .toast{display:none !important}
+  body.wall .tilegrid{grid-template-columns:repeat(3, 1fr); gap:14px} body.wall .tile{min-height:180px} body.wall .tname{font-size:18px} body.wall .tsnippet{font-size:16px}
+  body.wall #root{padding:18px 24px 0; max-width:none}
+  .wallhead{font-size:34px; font-weight:800; margin:4px 0 16px; letter-spacing:-.3px}
+  .wallhead small{display:block; font-size:16px; font-weight:600; color:var(--sub); margin-top:4px}
   .plusbtn{flex:0 0 64px !important; position:relative}
   .plusbtn b{position:absolute; left:50%; top:-18px; transform:translateX(-50%); width:54px; height:54px; border-radius:50%;
       background:var(--gold); color:#2a2418; font-size:32px; font-weight:600; line-height:52px; text-align:center;
@@ -418,6 +432,8 @@ try { sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY,
 
 var BASE = location.origin;
 var KIOSK = new URLSearchParams(location.search).get('kiosk') === '1';
+(function(){ var s = new URLSearchParams(location.search).get('src'); if (s) try { sessionStorage.setItem('vp.src', s.slice(0, 20)); } catch (e) {} })();
+function fromBooth(){ try { return sessionStorage.getItem('vp.src') === 'booth'; } catch (e) { return false; } }
 var root = document.getElementById('root');
 
 function rpc(fn, args) {
@@ -906,7 +922,7 @@ function screenUnbox(name, gripe){
   var mint = ensurePlace().then(function(){ return uploadPending(); }).then(function(media){
     return rpc('vp_create_ledger', { p_name: name }).then(function(l){
       return rpc('vp_add_entry', { p_tail: l.tail, p_body: gripe, p_shared: false, p_media: media, p_place: getPlace() })
-             .then(function(){ pendingFiles = []; return l; });
+             .then(function(r){ pendingFiles = []; l.first = r && r.id; return l; });
     });
   });
   Promise.all([mint, animDone]).then(function(vals){
@@ -927,8 +943,8 @@ function screenUnbox(name, gripe){
       document.getElementById('sticker').onclick = function(){ makeSticker(l.name, url); };
       document.getElementById('newpup').onclick = function(){ location.href = location.pathname + '?kiosk=1'; };
     } else {
-      try { sessionStorage.setItem('vp.tour', '1'); } catch (e) {}
-      location.href = url;
+      try { sessionStorage.setItem('vp.first', l.first || ''); if (!fromBooth()) sessionStorage.setItem('vp.tour', '1'); } catch (e) {}
+      location.href = url + '?report=1';
       return;
     }
     r.className = 'reveal show';
@@ -1010,9 +1026,9 @@ function screenLedger(tail){
     wireTabs(); renderVoteStrip(); refreshPlaceIfStale();
     var fb = document.getElementById('flashbtn'); if (fb) fb.onclick = function(ev){ ev.preventDefault(); openFlashback(L); };
 
-    if (new URLSearchParams(location.search).get('add') === '1' && !KIOSK) {   // opened from a reminder
-      history.replaceState(null, '', location.pathname); setTimeout(openAdd, 250);
-    }
+    var q0 = new URLSearchParams(location.search);
+    if (q0.get('add') === '1' && !KIOSK) { history.replaceState(null, '', location.pathname); setTimeout(openAdd, 250); }   // from a reminder
+    if (q0.get('flash') === '1') { history.replaceState(null, '', location.pathname); setTimeout(function(){ openFlashback(L); }, 400); }   // vote morning
     var wantTour = false; try { wantTour = sessionStorage.getItem('vp.tour') === '1'; sessionStorage.removeItem('vp.tour'); } catch (e) {}
     if (wantTour && !KIOSK) setTimeout(function(){ startTour(L.name); }, 700);
     if (!window._vpVisWired) { window._vpVisWired = true;
@@ -1383,6 +1399,57 @@ function installApp(){
              : '<p class="mp" style="font-size:14px">Open your browser menu <b>⋮</b> and tap <b>Install app</b> or <b>Add to Home screen</b>.</p>') +
     '<button class="btn gold" id="instok">Got it</button></div>';
 }
+// ---------- "Oreo reports back": the one screen that earns the install + notifications ----------
+function screenReport(tail){
+  var s = loadLocal(); if (!s || s.tail !== tail) { screenLedger(tail); return; }
+  var nm = esc(s.name), place = getPlace(), city = place ? esc(place.split(',')[0]) : null;
+  var first = ''; try { first = sessionStorage.getItem('vp.first') || ''; } catch (e) {}
+  function go(){
+    history.replaceState(null, '', '/p/' + tail);
+    screenLedger(tail);
+  }
+  Promise.all([
+    place ? rpc('vp_upcoming', { p_place: place }).then(function(l){ return (l || []).filter(function(x){ return x.kind === 'election' && !x.estimated; })[0] || null; }).catch(function(){ return null; }) : Promise.resolve(null),
+    place ? rpc('vp_place_stats', { p_place: place }).catch(function(){ return null; }) : Promise.resolve(null)
+  ]).then(function(res){
+    var el = res[0], st = res[1] || {};
+    var voteLine = el && el.vote_date
+      ? new Date(el.vote_date + 'T12:00:00').toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' }) + ' morning'
+      : 'The morning you vote';
+    var proof = (st.pups_week || 0) >= 5 && city
+      ? '<div class="proof">🐾 ' + st.pups_week + ' people in ' + city + ' told their pups ' + st.issues_week + ' things this week' +
+        (st.top_topic ? ' · most on <b>#' + esc(st.top_topic) + '</b>' : '') + '</div>' : '';
+    root.innerHTML = '<div class="report">' +
+      '<div class="rphead"><img src="/pup-face.jpg" alt=""><div><div class="rpk">From now on</div><div class="rpt">' + nm + ' reports back</div></div></div>' +
+      '<div class="rprow"><span>🔔</span><div><b>Tonight at 9</b><small>how many people feel the same as you</small></div></div>' +
+      '<div class="rprow"><span>🗳️</span><div><b>' + voteLine + '</b><small>your whole list, and what&rsquo;s on your ballot</small></div></div>' +
+      '<div class="rprow"><span>📋</span><div><b>After the vote</b><small>what they promised vs. what got fixed</small></div></div>' +
+      proof +
+      (first ? '<label class="switchrow" style="margin:12px 2px"><input type="checkbox" id="rpshare"> Count my first issue on The Pack 🌱 <small style="color:var(--sub)">(public, no name)</small></label>' : '') +
+      '<button class="btn gold" id="rpgo">Let ' + nm + ' report back 🔔</button>' +
+      '<a href="#" class="rpskip" id="rpskip">Not now</a>' +
+      '<p class="privacy" id="rperr"></p></div>';
+    document.getElementById('rpskip').onclick = function(ev){ ev.preventDefault(); try { localStorage.setItem('vp.remasked', '1'); } catch (e) {} go(); };
+    document.getElementById('rpgo').onclick = function(){
+      var b = this; b.disabled = true; b.textContent = 'One sec…';
+      var sh = document.getElementById('rpshare');
+      var p0 = (sh && sh.checked && first) ? rpc('vp_set_shared', { p_tail: tail, p_id: first, p_shared: true }).catch(function(){}) : Promise.resolve();
+      p0.then(function(){
+        if (!pushOK()) {                                   // iPhone Safari: notifications need the home-screen app first
+          if (isIOS() && !isInstalled()) { installApp(); document.getElementById('rperr').innerHTML = 'After adding, open VoterPup from your home screen and turn on reminders in ⚙️.'; }
+          b.disabled = false; b.textContent = 'Continue →'; b.onclick = go; return;
+        }
+        return saveReminder(tail, Object.assign({}, REM_DEFAULT)).then(function(){
+          toast('🔔 ' + nm + ' will report back tonight at 9');
+          if (_installEvt) { _installEvt.prompt(); return _installEvt.userChoice.then(function(){ _installEvt = null; }); }
+        }).then(go).catch(function(e){
+          document.getElementById('rperr').textContent = e.message; b.disabled = false; b.textContent = 'Try again';
+        });
+      });
+    };
+  });
+}
+
 // ---------- the daily fetch: once a day the pup brings ONE thing back ----------
 function dailyFetch(L, tail){
   if (KIOSK) return;
@@ -1489,9 +1556,13 @@ var TILE_COLORS = ['#2f7d5f','#b3702d','#5f6caf','#a94b4b','#3d8f8f','#6b8e23','
 
 function screenPack(mode, topic0){
   var place = getPlace();
-  if (!mode) mode = 'all';
+  var wall = new URLSearchParams(location.search).get('wall') === '1';
+  document.body.classList.toggle('wall', wall);
+  if (wall) { clearTimeout(window._wallT); window._wallT = setTimeout(function(){ screenPack(mode, topic0); }, 25000); }
+  if (!mode) mode = (wall && place) ? 'local' : 'all';
   var city = place ? place.split(',')[0] : null;
   root.innerHTML = nav() +
+    (wall ? '<div class="wallhead">🐾 What ' + esc(city || 'the Pack') + ' wants fixed<small>voterpup.com · scan the sticker, name a pup, add yours</small></div>' : '') +
     '<div class="packhero">' + slotMedia('pack') +
       '<div class="ft">The Pack \ud83d\udc3e<small>What everyone wants fixed.</small></div></div>' +
     (loadLocal() ? '' : '<div class="newbie">\ud83d\udc4b New here? Tap <b>+</b> to get your own pup.</div>') +
@@ -1690,7 +1761,7 @@ function screenPack(mode, topic0){
   }).catch(function(e){ document.getElementById('board').textContent = 'The pack is napping: ' + e.message; });
 }
 
-var APP_VERSION = "20260930074818";
+var APP_VERSION = "20260930080148";
 (function(){
   try {
     fetch('/version.json?t=' + Date.now(), { cache: 'no-store' }).then(function(r){ return r.json(); }).then(function(j){
@@ -2010,6 +2081,7 @@ function screenManage(){
   var qs = new URLSearchParams(location.search);
   var vm = location.pathname.match(/^\/v\/([0-9a-f]{20})$/);
   if (vm) screenView(vm[1]);
+  else if (m && qs.get('report') === '1') screenReport(decodeURIComponent(m[1]));
   else if (m) screenLedger(decodeURIComponent(m[1]));
   else if (location.pathname === '/pack') screenPack(undefined, new URLSearchParams(location.search).get('t') || null);
   else if (location.pathname === '/manage') screenManage();
