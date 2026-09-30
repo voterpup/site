@@ -193,7 +193,7 @@
       animation:tnew 6s forwards} @keyframes tnew{0%,80%{opacity:1} 100%{opacity:0}}
   body.wall .tnew{font-size:14px; padding:4px 12px}
   .deckwrap{display:block; padding:10px 10px 8px}
-  .deck{position:relative; height:200px; margin:8px 0 6px; touch-action:pan-y}
+  .deck{position:relative; height:200px; margin:8px 0 6px; touch-action:none}
   .dcard{position:absolute; inset:0; background:#fff; border:1px solid var(--line); border-radius:14px; padding:12px; overflow:hidden;
       box-shadow:0 4px 14px rgba(16,24,40,.12); user-select:none; -webkit-user-select:none; cursor:grab; display:flex; flex-direction:column}
   .dcard img{width:100%; height:96px; object-fit:cover; border-radius:10px; margin-bottom:8px; pointer-events:none}
@@ -201,15 +201,15 @@
   .dmeta{font-size:11.5px; color:var(--sub); margin-top:auto; padding-top:6px}
   .dunder{position:absolute; inset:0; transform:scale(.95) translateY(8px); opacity:.7} .dunder .dcard{cursor:default}
   .dstamp{position:absolute; top:12px; font-size:13px; font-weight:900; letter-spacing:1px; padding:3px 8px; border:3px solid; border-radius:8px; opacity:0; transform:rotate(-12deg)}
-  .dstamp.yes{left:10px; color:#2f7d5f; border-color:#2f7d5f} .dstamp.no{right:10px; color:#a94b4b; border-color:#a94b4b; transform:rotate(12deg)}
-  .dcard.lean-yes .dstamp.yes,.dcard.lean-no .dstamp.no{opacity:1}
+  .dstamp.yes{left:10px; color:#2f7d5f; border-color:#2f7d5f} .dstamp.no{right:10px; color:#8d99ae; border-color:#8d99ae; transform:rotate(12deg)}
+  .dstamp.up{left:50%; top:auto; bottom:14px; transform:translateX(-50%); color:#2f7d5f; border-color:#2f7d5f; background:#fff}
+  .dcard.lean-yes .dstamp.yes,.dcard.lean-no .dstamp.no,.dcard.lean-up .dstamp.up{opacity:1}
   .dcard.nudge{animation:nudge 1s ease-in-out 1}
   .dcard.nudge .dstamp.yes{animation:stampyes 1s ease-in-out 1} .dcard.nudge .dstamp.no{animation:stampno 1s ease-in-out 1}
   @keyframes nudge{0%{transform:none} 30%{transform:translateX(46px) rotate(4deg)} 50%{transform:none} 75%{transform:translateX(-34px) rotate(-3deg)} 100%{transform:none}}
   @keyframes stampyes{0%,50%,100%{opacity:0} 30%{opacity:1}} @keyframes stampno{0%,55%,100%{opacity:0} 75%{opacity:1}}
   .dcard.done{align-items:center; justify-content:center; text-align:center; background:#fffdf5}
-  .deckbtns{display:flex; gap:8px} .deckbtns .mbtn{flex:1; width:auto; margin:0}
-  .deckhint{text-align:center; font-size:10.5px; color:var(--sub); margin-top:6px}
+  .deckhint{display:flex; justify-content:space-between; font-size:10.5px; color:var(--sub); margin-top:6px; padding:0 4px}
   .iconbtn.on{background:#faf3df; border-color:var(--gold)}
   .spotchip{display:inline-block; font-size:12px; color:#7a5a0c; background:#faf3df; border:1px solid var(--gold); border-radius:999px; padding:4px 10px; margin-top:8px; max-width:100%;
       overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
@@ -1560,7 +1560,7 @@ function dailyFetch(L, tail){
   } else if (L.entries.some(function(e){ return !e.fixed_at && (e.fixedv || 0) > 0 && !seenFixedAsk(e.id); })) {
     var fx = L.entries.filter(function(e){ return !e.fixed_at && (e.fixedv || 0) > 0 && !seenFixedAsk(e.id); })[0];
     markFixedAsk(fx.id);
-    pick = { kind: 'memory', id: fx.id, title: fx.fixedv + (fx.fixedv === 1 ? ' neighbour says' : ' neighbours say') + ' this looks fixed',
+    pick = { kind: 'memory', id: fx.id, title: fx.fixedv + (fx.fixedv === 1 ? ' neighbour says' : ' neighbours say') + ' this is fixed now',
       body: '&ldquo;' + esc(fx.body || '📷 your photo') + '&rdquo; &mdash; is it?',
       actions: '<button class="btn ghost mbtn" data-df="broken">Still broken 😤</button><button class="btn gold mbtn" data-df="fixed">Fixed! 🎉</button>' };
   } else if (!already) {
@@ -1599,8 +1599,7 @@ function dailyFetch(L, tail){
     if (!deck.length) return;
     host.innerHTML = '<div class="fetchcard dfetch deckwrap"><div class="dfk">🐾 ' + nm + ' fetched these · seen it too?</div>' +
       '<div class="deck" id="deck"></div>' +
-      '<div class="deckbtns"><button class="btn ghost mbtn" id="dkskip">👋 Not for me</button><button class="btn gold mbtn" id="dksame">🐾 Same here</button></div>' +
-      '<div class="deckhint">swipe → same here · ← not for me</div><a href="#" class="dfx" id="dfx">✕</a></div>';
+      '<div class="deckhint"><span>← skip</span><span>↑ fixed now</span><span>same here →</span></div><a href="#" class="dfx" id="dfx">✕</a></div>';
     document.getElementById('dfx').onclick = function(ev){ ev.preventDefault(); host.innerHTML = ''; };
     var el = document.getElementById('deck'), idx = 0, backed = 0;
     function cardHTML(r){
@@ -1608,38 +1607,43 @@ function dailyFetch(L, tail){
       return '<div class="dcard">' + (img ? '<img src="' + esc(img) + '" alt="">' : '') +
         '<div class="dbody">' + esc(r.body || '📷') + '</div>' +
         '<div class="dmeta">' + (r.topic ? '#' + esc(r.topic) + ' · ' : '') + esc(r.pup || '') + (r.place ? ', ' + esc(r.place.split(',')[0]) : '') +
-          (r.spot ? ' · 📍 ' + esc(r.spot) : '') + (r.backs ? ' · 🐾 ' + r.backs : '') + '</div>' +
-        '<div class="chips dreact">' + reactChips(r, (L.reacts || {})[r.id], false) + '</div>' +
-        '<div class="dstamp yes">🐾 SAME HERE</div><div class="dstamp no">NOT FOR ME</div></div>';
+          (r.spot ? ' · 📍 ' + esc(r.spot) : '') + (r.backs ? ' · 🐾 ' + r.backs : '') + (r.fixedv ? ' · ✅ ' + r.fixedv : '') + '</div>' +
+        '<div class="dstamp yes">🐾 SAME HERE</div><div class="dstamp no">SKIP</div><div class="dstamp up">✅ FIXED NOW</div></div>';
     }
     function draw(){
       if (idx >= deck.length) {
         el.innerHTML = '<div class="dcard done"><div class="dbody">That&rsquo;s everyone nearby 🐾' + (backed ? '<br>You backed ' + backed + '.' : '') + '</div>' +
           '<a class="btn ghost mbtn" href="/pack">Browse the Pack</a></div>';
-        var bb = host.querySelector('.deckbtns'); if (bb) bb.style.display = 'none'; return;
+        var hh = host.querySelector('.deckhint'); if (hh) hh.style.display = 'none'; return;
       }
       el.innerHTML = (deck[idx + 1] ? '<div class="dunder">' + cardHTML(deck[idx + 1]) + '</div>' : '') + cardHTML(deck[idx]);
       wire(el.lastElementChild);
     }
-    function decide(card, yes){
+    // dir: 'yes' (→ same here), 'no' (← skip), 'up' (↑ fixed now)
+    function decide(card, dir){
       var r = deck[idx]; idx++;
       card.style.transition = 'transform .35s ease, opacity .35s ease';
-      card.style.transform = 'translateX(' + (yes ? 1 : -1) * 420 + 'px) rotate(' + (yes ? 18 : -18) + 'deg)'; card.style.opacity = 0;
-      if (yes) { backed++; rpc('vp_back', { p_tail: tail, p_id: r.id, p_on: true, p_place: getPlace() || null }).catch(function(){}); }
+      card.style.transform = dir === 'up' ? 'translateY(-420px) scale(.9)' : 'translateX(' + (dir === 'yes' ? 1 : -1) * 420 + 'px) rotate(' + (dir === 'yes' ? 18 : -18) + 'deg)';
+      card.style.opacity = 0;
+      if (dir === 'yes') { backed++; rpc('vp_back', { p_tail: tail, p_id: r.id, p_on: true, p_place: getPlace() || null }).catch(function(){}); }
+      if (dir === 'up') rpc('vp_react', { p_tail: tail, p_id: r.id, p_kind: 'fixed' }).catch(function(){});
       setTimeout(draw, 300);
     }
     function wire(card){
-      var x0 = null, dx = 0;
-      card.addEventListener('pointerdown', function(e){ x0 = e.clientX; dx = 0; card.setPointerCapture(e.pointerId); card.classList.remove('nudge'); card.style.transition = 'none'; });
+      var x0 = null, y0 = null, dx = 0, dy = 0;
+      card.addEventListener('pointerdown', function(e){ x0 = e.clientX; y0 = e.clientY; dx = dy = 0; card.setPointerCapture(e.pointerId); card.classList.remove('nudge'); card.style.transition = 'none'; });
       card.addEventListener('pointermove', function(e){
-        if (x0 === null) return; dx = e.clientX - x0;
-        card.style.transform = 'translateX(' + dx + 'px) rotate(' + dx / 14 + 'deg)';
-        card.classList.toggle('lean-yes', dx > 40); card.classList.toggle('lean-no', dx < -40);
+        if (x0 === null) return; dx = e.clientX - x0; dy = e.clientY - y0;
+        var upward = dy < -40 && Math.abs(dy) > Math.abs(dx);
+        card.style.transform = upward ? 'translateY(' + dy + 'px) scale(' + (1 + dy / 1600) + ')' : 'translateX(' + dx + 'px) rotate(' + dx / 14 + 'deg)';
+        card.classList.toggle('lean-yes', !upward && dx > 40); card.classList.toggle('lean-no', !upward && dx < -40); card.classList.toggle('lean-up', upward);
       });
       var up = function(){
         if (x0 === null) return; x0 = null;
-        if (Math.abs(dx) > 80) decide(card, dx > 0);
-        else { card.style.transition = 'transform .25s ease'; card.style.transform = ''; card.classList.remove('lean-yes', 'lean-no'); }
+        var upward = dy < -90 && Math.abs(dy) > Math.abs(dx);
+        if (upward) decide(card, 'up');
+        else if (Math.abs(dx) > 80) decide(card, dx > 0 ? 'yes' : 'no');
+        else { card.style.transition = 'transform .25s ease'; card.style.transform = ''; card.classList.remove('lean-yes', 'lean-no', 'lean-up'); }
       };
       card.addEventListener('pointerup', up); card.addEventListener('pointercancel', up);
     }
@@ -1649,8 +1653,6 @@ function dailyFetch(L, tail){
       try { sessionStorage.setItem('vp.decknudge', '1'); } catch (e) {}
       setTimeout(function(){ var c = el.lastElementChild; if (c && !c.classList.contains('done')) c.classList.add('nudge'); }, 350);
     }
-    document.getElementById('dksame').onclick = function(){ var c = el.lastElementChild; if (c && !c.classList.contains('done')) decide(c, true); };
-    document.getElementById('dkskip').onclick = function(){ var c = el.lastElementChild; if (c && !c.classList.contains('done')) decide(c, false); };
     draw();
   });
 }
@@ -1658,10 +1660,9 @@ function reduceMotionPref(){ return window.matchMedia && window.matchMedia('(pre
 // neighbours' status on someone else's issue: 🚧 still broken / ✅ looks fixed (one per pup, latest wins)
 function reactChips(e, mine, own){
   if (!e || !e.id) return '';
-  var s = e.still || 0, f = e.fixedv || 0;
-  if (own) return (s || f) ? '<span class="chip" style="cursor:default" title="what neighbours say">' + (s ? '🚧 ' + s + ' still broken' : '') + (s && f ? ' · ' : '') + (f ? '✅ ' + f + ' say fixed' : '') + '</span>' : '';
-  return '<span class="chip react' + (mine === 'still' ? ' on' : '') + '" data-react="still" data-id="' + esc(e.id) + '">🚧 Still broken' + (s ? ' · ' + s : '') + '</span>' +
-         '<span class="chip react' + (mine === 'fixed' ? ' on' : '') + '" data-react="fixed" data-id="' + esc(e.id) + '">✅ Looks fixed' + (f ? ' · ' + f : '') + '</span>';
+  var f = e.fixedv || 0;
+  if (own) return f ? '<span class="chip" style="cursor:default" title="what neighbours say">✅ ' + f + ' say it&rsquo;s fixed now</span>' : '';
+  return '<span class="chip react' + (mine === 'fixed' ? ' on' : '') + '" data-react="fixed" data-id="' + esc(e.id) + '">✅ Fixed now' + (f ? ' · ' + f : '') + '</span>';
 }
 document.addEventListener('click', function(ev){
   var c = ev.target && ev.target.closest ? ev.target.closest('[data-react]') : null;
@@ -1671,7 +1672,7 @@ document.addEventListener('click', function(ev){
   var id = c.getAttribute('data-id'), kind = c.getAttribute('data-react'), on = c.classList.contains('on');
   c.style.opacity = .5;
   rpc('vp_react', { p_tail: s.tail, p_id: id, p_kind: on ? null : kind }).then(function(r){
-    var e = { id: id, still: r.still, fixedv: r.fixed };
+    var e = { id: id, fixedv: r.fixed };
     Array.prototype.forEach.call(document.querySelectorAll('[data-react][data-id="' + id + '"]'), function(x){
       var wrap = x.parentNode, first = wrap.querySelector('[data-react][data-id="' + id + '"]');
       if (x === first) first.insertAdjacentHTML('beforebegin', reactChips(e, r.mine, false));
@@ -1949,7 +1950,7 @@ function screenPack(mode, topic0){
   }).catch(function(e){ document.getElementById('board').textContent = 'The pack is napping: ' + e.message; });
 }
 
-var APP_VERSION = "20260930175822";
+var APP_VERSION = "20260930180654";
 (function(){
   try {
     fetch('/version.json?t=' + Date.now(), { cache: 'no-store' }).then(function(r){ return r.json(); }).then(function(j){
