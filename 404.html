@@ -4,6 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <link rel="manifest" href="/manifest.webmanifest">
+<link rel="icon" href="/icon-192.png">
 <link rel="apple-touch-icon" href="/icon-192.png">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="VoterPup">
@@ -432,7 +433,9 @@ try { sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY,
 
 var BASE = location.origin;
 var KIOSK = new URLSearchParams(location.search).get('kiosk') === '1';
-(function(){ var s = new URLSearchParams(location.search).get('src'); if (s) try { sessionStorage.setItem('vp.src', s.slice(0, 20)); } catch (e) {} })();
+(function(){ var q = new URLSearchParams(location.search), s = q.get('src'), pl = q.get('place');
+  if (s) try { sessionStorage.setItem('vp.src', s.slice(0, 20)); } catch (e) {}
+  if (pl && /^[A-Za-z .'’()-]+(, [A-Za-z .'’()-]+){1,3}$/.test(pl.trim())) savePlace(pl.trim(), true); })();
 function fromBooth(){ try { return sessionStorage.getItem('vp.src') === 'booth'; } catch (e) { return false; } }
 var root = document.getElementById('root');
 
@@ -1389,7 +1392,7 @@ document.addEventListener('click', function(ev){
   var c = ev.target && ev.target.closest ? ev.target.closest('.installchip') : null;
   if (c) { ev.preventDefault(); installApp(); }
 });
-function canOfferInstall(){ return !isInstalled() && !KIOSK && /android|iphone|ipad|ipod/i.test(navigator.userAgent); }
+function canOfferInstall(){ return !isInstalled() && !KIOSK && !!loadLocal() && /android|iphone|ipad|ipod/i.test(navigator.userAgent); }
 function installApp(){
   if (_installEvt) { _installEvt.prompt(); _installEvt.userChoice.then(function(){ _installEvt = null; }); return; }
   var ov = document.createElement('div'); ov.className = 'stkover'; document.body.appendChild(ov);
@@ -1443,7 +1446,9 @@ function screenReport(tail){
           toast('🔔 ' + nm + ' will report back tonight at 9');
           if (_installEvt) { _installEvt.prompt(); return _installEvt.userChoice.then(function(){ _installEvt = null; }); }
         }).then(go).catch(function(e){
-          document.getElementById('rperr').textContent = e.message; b.disabled = false; b.textContent = 'Try again';
+          document.getElementById('rperr').innerHTML = esc(e.message) + ' You can turn reminders on later in ⚙️.';
+          b.disabled = false; b.textContent = 'Continue →'; b.onclick = go;
+          document.getElementById('rpskip').textContent = 'Try again'; document.getElementById('rpskip').onclick = function(ev){ ev.preventDefault(); screenReport(tail); };
         });
       });
     };
@@ -1460,7 +1465,7 @@ function dailyFetch(L, tail){
   var gained = L.entries.filter(function(e){ return (e.backs || 0) > (seen[e.id] || 0) && (e.id in seen); });
   try { localStorage.setItem(KB, JSON.stringify(snap)); } catch (e) {}
   var already = false; try { already = localStorage.getItem(K) === today; } catch (e) {}
-  if (already && !gained.length) return;
+  if ((already || new Date(L.created_at).toDateString() === today) && !gained.length) return;
   var nm = esc(L.name), pick = null;
   if (gained.length) {
     var g = gained.sort(function(a, b){ return (b.backs - (seen[b.id] || 0)) - (a.backs - (seen[a.id] || 0)); })[0];
@@ -1761,7 +1766,7 @@ function screenPack(mode, topic0){
   }).catch(function(e){ document.getElementById('board').textContent = 'The pack is napping: ' + e.message; });
 }
 
-var APP_VERSION = "20260930080148";
+var APP_VERSION = "20260930081451";
 (function(){
   try {
     fetch('/version.json?t=' + Date.now(), { cache: 'no-store' }).then(function(r){ return r.json(); }).then(function(j){
