@@ -1371,7 +1371,7 @@ function screenLedger(tail){
     renderIsland(tail, L.name);
 
     var q0 = new URLSearchParams(location.search);
-    if (q0.get('add') === 'walk' && !KIOSK) { history.replaceState(null, '', location.pathname); track('notif_open', { kind: 'walk' }); setTimeout(function(){ openAdd(); toast('🐾 Tap Walk ' + esc(L.name) + ' and snap your block'); }, 400); }
+    if (q0.get('add') === 'walk' && !KIOSK) { history.replaceState(null, '', location.pathname); track('notif_open', { kind: 'walk' }); setTimeout(function(){ openAdd(); toast('🐾 Tap Walk ' + esc(L.name) + ' and snap something'); }, 400); }
     if (q0.get('add') === '1' && !KIOSK) { history.replaceState(null, '', location.pathname); track('notif_open', { kind: 'reminder' }); setTimeout(openAdd, 250); }   // from a reminder
     if (q0.get('flash') === '1') { history.replaceState(null, '', location.pathname); track('notif_open', { kind: 'vote' }); setTimeout(function(){ openFlashback(L); }, 400); }   // vote morning
     var wantTour = false; try { wantTour = sessionStorage.getItem('vp.tour') === '1'; sessionStorage.removeItem('vp.tour'); } catch (e) {}
@@ -2084,7 +2084,7 @@ function openAdd(){
   ov.innerHTML = '<div class="stksheet addsheet"><div class="addtop">' +
       '<div class="addthumb"><video src="/pup-robo.mp4" poster="/pup-robo.jpg" muted autoplay loop playsinline></video></div>' +
       '<div><div class="addhead" style="margin:0">🐾 Tell ' + nm + '</div><div class="addtag">Break the Algo</div></div></div>' +
-    '<button class="walkbtn" id="walkbtn"><span class="wpaw">🐾</span>Walk ' + nm + '<small>snap one thing on your block · it names what it sees</small></button>' +
+    '<button class="walkbtn" id="walkbtn"><span class="wpaw">🐾</span>Walk ' + nm + '<small>snap one thing that could be better · it names what it sees</small></button>' +
     '<input id="fwalk" type="file" accept="image/*" capture="environment" hidden>' +
     '<textarea id="gripe" placeholder="Or type it: what should be fixed? Five words is plenty."></textarea>' +
     '<div id="thumbs" class="attach"></div>' + tagRowHTML() + spotLineHTML() +
@@ -2124,7 +2124,7 @@ function openAdd(){
   fw.addEventListener('change', function(){ if (fw.files && fw.files[0]) { close(); walkSheet(s, fw.files[0]); } });
 }
 // ---------- Walk the pup: one photo -> the pup names what it sees -> tap Keep ----------
-var WALK_LINES = ['Today&rsquo;s walk, tomorrow&rsquo;s fix.', 'You walk past it every day. Today the pup sees it too.', 'Same street, new eyes.', 'Your block, your eyes. Show the pup.'];
+var WALK_LINES = ['Today&rsquo;s walk, tomorrow&rsquo;s fix.', 'You walk past it every day. Today the pup sees it too.', 'Same street, new eyes.', 'Your eyes. Show the pup.'];
 function shrinkPhoto(file){   // 1024 px JPEG on a white background: cheap to send, good enough to read
   return new Promise(function(res, rej){
     var url = URL.createObjectURL(file), im = new Image();
@@ -2140,7 +2140,7 @@ function walkSheet(s, file){
   ov.onclick = function(ev){ if (ev.target === ov) close(); };
   var line = WALK_LINES[Math.floor(Math.random() * WALK_LINES.length)];
   ov.innerHTML = '<div class="stksheet addsheet walksheet"><div class="addhead">🐾 ' + nm + ' is looking…</div><div class="walkline">' + line + '</div>' +
-    '<div class="walkpic"><img id="walkimg" alt=""><div class="shine"></div><video class="scanpup" src="/pup-scan.mp4" muted autoplay loop playsinline></video></div><div id="walkout"><div class="hint">reading the block</div><div class="wskel" style="--i:0"></div><div class="wskel" style="--i:1"></div><div class="wskel" style="--i:2"></div></div></div>';
+    '<div class="walkpic"><img id="walkimg" alt=""><div class="shine"></div><video class="scanpup" src="/pup-scan.mp4" muted autoplay loop playsinline></video></div><div id="walkout"><div class="hint">reading the photo</div><div class="wskel" style="--i:0"></div><div class="wskel" style="--i:1"></div><div class="wskel" style="--i:2"></div></div></div>';
   var blob = null; pendingSpot = null; autoSpot();
   shrinkPhoto(file).then(function(b){ blob = b; document.getElementById('walkimg').src = URL.createObjectURL(b);
     return new Promise(function(res){ var r = new FileReader(); r.onload = function(){ res(r.result.split(',')[1]); }; r.readAsDataURL(b); });
@@ -2501,7 +2501,7 @@ function screenPack(mode, topic0){
   }).catch(function(e){ document.getElementById('board').textContent = 'The pack is napping: ' + e.message; });
 }
 
-var APP_VERSION = "20261001222021";
+var APP_VERSION = "20261001233145";
 (function(){
   try {
     fetch('/version.json?t=' + Date.now(), { cache: 'no-store' }).then(function(r){ return r.json(); }).then(function(j){
