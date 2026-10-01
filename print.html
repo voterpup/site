@@ -17,7 +17,7 @@ label{font-size:13px;font-weight:600}
 <div class="row"><canvas id="cv" width="384" height="600"></canvas><div><div style="font-weight:800;margin-bottom:6px">Waiting</div><div class="q" id="queue"></div></div></div>
 <div id="log"></div>
 <script>
-var KEY = new URLSearchParams(location.search).get('key') || '', SB = 'https://setyjmgijsbplgyqynlh.supabase.co', AK = 'sb_publishable_oONhR-c8-8zjP8Z8zL1Jew_kFq6sDaq';
+var KEY = new URLSearchParams(location.search).get('key') || '', SB = 'https://setyjmgijsbplgyqynlh.supabase.co', AK = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNldHlqbWdpanNicGxneXF5bmxoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTA1NDU0NTAsImV4cCI6MjEwNjEyMTQ1MH0.v8tjuc2UZrTw5whfDXtpEPW4CHggusgjq8Mkdh6ZMw8';
 var log = function(s){ var l = document.getElementById('log'); l.textContent += new Date().toLocaleTimeString() + '  ' + s + '\n'; l.scrollTop = 1e9; };
 var rpc = function(fn, args){ return fetch(SB + '/rest/v1/rpc/' + fn, { method: 'POST', headers: { apikey: AK, Authorization: 'Bearer ' + AK, 'content-type': 'application/json' }, body: JSON.stringify(args || {}) }).then(function(r){ if (!r.ok) throw new Error(fn + ' ' + r.status); return r.json(); }); };
 var qr = new Image(); qr.src = '/demo/qr.png';
