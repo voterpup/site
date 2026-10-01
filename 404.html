@@ -2109,7 +2109,7 @@ function screenPack(mode, topic0){
     var dist = function(c){ return (me && c.lat != null) ? Math.hypot((c.lat - me[0]) * 111, (c.lng - me[1]) * 111 * Math.cos(me[0] * Math.PI / 180)) : 1e9; };
     list.sort(function(a, b){ return dist(a) - dist(b); });
     Promise.all(list.slice(0, 5).map(function(c){ return rpc('vp_city_pulse', { p_place: c.city + ', x, x' }).catch(function(){ return null; }); })).then(function(cards){
-      cs.innerHTML = cards.filter(Boolean).map(function(cp, i){ var d = dist(list[i]); return cityCard(cp, d < 1e8 && me ? Math.round(d) + ' km away' : ''); }).join('');
+      cs.innerHTML = cards.filter(Boolean).map(function(cp, i){ var d = dist(list[i]); return cityCard(cp, d < 1e8 && me && d >= 5 ? Math.round(d) + ' km away' : ''); }).join('');
       if (cards[0]) window._cityPins = cards[0].pins || [];
     });
   }).catch(function(){});
@@ -2387,7 +2387,7 @@ function screenPack(mode, topic0){
   }).catch(function(e){ document.getElementById('board').textContent = 'The pack is napping: ' + e.message; });
 }
 
-var APP_VERSION = "20261001050245";
+var APP_VERSION = "20261001063904";
 (function(){
   try {
     fetch('/version.json?t=' + Date.now(), { cache: 'no-store' }).then(function(r){ return r.json(); }).then(function(j){
