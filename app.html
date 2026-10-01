@@ -297,6 +297,12 @@
   @keyframes molein{from{transform:translateY(60%) scale(.8); opacity:0} to{transform:none; opacity:1}}
   @keyframes shake{25%{transform:translateX(-4px)} 75%{transform:translateX(4px)}}
   .ghint{text-align:center; font-size:11.5px; color:var(--sub); margin-top:10px}
+  .ggrid{position:relative}
+  .gcall{position:absolute; left:50%; top:50%; transform:translate(-50%,-50%) scale(.7); width:72%; aspect-ratio:1; border-radius:22px; background:var(--c); color:#fff; display:flex; flex-direction:column;
+      align-items:center; justify-content:center; font-size:64px; line-height:1; box-shadow:0 10px 30px rgba(0,0,0,.3); z-index:5; animation:callin .25s ease forwards; pointer-events:none}
+  .gcall small{font-size:14px; font-weight:700; letter-spacing:.5px; opacity:.9; margin-bottom:6px} .gcall b{font-size:24px; font-weight:800; margin-top:8px}
+  .gcall.out{transition:opacity .35s, transform .35s; opacity:0; transform:translate(-50%,-50%) scale(1.15)}
+  @keyframes callin{to{transform:translate(-50%,-50%) scale(1)}}
   .gmet{display:flex; flex-direction:column; gap:8px; margin:10px 0 14px}
   .gprize{background:#1f2733; color:#fff; border-radius:14px; padding:14px; text-align:center; font-size:26px; font-weight:800; margin:4px 0 12px} .gprize small{display:block; font-size:12px; font-weight:600; opacity:.8; margin-top:2px}
   .plusbtn{flex:0 0 64px !important; position:relative}
@@ -2387,7 +2393,7 @@ function screenPack(mode, topic0){
   }).catch(function(e){ document.getElementById('board').textContent = 'The pack is napping: ' + e.message; });
 }
 
-var APP_VERSION = "20261001063904";
+var APP_VERSION = "20261001065055";
 (function(){
   try {
     fetch('/version.json?t=' + Date.now(), { cache: 'no-store' }).then(function(r){ return r.json(); }).then(function(j){
@@ -2758,6 +2764,15 @@ function screenPlay(){
         '<button class="btn gold" id="gstart">Start level 1</button></div>';
       document.getElementById('gstart').onclick = function(){ level = 1; score = 0; met = {}; start(); };
     }
+    function callout(txt, colour, ms, then){
+      var old = document.getElementById('gcall'); if (old) old.parentNode.removeChild(old);
+      var d = document.createElement('div'); d.id = 'gcall'; d.className = 'gcall'; d.style.setProperty('--c', colour);
+      d.innerHTML = txt; (document.querySelector('.ggrid') || g).appendChild(d);
+      setTimeout(function(){ d.classList.add('out'); setTimeout(function(){ if (d.parentNode) d.parentNode.removeChild(d); if (then) then(); }, 350); }, ms);
+    }
+    function targetCall(ms, then){
+      callout('<small>Smash the</small>' + (TOPIC_EMOJI[target] || '📌') + '<b>#' + esc(target) + '</b>', TILE_COLORS[(TOPIC_LIST.indexOf(target) + 13) % TILE_COLORS.length], ms, then);
+    }
     function hud(){
       var tg = document.getElementById('gtarget'), tm = document.getElementById('gtime'), sc = document.getElementById('gscore'), bf = document.getElementById('gbarfill');
       if (tg) tg.innerHTML = bonus ? '✅ BONUS: smash every <b>Fixed now</b>!' : 'Smash the <span class="gsw" style="background:' + TILE_COLORS[(TOPIC_LIST.indexOf(target) + 13) % TILE_COLORS.length] + '">' + (TOPIC_EMOJI[target] || '📌') + '</span> <b>#' + esc(target) + '</b> ones';
@@ -2773,10 +2788,20 @@ function screenPlay(){
         '<div class="ggrid">' + '<div class="hole"></div>'.repeat(9) + '</div><div class="ghint">tap the right ones · wrong or missed drains the bar</div>';
       document.getElementById('gquit').onclick = function(ev){ ev.preventDefault(); stop(); intro(); };
       hud();
-      timer = setInterval(function(){ left--; if (level === 2 && left % 10 === 0 && left > 0) { target = topics[(topics.indexOf(target) + 1) % Math.min(topics.length, 3)]; hud(); }
-        hud(); if (left <= 0) { stop(); finish(false); } }, 1000);
-      var speed = level === 1 ? 1000 : 800;
-      (function loop(){ popT = setTimeout(function(){ pop(); speed = Math.max(level === 1 ? 650 : 520, speed - 10); loop(); }, speed); })();
+      var speed = level === 1 ? 1000 : 800, paused = true;
+      function run(){
+        paused = false;
+        timer = setInterval(function(){ left--;
+          if (level === 2 && left % 10 === 0 && left > 0) {
+            target = topics[(topics.indexOf(target) + 1) % Math.min(topics.length, 3)]; hud();
+            paused = true; Array.prototype.forEach.call(document.querySelectorAll('.mole'), function(x){ x.classList.add('gone'); });
+            if (navigator.vibrate) navigator.vibrate([30, 40, 30]);
+            targetCall(900, function(){ paused = false; });
+          }
+          hud(); if (left <= 0) { stop(); finish(false); } }, 1000);
+      }
+      (function loop(){ popT = setTimeout(function(){ if (!paused) { pop(); speed = Math.max(level === 1 ? 650 : 520, speed - 10); } loop(); }, speed); })();
+      targetCall(1500, run);   // the target sits in the centre first, then fades and the round starts
     }
     function stop(){ clearInterval(timer); clearTimeout(popT); Array.prototype.forEach.call(document.querySelectorAll('.hole'), function(hh){ hh.innerHTML = ''; }); }
     function pop(){
@@ -2802,8 +2827,10 @@ function screenPlay(){
     function bonusRound(){
       bonus = true; left = 10; hud();
       var tg = document.getElementById('gtarget'); if (tg) tg.innerHTML = '✅ BONUS: smash every <b>Fixed now</b>!';
-      timer = setInterval(function(){ left--; hud(); if (left <= 0) { stop(); finish(true); } }, 1000);
-      (function loop(){ popT = setTimeout(function(){ pop(); loop(); }, 420); })();
+      callout('<small>Bonus round</small>✅<b>Fixed now</b>', '#e8b84b', 1100, function(){
+        timer = setInterval(function(){ left--; hud(); if (left <= 0) { stop(); finish(true); } }, 1000);
+        (function loop(){ popT = setTimeout(function(){ pop(); loop(); }, 420); })();
+      });
     }
     function finish(done){
       if (score > best) { best = score; try { localStorage.setItem('vp.patrolbest', String(best)); } catch (e) {} }
