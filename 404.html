@@ -264,6 +264,14 @@
   .isin{display:inline-block; transition:transform .3s ease, opacity .3s ease} .isin.out{transform:translateY(-14px); opacity:0} .isin.in{animation:isin .3s ease}
   @keyframes isin{from{transform:translateY(14px); opacity:0} to{transform:none; opacity:1}}
   .isdots{display:flex; gap:4px; margin:4px 12px 0 0} .isdots i{width:5px; height:5px; border-radius:50%; background:#d9dde5} .isdots i.on{background:var(--gold)}
+  .cityrep{background:var(--card); border:1px solid var(--line); border-radius:14px; padding:10px 12px; margin:0 0 10px}
+  .crh{font-size:13px; font-weight:600} .crh b{font-weight:800}
+  .crchips{display:flex; gap:6px; overflow-x:auto; margin-top:6px; scrollbar-width:none} .crchips::-webkit-scrollbar{display:none} .crchips .chip{flex:0 0 auto; cursor:default}
+  .crsrc{font-size:10px; color:var(--sub); margin-top:6px}
+  body.wall .cityrep{font-size:16px} body.wall .crh{font-size:18px}
+  .citypin{width:9px; height:9px; border-radius:50%; background:#8d99ae; border:1.5px solid #fff; opacity:.85; cursor:pointer}
+  .maptoggle{position:absolute; left:10px; bottom:10px; z-index:5; background:rgba(255,255,255,.95); border-radius:999px; padding:5px 10px; font-size:11.5px; font-weight:700; box-shadow:0 1px 4px rgba(0,0,0,.2)}
+  .maptoggle input{margin:0 4px 0 0; vertical-align:-1px}
   .plusbtn{flex:0 0 64px !important; position:relative}
   .plusbtn b{position:absolute; left:50%; top:-18px; transform:translateX(-50%); width:54px; height:54px; border-radius:50%;
       background:var(--gold); color:#2a2418; font-size:32px; font-weight:600; line-height:52px; text-align:center;
@@ -2041,6 +2049,14 @@ function screenPack(mode, topic0){
   var wall = new URLSearchParams(location.search).get('wall') === '1';
   document.body.classList.toggle('wall', wall);
   clearInterval(window._wallT);
+  if (place) rpc('vp_city_pulse', { p_place: place }).then(function(cp){
+    var cs = document.getElementById('citystrip'); if (!cs || !cp || !cp.week_total) return;
+    window._cityPins = cp.pins || [];
+    cs.innerHTML = '<div class="cityrep"><div class="crh">🏛️ ' + esc(cp.city) + ' reported <b>' + cp.week_total.toLocaleString() + '</b> things to 3-1-1 this week' +
+      (cp.today ? ' · ' + cp.today + ' today' : '') + '</div><div class="crchips">' +
+      (cp.by_topic || []).filter(function(t){ return t.topic !== 'other'; }).slice(0, 8).map(function(t){ return '<span class="chip">#' + esc(t.topic) + ' <b>' + t.n + '</b></span>'; }).join('') +
+      '</div><div class="crsrc">City of Vancouver 3-1-1 open data · Open Government Licence – Vancouver · not resident posts</div></div>';
+  }).catch(function(){});
   if (wall && place) rpc('vp_place_stats', { p_place: place }).then(function(st){
     var el = document.getElementById('wallstat');
     if (el && st && st.issues_week) el.textContent = st.issues_week + ' issues from ' + st.pups_week + ' people this week · scan the sticker, name a pup, add yours';
@@ -2051,6 +2067,7 @@ function screenPack(mode, topic0){
     (wall ? '<div class="wallhead">🐾 What ' + esc(city || 'the Pack') + ' wants fixed<em>They set the agenda. Time we set it for them.</em><small id="wallstat">voterpup.com · scan the sticker, name a pup, add yours</small></div>' : '') +
     '<div class="packhero">' + slotMedia('pack') +
       '<div class="ft">The Pack \ud83d\udc3e<small>They set the agenda. Time we set it for them.</small></div></div>' +
+    '<div id="citystrip"></div>' +
     (loadLocal() ? '' : '<div class="newbie">\ud83d\udc4b New here? Tap <b>+</b> to get your own pup.</div>') +
     '<div class="chips" style="margin:0 0 10px">' +
       (city ? '<span class="chip ' + (mode==='local'?'goldfill':'goldline') + '" id="mlocal">\ud83d\udccd ' + esc(city) + '</span><span class="chip goldline chgloc">change</span>'
@@ -2265,7 +2282,22 @@ function screenPack(mode, topic0){
           });
           b0 = b0 ? b0.extend([r.lng, r.lat]) : new maplibregl.LngLatBounds([r.lng, r.lat], [r.lng, r.lat]);
         });
+        // city 3-1-1 reports as small grey dots, switchable
+        var cityOn = false, cityMarkers = [];
+        function drawCity(){
+          cityMarkers.forEach(function(x){ x.remove(); }); cityMarkers = [];
+          if (!cityOn) return;
+          (window._cityPins || []).forEach(function(c){
+            var d = document.createElement('div'); d.className = 'citypin';
+            var pp = new maplibregl.Popup({ offset: 8, maxWidth: '240px', closeButton: false }).setHTML('<div class="mpop"><div class="entry-body" style="margin:0 0 4px">🏛️ ' + esc(c.type) + '</div>' +
+              '<div class="ts">City 3-1-1 report' + (c.area ? ' · ' + esc(c.area) : '') + ' · ' + new Date(c.ts).toLocaleDateString() + '</div></div>');
+            cityMarkers.push(new maplibregl.Marker({ element: d }).setLngLat([c.lng, c.lat]).setPopup(pp).addTo(m));
+          });
+        }
+        var tg = document.createElement('div'); tg.className = 'maptoggle'; tg.innerHTML = '<label><input type="checkbox" id="citytg"> 🏛️ City 3-1-1 reports (' + ((window._cityPins || []).length) + ')</label>';
+        el0.appendChild(tg); document.getElementById('citytg').onchange = function(){ cityOn = this.checked; drawCity(); };
         if (b0) m.fitBounds(b0, { padding: 40, maxZoom: 14, duration: 0 });
+        else if ((window._cityPins || []).length) { cityOn = true; document.getElementById('citytg').checked = true; drawCity(); }
       }).catch(function(){ var el0 = document.getElementById('packmap'); if (el0) el0.innerHTML = '<div class="hint" style="padding:40px 12px">The map couldn&rsquo;t load. Try again in a minute.</div>'; });
     }
     function tilesOff(){ mapOn = false; mb.innerHTML = '🗺️<span>Map</span>'; try { sessionStorage.removeItem('vp.packmap'); } catch (e) {} tilesView(); }
@@ -2298,7 +2330,7 @@ function screenPack(mode, topic0){
   }).catch(function(e){ document.getElementById('board').textContent = 'The pack is napping: ' + e.message; });
 }
 
-var APP_VERSION = "20261001002224";
+var APP_VERSION = "20261001011754";
 (function(){
   try {
     fetch('/version.json?t=' + Date.now(), { cache: 'no-store' }).then(function(r){ return r.json(); }).then(function(j){
@@ -2562,6 +2594,8 @@ function screenManage(){
     rows += mrow('<img src="/pup-watch.jpg" alt="">', '🐶 Pups', '',
       (GOOGLE_READY && !KIOSK && !(email && backed) ? '<button class="btn ghost mbtn" id="mpups">My backed-up pups</button><div id="mrslot"></div>' : '') +
       '<button class="btn ghost mbtn" id="mnew">＋ Start another pup</button><button class="btn ghost mbtn" id="mtour">▶ Take the tour</button>');
+    rows += mrow('<div class="mkeythumb">🗑️</div>', 'Delete ' + nm, 'Everything ' + nm + ' remembers: issues, photos, reactions, reminders, backup. Gone for good.',
+      '<button class="btn ghost mbtn" id="mdel" style="color:#a94b4b;border-color:#e3b3b3">Delete ' + nm + ' and all its data</button>');
     root.innerHTML = nav() + '<div class="mtitle" id="mtitle"><span class="q" style="font-size:20px">' + nm + ' ⚙️</span>' +
       (KIOSK ? '' : '<a href="#" class="mlink" id="mrename">✏️ Rename</a>') + '</div>' + rows +
       '<footer><a href="/privacy.html">Privacy</a> · <a href="mailto:hi@voterpup.com">hi@voterpup.com</a></footer>' + tabbar('manage');
@@ -2606,6 +2640,17 @@ function screenManage(){
       if (doQ === 'backup') { var mb0 = document.getElementById('mbackup'); if (mb0) mb0.click(); }
       if (doQ === 'invite') { var mi0 = document.getElementById('minv'); if (mi0) { mi0.scrollIntoView({ block: 'center' }); mi0.click(); } }
     }, 200); }
+    on('mdel', function(){
+      if (!confirm('Delete ' + L.name + ' and everything it remembers? This cannot be undone.')) return;
+      if (!confirm('Last check: ' + n + ' issue' + (n === 1 ? '' : 's') + ' and any photos will be erased. Delete?')) return;
+      var b = this; b.disabled = true; b.textContent = 'Deleting…';
+      fetch(SUPABASE_URL + '/functions/v1/delete-pup', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ tail: tail }) })
+        .then(function(r){ if (!r.ok) throw new Error('delete failed'); return r.json(); })
+        .then(function(){ try { ['vp.pup','vp.rem','vp.mail','vp.backedup','vp.adds','vp.fixask','vp.toured','vp.remasked'].forEach(function(k){ localStorage.removeItem(k); }); } catch (e) {}
+          navigator.serviceWorker && navigator.serviceWorker.ready.then(function(reg){ return reg.pushManager.getSubscription(); }).then(function(s){ if (s) s.unsubscribe(); }).catch(function(){});
+          alert(L.name + ' is gone. Thank you for trying VoterPup.'); location.href = '/app.html?new=1'; })
+        .catch(function(e){ b.disabled = false; b.textContent = 'Delete ' + L.name + ' and all its data'; alert(e.message); });
+    });
     on('mnew', function(){
       if (!(email && backed) && !confirm(L.name + ' isn\u2019t backed up yet. This device will switch to the new pup, and ' + L.name + ' will only be reachable through its private link. Continue?')) return;
       location.href = '/app.html?new=1'; });
