@@ -2142,6 +2142,8 @@ function walkSheet(s, file){
   }).then(function(r){
     var out = document.getElementById('walkout'); document.querySelector('.walkpic .shine').remove();
     track('snap', { safe: r.safe, n: (r.findings || []).length });
+    var uploaded = null;
+    function upload(){ if (uploaded) return uploaded; var f = new File([blob], 'walk.jpg', { type: 'image/jpeg' }); pendingFiles = [f]; uploaded = uploadPending().then(function(m){ pendingFiles = []; return m; }); return uploaded; }
     if (r.error) throw new Error(r.error);
     if (r.safe === 'people') { out.innerHTML = '<div class="walkmsg">🐾 ' + nm + ' only reports places. Step back from people and pets and snap the street.</div><button class="btn ghost" id="wagain">Snap again</button>'; }
     else if (r.safe === 'block' || r.safe === 'skip') { out.innerHTML = '<div class="walkmsg">🐾 ' + nm + ' couldn&rsquo;t read this one. Try the street, a park, a stop.</div><button class="btn ghost" id="wagain">Snap again</button>'; }
@@ -2151,8 +2153,6 @@ function walkSheet(s, file){
         r.findings.map(function(f, i){ return '<div class="wcard' + (f.kind === 'good' ? ' good' : '') + '" data-i="' + i + '"><div class="wline">' + (f.kind === 'good' ? '🟢 ' : '🔴 ') + esc(f.line) + '</div>' +
           '<div class="chips"><span class="topicchip">#' + esc(f.topic) + '</span>' + (f.kind === 'good' ? '<span class="chip" style="cursor:default">#good</span>' : '') + '</div><button class="btn compact wkeep">Keep</button></div>'; }).join('') +
         '<label class="switchrow" style="margin:8px 2px"><input type="checkbox" id="wshare"> 🌱 Count kept ones on the Pack <small style="color:var(--sub)">(anonymous)</small></label>' + ownLine();
-      var uploaded = null;
-      function upload(){ if (uploaded) return uploaded; var f = new File([blob], 'walk.jpg', { type: 'image/jpeg' }); pendingFiles = [f]; uploaded = uploadPending().then(function(m){ pendingFiles = []; return m; }); return uploaded; }
       Array.prototype.forEach.call(out.querySelectorAll('.wkeep'), function(b){
         b.onclick = function(){ var card = b.closest('.wcard'), f = r.findings[+card.getAttribute('data-i')], shared = document.getElementById('wshare').checked; b.disabled = true; b.textContent = '…';
           ensurePlace().then(upload).then(function(media){
@@ -2164,10 +2164,27 @@ function walkSheet(s, file){
       });
     }
     var ag = document.getElementById('wagain'); if (ag) ag.onclick = function(){ close(); openAdd(); setTimeout(function(){ var w = document.getElementById('fwalk'); if (w) w.click(); }, 100); };
-    var ow = document.getElementById('wown'); if (ow) ow.onclick = function(){ close(); openAdd(); };
+    wireOwn(upload);
     var dn = document.getElementById('wdone'); if (dn) dn.onclick = function(){ close(); if (location.pathname.indexOf('/p/') === 0) screenLedger(s.tail); else if (location.pathname === '/pack') screenPack(); };
   }).catch(function(e){ var out = document.getElementById('walkout'); if (out) out.innerHTML = '<div class="walkmsg">The pup stumbled: ' + esc(e.message) + '</div><button class="btn ghost" id="wagain">Try again</button>'; var ag = document.getElementById('wagain'); if (ag) ag.onclick = function(){ close(); openAdd(); }; });
-  function ownLine(){ return '<div class="btnrow" style="margin-top:10px"><button class="btn ghost compact" id="wown">✍️ Something it missed?</button><button class="btn gold compact" id="wdone">Done</button></div>'; }
+  function ownLine(){ return '<div id="wownbox" hidden><textarea id="wgripe" placeholder="What did it miss? Five words is plenty. #tags welcome."></textarea>' + tagRowHTML() +
+    '<div class="btnrow"><button class="btn compact" id="wownpriv" disabled>🔒 Keep private</button><button class="btn gold compact" id="wownshare" disabled>🌱 Be counted</button></div></div>' +
+    '<div class="btnrow" style="margin-top:10px"><button class="btn ghost compact" id="wown">✍️ Something it missed?</button><button class="btn gold compact" id="wdone">Done</button></div>'; }
+  function wireOwn(upload){
+    var ow = document.getElementById('wown'), box = document.getElementById('wownbox'); if (!ow || !box) return;
+    ow.onclick = function(){ box.hidden = false; ow.hidden = true; var ta = document.getElementById('wgripe'); ta.focus(); wireTags(ta);
+      function upd(){ var ok = !!ta.value.trim(); document.getElementById('wownpriv').disabled = !ok; document.getElementById('wownshare').disabled = !ok; }
+      ta.addEventListener('input', upd);
+      function go(shared){ var b1 = document.getElementById('wownpriv'), b2 = document.getElementById('wownshare'); b1.disabled = b2.disabled = true;
+        ensurePlace().then(upload).then(function(media){
+          return rpc('vp_add_entry', Object.assign({ p_tail: s.tail, p_body: ta.value.trim(), p_shared: shared, p_media: media, p_place: getPlace() }, spotArgs(), tagArgs(ta)));
+        }).then(function(e){ return applyChosenTopic(s.tail, e && e.id, e && e.topic).then(function(){ return e; }); })
+        .then(function(e){ var tag = pendingTopic || (e && e.topic); pendingTopic = null; track('issue', { shared: shared, first: false, spot: !!pendingSpot, walk: true, own: true });
+          box.innerHTML = '<div class="wcard kept"><div class="wline">✍️ ' + esc(ta.value.trim()) + '</div><div class="chips">' + (tag && tag !== 'other' ? '<span class="topicchip">#' + esc(tag) + '</span>' : '') + '</div><span class="hint">Kept ✓</span></div>'; ow.hidden = false; })
+        .catch(function(e){ upd(); toast('The pup stumbled: ' + e.message); }); }
+      document.getElementById('wownpriv').onclick = function(){ go(false); }; document.getElementById('wownshare').onclick = function(){ go(true); };
+    };
+  }
 }
 
 var TILE_COLORS = ['#2f7d5f','#b3702d','#5f6caf','#a94b4b','#3d8f8f','#6b8e23','#8a5fae','#556270','#996633','#2c6e8f','#8f5a2c','#6a4c93','#3f7f5f'];
@@ -2478,7 +2495,7 @@ function screenPack(mode, topic0){
   }).catch(function(e){ document.getElementById('board').textContent = 'The pack is napping: ' + e.message; });
 }
 
-var APP_VERSION = "20261001185106";
+var APP_VERSION = "20261001185334";
 (function(){
   try {
     fetch('/version.json?t=' + Date.now(), { cache: 'no-store' }).then(function(r){ return r.json(); }).then(function(j){
