@@ -316,7 +316,7 @@
   .walkbtn{display:block; width:100%; text-align:left; position:relative; overflow:hidden; background:linear-gradient(135deg, #f3c95e, #e8b84b 55%, #d9a53a); color:#2a2418; border:0; border-radius:14px;
       padding:13px 14px 13px 58px; font-size:18px; font-weight:800; margin:0 0 10px; cursor:pointer; box-shadow:0 6px 18px rgba(232,184,75,.45), inset 0 1px 0 rgba(255,255,255,.5); animation:walkglow 2.6s ease-in-out infinite}
   .walkbtn small{display:block; font-size:12px; font-weight:600; opacity:.85; margin-top:2px}
-  .walkbtn .paw{position:absolute; left:14px; top:50%; width:34px; height:34px; margin-top:-17px; border-radius:50%; background:#2a2418; color:#fff; display:flex; align-items:center; justify-content:center; font-size:18px; animation:wag 2.6s ease-in-out infinite}
+  .walkbtn .wpaw{position:absolute; left:14px; top:50%; width:34px; height:34px; margin-top:-17px; border-radius:50%; background:#2a2418; color:#fff; display:flex; align-items:center; justify-content:center; font-size:18px; animation:wag 2.6s ease-in-out infinite}
   .walkbtn::after{content:''; position:absolute; inset:0; background:linear-gradient(110deg, transparent 35%, rgba(255,255,255,.55) 50%, transparent 65%); transform:translateX(-120%); animation:shine 3.2s ease-in-out infinite}
   @keyframes walkglow{0%,100%{box-shadow:0 6px 18px rgba(232,184,75,.45), inset 0 1px 0 rgba(255,255,255,.5)} 50%{box-shadow:0 8px 26px rgba(232,184,75,.75), inset 0 1px 0 rgba(255,255,255,.5)}}
   @keyframes wag{0%,100%{transform:rotate(-12deg)} 50%{transform:rotate(12deg)}}
@@ -2078,7 +2078,7 @@ function openAdd(){
   ov.innerHTML = '<div class="stksheet addsheet"><div class="addtop">' +
       '<div class="addthumb"><video src="/pup-robo.mp4" poster="/pup-robo.jpg" muted autoplay loop playsinline></video></div>' +
       '<div><div class="addhead" style="margin:0">🐾 Tell ' + nm + '</div><div class="addtag">Break the Algo</div></div></div>' +
-    '<button class="walkbtn" id="walkbtn"><span class="paw">🐾</span>Walk ' + nm + '<small>snap one thing on your block · it names what it sees</small></button>' +
+    '<button class="walkbtn" id="walkbtn"><span class="wpaw">🐾</span>Walk ' + nm + '<small>snap one thing on your block · it names what it sees</small></button>' +
     '<input id="fwalk" type="file" accept="image/*" capture="environment" hidden>' +
     '<textarea id="gripe" placeholder="Or type it: what should they fix? Five words is plenty."></textarea>' +
     '<div id="thumbs" class="attach"></div>' + tagRowHTML() + spotLineHTML() +
@@ -2478,7 +2478,7 @@ function screenPack(mode, topic0){
   }).catch(function(e){ document.getElementById('board').textContent = 'The pack is napping: ' + e.message; });
 }
 
-var APP_VERSION = "20261001184859";
+var APP_VERSION = "20261001185106";
 (function(){
   try {
     fetch('/version.json?t=' + Date.now(), { cache: 'no-store' }).then(function(r){ return r.json(); }).then(function(j){
