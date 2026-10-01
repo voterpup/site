@@ -299,6 +299,8 @@
   .ghint{text-align:center; font-size:11.5px; color:var(--sub); margin-top:10px}
   .gmet{display:flex; flex-direction:column; gap:8px; margin:10px 0 14px}
   .plusbtn{flex:0 0 64px !important; position:relative}
+  .playbtn{position:absolute; left:calc(50% + 16px); top:14px; width:26px; height:26px; border-radius:50%; background:#1f2733; color:#fff;
+      font-size:14px; line-height:26px; text-align:center; text-decoration:none; border:2px solid var(--card); box-shadow:0 2px 6px rgba(0,0,0,.25); z-index:2}
   .plusbtn b{position:absolute; left:50%; top:-18px; transform:translateX(-50%); width:54px; height:54px; border-radius:50%;
       background:var(--gold); color:#2a2418; font-size:32px; font-weight:600; line-height:52px; text-align:center;
       box-shadow:0 4px 14px rgba(180,130,20,.45); border:3px solid var(--card)}
@@ -1501,7 +1503,7 @@ function tabName(){ var s = loadLocal(); return s && s.name ? (s.name.length > 1
 function tabbar(active){
   return '<div class="tabbar">' +
     '<a href="/pack" class="' + (active==='pack'?'on':'') + '">🐾<span>Pack</span></a>' +
-    '<a href="#" class="plusbtn" id="tab-plus" aria-label="Tell your pup"><b>+</b></a>' +
+    '<a href="#" class="plusbtn" id="tab-plus" aria-label="Tell your pup"><b>+</b><a href="/play" class="playbtn" aria-label="Pup Patrol">🎲</a></a>' +
     '<a href="#" id="tab-pup" class="' + (active==='pup'||active==='manage'?'on':'') + '">🐶<span>' + esc(tabName()) + '</span></a>' +
   '</div>';
 }
@@ -1510,7 +1512,7 @@ function wireTabs(){
   if (t) t.onclick = function(ev){ ev.preventDefault();
     var s = loadLocal(); location.href = s ? pupURL(s.tail) : '/app.html?new=1'; };
   var pl = document.getElementById('tab-plus');
-  if (pl) pl.onclick = function(ev){ ev.preventDefault(); openAdd(); };
+  if (pl) pl.onclick = function(ev){ if (ev.target.closest && ev.target.closest('.playbtn')) return; ev.preventDefault(); openAdd(); };
 }
 // Flashback: every issue this pup remembers (its own + the ones it backs), rolled out by date.
 var FLASH_DEMO = [
@@ -2121,7 +2123,7 @@ function screenPack(mode, topic0){
       (city ? '<span class="chip ' + (mode==='local'?'goldfill':'goldline') + '" id="mlocal">\ud83d\udccd ' + esc(city) + '</span><span class="chip goldline chgloc">change</span>'
             : '<span class="chip goldline" id="mfind">\ud83d\udccd use my location</span>') +
       '<span class="chip ' + (mode==='all'?'goldfill':'goldline') + '" id="mall">\ud83c\udf0d Everywhere</span>' +
-      (wall ? '' : '<a class="chip playchip" href="/play">🎯 Pup Patrol</a>') +
+
     '</div>' +
     '<input class="searchbar" id="packsearch" placeholder="\ud83d\udd0d Search the pack...">' +
     '<div id="board" class="hint">fetching the pack...</div>' +
@@ -2379,7 +2381,7 @@ function screenPack(mode, topic0){
   }).catch(function(e){ document.getElementById('board').textContent = 'The pack is napping: ' + e.message; });
 }
 
-var APP_VERSION = "20261001014015";
+var APP_VERSION = "20261001025808";
 (function(){
   try {
     fetch('/version.json?t=' + Date.now(), { cache: 'no-store' }).then(function(r){ return r.json(); }).then(function(j){
