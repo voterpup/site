@@ -24,7 +24,7 @@ function wrap(name: string, body: string, cta: string, url: string, unsub: strin
 <p style="font-size:12px;color:#6b7387;margin-top:28px">You asked ${esc(name)} to report back by email. VoterPup Technologies Inc., Vancouver, BC · <a href="${unsub}" style="color:#6b7387">Unsubscribe</a> · <a href="${SITE}/privacy.html" style="color:#6b7387">Privacy</a></p></div>`,
     text: `${name}\n\n${body}\n\n${cta}: ${url}\n\nUnsubscribe: ${unsub}` };
 }
-const LINES = [(n: string) => `Anything they should fix today? ${n} is listening.`, (n: string) => `Saw something that needs fixing? Tell ${n}. Five words is plenty.`];
+const LINES = [(n: string) => `Anything that should be fixed today? ${n} is listening.`, (n: string) => `Saw something that needs fixing? Tell ${n}. Five words is plenty.`];
 
 Deno.serve(async (req) => {
   const url = new URL(req.url);

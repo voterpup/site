@@ -1185,7 +1185,7 @@ function screenCapture(prefGripe, prefName){
     '<div class="manifesto"><b>They set the agenda.<br>Time we set it for them.</b>' +
       '<span>Algorithms make you forget what mattered. Your pup fetches them back.</span></div>' +
     '<div class="composer">' +
-      '<textarea id="gripe" placeholder="What should they fix? Five words is plenty."></textarea>' +
+      '<textarea id="gripe" placeholder="What should be fixed? Five words is plenty."></textarea>' +
       '<div id="thumbs" class="attach"></div>' + tagRowHTML() + spotLineHTML() +
       '<div class="cfoot">' +
         '<div class="iconbtn" id="addmedia" title="take a photo">📷</div><div class="iconbtn" id="addgallery" title="choose from your photos">🖼️</div>' + spotButtonHTML() +
@@ -1768,7 +1768,7 @@ function screenReport(tail){
       '<div class="rphead"><img src="/pup-face.jpg" alt=""><div><div class="rpk">From now on</div><div class="rpt">' + nm + ' reports back</div></div></div>' +
       '<div class="rprow"><span>🔔</span><div><b>Tonight at 7</b><small>how many people feel the same as you</small></div></div>' +
       '<div class="rprow"><span>🗳️</span><div><b>' + voteLine + '</b><small>your Flashback, and what&rsquo;s on your ballot</small></div></div>' +
-      '<div class="rprow"><span>📋</span><div><b>After the vote</b><small>what they promised vs. what got fixed</small></div></div>' +
+      '<div class="rprow"><span>📋</span><div><b>After the vote</b><small>promises made vs. what got fixed</small></div></div>' +
       proof +
       (first ? '<label class="switchrow" style="margin:12px 2px"><input type="checkbox" id="rpshare"> Count my first issue on The Pack 🌱 <small style="color:var(--sub)">(public, no name)</small></label>' : '') +
       '<input type="email" id="rpemail" placeholder="Email for the Flashback on voting morning (optional)" autocomplete="email" style="margin:4px 0 10px">' +
@@ -2039,7 +2039,7 @@ function whySheet(kind, name){
       'Numbers move councils.', 'Councils move states and provinces.', 'States and provinces move countries.', '<b>Countries move the world.</b>'
     ] : [
       'Algorithms make you forget what mattered.', '<b>' + nm + ' fetches them back.</b>',
-      'Give it what they should fix.', 'Private, unless you say so.',
+      'Give it what should be fixed.', 'Private, unless you say so.',
       'The morning you vote, ' + nm + ' hands you your Flashback.',
       '<b>Make them earn it.</b>'
     ];
@@ -2081,7 +2081,7 @@ function openAdd(){
       '<div><div class="addhead" style="margin:0">🐾 Tell ' + nm + '</div><div class="addtag">Break the Algo</div></div></div>' +
     '<button class="walkbtn" id="walkbtn"><span class="wpaw">🐾</span>Walk ' + nm + '<small>snap one thing on your block · it names what it sees</small></button>' +
     '<input id="fwalk" type="file" accept="image/*" capture="environment" hidden>' +
-    '<textarea id="gripe" placeholder="Or type it: what should they fix? Five words is plenty."></textarea>' +
+    '<textarea id="gripe" placeholder="Or type it: what should be fixed? Five words is plenty."></textarea>' +
     '<div id="thumbs" class="attach"></div>' + tagRowHTML() + spotLineHTML() +
     '<div class="addfoot"><div class="iconbtn" id="addmedia" title="take a photo">📷</div><div class="iconbtn" id="addgallery" title="choose from your photos">🖼️</div>' + spotButtonHTML() +
       '<input id="fcam" type="file" accept="image/*" capture="environment" hidden>' +
@@ -2496,7 +2496,7 @@ function screenPack(mode, topic0){
   }).catch(function(e){ document.getElementById('board').textContent = 'The pack is napping: ' + e.message; });
 }
 
-var APP_VERSION = "20261001191722";
+var APP_VERSION = "20261001192154";
 (function(){
   try {
     fetch('/version.json?t=' + Date.now(), { cache: 'no-store' }).then(function(r){ return r.json(); }).then(function(j){
@@ -2696,7 +2696,7 @@ function screenView(tok){
       say('Before you ask for my vote — read this.', 'What I need fixed · ' + esc(V.name) + '’s person' + (V.city ? ' · ' + esc(V.city) : '') + ' · ' + V.entries.length + ' issue' + (V.entries.length === 1 ? '' : 's')) +
       (tops.length ? '<div class="viewsum">' + tops.map(function(t){
         return '<span class="topicchip">#' + esc(t) + ' ×' + counts[t] + '</span>'; }).join('') + '</div>' : '') +
-      '<div class="count" style="margin-top:0">Logged by this voter, dated when they noticed it.</div>' +
+      '<div class="count" style="margin-top:0">Logged by this voter, dated when it was noticed.</div>' +
       (V.entries.length ? '<div class="grid2">' + V.entries.map(function(e){
         return '<div class="card">' + (e.topic ? '<div style="margin-bottom:6px"><span class="topicchip">#' + esc(e.topic) + '</span></div>' : '') +
           (e.body ? '<div class="entry-body">' + esc(e.body) + '</div>' : '') + mediaHTML(e.media) +

@@ -53,7 +53,7 @@ Deno.serve(async (req) => {
       else if ((f?.backs ?? 0) > 0)
         line = `${f.backs} ${f.backs === 1 ? "person feels" : "people feel"} the same as you so far. Anything new today?`;
       else if ((f?.entries ?? 0) === 0)
-        line = `${s.name} hasn't heard anything yet. What should they fix?`;
+        line = `${s.name} hasn't heard anything yet. What should be fixed?`;
       else if (f?.city && ((f.today?.issues ?? 0) >= 2 || (f.city_reports?.n ?? 0) >= 20))   // the day's pulse, different every day
         line = `Today in ${f.city}: ` + ((f.today?.issues ?? 0) ? `${f.today.issues} issues from ${f.today.pups} people` : "") +
                ((f.today?.issues ?? 0) && (f.city_reports?.n ?? 0) ? " + " : "") + ((f.city_reports?.n ?? 0) ? `${f.city_reports.n} 3-1-1 reports` : "") +
