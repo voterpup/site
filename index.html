@@ -327,6 +327,8 @@
   .walkpic .scanpup{position:absolute; left:10px; bottom:10px; width:84px; height:84px; border-radius:50%; object-fit:cover; border:3px solid #fff; box-shadow:0 4px 14px rgba(0,0,0,.35); animation:sniff 1.6s ease-in-out infinite; transition:opacity .35s, transform .35s}
   .walkpic .scanpup.bye{opacity:0; transform:scale(.6)}
   @keyframes sniff{0%,100%{transform:translateX(0)} 50%{transform:translateX(8px)}}
+  .wskel{height:62px; border-radius:12px; margin:0 0 8px; border-left:5px solid #e3dccb; background:linear-gradient(90deg, #f1ede4 25%, #faf8f3 50%, #f1ede4 75%); background-size:200% 100%; animation:scan 1.4s linear infinite; animation-delay:calc(var(--i, 0) * .2s); opacity:.9}
+  .wskel:first-of-type{margin-top:10px}
   .walkmsg{font-size:14px; font-weight:600; margin:10px 0 8px; color:var(--sub)}
   .wcard{background:var(--card); border:1px solid var(--line); border-left:5px solid #a94b4b; border-radius:12px; padding:10px 12px; margin:0 0 8px; display:flex; align-items:center; gap:10px; flex-wrap:wrap}
   .wcard.good{border-left-color:#2f7d5f}
@@ -2138,7 +2140,7 @@ function walkSheet(s, file){
   ov.onclick = function(ev){ if (ev.target === ov) close(); };
   var line = WALK_LINES[Math.floor(Math.random() * WALK_LINES.length)];
   ov.innerHTML = '<div class="stksheet addsheet walksheet"><div class="addhead">🐾 ' + nm + ' is looking…</div><div class="walkline">' + line + '</div>' +
-    '<div class="walkpic"><img id="walkimg" alt=""><div class="shine"></div><video class="scanpup" src="/pup-scan.mp4" muted autoplay loop playsinline></video></div><div id="walkout" class="hint">reading the block</div></div>';
+    '<div class="walkpic"><img id="walkimg" alt=""><div class="shine"></div><video class="scanpup" src="/pup-scan.mp4" muted autoplay loop playsinline></video></div><div id="walkout"><div class="hint">reading the block</div><div class="wskel" style="--i:0"></div><div class="wskel" style="--i:1"></div><div class="wskel" style="--i:2"></div></div></div>';
   var blob = null; pendingSpot = null; autoSpot();
   shrinkPhoto(file).then(function(b){ blob = b; document.getElementById('walkimg').src = URL.createObjectURL(b);
     return new Promise(function(res){ var r = new FileReader(); r.onload = function(){ res(r.result.split(',')[1]); }; r.readAsDataURL(b); });
@@ -2499,7 +2501,7 @@ function screenPack(mode, topic0){
   }).catch(function(e){ document.getElementById('board').textContent = 'The pack is napping: ' + e.message; });
 }
 
-var APP_VERSION = "20261001221440";
+var APP_VERSION = "20261001222021";
 (function(){
   try {
     fetch('/version.json?t=' + Date.now(), { cache: 'no-store' }).then(function(r){ return r.json(); }).then(function(j){
