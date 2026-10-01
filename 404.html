@@ -305,6 +305,14 @@
   @keyframes callin{to{transform:translate(-50%,-50%) scale(1)}}
   .gmet{display:flex; flex-direction:column; gap:8px; margin:10px 0 14px}
   .gprize{background:#1f2733; color:#fff; border-radius:14px; padding:14px; text-align:center; font-size:26px; font-weight:800; margin:4px 0 12px} .gprize small{display:block; font-size:12px; font-weight:600; opacity:.8; margin-top:2px}
+  .intro{position:fixed; inset:0; z-index:60; background:#161b22; color:#fff; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:28px 24px; text-align:center; cursor:pointer; animation:fadein .3s; user-select:none}
+  .intro.out{opacity:0; transition:opacity .3s}
+  .icard{max-width:420px; animation:introin .35s ease} .iemo{font-size:64px; line-height:1; margin-bottom:18px}
+  .intro h2{font-size:28px; line-height:1.15; margin:0 0 12px; font-weight:800} .intro p{font-size:17px; line-height:1.45; color:#c9d1dc; margin:0}
+  .ifoot{position:absolute; left:0; right:0; bottom:28px; display:flex; flex-direction:column; align-items:center; gap:16px}
+  .intro .dots{display:flex; gap:7px} .intro .dots i{width:8px; height:8px; border-radius:50%; background:#3a4150} .intro .dots i.on{background:var(--gold)}
+  .iskip{color:#fff; font-weight:800; text-decoration:none; font-size:16px; padding:10px 22px; border:1.5px solid #3a4150; border-radius:999px}
+  @keyframes introin{from{opacity:0; transform:translateY(12px)} to{opacity:1; transform:none}} @keyframes fadein{from{opacity:0} to{opacity:1}}
   .plusbtn{flex:0 0 64px !important; position:relative}
   .playbtn{position:absolute; left:calc(50% + 16px); top:14px; width:26px; height:26px; border-radius:50%; background:#1f2733; color:#fff;
       font-size:14px; line-height:26px; text-align:center; text-decoration:none; border:2px solid var(--card); box-shadow:0 2px 6px rgba(0,0,0,.25); z-index:2}
@@ -2399,7 +2407,7 @@ function screenPack(mode, topic0){
   }).catch(function(e){ document.getElementById('board').textContent = 'The pack is napping: ' + e.message; });
 }
 
-var APP_VERSION = "20261001083305";
+var APP_VERSION = "20261001083814";
 (function(){
   try {
     fetch('/version.json?t=' + Date.now(), { cache: 'no-store' }).then(function(r){ return r.json(); }).then(function(j){
@@ -2866,6 +2874,27 @@ function screenPlay(){
     ['pointerdown', 'keydown', 'touchstart', 'scroll'].forEach(function(ev){ document.addEventListener(ev, arm, { passive: true }); }); arm();
   } catch (e) {}
 })();
+// ---------- first visit: three cards on what this is, 3.5 s each, tap to advance, skip anytime; never again ----------
+var INTRO = [
+  { e: '🐾', h: 'Meet your pup.', p: 'Tell it what your city should fix, in five words or a photo. It remembers, privately, for as long as it takes.' },
+  { e: '⚡', h: 'The morning you vote, it hands you your list.', p: 'Everything you wanted fixed, next to what&rsquo;s on your ballot. Nothing forgotten.' },
+  { e: '🌍', h: 'The Pack.', p: 'What your neighbours want fixed, ranked by how many agree. Anonymous. No ads, no parties, no names.' }
+];
+function introSeen(){ try { return localStorage.getItem('vp.intro') === '1'; } catch (e) { return true; } }
+function introShow(then){
+  var i = 0, t = null, el = document.createElement('div'); el.className = 'intro'; document.body.appendChild(el);
+  function done(){ clearTimeout(t); try { localStorage.setItem('vp.intro', '1'); } catch (e) {} el.classList.add('out'); setTimeout(function(){ el.remove(); then(); }, 300); }
+  function show(){
+    var s = INTRO[i];
+    el.innerHTML = '<div class="icard"><div class="iemo">' + s.e + '</div><h2>' + s.h + '</h2><p>' + s.p + '</p></div>' +
+      '<div class="ifoot"><div class="dots">' + INTRO.map(function(_, k){ return '<i' + (k === i ? ' class="on"' : '') + '></i>'; }).join('') + '</div>' +
+      '<a href="#" class="iskip">' + (i === INTRO.length - 1 ? 'Start →' : 'Skip') + '</a></div>';
+    el.querySelector('.iskip').onclick = function(ev){ ev.preventDefault(); ev.stopPropagation(); done(); };
+    clearTimeout(t); t = setTimeout(next, 3500);
+  }
+  function next(){ if (++i >= INTRO.length) return done(); show(); }
+  el.addEventListener('click', next); show();
+}
 // ---------- router ----------
 (function(){
   var m = location.pathname.match(/^\/p\/(.+)$/);
@@ -2879,7 +2908,9 @@ function screenPlay(){
     var q0 = qs.get('q'); if (q0) setTimeout(function(){ var sb0 = document.getElementById('packsearch'); if (sb0) { sb0.value = q0; sb0.dispatchEvent(new Event('input')); } }, 1500); }
   else if (location.pathname === '/manage') screenManage();
   else if (location.pathname === '/play') screenPlay();
-  else if (qs.get('new') === '1' || KIOSK || !loadLocal()) screenCapture();   // first visit: make your pup
+  else if (qs.get('new') === '1' || KIOSK || !loadLocal()) {   // first visit: make your pup
+    if (!loadLocal() && !KIOSK && !introSeen() && srcTag() !== 'booth' && srcTag() !== 'demo') introShow(screenCapture); else screenCapture();
+  }
   else screenPack();
 })();
 </script>
