@@ -324,6 +324,10 @@
   .walkpic{position:relative; border-radius:14px; overflow:hidden; background:#eee; max-height:38vh} .walkpic img{width:100%; max-height:38vh; object-fit:cover; display:block}
   .walkpic .shine{position:absolute; inset:0; background:linear-gradient(110deg, transparent 30%, rgba(255,255,255,.55) 50%, transparent 70%); background-size:200% 100%; animation:scan 1.2s linear infinite}
   @keyframes scan{from{background-position:200% 0} to{background-position:-200% 0}}
+  .walkpic .scanpup{position:absolute; left:10px; bottom:10px; width:84px; height:84px; border-radius:50%; object-fit:cover; border:3px solid #fff; box-shadow:0 4px 14px rgba(0,0,0,.35); animation:sniff 1.6s ease-in-out infinite; transition:opacity .35s, transform .35s}
+  .walkpic .scanpup.bye{opacity:0; transform:scale(.6)}
+  @keyframes sniff{0%,100%{transform:translateX(0)} 50%{transform:translateX(8px)}}
+  #root{will-change:transform}
   .walkmsg{font-size:14px; font-weight:600; margin:10px 0 8px; color:var(--sub)}
   .wcard{background:var(--card); border:1px solid var(--line); border-left:5px solid #a94b4b; border-radius:12px; padding:10px 12px; margin:0 0 8px; display:flex; align-items:center; gap:10px; flex-wrap:wrap}
   .wcard.good{border-left-color:#2f7d5f} .wcard.kept{opacity:.6} .wline{font-size:15px; font-weight:700; flex:1 1 60%} .wcard .chips{margin:0} .wcard .wkeep{margin-left:auto}
@@ -2132,13 +2136,13 @@ function walkSheet(s, file){
   ov.onclick = function(ev){ if (ev.target === ov) close(); };
   var line = WALK_LINES[Math.floor(Math.random() * WALK_LINES.length)];
   ov.innerHTML = '<div class="stksheet addsheet walksheet"><div class="addhead">🐾 ' + nm + ' is looking…</div><div class="walkline">' + line + '</div>' +
-    '<div class="walkpic"><img id="walkimg" alt=""><div class="shine"></div></div><div id="walkout" class="hint">reading the block</div></div>';
+    '<div class="walkpic"><img id="walkimg" alt=""><div class="shine"></div><video class="scanpup" src="/pup-scan.mp4" muted autoplay loop playsinline></video></div><div id="walkout" class="hint">reading the block</div></div>';
   var blob = null; pendingSpot = null; autoSpot();
   shrinkPhoto(file).then(function(b){ blob = b; document.getElementById('walkimg').src = URL.createObjectURL(b);
     return new Promise(function(res){ var r = new FileReader(); r.onload = function(){ res(r.result.split(',')[1]); }; r.readAsDataURL(b); });
   }).then(function(b64){ return fetch(SUPABASE_URL + '/functions/v1/snap-look', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ image: b64, type: 'image/jpeg' }) }).then(function(r){ return r.json(); });
   }).then(function(r){
-    var out = document.getElementById('walkout'); document.querySelector('.walkpic .shine').remove();
+    var out = document.getElementById('walkout'); document.querySelector('.walkpic .shine').remove(); var sp = document.querySelector('.walkpic .scanpup'); if (sp) { sp.classList.add('bye'); setTimeout(function(){ sp.remove(); }, 400); }
     track('snap', { safe: r.safe, n: (r.findings || []).length });
     var uploaded = null;
     function upload(){ if (uploaded) return uploaded; var f = new File([blob], 'walk.jpg', { type: 'image/jpeg' }); pendingFiles = [f]; uploaded = uploadPending().then(function(m){ pendingFiles = []; return m; }); return uploaded; }
@@ -2493,7 +2497,7 @@ function screenPack(mode, topic0){
   }).catch(function(e){ document.getElementById('board').textContent = 'The pack is napping: ' + e.message; });
 }
 
-var APP_VERSION = "20261001185734";
+var APP_VERSION = "20261001190806";
 (function(){
   try {
     fetch('/version.json?t=' + Date.now(), { cache: 'no-store' }).then(function(r){ return r.json(); }).then(function(j){
@@ -2981,6 +2985,39 @@ function introShow(then){
   function next(){ if (++i >= INTRO.length) return done(); show(); }
   el.addEventListener('click', next); show();
 }
+// ---------- swipe between the tabs: Pack <-> your pup. Follows the finger; decks, maps, chips rows and sheets keep their own gestures ----------
+(function(){
+  var NO = '.deck, .maplibregl-map, .crchips, .crscroll, .stkover, .intro, .game, .lightbox, .flashwrap, .tourtip, textarea, input, video, .slot';
+  var x0 = 0, y0 = 0, dx = 0, live = false, horiz = null;
+  function which(){ return location.pathname === '/pack' ? 'pack' : /^\/p\//.test(location.pathname) ? 'pup' : null; }
+  function other(w){ return w === 'pack' ? 'pup' : 'pack'; }
+  function go(to){
+    var s = loadLocal();
+    if (to === 'pup') { if (!s) { location.href = '/app.html?new=1'; return; } history.pushState(null, '', pupURL(s.tail).replace(/^https?:\/\/[^/]+/, '')); screenLedger(s.tail); }
+    else { history.pushState(null, '', '/pack'); screenPack(); }
+    track(to === 'pup' ? 'pup' : 'pack', { via: 'swipe' });
+    root.style.transition = 'none'; root.style.transform = 'translateX(' + (to === 'pup' ? '60px' : '-60px') + ')'; root.style.opacity = '.6';
+    requestAnimationFrame(function(){ requestAnimationFrame(function(){ root.style.transition = 'transform .22s ease-out, opacity .22s'; root.style.transform = ''; root.style.opacity = ''; }); });
+  }
+  document.addEventListener('touchstart', function(e){
+    live = false; horiz = null; if (!which() || e.touches.length !== 1 || (e.target.closest && e.target.closest(NO))) return;
+    x0 = e.touches[0].clientX; y0 = e.touches[0].clientY; dx = 0; live = true; root.style.transition = 'none';
+  }, { passive: true });
+  document.addEventListener('touchmove', function(e){
+    if (!live) return; var t = e.touches[0]; dx = t.clientX - x0; var dy = t.clientY - y0;
+    if (horiz === null && (Math.abs(dx) > 12 || Math.abs(dy) > 12)) horiz = Math.abs(dx) > Math.abs(dy) * 1.4;
+    if (!horiz) return;
+    var w = which(), allowed = (w === 'pack' && dx < 0) || (w === 'pup' && dx > 0);
+    var d = allowed ? dx : dx * 0.15, cap = 140; d = Math.max(-cap, Math.min(cap, d * 0.6));
+    root.style.transform = 'translateX(' + d + 'px)';
+  }, { passive: true });
+  document.addEventListener('touchend', function(){
+    if (!live) return; live = false; var w = which();
+    if (horiz && ((w === 'pack' && dx < -70) || (w === 'pup' && dx > 70))) { go(other(w)); return; }
+    root.style.transition = 'transform .2s'; root.style.transform = ''; setTimeout(function(){ root.style.transition = ''; }, 220);
+  }, { passive: true });
+  window.addEventListener('popstate', function(){ var w = which(); if (w === 'pack') screenPack(); else if (w === 'pup') { var s = loadLocal(); if (s) screenLedger(s.tail); } });
+})();
 // ---------- router ----------
 (function(){
   var m = location.pathname.match(/^\/p\/(.+)$/);
