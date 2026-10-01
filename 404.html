@@ -2496,7 +2496,7 @@ function screenPack(mode, topic0){
   }).catch(function(e){ document.getElementById('board').textContent = 'The pack is napping: ' + e.message; });
 }
 
-var APP_VERSION = "20261001192741";
+var APP_VERSION = "20261001210123";
 (function(){
   try {
     fetch('/version.json?t=' + Date.now(), { cache: 'no-store' }).then(function(r){ return r.json(); }).then(function(j){
@@ -2658,8 +2658,8 @@ function showCandidate(tail, name){
   function draw(info){
     var url = viewURL(info.token);
     ov.innerHTML = '<div class="stksheet">' +
-      '<div class="sh-h">Make them earn your vote 🗳️</div>' +
-      '<div class="sh-l">They scan. They see your issues. <b>Never your name.</b></div>' +
+      '<div class="sh-h">Show what matters to you 🗳️</div>' +
+      '<div class="sh-l">A candidate scans this and sees your issues. <b>Never your name.</b></div>' +
       '<div class="qrwrap sharqr" style="margin:10px 0 6px"><img src="' + qrDataURL(url, 7) + '" alt="read-only QR"></div>' +
       '<div class="sh-status"><span class="chip goldfill">' + (info.view_all ? '🔓 ' : '🌱 ') + info.count + ' issue' + (info.count === 1 ? '' : 's') + ' visible</span>' +
         '<label class="chip switchchip"><input type="checkbox" id="vall"' + (info.view_all ? ' checked' : '') + '> include private</label></div>' +
@@ -2736,7 +2736,7 @@ function screenManage(){
     var n = L.entries.length, nm = esc(L.name), backed = isBackedUp(tail);
     var rows = (canOfferInstall() ? mrow('<img src="/icon-192.png" alt="">', '📲 Get the app', 'Home-screen icon, full screen, reminders.',
         '<button class="btn gold mbtn" id="minstall">Install VoterPup</button>') : '') +
-      (KIOSK ? '' : mrow(slotMedia('share'), 'Make them earn your vote', 'Candidates see your issues, never you.',
+      (KIOSK ? '' : mrow(slotMedia('share'), 'Show what matters to you', 'Candidates see your issues, never you.',
         '<button class="btn gold mbtn" id="mshare"' + (n ? '' : ' disabled') + '>' + (n ? '📤 Share my issues' : 'Tell ' + nm + ' one issue first') + '</button>'));
     if (GOOGLE_READY && !KIOSK) {
       if (email && backed) rows += mrow('<img src="' + BACKUP_IMG + '" alt="">', '✅ ' + nm + ' has a home',
