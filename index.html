@@ -329,7 +329,10 @@
   @keyframes sniff{0%,100%{transform:translateX(0)} 50%{transform:translateX(8px)}}
   .walkmsg{font-size:14px; font-weight:600; margin:10px 0 8px; color:var(--sub)}
   .wcard{background:var(--card); border:1px solid var(--line); border-left:5px solid #a94b4b; border-radius:12px; padding:10px 12px; margin:0 0 8px; display:flex; align-items:center; gap:10px; flex-wrap:wrap}
-  .wcard.good{border-left-color:#2f7d5f} .wcard.kept{opacity:.6} .wline{font-size:15px; font-weight:700; flex:1 1 60%} .wcard .chips{margin:0} .wcard .wkeep{margin-left:auto}
+  .wcard.good{border-left-color:#2f7d5f}
+  #walkout .wcard{animation:cardin .4s ease both; animation-delay:calc(.15s + var(--i, 0) * .16s)}
+  #walkout .walkmsg{animation:fadein .3s ease both}
+  @keyframes cardin{from{opacity:0; transform:translateY(14px) scale(.98)} to{opacity:1; transform:none}} .wcard.kept{opacity:.6} .wline{font-size:15px; font-weight:700; flex:1 1 60%} .wcard .chips{margin:0} .wcard .wkeep{margin-left:auto}
   .plusbtn{flex:0 0 64px !important; position:relative}
   .playbtn{position:absolute; left:calc(50% + 16px); top:14px; width:26px; height:26px; border-radius:50%; background:#1f2733; color:#fff;
       font-size:14px; line-height:26px; text-align:center; text-decoration:none; border:2px solid var(--card); box-shadow:0 2px 6px rgba(0,0,0,.25); z-index:2}
@@ -2151,7 +2154,7 @@ function walkSheet(s, file){
     else if (!r.findings.length) { out.innerHTML = '<div class="walkmsg">🐾 Nothing to fix here that ' + nm + ' can see. ' + (r.scene ? esc(r.scene) + '. ' : '') + 'Add your own?</div>' + ownLine(); }
     else {
       out.innerHTML = '<div class="walkmsg">' + (r.scene ? esc(r.scene) + ' · ' : '') + 'tap what to keep</div>' +
-        r.findings.map(function(f, i){ return '<div class="wcard' + (f.kind === 'good' ? ' good' : '') + '" data-i="' + i + '"><div class="wline">' + (f.kind === 'good' ? '🟢 ' : '🔴 ') + esc(f.line) + '</div>' +
+        r.findings.map(function(f, i){ return '<div class="wcard' + (f.kind === 'good' ? ' good' : '') + '" data-i="' + i + '" style="--i:' + i + '"><div class="wline">' + (f.kind === 'good' ? '🟢 ' : '🔴 ') + esc(f.line) + '</div>' +
           '<div class="chips"><span class="topicchip">#' + esc(f.topic) + '</span>' + (f.kind === 'good' ? '<span class="chip" style="cursor:default">#good</span>' : '') + '</div><button class="btn compact wkeep">Keep</button></div>'; }).join('') +
         '<label class="switchrow" style="margin:8px 2px"><input type="checkbox" id="wshare"> 🌱 Count kept ones on the Pack <small style="color:var(--sub)">(anonymous)</small></label>' + ownLine();
       Array.prototype.forEach.call(out.querySelectorAll('.wkeep'), function(b){
@@ -2496,7 +2499,7 @@ function screenPack(mode, topic0){
   }).catch(function(e){ document.getElementById('board').textContent = 'The pack is napping: ' + e.message; });
 }
 
-var APP_VERSION = "20261001210123";
+var APP_VERSION = "20261001221027";
 (function(){
   try {
     fetch('/version.json?t=' + Date.now(), { cache: 'no-store' }).then(function(r){ return r.json(); }).then(function(j){
