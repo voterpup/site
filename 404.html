@@ -1736,6 +1736,7 @@ function screenReport(tail){
       '<div class="rprow"><span>📋</span><div><b>After the vote</b><small>what they promised vs. what got fixed</small></div></div>' +
       proof +
       (first ? '<label class="switchrow" style="margin:12px 2px"><input type="checkbox" id="rpshare"> Count my first issue on The Pack 🌱 <small style="color:var(--sub)">(public, no name)</small></label>' : '') +
+      '<input type="email" id="rpemail" placeholder="Email for the Flashback on voting morning (optional)" autocomplete="email" style="margin:4px 0 10px">' +
       '<button class="btn gold" id="rpgo">Let ' + nm + ' report back 🔔</button>' +
       '<a href="#" class="rpskip" id="rpskip">Not now</a>' +
       '<p class="privacy" id="rperr"></p></div>';
@@ -1745,9 +1746,13 @@ function screenReport(tail){
       var b = this; b.disabled = true; b.textContent = 'One sec…';
       var sh = document.getElementById('rpshare');
       var p0 = (sh && sh.checked && first) ? rpc('vp_set_shared', { p_tail: tail, p_id: first, p_shared: true }).catch(function(){}) : Promise.resolve();
-      p0.then(function(){
-        if (!pushOK()) {                                   // iPhone Safari can't take notifications: reports go by email instead
+      var em = (document.getElementById('rpemail') || {}).value || '';
+      var pe = em.trim() ? rpc('vp_set_email', { p_tail: tail, p_email: em.trim(), p_tz: Intl.DateTimeFormat().resolvedOptions().timeZone || 'America/Vancouver', p_hour: 19, p_src: srcTag() })
+        .then(function(){ try { localStorage.setItem('vp.mail', '1'); } catch (e) {} track('reminder_on', { via: 'email' }); }).catch(function(e){ document.getElementById('rperr').textContent = e.message; }) : Promise.resolve();
+      Promise.all([p0, pe]).then(function(){
+        if (!pushOK()) {                                   // iPhone Safari can't take notifications: email carries the reports
           b.disabled = false; b.textContent = 'Continue →'; b.onclick = go;
+          if (hasMail()) { toast('📧 ' + nm + ' will report back tonight at 7'); go(); return; }
           emailSheet(tail, s.name, function(){ if (hasMail()) go(); });
           return;
         }
@@ -2381,7 +2386,7 @@ function screenPack(mode, topic0){
   }).catch(function(e){ document.getElementById('board').textContent = 'The pack is napping: ' + e.message; });
 }
 
-var APP_VERSION = "20261001025808";
+var APP_VERSION = "20261001041955";
 (function(){
   try {
     fetch('/version.json?t=' + Date.now(), { cache: 'no-store' }).then(function(r){ return r.json(); }).then(function(j){
