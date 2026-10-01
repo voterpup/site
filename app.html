@@ -1285,14 +1285,16 @@ function startTour(name, k0){
   ].filter(function(s){ return document.querySelector(s.sel); });
   if (!steps.length) return;
   var k = Math.min(k0 || 0, steps.length - 1);
+  window._tourEnd = function(){ end(true); };
   var dim = document.createElement('div'); dim.className = 'tourdim';
   var hole = document.createElement('div'); hole.className = 'tourhole';
   var tip = document.createElement('div'); tip.className = 'tourtip';
   document.body.appendChild(dim); document.body.appendChild(hole); document.body.appendChild(tip);
-  function end(){
+  function end(quiet){
     [dim, hole, tip].forEach(function(x){ if (x.parentNode) x.parentNode.removeChild(x); });
-    window.removeEventListener('resize', place); window.removeEventListener('scroll', place, true);
+    window.removeEventListener('resize', place); window.removeEventListener('scroll', place, true); window._tourEnd = null;
     try { localStorage.setItem('vp.toured', '1'); } catch (e) {}
+    if (quiet) return;
     var s0 = loadLocal(); var asked = false; try { asked = !!localStorage.getItem('vp.remasked'); } catch (e) {}
     if (s0 && !remPref() && !asked && !KIOSK) setTimeout(function(){ reminderSheet(s0.tail, s0.name); }, 300);
   }
@@ -2070,6 +2072,7 @@ function toast(html, ms){
 function openAdd(){
   var s = loadLocal();
   if (!s || KIOSK) { location.href = '/app.html?new=1'; return; }
+  if (window._tourEnd) window._tourEnd();
   pendingFiles = [];
   var nm = esc(s.name);
   var ov = document.createElement('div'); ov.className = 'stkover'; document.body.appendChild(ov);
@@ -2495,7 +2498,7 @@ function screenPack(mode, topic0){
   }).catch(function(e){ document.getElementById('board').textContent = 'The pack is napping: ' + e.message; });
 }
 
-var APP_VERSION = "20261001185334";
+var APP_VERSION = "20261001185522";
 (function(){
   try {
     fetch('/version.json?t=' + Date.now(), { cache: 'no-store' }).then(function(r){ return r.json(); }).then(function(j){
