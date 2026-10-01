@@ -54,8 +54,10 @@ Deno.serve(async (req) => {
         line = `${f.backs} ${f.backs === 1 ? "person feels" : "people feel"} the same as you so far. Anything new today?`;
       else if ((f?.entries ?? 0) === 0)
         line = `${s.name} hasn't heard anything yet. What should they fix?`;
-      else if (f?.city && (f.today?.issues ?? 0) >= 2)   // the day's pulse, different every day
-        line = `Today in ${f.city}: ${f.today.issues} issues from ${f.today.pups} people` + (f.today.top_topic ? `, most on #${f.today.top_topic}` : "") + `. Anything to add?`;
+      else if (f?.city && ((f.today?.issues ?? 0) >= 2 || (f.city_reports?.n ?? 0) >= 20))   // the day's pulse, different every day
+        line = `Today in ${f.city}: ` + ((f.today?.issues ?? 0) ? `${f.today.issues} issues from ${f.today.pups} people` : "") +
+               ((f.today?.issues ?? 0) && (f.city_reports?.n ?? 0) ? " + " : "") + ((f.city_reports?.n ?? 0) ? `${f.city_reports.n} 3-1-1 reports` : "") +
+               ((f.today?.top_topic || f.city_reports?.top_topic) ? `, most on #${f.today?.top_topic || f.city_reports.top_topic}` : "") + `. Anything to add?`;
       else if (f?.city && (st.issues_week ?? 0) >= 3)
         line = `This week in ${f.city}: ${st.issues_week} issues from ${st.pups_week} people` + (st.top_topic ? `, most on #${st.top_topic}` : "") + `. Anything to add?`;
     }
