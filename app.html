@@ -298,6 +298,7 @@
   @keyframes shake{25%{transform:translateX(-4px)} 75%{transform:translateX(4px)}}
   .ghint{text-align:center; font-size:11.5px; color:var(--sub); margin-top:10px}
   .gmet{display:flex; flex-direction:column; gap:8px; margin:10px 0 14px}
+  .gprize{background:#1f2733; color:#fff; border-radius:14px; padding:14px; text-align:center; font-size:26px; font-weight:800; margin:4px 0 12px} .gprize small{display:block; font-size:12px; font-weight:600; opacity:.8; margin-top:2px}
   .plusbtn{flex:0 0 64px !important; position:relative}
   .playbtn{position:absolute; left:calc(50% + 16px); top:14px; width:26px; height:26px; border-radius:50%; background:#1f2733; color:#fff;
       font-size:14px; line-height:26px; text-align:center; text-decoration:none; border:2px solid var(--card); box-shadow:0 2px 6px rgba(0,0,0,.25); z-index:2}
@@ -2386,7 +2387,7 @@ function screenPack(mode, topic0){
   }).catch(function(e){ document.getElementById('board').textContent = 'The pack is napping: ' + e.message; });
 }
 
-var APP_VERSION = "20261001041955";
+var APP_VERSION = "20261001050245";
 (function(){
   try {
     fetch('/version.json?t=' + Date.now(), { cache: 'no-store' }).then(function(r){ return r.json(); }).then(function(j){
@@ -2810,6 +2811,7 @@ function screenPlay(){
       var list = Object.keys(met).map(function(k){ return met[k]; });
       g.innerHTML = '<div class="gtop"><b>' + (done ? '🏆 Level ' + level + ' cleared!' : '⏱ Time&rsquo;s up') + '</b><a href="/pack" class="gx">✕</a></div>' +
         '<div class="gend"><div class="gbig">' + score + ' points' + (score >= best && score > 0 ? ' · new best' : '') + '</div>' +
+        (srcTag() === 'booth' ? '<div class="gprize">' + (done && level === 2 ? '🎁 Level 2 cleared' : done ? '🍫 Level 1 cleared' : '🍭 Played') + '<small>show this at the table</small></div>' : '') +
         '<p>You met <b>' + list.length + '</b> real issue' + (list.length === 1 ? '' : 's') + ' in ' + city + ' today.</p>' +
         '<div class="gmet">' + list.slice(0, 10).map(function(x){ return '<div class="card"><div class="entry-body">' + esc(x.body) + '</div><div class="chips">' +
           '<span class="topicchip">#' + esc(x.topic) + '</span>' + (x.city ? '<span class="chip" style="cursor:default">🏛️ city 3-1-1 report</span>' : sameChip(x.id, x.backs, false, false)) + '</div></div>'; }).join('') + '</div>' +
