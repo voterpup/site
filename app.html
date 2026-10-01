@@ -1813,6 +1813,12 @@ function hasMail(){ try { return localStorage.getItem('vp.mail') === '1'; } catc
 function renderIsland(tail, name){
   var el = document.getElementById('island'); if (!el) return;
   var rp = remPref(), items = [];
+  var booth = srcTag() === 'booth' || srcTag() === 'demo', stuck = false; try { stuck = localStorage.getItem('vp.sticker') === tail; } catch (e) {}
+  if (booth && !stuck) items.push({ k: 'stk', t: '🖨️ Get ' + name + "'s sticker at the table", f: function(){
+    rpc('vp_sticker_request', { p_name: name, p_place: getPlace(), p_dev: devId() }).then(function(){
+      try { localStorage.setItem('vp.sticker', tail); } catch (e) {} toast('🖨️ Printing ' + name + "'s sticker at the table"); renderIsland(tail, name);
+    }).catch(function(e){ toast(/enough|busy/.test(e.message) ? 'The printer is busy, ask at the table' : 'Could not reach the printer'); });
+  } });
   if ((!rp || rp.off) && !hasMail()) items.push({ k: 'rem', t: pushOK() ? '🔔 Turn on reminders' : '📧 Reports by email', f: function(){ (pushOK() ? reminderSheet : emailSheet)(tail, name, function(){ renderIsland(tail, name); }); } });
   if (GOOGLE_READY && !isBackedUp(tail)) items.push({ k: 'bk', t: '🔐 Back up with Google', f: function(){ location.href = '/manage?do=backup'; } });
   if (canOfferInstall()) items.push({ k: 'app', t: '📲 Get the app', f: installApp });
@@ -2393,7 +2399,7 @@ function screenPack(mode, topic0){
   }).catch(function(e){ document.getElementById('board').textContent = 'The pack is napping: ' + e.message; });
 }
 
-var APP_VERSION = "20261001080508";
+var APP_VERSION = "20261001081437";
 (function(){
   try {
     fetch('/version.json?t=' + Date.now(), { cache: 'no-store' }).then(function(r){ return r.json(); }).then(function(j){

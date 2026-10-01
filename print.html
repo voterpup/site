@@ -1,0 +1,82 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>VoterPup — sticker station</title><link rel="icon" href="/icon-192.png">
+<style>
+body{font-family:system-ui,sans-serif;background:#f7f1e3;color:#1d2433;margin:0;padding:20px;max-width:720px;margin:0 auto}
+h1{font-size:22px;margin:0 0 4px} .sub{color:#5b6579;margin:0 0 16px;font-size:14px}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin:10px 0}
+button{font:inherit;font-weight:800;border:0;border-radius:999px;padding:12px 18px;cursor:pointer;background:#e8b84b;color:#2a2418} button.ghost{background:#fff;border:1.5px solid #d9d2c2}
+.st{padding:10px 14px;border-radius:12px;background:#fff;font-size:14px;font-weight:600} .st.ok{background:#dff3e6} .st.bad{background:#f6dede}
+#log{font:12px/1.5 ui-monospace,monospace;background:#fff;border-radius:12px;padding:10px;height:150px;overflow:auto;white-space:pre-wrap}
+canvas{background:#fff;border:1px solid #d9d2c2;image-rendering:pixelated;width:192px}
+.q{display:flex;gap:10px;flex-wrap:wrap} .job{background:#fff;border-radius:12px;padding:8px 12px;font-weight:700}
+label{font-size:13px;font-weight:600}
+</style></head><body>
+<h1>🖨️ Sticker station</h1><p class="sub">People tap “Get my sticker” on their phone; this page prints their pup’s name on the Phomemo T02. Names only, never links.</p>
+<div class="row"><button id="connect">🔵 Connect printer</button><button class="ghost" id="test">Print test</button><button class="ghost" id="save">Save sticker PNG (manual)</button><span class="st" id="status">not connected</span></div>
+<div class="row"><label><input type="checkbox" id="auto" checked> Auto-print new requests</label><label>Density <input type="range" id="dens" min="1" max="15" value="10"></label></div>
+<div class="row"><canvas id="cv" width="384" height="600"></canvas><div><div style="font-weight:800;margin-bottom:6px">Waiting</div><div class="q" id="queue"></div></div></div>
+<div id="log"></div>
+<script>
+var KEY = new URLSearchParams(location.search).get('key') || '', SB = 'https://setyjmgijsbplgyqynlh.supabase.co', AK = 'sb_publishable_oONhR-c8-8zjP8Z8zL1Jew_kFq6sDaq';
+var log = function(s){ var l = document.getElementById('log'); l.textContent += new Date().toLocaleTimeString() + '  ' + s + '\n'; l.scrollTop = 1e9; };
+var rpc = function(fn, args){ return fetch(SB + '/rest/v1/rpc/' + fn, { method: 'POST', headers: { apikey: AK, Authorization: 'Bearer ' + AK, 'content-type': 'application/json' }, body: JSON.stringify(args || {}) }).then(function(r){ if (!r.ok) throw new Error(fn + ' ' + r.status); return r.json(); }); };
+var qr = new Image(); qr.src = '/demo/qr.png';
+// ---- the sticker (384 dots wide = the T02's print width) ----
+function draw(name){
+  var cv = document.getElementById('cv'), c = cv.getContext('2d'); c.fillStyle = '#fff'; c.fillRect(0, 0, cv.width, cv.height); c.fillStyle = '#000'; c.textAlign = 'center';
+  c.font = '800 26px system-ui, sans-serif'; c.fillText('VoterPup', 192, 40);
+  var size = 64; c.font = '800 ' + size + 'px system-ui, sans-serif'; while (c.measureText(name).width > 360 && size > 26) { size -= 2; c.font = '800 ' + size + 'px system-ui, sans-serif'; }
+  c.fillText(name, 192, 120);
+  c.font = '600 22px system-ui, sans-serif'; c.fillText('remembers what you want fixed', 192, 160);
+  if (qr.complete && qr.naturalWidth) c.drawImage(qr, 68, 190, 248, 248);
+  c.font = '800 24px system-ui, sans-serif'; c.fillText('voterpup.com', 192, 480);
+  c.font = '600 18px system-ui, sans-serif'; c.fillText('Vancouver votes Oct 17', 192, 512);
+  return cv;
+}
+function raster(cv){   // 1 bit per dot, 48 bytes per row, 1 = black; blocks of 255 rows: GS v 0
+  var w = 384, h = cv.height, d = cv.getContext('2d').getImageData(0, 0, w, h).data, out = [], rows = [];
+  for (var y = 0; y < h; y++) { var row = new Uint8Array(48); for (var x = 0; x < w; x++) { var i = (y * w + x) * 4; var lum = 0.299 * d[i] + 0.587 * d[i + 1] + 0.114 * d[i + 2]; if (d[i + 3] > 127 && lum < 128) row[x >> 3] |= 0x80 >> (x & 7); } rows.push(row); }
+  for (var y0 = 0; y0 < h; y0 += 255) { var n = Math.min(255, h - y0); out.push(0x1d, 0x76, 0x30, 0x00, 48, 0, n, 0); for (var k = 0; k < n; k++) for (var b = 0; b < 48; b++) out.push(rows[y0 + k][b]); }
+  return out;
+}
+// ---- Phomemo over Web Bluetooth ----
+var dev = null, chr = null, printing = false;
+var SERVICES = ['0000ff00-0000-1000-8000-00805f9b34fb', 'e7810a71-73ae-499d-8c15-faa9aef0c3f2', '000018f0-0000-1000-8000-00805f9b34fb'];
+async function connect(){
+  try {
+    dev = await navigator.bluetooth.requestDevice({ filters: [{ namePrefix: 'T02' }, { namePrefix: 'M02' }, { namePrefix: 'Phomemo' }, { namePrefix: 'Q' }], optionalServices: SERVICES });
+    dev.addEventListener('gattserverdisconnected', function(){ chr = null; setStatus('disconnected', 'bad'); log('printer disconnected'); });
+    var server = await dev.gatt.connect(), svcs = await server.getPrimaryServices(); chr = null;
+    for (var s of svcs) { var cs = await s.getCharacteristics(); for (var c of cs) { if (c.properties.writeWithoutResponse || c.properties.write) { chr = c; log('using ' + s.uuid.slice(0, 8) + ' / ' + c.uuid.slice(0, 8)); break; } } if (chr) break; }
+    if (!chr) throw new Error('no writable characteristic');
+    setStatus('connected: ' + dev.name, 'ok'); log('connected ' + dev.name);
+  } catch (e) { setStatus('connect failed: ' + e.message, 'bad'); log('connect failed: ' + e.message); }
+}
+async function send(bytes){
+  var CH = 100; for (var i = 0; i < bytes.length; i += CH) { var part = new Uint8Array(bytes.slice(i, i + CH)); if (chr.properties.writeWithoutResponse) await chr.writeValueWithoutResponse(part); else await chr.writeValue(part); await new Promise(function(r){ setTimeout(r, 12); }); }
+}
+async function printName(name){
+  if (!chr) throw new Error('printer not connected');
+  printing = true; setStatus('printing ' + name + '…');
+  var cv = draw(name), dens = +document.getElementById('dens').value;
+  var bytes = [0x1b, 0x40, 0x1b, 0x61, 0x01, 0x1b, 0x4e, 0x0d, 0x03, 0x1b, 0x4e, 0x04, dens].concat(raster(cv)).concat([0x1b, 0x64, 0x03]);
+  await send(bytes); printing = false; setStatus('connected: ' + dev.name, 'ok'); log('printed ' + name + ' (' + bytes.length + ' bytes)');
+}
+function setStatus(t, cls){ var s = document.getElementById('status'); s.textContent = t; s.className = 'st ' + (cls || ''); }
+// ---- the queue ----
+var seen = {};
+async function poll(){
+  if (!KEY) { setStatus('no key in the URL', 'bad'); return; }
+  try {
+    var jobs = await rpc('vp_print_queue', { p_key: KEY }); if (jobs === null) { setStatus('wrong key', 'bad'); return; }
+    document.getElementById('queue').innerHTML = jobs.map(function(j){ return '<span class="job">' + j.name.replace(/</g, '&lt;') + '</span>'; }).join('') || '<span style="color:#5b6579">none</span>';
+    if (jobs.length && !printing && document.getElementById('auto').checked && chr) { var j = jobs[0]; await printName(j.name); await rpc('vp_print_done', { p_key: KEY, p_id: j.id }); }
+    else if (jobs.length && !chr) draw(jobs[0].name);
+  } catch (e) { log('poll: ' + e.message); }
+}
+document.getElementById('connect').onclick = connect;
+document.getElementById('test').onclick = function(){ printName('Oreo').catch(function(e){ log('test: ' + e.message); setStatus(e.message, 'bad'); }); };
+document.getElementById('save').onclick = function(){ var cv = document.getElementById('cv'); var a = document.createElement('a'); a.download = 'sticker.png'; a.href = cv.toDataURL('image/png'); a.click(); };
+qr.onload = function(){ draw('Oreo'); }; setInterval(poll, 4000); poll();
+if (!navigator.bluetooth) setStatus('this browser has no Web Bluetooth: use Chrome or Edge', 'bad');
+</script></body></html>
