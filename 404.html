@@ -1144,6 +1144,7 @@ function screenCapture(prefGripe, prefName){
     !((ta.value.trim() || pendingFiles.length) && inp.value.trim()); }
   ta.oninput = upd; inp.oninput = upd;
   document.getElementById('fpick').addEventListener('change', function(){ setTimeout(upd, 60); });
+  document.getElementById('fcam').addEventListener('change', function(){ setTimeout(upd, 60); });
   Array.prototype.forEach.call(document.querySelectorAll('.chip[data-n]'), function(c){
     c.onclick = function(){ inp.value = c.getAttribute('data-n'); upd(); };
   });
@@ -2011,6 +2012,7 @@ function openAdd(){
     document.getElementById('priv').disabled = !ok; document.getElementById('share').disabled = !ok; }
   ta.oninput = upd;
   document.getElementById('fpick').addEventListener('change', function(){ setTimeout(upd, 50); });
+  document.getElementById('fcam').addEventListener('change', function(){ setTimeout(upd, 50); });
   function submit(shared){
     document.getElementById('priv').disabled = true; document.getElementById('share').disabled = true;
     ensurePlace().then(function(){ return uploadPending(); }).then(function(media){
@@ -2296,7 +2298,7 @@ function screenPack(mode, topic0){
   }).catch(function(e){ document.getElementById('board').textContent = 'The pack is napping: ' + e.message; });
 }
 
-var APP_VERSION = "20261001002141";
+var APP_VERSION = "20261001002224";
 (function(){
   try {
     fetch('/version.json?t=' + Date.now(), { cache: 'no-store' }).then(function(r){ return r.json(); }).then(function(j){
