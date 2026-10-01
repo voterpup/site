@@ -2297,7 +2297,7 @@ function screenPack(mode, topic0){
         var tg = document.createElement('div'); tg.className = 'maptoggle'; tg.innerHTML = '<label><input type="checkbox" id="citytg"> 🏛️ City 3-1-1 reports (' + ((window._cityPins || []).length) + ')</label>';
         el0.appendChild(tg); document.getElementById('citytg').onchange = function(){ cityOn = this.checked; drawCity(); };
         if (b0) m.fitBounds(b0, { padding: 40, maxZoom: 14, duration: 0 });
-        else if ((window._cityPins || []).length) { cityOn = true; document.getElementById('citytg').checked = true; drawCity(); }
+        if ((window._cityPins || []).length) { cityOn = true; document.getElementById('citytg').checked = true; drawCity(); }   // on by default; untick to hide
       }).catch(function(){ var el0 = document.getElementById('packmap'); if (el0) el0.innerHTML = '<div class="hint" style="padding:40px 12px">The map couldn&rsquo;t load. Try again in a minute.</div>'; });
     }
     function tilesOff(){ mapOn = false; mb.innerHTML = '🗺️<span>Map</span>'; try { sessionStorage.removeItem('vp.packmap'); } catch (e) {} tilesView(); }
@@ -2330,7 +2330,7 @@ function screenPack(mode, topic0){
   }).catch(function(e){ document.getElementById('board').textContent = 'The pack is napping: ' + e.message; });
 }
 
-var APP_VERSION = "20261001011754";
+var APP_VERSION = "20261001011947";
 (function(){
   try {
     fetch('/version.json?t=' + Date.now(), { cache: 'no-store' }).then(function(r){ return r.json(); }).then(function(j){
