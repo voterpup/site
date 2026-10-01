@@ -2393,7 +2393,7 @@ function screenPack(mode, topic0){
   }).catch(function(e){ document.getElementById('board').textContent = 'The pack is napping: ' + e.message; });
 }
 
-var APP_VERSION = "20261001065055";
+var APP_VERSION = "20261001075951";
 (function(){
   try {
     fetch('/version.json?t=' + Date.now(), { cache: 'no-store' }).then(function(r){ return r.json(); }).then(function(j){
@@ -2851,6 +2851,15 @@ function screenPlay(){
   });
 }
 
+// ---------- demo device: came from /demo.html; after 75 s without a touch, back to the slideshow ----------
+(function(){
+  try {
+    if (new URLSearchParams(location.search).get('demo') === '1') sessionStorage.setItem('vp.demo', '1');
+    if (sessionStorage.getItem('vp.demo') !== '1') return;
+    var idle; function arm(){ clearTimeout(idle); idle = setTimeout(function(){ location.href = '/demo.html'; }, 75000); }
+    ['pointerdown', 'keydown', 'touchstart', 'scroll'].forEach(function(ev){ document.addEventListener(ev, arm, { passive: true }); }); arm();
+  } catch (e) {}
+})();
 // ---------- router ----------
 (function(){
   var m = location.pathname.match(/^\/p\/(.+)$/);

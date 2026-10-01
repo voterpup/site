@@ -1,0 +1,40 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>VoterPup — demo</title><link rel="icon" href="/icon-192.png">
+<style>
+:root{--ink:#1d2433;--sub:#5b6579;--gold:#e8b84b;--cream:#f7f1e3}
+*{box-sizing:border-box} html,body{height:100%;margin:0} body{font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;background:var(--cream);color:var(--ink);overflow:hidden;-webkit-user-select:none;user-select:none;touch-action:manipulation}
+.slide{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px 20px 70px;text-align:center;opacity:0;transition:opacity .6s;pointer-events:none}
+.slide.on{opacity:1;pointer-events:auto}
+.kick{font-size:12px;font-weight:800;letter-spacing:2px;color:#c98a00;margin-bottom:6px}
+h1{font-size:clamp(26px,5.2vh,44px);line-height:1.08;margin:0 0 8px;font-weight:800;letter-spacing:-.3px;max-width:640px} h1 em{font-style:normal;color:#c98a00}
+p{font-size:clamp(15px,2.4vh,21px);line-height:1.35;color:var(--sub);margin:0 0 14px;max-width:560px;font-weight:600}
+.phone{height:min(58vh,560px);aspect-ratio:780/1520;border-radius:26px;border:6px solid #1f2733;overflow:hidden;background:#fff;box-shadow:0 14px 40px rgba(0,0,0,.22);flex:0 0 auto}
+.phone img{width:100%;height:100%;display:block;object-fit:cover;object-position:top}
+.row{display:flex;gap:18px;align-items:center}
+.super{height:min(30vh,280px);aspect-ratio:1;border-radius:24px;overflow:hidden;box-shadow:0 10px 30px rgba(0,0,0,.2)} .super img{width:100%;height:100%;object-fit:cover}
+.qr{height:min(50vh,440px);aspect-ratio:1;background:#fff;border-radius:28px;padding:22px;box-shadow:0 14px 40px rgba(0,0,0,.18)} .qr img{width:100%;height:100%;display:block}
+.foot{position:absolute;left:0;right:0;bottom:0;padding:12px 16px 18px;display:flex;flex-direction:column;align-items:center;gap:10px}
+.dots{display:flex;gap:7px} .dots i{width:8px;height:8px;border-radius:50%;background:#cfc7b3;transition:background .3s} .dots i.on{background:var(--ink)}
+.try{background:var(--gold);color:#2a2418;font-weight:800;font-size:18px;padding:14px 26px;border-radius:999px;box-shadow:0 6px 18px rgba(232,184,75,.5);animation:pulse 2.2s infinite}
+@keyframes pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.05)}}
+.brand{position:absolute;left:18px;top:14px;font-weight:800;color:var(--gold);font-size:20px}
+.ladder{display:flex;gap:10px;margin-top:4px} .ladder span{background:#fff;border-radius:14px;padding:8px 12px;font-size:14px;font-weight:800;box-shadow:0 3px 10px rgba(0,0,0,.08)} .ladder b{display:block;font-size:26px}
+@media (orientation:landscape){.slide{flex-direction:row;gap:32px;text-align:left;padding-bottom:60px} .slide>div.txt{align-items:flex-start;display:flex;flex-direction:column;max-width:46vw} .phone{height:min(78vh,600px)}}
+</style></head><body>
+<div class="brand">VoterPup 🐾</div>
+<section class="slide on"><div class="txt"><div class="kick">FREE APP · NO ACCOUNT · NO DONATIONS · NO PARTIES</div><h1>A pup that remembers what you want fixed.</h1><p>Say one thing your block needs. Your pup keeps it, counts who agrees, and brings it back every time you vote.</p></div><div class="row"><div class="super"><img src="/demo/pup-super.png" alt=""></div><div class="phone"><img src="/demo/app-start.png" alt=""></div></div></section>
+<section class="slide"><div class="txt"><h1>One little thing on your block you&rsquo;d fix?</h1><p>Five words or a photo. Name the pup. Private by default. 30 seconds.</p></div><div class="phone"><img src="/demo/app-start.png" alt=""></div></section>
+<section class="slide"><div class="txt"><h1>Tonight at 7 it reports back: <em>how many agree.</em></h1><p>Your pup keeps your list, fetches what neighbours posted, and counts every &ldquo;same here&rdquo;.</p></div><div class="phone"><img src="/demo/app-pup.png" alt=""></div></section>
+<section class="slide"><div class="txt"><h1>The Pack: what Vancouver wants fixed, <em>ranked by agreement.</em></h1><p>Anonymous. No comments, no ads, no algorithm. Plus the City&rsquo;s own 3-1-1 numbers.</p></div><div class="phone"><img src="/demo/app-pack.png" alt=""></div></section>
+<section class="slide"><div class="txt"><h1>Help the pup.</h1><p>30 seconds. Smash today&rsquo;s real issues that match the colour.</p><div class="ladder"><span><b>🍭</b>Play</span><span><b>🍫</b>Level 1</span><span><b>🎁</b>Level 2</span></div></div><div class="phone"><img src="/demo/app-game.png" alt=""></div></section>
+<section class="slide"><div class="txt"><h1>Scan to get <em>your</em> pup.</h1><p>Brings it back every time you vote · Vancouver votes Oct 17 · BC votes Oct 24</p></div><div class="qr"><img src="/demo/qr.png" alt="QR code"></div></section>
+<div class="foot"><div class="dots" id="dots"></div><div class="try" id="try">👆 Tap anywhere to try it</div></div>
+<script>
+var slides=document.querySelectorAll('.slide'),dots=document.getElementById('dots'),i=0,T=6500,t;
+for(var k=0;k<slides.length;k++){var d=document.createElement('i');if(!k)d.className='on';dots.appendChild(d);}
+function show(n){i=(n+slides.length)%slides.length;for(var k=0;k<slides.length;k++){slides[k].classList.toggle('on',k===i);dots.children[k].classList.toggle('on',k===i);}}
+function next(){show(i+1);t=setTimeout(next,T);} t=setTimeout(next,T);
+var APP='/app.html?src=demo&demo=1&new=1&place=Vancouver,%20British%20Columbia,%20Canada';
+document.body.addEventListener('pointerup',function(){location.href=APP;});
+try{if(navigator.wakeLock)navigator.wakeLock.request('screen').catch(function(){});}catch(e){}
+</script></body></html>
