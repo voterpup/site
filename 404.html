@@ -313,12 +313,17 @@
   .intro .dots{display:flex; gap:7px} .intro .dots i{width:8px; height:8px; border-radius:50%; background:#3a4150} .intro .dots i.on{background:var(--gold)}
   .iskip{color:#fff; font-weight:800; text-decoration:none; font-size:16px; padding:10px 22px; border:1.5px solid #3a4150; border-radius:999px}
   @keyframes introin{from{opacity:0; transform:translateY(12px)} to{opacity:1; transform:none}} @keyframes fadein{from{opacity:0} to{opacity:1}}
-  .walkbtn{display:block; width:100%; text-align:left; background:#1f2733; color:#fff; border:0; border-radius:14px; padding:12px 14px; font-size:17px; font-weight:800; margin:0 0 10px; cursor:pointer}
-  .walkbtn small{display:block; font-size:12px; font-weight:600; opacity:.8; margin-top:2px}
+  .walkbtn{display:block; width:100%; text-align:left; position:relative; overflow:hidden; background:linear-gradient(135deg, #f3c95e, #e8b84b 55%, #d9a53a); color:#2a2418; border:0; border-radius:14px;
+      padding:13px 14px 13px 58px; font-size:18px; font-weight:800; margin:0 0 10px; cursor:pointer; box-shadow:0 6px 18px rgba(232,184,75,.45), inset 0 1px 0 rgba(255,255,255,.5); animation:walkglow 2.6s ease-in-out infinite}
+  .walkbtn small{display:block; font-size:12px; font-weight:600; opacity:.85; margin-top:2px}
+  .walkbtn .paw{position:absolute; left:14px; top:50%; width:34px; height:34px; margin-top:-17px; border-radius:50%; background:#2a2418; color:#fff; display:flex; align-items:center; justify-content:center; font-size:18px; animation:wag 2.6s ease-in-out infinite}
+  .walkbtn::after{content:''; position:absolute; inset:0; background:linear-gradient(110deg, transparent 35%, rgba(255,255,255,.55) 50%, transparent 65%); transform:translateX(-120%); animation:shine 3.2s ease-in-out infinite}
+  @keyframes walkglow{0%,100%{box-shadow:0 6px 18px rgba(232,184,75,.45), inset 0 1px 0 rgba(255,255,255,.5)} 50%{box-shadow:0 8px 26px rgba(232,184,75,.75), inset 0 1px 0 rgba(255,255,255,.5)}}
+  @keyframes wag{0%,100%{transform:rotate(-12deg)} 50%{transform:rotate(12deg)}}
   .walksheet{max-height:92vh; overflow-y:auto} .walkline{font-size:15px; font-weight:700; color:#c98a00; margin:2px 0 10px}
   .walkpic{position:relative; border-radius:14px; overflow:hidden; background:#eee; max-height:38vh} .walkpic img{width:100%; max-height:38vh; object-fit:cover; display:block}
-  .walkpic .shine{position:absolute; inset:0; background:linear-gradient(110deg, transparent 30%, rgba(255,255,255,.55) 50%, transparent 70%); background-size:200% 100%; animation:shine 1.2s linear infinite}
-  @keyframes shine{from{background-position:200% 0} to{background-position:-200% 0}}
+  .walkpic .shine{position:absolute; inset:0; background:linear-gradient(110deg, transparent 30%, rgba(255,255,255,.55) 50%, transparent 70%); background-size:200% 100%; animation:scan 1.2s linear infinite}
+  @keyframes scan{from{background-position:200% 0} to{background-position:-200% 0}}
   .walkmsg{font-size:14px; font-weight:600; margin:10px 0 8px; color:var(--sub)}
   .wcard{background:var(--card); border:1px solid var(--line); border-left:5px solid #a94b4b; border-radius:12px; padding:10px 12px; margin:0 0 8px; display:flex; align-items:center; gap:10px; flex-wrap:wrap}
   .wcard.good{border-left-color:#2f7d5f} .wcard.kept{opacity:.6} .wline{font-size:15px; font-weight:700; flex:1 1 60%} .wcard .chips{margin:0} .wcard .wkeep{margin-left:auto}
@@ -2073,7 +2078,7 @@ function openAdd(){
   ov.innerHTML = '<div class="stksheet addsheet"><div class="addtop">' +
       '<div class="addthumb"><video src="/pup-robo.mp4" poster="/pup-robo.jpg" muted autoplay loop playsinline></video></div>' +
       '<div><div class="addhead" style="margin:0">🐾 Tell ' + nm + '</div><div class="addtag">Break the Algo</div></div></div>' +
-    '<button class="walkbtn" id="walkbtn">🐾 Walk ' + nm + '<small>snap one thing on your block: it names what it sees</small></button>' +
+    '<button class="walkbtn" id="walkbtn"><span class="paw">🐾</span>Walk ' + nm + '<small>snap one thing on your block · it names what it sees</small></button>' +
     '<input id="fwalk" type="file" accept="image/*" capture="environment" hidden>' +
     '<textarea id="gripe" placeholder="Or type it: what should they fix? Five words is plenty."></textarea>' +
     '<div id="thumbs" class="attach"></div>' + tagRowHTML() + spotLineHTML() +
@@ -2473,7 +2478,7 @@ function screenPack(mode, topic0){
   }).catch(function(e){ document.getElementById('board').textContent = 'The pack is napping: ' + e.message; });
 }
 
-var APP_VERSION = "20261001183312";
+var APP_VERSION = "20261001184859";
 (function(){
   try {
     fetch('/version.json?t=' + Date.now(), { cache: 'no-store' }).then(function(r){ return r.json(); }).then(function(j){
