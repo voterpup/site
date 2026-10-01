@@ -1706,9 +1706,10 @@ function screenReport(tail){
       var sh = document.getElementById('rpshare');
       var p0 = (sh && sh.checked && first) ? rpc('vp_set_shared', { p_tail: tail, p_id: first, p_shared: true }).catch(function(){}) : Promise.resolve();
       p0.then(function(){
-        if (!pushOK()) {                                   // iPhone Safari: notifications need the home-screen app first
-          if (isIOS() && !isInstalled()) { installApp(); document.getElementById('rperr').innerHTML = 'iPhone needs one extra step (above). After adding, open VoterPup from your home screen and tap <b>Let ' + nm + ' report back</b> again.'; }
-          b.disabled = false; b.textContent = 'Continue →'; b.onclick = go; return;
+        if (!pushOK()) {                                   // iPhone Safari can't take notifications: reports go by email instead
+          b.disabled = false; b.textContent = 'Continue →'; b.onclick = go;
+          emailSheet(tail, s.name, function(){ if (hasMail()) go(); });
+          return;
         }
         var slow = setTimeout(function(){
           document.getElementById('rperr').innerHTML = 'Taking longer than usual. You can continue now and turn reminders on in ⚙️ any time.';
@@ -1724,6 +1725,7 @@ function screenReport(tail){
           clearTimeout(slow);
           document.getElementById('rperr').innerHTML = esc(e.message) + ' You can turn reminders on later in ⚙️.';
           b.disabled = false; b.textContent = 'Continue →'; b.onclick = go;
+          emailSheet(tail, s.name, function(){ if (hasMail()) go(); });
           document.getElementById('rpskip').textContent = 'Try again'; document.getElementById('rpskip').onclick = function(ev){ ev.preventDefault(); screenReport(tail); };
         });
       });
@@ -1731,11 +1733,35 @@ function screenReport(tail){
   });
 }
 
+// ---------- reports by email: for phones that can't take notifications ----------
+function emailSheet(tail, name, after){
+  var nm = esc(name);
+  var ov = document.createElement('div'); ov.className = 'stkover'; document.body.appendChild(ov);
+  function close(){ if (ov.parentNode) ov.parentNode.removeChild(ov); if (after) after(); }
+  ov.onclick = function(ev){ if (ev.target === ov) close(); };
+  ov.innerHTML = '<div class="stksheet"><div class="sh-h">📧 Where should ' + nm + ' send tonight&rsquo;s report?</div>' +
+    '<div class="sh-l">One short email a day at 7 pm, from ' + nm + '. <b>Unsubscribe in one tap, any time.</b></div>' +
+    '<input type="email" id="remail" placeholder="you@example.com" autocomplete="email" style="margin-top:10px">' +
+    '<button class="btn gold" id="remsend">Send me ' + nm + '&rsquo;s reports</button>' +
+    '<p class="privacy" id="remerr">Used only for these reports. No marketing, ever.</p>' +
+    '<a href="#" class="rpskip" id="remno">Not now</a></div>';
+  var inp = document.getElementById('remail'); inp.focus();
+  document.getElementById('remno').onclick = function(ev){ ev.preventDefault(); close(); };
+  document.getElementById('remsend').onclick = function(){
+    var b = this, v = inp.value.trim(); if (!v) { inp.focus(); return; }
+    b.disabled = true; b.textContent = 'Saving…';
+    rpc('vp_set_email', { p_tail: tail, p_email: v, p_tz: Intl.DateTimeFormat().resolvedOptions().timeZone || 'America/Vancouver', p_hour: 19, p_src: srcTag() })
+      .then(function(){ track('reminder_on', { via: 'email' }); try { localStorage.setItem('vp.mail', '1'); } catch (e) {} toast('📧 ' + nm + ' will report back tonight at 7'); close(); })
+      .catch(function(e){ b.disabled = false; b.textContent = 'Send me ' + name + '’s reports'; document.getElementById('remerr').textContent = e.message; });
+  };
+}
+function hasMail(){ try { return localStorage.getItem('vp.mail') === '1'; } catch (e) { return false; } }
+
 // ---------- setup island: the things left to set up, one tap each; disappears when nothing is left ----------
 function renderIsland(tail, name){
   var el = document.getElementById('island'); if (!el) return;
   var rp = remPref(), items = [];
-  if (!rp || rp.off) items.push({ k: 'rem', t: '🔔 Turn on reminders', f: function(){ reminderSheet(tail, name, function(){ renderIsland(tail, name); }); } });
+  if ((!rp || rp.off) && !hasMail()) items.push({ k: 'rem', t: pushOK() ? '🔔 Turn on reminders' : '📧 Reports by email', f: function(){ (pushOK() ? reminderSheet : emailSheet)(tail, name, function(){ renderIsland(tail, name); }); } });
   if (GOOGLE_READY && !isBackedUp(tail)) items.push({ k: 'bk', t: '🔐 Back up with Google', f: function(){ location.href = '/manage?do=backup'; } });
   if (canOfferInstall()) items.push({ k: 'app', t: '📲 Get the app', f: installApp });
   if (!getPlace()) items.push({ k: 'city', t: '📍 Set your city', f: changePlaceSheet });
@@ -2266,7 +2292,7 @@ function screenPack(mode, topic0){
   }).catch(function(e){ document.getElementById('board').textContent = 'The pack is napping: ' + e.message; });
 }
 
-var APP_VERSION = "20260930223707";
+var APP_VERSION = "20261001001329";
 (function(){
   try {
     fetch('/version.json?t=' + Date.now(), { cache: 'no-store' }).then(function(r){ return r.json(); }).then(function(j){
@@ -2520,6 +2546,8 @@ function screenManage(){
     if (!(email && backed)) rows += mrow('<div class="mkeythumb">🔑</div>', 'Private link',
       'Your only key until you back up.',
       '<button class="btn ghost mbtn" id="mcopy">Copy link</button><button class="btn ghost mbtn" id="mstk">🏷️ Key sticker</button>');
+    if (!KIOSK) rows += mrow('<img src="/pup-face.jpg" alt="">', '📧 Reports by email', hasMail() ? 'On, 7 pm daily' : 'For phones without notifications',
+      '<button class="btn ' + (hasMail() ? 'ghost' : 'gold') + ' mbtn" id="mmail">' + (hasMail() ? 'Change' : 'Turn on') + '</button>' + (hasMail() ? '<button class="btn ghost mbtn" id="mmailoff">Stop</button>' : ''));
     if (!KIOSK) rows += mrow('<img src="/pup-sit.webp" alt="" style="object-position:50% 12%">', '🔔 Reminders', remLabel(remPref()),
       '<button class="btn ' + (remPref() && !remPref().off ? 'ghost' : 'gold') + ' mbtn" id="mrem">' + (remPref() && !remPref().off ? 'Change' : 'Turn on') + '</button>');
     rows += mrow('<img id="invthumb" alt="">', '🐾 Invite your friends',
@@ -2535,6 +2563,8 @@ function screenManage(){
     var on = function(id, fn){ var el = document.getElementById(id); if (el) el.onclick = fn; };
     on('mshare', function(){ if (n) showCandidate(tail, L.name); });
     on('mrem', function(){ reminderSheet(tail, L.name, screenManage); });
+    on('mmail', function(){ emailSheet(tail, L.name, screenManage); });
+    on('mmailoff', function(){ rpc('vp_email_off', { p_tail: tail }).then(function(){ try { localStorage.removeItem('vp.mail'); } catch (e) {} toast('📧 Email reports off'); screenManage(); }); });
     on('minstall', function(){ installApp(); });
     on('mrename', function(ev){
       ev.preventDefault();
