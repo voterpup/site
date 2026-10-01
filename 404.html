@@ -313,6 +313,15 @@
   .intro .dots{display:flex; gap:7px} .intro .dots i{width:8px; height:8px; border-radius:50%; background:#3a4150} .intro .dots i.on{background:var(--gold)}
   .iskip{color:#fff; font-weight:800; text-decoration:none; font-size:16px; padding:10px 22px; border:1.5px solid #3a4150; border-radius:999px}
   @keyframes introin{from{opacity:0; transform:translateY(12px)} to{opacity:1; transform:none}} @keyframes fadein{from{opacity:0} to{opacity:1}}
+  .walkbtn{display:block; width:100%; text-align:left; background:#1f2733; color:#fff; border:0; border-radius:14px; padding:12px 14px; font-size:17px; font-weight:800; margin:0 0 10px; cursor:pointer}
+  .walkbtn small{display:block; font-size:12px; font-weight:600; opacity:.8; margin-top:2px}
+  .walksheet{max-height:92vh; overflow-y:auto} .walkline{font-size:15px; font-weight:700; color:#c98a00; margin:2px 0 10px}
+  .walkpic{position:relative; border-radius:14px; overflow:hidden; background:#eee; max-height:38vh} .walkpic img{width:100%; max-height:38vh; object-fit:cover; display:block}
+  .walkpic .shine{position:absolute; inset:0; background:linear-gradient(110deg, transparent 30%, rgba(255,255,255,.55) 50%, transparent 70%); background-size:200% 100%; animation:shine 1.2s linear infinite}
+  @keyframes shine{from{background-position:200% 0} to{background-position:-200% 0}}
+  .walkmsg{font-size:14px; font-weight:600; margin:10px 0 8px; color:var(--sub)}
+  .wcard{background:var(--card); border:1px solid var(--line); border-left:5px solid #a94b4b; border-radius:12px; padding:10px 12px; margin:0 0 8px; display:flex; align-items:center; gap:10px; flex-wrap:wrap}
+  .wcard.good{border-left-color:#2f7d5f} .wcard.kept{opacity:.6} .wline{font-size:15px; font-weight:700; flex:1 1 60%} .wcard .chips{margin:0} .wcard .wkeep{margin-left:auto}
   .plusbtn{flex:0 0 64px !important; position:relative}
   .playbtn{position:absolute; left:calc(50% + 16px); top:14px; width:26px; height:26px; border-radius:50%; background:#1f2733; color:#fff;
       font-size:14px; line-height:26px; text-align:center; text-decoration:none; border:2px solid var(--card); box-shadow:0 2px 6px rgba(0,0,0,.25); z-index:2}
@@ -2064,7 +2073,9 @@ function openAdd(){
   ov.innerHTML = '<div class="stksheet addsheet"><div class="addtop">' +
       '<div class="addthumb"><video src="/pup-robo.mp4" poster="/pup-robo.jpg" muted autoplay loop playsinline></video></div>' +
       '<div><div class="addhead" style="margin:0">🐾 Tell ' + nm + '</div><div class="addtag">Break the Algo</div></div></div>' +
-    '<textarea id="gripe" placeholder="What should they fix? Five words is plenty."></textarea>' +
+    '<button class="walkbtn" id="walkbtn">🐾 Walk ' + nm + '<small>snap one thing on your block: it names what it sees</small></button>' +
+    '<input id="fwalk" type="file" accept="image/*" capture="environment" hidden>' +
+    '<textarea id="gripe" placeholder="Or type it: what should they fix? Five words is plenty."></textarea>' +
     '<div id="thumbs" class="attach"></div>' + tagRowHTML() + spotLineHTML() +
     '<div class="addfoot"><div class="iconbtn" id="addmedia" title="take a photo">📷</div><div class="iconbtn" id="addgallery" title="choose from your photos">🖼️</div>' + spotButtonHTML() +
       '<input id="fcam" type="file" accept="image/*" capture="environment" hidden>' +
@@ -2097,6 +2108,61 @@ function openAdd(){
   }
   document.getElementById('priv').onclick = function(){ submit(false); };
   document.getElementById('share').onclick = function(){ submit(true); };
+  var fw = document.getElementById('fwalk');
+  document.getElementById('walkbtn').onclick = function(){ fw.click(); };
+  fw.addEventListener('change', function(){ if (fw.files && fw.files[0]) { close(); walkSheet(s, fw.files[0]); } });
+}
+// ---------- Walk the pup: one photo -> the pup names what it sees -> tap Keep ----------
+var WALK_LINES = ['Today&rsquo;s walk, tomorrow&rsquo;s fix.', 'You walk past it every day. Today the pup sees it too.', 'Same street, new eyes.', 'Your block, your eyes. Show the pup.'];
+function shrinkPhoto(file){   // 1024 px JPEG on a white background: cheap to send, good enough to read
+  return new Promise(function(res, rej){
+    var url = URL.createObjectURL(file), im = new Image();
+    im.onload = function(){ var k = Math.min(1, 1024 / Math.max(im.width, im.height)), c = document.createElement('canvas'); c.width = Math.round(im.width * k); c.height = Math.round(im.height * k);
+      var x = c.getContext('2d'); x.fillStyle = '#fff'; x.fillRect(0, 0, c.width, c.height); x.drawImage(im, 0, 0, c.width, c.height); URL.revokeObjectURL(url);
+      c.toBlob(function(b){ b ? res(b) : rej(new Error('photo')); }, 'image/jpeg', 0.82); };
+    im.onerror = function(){ rej(new Error('photo')); }; im.src = url;
+  });
+}
+function walkSheet(s, file){
+  var nm = esc(s.name), ov = document.createElement('div'); ov.className = 'stkover'; document.body.appendChild(ov);
+  function close(){ if (ov.parentNode) ov.parentNode.removeChild(ov); pendingSpot = null; }
+  ov.onclick = function(ev){ if (ev.target === ov) close(); };
+  var line = WALK_LINES[Math.floor(Math.random() * WALK_LINES.length)];
+  ov.innerHTML = '<div class="stksheet addsheet walksheet"><div class="addhead">🐾 ' + nm + ' is looking…</div><div class="walkline">' + line + '</div>' +
+    '<div class="walkpic"><img id="walkimg" alt=""><div class="shine"></div></div><div id="walkout" class="hint">reading the block</div></div>';
+  var blob = null; pendingSpot = null; autoSpot();
+  shrinkPhoto(file).then(function(b){ blob = b; document.getElementById('walkimg').src = URL.createObjectURL(b);
+    return new Promise(function(res){ var r = new FileReader(); r.onload = function(){ res(r.result.split(',')[1]); }; r.readAsDataURL(b); });
+  }).then(function(b64){ return fetch(SUPABASE_URL + '/functions/v1/snap-look', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ image: b64, type: 'image/jpeg' }) }).then(function(r){ return r.json(); });
+  }).then(function(r){
+    var out = document.getElementById('walkout'); document.querySelector('.walkpic .shine').remove();
+    track('snap', { safe: r.safe, n: (r.findings || []).length });
+    if (r.error) throw new Error(r.error);
+    if (r.safe === 'people') { out.innerHTML = '<div class="walkmsg">🐾 ' + nm + ' only reports places. Step back from people and pets and snap the street.</div><button class="btn ghost" id="wagain">Snap again</button>'; }
+    else if (r.safe === 'block' || r.safe === 'skip') { out.innerHTML = '<div class="walkmsg">🐾 ' + nm + ' couldn&rsquo;t read this one. Try the street, a park, a stop.</div><button class="btn ghost" id="wagain">Snap again</button>'; }
+    else if (!r.findings.length) { out.innerHTML = '<div class="walkmsg">🐾 Nothing to fix here that ' + nm + ' can see. ' + (r.scene ? esc(r.scene) + '. ' : '') + 'Add your own?</div>' + ownLine(); }
+    else {
+      out.innerHTML = '<div class="walkmsg">' + (r.scene ? esc(r.scene) + ' · ' : '') + 'tap what to keep</div>' +
+        r.findings.map(function(f, i){ return '<div class="wcard' + (f.kind === 'good' ? ' good' : '') + '" data-i="' + i + '"><div class="wline">' + (f.kind === 'good' ? '🟢 ' : '🔴 ') + esc(f.line) + '</div>' +
+          '<div class="chips"><span class="topicchip">#' + esc(f.topic) + '</span>' + (f.kind === 'good' ? '<span class="chip" style="cursor:default">#good</span>' : '') + '</div><button class="btn compact wkeep">Keep</button></div>'; }).join('') +
+        '<label class="switchrow" style="margin:8px 2px"><input type="checkbox" id="wshare"> 🌱 Count kept ones on the Pack <small style="color:var(--sub)">(anonymous)</small></label>' + ownLine();
+      var uploaded = null;
+      function upload(){ if (uploaded) return uploaded; var f = new File([blob], 'walk.jpg', { type: 'image/jpeg' }); pendingFiles = [f]; uploaded = uploadPending().then(function(m){ pendingFiles = []; return m; }); return uploaded; }
+      Array.prototype.forEach.call(out.querySelectorAll('.wkeep'), function(b){
+        b.onclick = function(){ var card = b.closest('.wcard'), f = r.findings[+card.getAttribute('data-i')], shared = document.getElementById('wshare').checked; b.disabled = true; b.textContent = '…';
+          ensurePlace().then(upload).then(function(media){
+            return rpc('vp_add_entry', Object.assign({ p_tail: s.tail, p_body: f.line.charAt(0).toUpperCase() + f.line.slice(1), p_shared: shared, p_media: media, p_place: getPlace(), p_tags: f.kind === 'good' ? ['good'] : [] }, spotArgs()));
+          }).then(function(e){ return e && e.id ? rpc('vp_set_topic', { p_tail: s.tail, p_id: e.id, p_topic: f.topic }).catch(function(){}) : null; })
+          .then(function(){ card.classList.add('kept'); b.textContent = 'Kept ✓'; track('issue', { shared: shared, first: false, spot: !!pendingSpot, walk: true }); })
+          .catch(function(e){ b.disabled = false; b.textContent = 'Keep'; toast('The pup stumbled: ' + e.message); });
+        };
+      });
+    }
+    var ag = document.getElementById('wagain'); if (ag) ag.onclick = function(){ close(); openAdd(); setTimeout(function(){ var w = document.getElementById('fwalk'); if (w) w.click(); }, 100); };
+    var ow = document.getElementById('wown'); if (ow) ow.onclick = function(){ close(); openAdd(); };
+    var dn = document.getElementById('wdone'); if (dn) dn.onclick = function(){ close(); if (location.pathname.indexOf('/p/') === 0) screenLedger(s.tail); else if (location.pathname === '/pack') screenPack(); };
+  }).catch(function(e){ var out = document.getElementById('walkout'); if (out) out.innerHTML = '<div class="walkmsg">The pup stumbled: ' + esc(e.message) + '</div><button class="btn ghost" id="wagain">Try again</button>'; var ag = document.getElementById('wagain'); if (ag) ag.onclick = function(){ close(); openAdd(); }; });
+  function ownLine(){ return '<div class="btnrow" style="margin-top:10px"><button class="btn ghost compact" id="wown">✍️ Something it missed?</button><button class="btn gold compact" id="wdone">Done</button></div>'; }
 }
 
 var TILE_COLORS = ['#2f7d5f','#b3702d','#5f6caf','#a94b4b','#3d8f8f','#6b8e23','#8a5fae','#556270','#996633','#2c6e8f','#8f5a2c','#6a4c93','#3f7f5f'];
@@ -2407,7 +2473,7 @@ function screenPack(mode, topic0){
   }).catch(function(e){ document.getElementById('board').textContent = 'The pack is napping: ' + e.message; });
 }
 
-var APP_VERSION = "20261001083814";
+var APP_VERSION = "20261001183312";
 (function(){
   try {
     fetch('/version.json?t=' + Date.now(), { cache: 'no-store' }).then(function(r){ return r.json(); }).then(function(j){
