@@ -268,10 +268,33 @@
   .crh{font-size:13px; font-weight:600} .crh b{font-weight:800}
   .crchips{display:flex; gap:6px; overflow-x:auto; margin-top:6px; scrollbar-width:none} .crchips::-webkit-scrollbar{display:none} .crchips .chip{flex:0 0 auto; cursor:default}
   .crsrc{font-size:10px; color:var(--sub); margin-top:6px}
+  .crmetro{display:block; font-size:11px; color:var(--sub); font-weight:600}
+  .crlatest{margin-top:8px; font-size:12px} .crlatest summary{cursor:pointer; color:#3b6fb6; font-weight:700; font-size:12px}
+  .crrow{display:flex; align-items:center; gap:6px; padding:4px 0; border-bottom:1px solid var(--line)} .crrow small{margin-left:auto; color:var(--sub)}
+  .crdot{width:8px; height:8px; border-radius:50%; flex:0 0 auto}
   body.wall .cityrep{font-size:16px} body.wall .crh{font-size:18px}
   .citypin{width:9px; height:9px; border-radius:50%; background:#8d99ae; border:1.5px solid #fff; opacity:.85; cursor:pointer}
   .maptoggle{position:absolute; left:10px; bottom:10px; z-index:5; background:rgba(255,255,255,.95); border-radius:999px; padding:5px 10px; font-size:11.5px; font-weight:700; box-shadow:0 1px 4px rgba(0,0,0,.2)}
   .maptoggle input{margin:0 4px 0 0; vertical-align:-1px}
+  .playchip{background:#1f2733; color:#fff; border-color:#1f2733; text-decoration:none; font-weight:800}
+  .game{padding-bottom:20px} .gtop{display:flex; align-items:center; justify-content:space-between; font-size:17px; margin:2px 0 8px} .gtop b{font-weight:800}
+  .gx{color:var(--sub); text-decoration:none; font-size:18px; padding:4px 8px}
+  .gintro p,.gend p{font-size:14.5px; line-height:1.5} .gbig{font-size:24px; font-weight:800; margin:6px 0 8px}
+  .ghud{display:flex; justify-content:space-between; font-size:13px; color:var(--sub); margin:0 2px 6px} .ghud b{color:var(--ink)}
+  .gbar{position:relative; height:16px; border-radius:999px; background:#e9edf1; overflow:hidden; margin:0 0 12px}
+  .gbar div{height:100%; width:30%; background:#6b8e7f; transition:width .25s} .gbar div.low{background:#a94b4b} .gbar div.high{background:#2f7d5f}
+  .gbar span{position:absolute; left:8px; top:0; font-size:10px; line-height:16px; font-weight:800; color:#fff; letter-spacing:.4px}
+  .ggrid{display:grid; grid-template-columns:repeat(3, 1fr); gap:8px; touch-action:manipulation}
+  .hole{aspect-ratio:1; border-radius:14px; background:#ece7da; position:relative; overflow:hidden; box-shadow:inset 0 3px 8px rgba(0,0,0,.12)}
+  .mole{position:absolute; inset:6px; border-radius:12px; background:#fff; border-left:6px solid var(--c); padding:8px; font-size:12.5px; font-weight:700; line-height:1.25;
+      display:flex; align-items:center; animation:molein .18s ease; cursor:pointer; user-select:none; -webkit-user-select:none; box-shadow:0 3px 8px rgba(0,0,0,.15)}
+  .mole i{position:absolute; top:6px; right:6px; width:8px; height:8px; border-radius:50%; background:var(--c)}
+  .mole.golden{background:#fff3cf; border-color:var(--gold)}
+  .mole.hit{background:#dff3e6; transform:scale(.9)} .mole.miss{background:#f6dede; animation:shake .2s} .mole.gone{opacity:0; transform:translateY(10px); transition:all .2s}
+  @keyframes molein{from{transform:translateY(60%) scale(.8); opacity:0} to{transform:none; opacity:1}}
+  @keyframes shake{25%{transform:translateX(-4px)} 75%{transform:translateX(4px)}}
+  .ghint{text-align:center; font-size:11.5px; color:var(--sub); margin-top:10px}
+  .gmet{display:flex; flex-direction:column; gap:8px; margin:10px 0 14px}
   .plusbtn{flex:0 0 64px !important; position:relative}
   .plusbtn b{position:absolute; left:50%; top:-18px; transform:translateX(-50%); width:54px; height:54px; border-radius:50%;
       background:var(--gold); color:#2a2418; font-size:32px; font-weight:600; line-height:52px; text-align:center;
@@ -1946,6 +1969,9 @@ document.addEventListener('click', function(ev){
     });
   }).catch(function(e){ c.style.opacity = 1; toast(e.message); });
 });
+var METRO = { 'north vancouver': 'vancouver', 'west vancouver': 'vancouver', 'burnaby': 'vancouver', 'surrey': 'vancouver', 'richmond': 'vancouver', 'new westminster': 'vancouver',
+  'coquitlam': 'vancouver', 'port coquitlam': 'vancouver', 'port moody': 'vancouver', 'delta': 'vancouver', 'langley': 'vancouver', 'maple ridge': 'vancouver', 'pitt meadows': 'vancouver',
+  'white rock': 'vancouver', 'anmore': 'vancouver', 'belcarra': 'vancouver', 'lions bay': 'vancouver', 'bowen island': 'vancouver', 'tsawwassen': 'vancouver', 'district of north vancouver': 'vancouver' };
 var CITY_CENTRES = { vancouver: [49.2827, -123.1207], burnaby: [49.2488, -122.9805], surrey: [49.1913, -122.849], richmond: [49.1666, -123.1336], toronto: [43.6532, -79.3832], ottawa: [45.4215, -75.6972], seattle: [47.6062, -122.3321], austin: [30.2672, -97.7431] };
 var _leaf = null;
 function loadMapLib(){
@@ -2049,13 +2075,32 @@ function screenPack(mode, topic0){
   var wall = new URLSearchParams(location.search).get('wall') === '1';
   document.body.classList.toggle('wall', wall);
   clearInterval(window._wallT);
-  if (place) rpc('vp_city_pulse', { p_place: place }).then(function(cp){
+  function cityCard(cp, metroNote){
+    var ago = function(ts){ var m = Math.round((Date.now() - new Date(ts)) / 60000); return m < 60 ? m + 'm' : m < 1440 ? Math.round(m / 60) + 'h' : Math.round(m / 1440) + 'd'; };
+    var recent = (cp.pins || []).slice(0, 12).map(function(r){ return '<div class="crrow"><span class="crdot" style="background:' + TILE_COLORS[(TOPIC_LIST.indexOf(r.topic) + 13) % TILE_COLORS.length] + '"></span>' +
+      esc(r.type.replace(/ Case$/, '')) + '<small>' + (r.area ? esc(r.area) + ' · ' : '') + ago(r.ts) + '</small></div>'; }).join('');
+    return '<div class="cityrep"><div class="crh">🏛️ ' + esc(cp.city) + ' reported <b>' + cp.week_total.toLocaleString() + '</b> things to 3-1-1 this week' +
+      (cp.today ? ' · ' + cp.today + ' today' : '') + (metroNote ? '<span class="crmetro">' + metroNote + '</span>' : '') + '</div><div class="crchips">' +
+      (cp.by_topic || []).filter(function(t){ return t.topic !== 'other'; }).slice(0, 8).map(function(t){ return '<span class="chip">#' + esc(t.topic) + ' <b>' + t.n + '</b></span>'; }).join('') +
+      '</div>' + (recent ? '<details class="crlatest"><summary>Latest reports</summary>' + recent + '</details>' : '') +
+      '<div class="crsrc">City of ' + esc(cp.city) + ' 3-1-1 open data · Open Government Licence – Vancouver · the city&rsquo;s records (type, area, time: no text or photos), not resident posts</div></div>';
+  }
+  var cityKey = place ? place.split(',')[0].toLowerCase() : null;
+  var dataCity = cityKey ? (METRO[cityKey] || cityKey) : null;   // Surrey, Burnaby… share Metro Vancouver's city data
+  if (mode === 'local' && dataCity) rpc('vp_city_pulse', { p_place: dataCity + ', x, x' }).then(function(cp){
     var cs = document.getElementById('citystrip'); if (!cs || !cp || !cp.week_total) return;
     window._cityPins = cp.pins || [];
-    cs.innerHTML = '<div class="cityrep"><div class="crh">🏛️ ' + esc(cp.city) + ' reported <b>' + cp.week_total.toLocaleString() + '</b> things to 3-1-1 this week' +
-      (cp.today ? ' · ' + cp.today + ' today' : '') + '</div><div class="crchips">' +
-      (cp.by_topic || []).filter(function(t){ return t.topic !== 'other'; }).slice(0, 8).map(function(t){ return '<span class="chip">#' + esc(t.topic) + ' <b>' + t.n + '</b></span>'; }).join('') +
-      '</div><div class="crsrc">City of Vancouver 3-1-1 open data · Open Government Licence – Vancouver · not resident posts</div></div>';
+    cs.innerHTML = cityCard(cp, dataCity !== cityKey ? 'Metro Vancouver · City of Vancouver data' : '');
+  }).catch(function(){});
+  else rpc('vp_city_pulse_list').then(function(list){
+    var cs = document.getElementById('citystrip'); if (!cs || !list || !list.length) return;
+    var me = cityKey ? (CITY_CENTRES[cityKey] || CITY_CENTRES[METRO[cityKey] || ''] || null) : null;
+    var dist = function(c){ return (me && c.lat != null) ? Math.hypot((c.lat - me[0]) * 111, (c.lng - me[1]) * 111 * Math.cos(me[0] * Math.PI / 180)) : 1e9; };
+    list.sort(function(a, b){ return dist(a) - dist(b); });
+    Promise.all(list.slice(0, 5).map(function(c){ return rpc('vp_city_pulse', { p_place: c.city + ', x, x' }).catch(function(){ return null; }); })).then(function(cards){
+      cs.innerHTML = cards.filter(Boolean).map(function(cp, i){ var d = dist(list[i]); return cityCard(cp, d < 1e8 && me ? Math.round(d) + ' km away' : ''); }).join('');
+      if (cards[0]) window._cityPins = cards[0].pins || [];
+    });
   }).catch(function(){});
   if (wall && place) rpc('vp_place_stats', { p_place: place }).then(function(st){
     var el = document.getElementById('wallstat');
@@ -2073,6 +2118,7 @@ function screenPack(mode, topic0){
       (city ? '<span class="chip ' + (mode==='local'?'goldfill':'goldline') + '" id="mlocal">\ud83d\udccd ' + esc(city) + '</span><span class="chip goldline chgloc">change</span>'
             : '<span class="chip goldline" id="mfind">\ud83d\udccd use my location</span>') +
       '<span class="chip ' + (mode==='all'?'goldfill':'goldline') + '" id="mall">\ud83c\udf0d Everywhere</span>' +
+      (wall ? '' : '<a class="chip playchip" href="/play">🎯 Pup Patrol</a>') +
     '</div>' +
     '<input class="searchbar" id="packsearch" placeholder="\ud83d\udd0d Search the pack...">' +
     '<div id="board" class="hint">fetching the pack...</div>' +
@@ -2330,7 +2376,7 @@ function screenPack(mode, topic0){
   }).catch(function(e){ document.getElementById('board').textContent = 'The pack is napping: ' + e.message; });
 }
 
-var APP_VERSION = "20261001011947";
+var APP_VERSION = "20261001013100";
 (function(){
   try {
     fetch('/version.json?t=' + Date.now(), { cache: 'no-store' }).then(function(r){ return r.json(); }).then(function(j){
@@ -2588,6 +2634,7 @@ function screenManage(){
       '<button class="btn ' + (hasMail() ? 'ghost' : 'gold') + ' mbtn" id="mmail">' + (hasMail() ? 'Change' : 'Turn on') + '</button>' + (hasMail() ? '<button class="btn ghost mbtn" id="mmailoff">Stop</button>' : ''));
     if (!KIOSK) rows += mrow('<img src="/pup-sit.webp" alt="" style="object-position:50% 12%">', '🔔 Reminders', remLabel(remPref()),
       '<button class="btn ' + (remPref() && !remPref().off ? 'ghost' : 'gold') + ' mbtn" id="mrem">' + (remPref() && !remPref().off ? 'Change' : 'Turn on') + '</button>');
+    rows += mrow('<div class="mkeythumb">🎯</div>', 'Pup Patrol', 'Smash today&rsquo;s issues. 30 seconds.', '<a class="btn gold mbtn" href="/play">Play</a>');
     rows += mrow('<img id="invthumb" alt="">', '🐾 Invite your friends',
       '',
       '<button class="btn gold mbtn" id="minv">Share invite</button><button class="btn ghost mbtn" id="minvstk">🏷️ Invite sticker</button>');
@@ -2667,6 +2714,102 @@ function screenManage(){
   }).catch(function(e){ root.innerHTML = nav() + say('Couldn&rsquo;t load this.', esc(e.message)) + tabbar('manage'); wireTabs(); });
 }
 
+// ---------- Pup Patrol: smash today's real issues of the called topic. Awareness only: taps never count as "same here". ----------
+var PATROL_DEMO = [{ body: 'Overflowing bin at the bus loop', topic: 'cleanliness' }, { body: 'Pothole on 4th Ave', topic: 'infrastructure' }, { body: 'Bus 99 full again', topic: 'transit' },
+  { body: 'Graffiti on the seawall', topic: 'cleanliness' }, { body: 'Street light out on Main', topic: 'infrastructure' }, { body: 'Rent up 18%', topic: 'housing' },
+  { body: 'Litter after the market', topic: 'cleanliness' }, { body: 'No shade at the playground', topic: 'parks' }, { body: 'Crosswalk light too short', topic: 'safety' },
+  { body: 'Dog poop on the path', topic: 'cleanliness' }, { body: 'Train late every morning', topic: 'transit' }, { body: 'Broken bench by the water', topic: 'parks' }];
+function patrolPool(){
+  return prefetchDeck().then(function(rows){
+    var day = Date.now() - 864e5, pool = [];
+    (rows || []).forEach(function(r){ if (r.body && r.topic && r.topic !== 'other') pool.push({ id: r.id, body: r.body, topic: r.topic, pup: r.pup, fresh: new Date(r.ts) > day, backs: r.backs || 0 }); });
+    pool.sort(function(a, b){ return (b.fresh - a.fresh); });
+    (window._cityPins || []).slice(0, 40).forEach(function(c){ if (c.topic && c.topic !== 'other') pool.push({ body: c.type.replace(/ Case$/, '') + (c.area ? ' · ' + c.area : ''), topic: c.topic, city: true }); });
+    var seen = {}, out = pool.filter(function(x){ var k = x.body.toLowerCase(); if (seen[k]) return false; seen[k] = 1; return true; });
+    return out.length >= 8 ? out.slice(0, 40) : out.concat(PATROL_DEMO).slice(0, 40);
+  });
+}
+function screenPlay(){
+  var s = loadLocal(), nm = s ? esc(s.name) : 'The pup', city = getPlace() ? esc(getPlace().split(',')[0]) : 'your city';
+  root.innerHTML = nav() + '<div class="game"><div class="gtop"><b>🎯 Pup Patrol</b><a href="/pack" class="gx">✕</a></div><div class="hint" style="padding:30px 0">Fetching today&rsquo;s issues…</div></div>' + tabbar('pack');
+  wireTabs();
+  patrolPool().then(function(pool){
+    var g = document.querySelector('.game');
+    var counts = {}; pool.forEach(function(x){ counts[x.topic] = (counts[x.topic] || 0) + 1; });
+    var topics = Object.keys(counts).sort(function(a, b){ return counts[b] - counts[a]; });
+    var level = 1, score = 0, bar = 30, met = {}, timer = null, popT = null, target = topics[0], left = 30, bonus = false, best = +(localStorage.getItem('vp.patrolbest') || 0);
+    function intro(){
+      g.innerHTML = '<div class="gtop"><b>🎯 Pup Patrol</b><a href="/pack" class="gx">✕</a></div>' +
+        '<div class="gintro"><div class="gbig">' + nm + ' needs a hand.</div><p>Today&rsquo;s real issues in ' + city + ' pop up for a second each. <b>Smash the ones about the called topic.</b> Wrong smash or a missed one drains the Fix-it bar. Fill it before the clock runs out.</p>' +
+        '<p class="hint" style="text-align:left">30 seconds · ' + pool.length + ' issues in play' + (best ? ' · your best: ' + best : '') + '</p>' +
+        '<button class="btn gold" id="gstart">Start level 1</button></div>';
+      document.getElementById('gstart').onclick = function(){ level = 1; score = 0; met = {}; start(); };
+    }
+    function hud(){
+      var tg = document.getElementById('gtarget'), tm = document.getElementById('gtime'), sc = document.getElementById('gscore'), bf = document.getElementById('gbarfill');
+      if (tg) tg.innerHTML = bonus ? '✅ BONUS: smash every <b>Fixed now</b>!' : 'Smash <b>#' + esc(target) + '</b>';
+      if (tm) tm.textContent = left + 's'; if (sc) sc.textContent = score;
+      if (bf) { bf.style.width = Math.max(0, Math.min(100, bar)) + '%'; bf.className = bar < 30 ? 'low' : bar > 75 ? 'high' : ''; }
+    }
+    function start(){
+      bonus = false; bar = 30; left = 30;
+      if (level === 2) target = topics[1] || topics[0];
+      g.innerHTML = '<div class="gtop"><span id="gtarget"></span><a href="#" class="gx" id="gquit">✕</a></div>' +
+        '<div class="ghud"><span>⏱ <b id="gtime"></b></span><span>Level ' + level + '</span><span>⭐ <b id="gscore">0</b></span></div>' +
+        '<div class="gbar"><div id="gbarfill"></div><span>Fix-it bar</span></div>' +
+        '<div class="ggrid">' + '<div class="hole"></div>'.repeat(9) + '</div><div class="ghint">tap the right ones · wrong or missed drains the bar</div>';
+      document.getElementById('gquit').onclick = function(ev){ ev.preventDefault(); stop(); intro(); };
+      hud();
+      timer = setInterval(function(){ left--; if (level === 2 && left % 10 === 0 && left > 0) { target = topics[(topics.indexOf(target) + 1) % Math.min(topics.length, 3)]; hud(); }
+        hud(); if (left <= 0) { stop(); finish(false); } }, 1000);
+      var speed = 850;
+      (function loop(){ popT = setTimeout(function(){ pop(); speed = Math.max(520, speed - 12); loop(); }, speed); })();
+    }
+    function stop(){ clearInterval(timer); clearTimeout(popT); Array.prototype.forEach.call(document.querySelectorAll('.hole'), function(hh){ hh.innerHTML = ''; }); }
+    function pop(){
+      var holes = document.querySelectorAll('.hole'); if (!holes.length) return;
+      var free = Array.prototype.filter.call(holes, function(hh){ return !hh.firstChild; }); if (!free.length) return;
+      var hole = free[Math.floor(Math.random() * free.length)];
+      var it;
+      if (bonus) it = { body: 'Fixed now', topic: '__fixed', golden: true };
+      else { var wantRight = Math.random() < 0.55; var cand = pool.filter(function(x){ return (x.topic === target) === wantRight; }); it = cand[Math.floor(Math.random() * cand.length)] || pool[0]; }
+      var m = document.createElement('div'); m.className = 'mole' + (it.golden ? ' golden' : ''); m.style.setProperty('--c', it.golden ? '#e8b84b' : TILE_COLORS[(TOPIC_LIST.indexOf(it.topic) + 13) % TILE_COLORS.length]);
+      m.innerHTML = (it.golden ? '✅ ' : '<i></i>') + esc(it.body.slice(0, 42)) + (it.city ? ' 🏛️' : '');
+      var live = true;
+      m.onpointerdown = function(ev){ ev.preventDefault(); if (!live) return; live = false;
+        var ok = it.golden || it.topic === target;
+        if (ok) { score += it.golden ? 20 : 10; bar += it.golden ? 6 : 8; m.classList.add('hit'); if (it.id || it.city) met[it.body] = it; }
+        else { score = Math.max(0, score - 5); bar -= 10; m.classList.add('miss'); if (navigator.vibrate) navigator.vibrate(40); }
+        hud(); setTimeout(function(){ if (m.parentNode) m.parentNode.removeChild(m); }, 220);
+        if (bar >= 100 && !bonus) { stop(); bonusRound(); }
+      };
+      hole.appendChild(m);
+      setTimeout(function(){ if (live && m.parentNode) { live = false; if (!bonus && it.topic === target) { bar -= 4; hud(); } m.classList.add('gone'); setTimeout(function(){ if (m.parentNode) m.parentNode.removeChild(m); }, 200); } }, bonus ? 900 : 1250);
+    }
+    function bonusRound(){
+      bonus = true; left = 10; hud();
+      var tg = document.getElementById('gtarget'); if (tg) tg.innerHTML = '✅ BONUS: smash every <b>Fixed now</b>!';
+      timer = setInterval(function(){ left--; hud(); if (left <= 0) { stop(); finish(true); } }, 1000);
+      (function loop(){ popT = setTimeout(function(){ pop(); loop(); }, 420); })();
+    }
+    function finish(done){
+      if (score > best) { best = score; try { localStorage.setItem('vp.patrolbest', String(best)); } catch (e) {} }
+      track('play', { level: level, done: done, score: score });
+      var list = Object.keys(met).map(function(k){ return met[k]; });
+      g.innerHTML = '<div class="gtop"><b>' + (done ? '🏆 Level ' + level + ' cleared!' : '⏱ Time&rsquo;s up') + '</b><a href="/pack" class="gx">✕</a></div>' +
+        '<div class="gend"><div class="gbig">' + score + ' points' + (score >= best && score > 0 ? ' · new best' : '') + '</div>' +
+        '<p>You met <b>' + list.length + '</b> real issue' + (list.length === 1 ? '' : 's') + ' in ' + city + ' today.</p>' +
+        '<div class="gmet">' + list.slice(0, 10).map(function(x){ return '<div class="card"><div class="entry-body">' + esc(x.body) + '</div><div class="chips">' +
+          '<span class="topicchip">#' + esc(x.topic) + '</span>' + (x.city ? '<span class="chip" style="cursor:default">🏛️ city 3-1-1 report</span>' : sameChip(x.id, x.backs, false, false)) + '</div></div>'; }).join('') + '</div>' +
+        (done && level === 1 ? '<button class="btn gold" id="gnext">Level 2: the target keeps changing →</button>' : '<button class="btn gold" id="gagain">Play again</button>') +
+        '<a href="/pack" class="rpskip">Back to the Pack · new issues every day</a></div>';
+      var nx = document.getElementById('gnext'); if (nx) nx.onclick = function(){ level = 2; score = 0; start(); };
+      var ag = document.getElementById('gagain'); if (ag) ag.onclick = function(){ score = 0; met = {}; start(); };
+    }
+    intro();
+  });
+}
+
 // ---------- router ----------
 (function(){
   var m = location.pathname.match(/^\/p\/(.+)$/);
@@ -2679,6 +2822,7 @@ function screenManage(){
   else if (location.pathname === '/pack') { screenPack(undefined, qs.get('t') || null);
     var q0 = qs.get('q'); if (q0) setTimeout(function(){ var sb0 = document.getElementById('packsearch'); if (sb0) { sb0.value = q0; sb0.dispatchEvent(new Event('input')); } }, 1500); }
   else if (location.pathname === '/manage') screenManage();
+  else if (location.pathname === '/play') screenPlay();
   else if (qs.get('new') === '1' || KIOSK || !loadLocal()) screenCapture();   // first visit: make your pup
   else screenPack();
 })();
