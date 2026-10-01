@@ -678,16 +678,18 @@ function attachRow_unused(){
          '<input id="fpick" type="file" accept="image/*,video/*" multiple hidden><div id="thumbs" style="display:flex;gap:8px;flex-wrap:wrap"></div></div>';
 }
 function wireAttach(){
-  var pick = document.getElementById('fpick');
-  document.getElementById('addmedia').onclick = function(){ pick.click(); };
-  pick.onchange = function(){
-    Array.prototype.forEach.call(pick.files, function(f){
+  var pick = document.getElementById('fpick'), cam = document.getElementById('fcam');
+  var take = function(input){ return function(){
+    Array.prototype.forEach.call(input.files, function(f){
       if (pendingFiles.length >= 4) return;
       if (f.size > 25*1024*1024) { alert(f.name + ' is over 25MB'); return; }
       pendingFiles.push(f);
     });
-    pick.value = ''; renderThumbs();
-  };
+    input.value = ''; renderThumbs();
+  }; };
+  document.getElementById('addmedia').onclick = function(){ (cam || pick).click(); };   // 📷 = the camera itself
+  var g = document.getElementById('addgallery'); if (g) g.onclick = function(){ pick.click(); };   // 🖼️ = photos you already have
+  pick.onchange = take(pick); if (cam) cam.onchange = take(cam);
 }
 function renderThumbs(){
   var t = document.getElementById('thumbs'); if (!t) return;
@@ -1118,7 +1120,8 @@ function screenCapture(prefGripe, prefName){
       '<textarea id="gripe" placeholder="What should they fix? Five words is plenty."></textarea>' +
       '<div id="thumbs" class="attach"></div>' + tagRowHTML() + spotLineHTML() +
       '<div class="cfoot">' +
-        '<div class="iconbtn" id="addmedia">📷</div>' + spotButtonHTML() +
+        '<div class="iconbtn" id="addmedia" title="take a photo">📷</div><div class="iconbtn" id="addgallery" title="choose from your photos">🖼️</div>' + spotButtonHTML() +
+        '<input id="fcam" type="file" accept="image/*" capture="environment" hidden>' +
         '<input id="fpick" type="file" accept="image/*,video/*" multiple hidden>' +
         '<div class="spacer"></div>' +
       '</div>' +
@@ -1997,7 +2000,8 @@ function openAdd(){
       '<div><div class="addhead" style="margin:0">🐾 Tell ' + nm + '</div><div class="addtag">Break the Algo</div></div></div>' +
     '<textarea id="gripe" placeholder="What should they fix? Five words is plenty."></textarea>' +
     '<div id="thumbs" class="attach"></div>' + tagRowHTML() + spotLineHTML() +
-    '<div class="addfoot"><div class="iconbtn" id="addmedia">📷</div>' + spotButtonHTML() +
+    '<div class="addfoot"><div class="iconbtn" id="addmedia" title="take a photo">📷</div><div class="iconbtn" id="addgallery" title="choose from your photos">🖼️</div>' + spotButtonHTML() +
+      '<input id="fcam" type="file" accept="image/*" capture="environment" hidden>' +
       '<input id="fpick" type="file" accept="image/*,video/*" multiple hidden>' +
       '<button class="btn compact" id="priv" disabled>🔒 Keep private</button>' +
       '<button class="btn gold compact" id="share" disabled>🌱 Be counted</button></div></div>';
@@ -2292,7 +2296,7 @@ function screenPack(mode, topic0){
   }).catch(function(e){ document.getElementById('board').textContent = 'The pack is napping: ' + e.message; });
 }
 
-var APP_VERSION = "20261001001329";
+var APP_VERSION = "20261001002141";
 (function(){
   try {
     fetch('/version.json?t=' + Date.now(), { cache: 'no-store' }).then(function(r){ return r.json(); }).then(function(j){
