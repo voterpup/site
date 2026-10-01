@@ -320,7 +320,7 @@
   .walkbtn::after{content:''; position:absolute; inset:0; background:linear-gradient(110deg, transparent 35%, rgba(255,255,255,.55) 50%, transparent 65%); transform:translateX(-120%); animation:shine 3.2s ease-in-out infinite}
   @keyframes walkglow{0%,100%{box-shadow:0 6px 18px rgba(232,184,75,.45), inset 0 1px 0 rgba(255,255,255,.5)} 50%{box-shadow:0 8px 26px rgba(232,184,75,.75), inset 0 1px 0 rgba(255,255,255,.5)}}
   @keyframes wag{0%,100%{transform:rotate(-12deg)} 50%{transform:rotate(12deg)}}
-  .walksheet{max-height:92vh; min-height:80vh; overflow-y:auto}   /* full height from the start, so the cards fill it instead of the sheet jumping */ .walkline{font-size:15px; font-weight:700; color:#c98a00; margin:2px 0 10px}
+  .walksheet{height:92vh; overflow-y:auto}   /* fixed height from the start, so the cards fill it instead of the sheet jumping */ .walkline{font-size:15px; font-weight:700; color:#c98a00; margin:2px 0 10px}
   .walkpic{position:relative; border-radius:14px; overflow:hidden; background:#eee; max-height:38vh} .walkpic img{width:100%; max-height:38vh; object-fit:cover; display:block}
   .walkpic .shine{position:absolute; inset:0; background:linear-gradient(110deg, transparent 30%, rgba(255,255,255,.55) 50%, transparent 70%); background-size:200% 100%; animation:scan 1.2s linear infinite}
   @keyframes scan{from{background-position:200% 0} to{background-position:-200% 0}}
@@ -2499,7 +2499,7 @@ function screenPack(mode, topic0){
   }).catch(function(e){ document.getElementById('board').textContent = 'The pack is napping: ' + e.message; });
 }
 
-var APP_VERSION = "20261001221241";
+var APP_VERSION = "20261001221440";
 (function(){
   try {
     fetch('/version.json?t=' + Date.now(), { cache: 'no-store' }).then(function(r){ return r.json(); }).then(function(j){
