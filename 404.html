@@ -270,6 +270,7 @@
   .crsrc{font-size:10px; color:var(--sub); margin-top:6px}
   .crmetro{display:block; font-size:11px; color:var(--sub); font-weight:600}
   .crlatest{margin-top:8px; font-size:12px} .crlatest summary{cursor:pointer; color:#3b6fb6; font-weight:700; font-size:12px}
+  .crscroll{max-height:220px; overflow-y:auto; margin-top:4px; -webkit-overflow-scrolling:touch}
   .crrow{display:flex; align-items:center; gap:6px; padding:4px 0; border-bottom:1px solid var(--line)} .crrow small{margin-left:auto; color:var(--sub)}
   .crdot{width:8px; height:8px; border-radius:50%; flex:0 0 auto}
   body.wall .cityrep{font-size:16px} body.wall .crh{font-size:18px}
@@ -286,10 +287,12 @@
   .gbar span{position:absolute; left:8px; top:0; font-size:10px; line-height:16px; font-weight:800; color:#fff; letter-spacing:.4px}
   .ggrid{display:grid; grid-template-columns:repeat(3, 1fr); gap:8px; touch-action:manipulation}
   .hole{aspect-ratio:1; border-radius:14px; background:#ece7da; position:relative; overflow:hidden; box-shadow:inset 0 3px 8px rgba(0,0,0,.12)}
-  .mole{position:absolute; inset:6px; border-radius:12px; background:#fff; border-left:6px solid var(--c); padding:8px; font-size:12.5px; font-weight:700; line-height:1.25;
-      display:flex; align-items:center; animation:molein .18s ease; cursor:pointer; user-select:none; -webkit-user-select:none; box-shadow:0 3px 8px rgba(0,0,0,.15)}
-  .mole i{position:absolute; top:6px; right:6px; width:8px; height:8px; border-radius:50%; background:var(--c)}
-  .mole.golden{background:#fff3cf; border-color:var(--gold)}
+  .mole{position:absolute; inset:6px; border-radius:12px; background:var(--c); color:#fff; padding:6px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:2px;
+      animation:molein .18s ease; cursor:pointer; user-select:none; -webkit-user-select:none; box-shadow:0 3px 8px rgba(0,0,0,.2); text-align:center}
+  .memo{font-size:38px; line-height:1} .mtxt{font-size:9.5px; font-weight:700; line-height:1.15; opacity:.9; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden}
+  .gsw{display:inline-block; width:26px; height:26px; border-radius:8px; text-align:center; line-height:26px; font-size:16px; vertical-align:middle}
+  .glegend{display:flex; flex-wrap:wrap; gap:5px; margin:0 0 12px} .glegend span{color:#fff; font-size:10.5px; font-weight:800; border-radius:999px; padding:3px 8px}
+  .mole.golden{color:#2a2418}
   .mole.hit{background:#dff3e6; transform:scale(.9)} .mole.miss{background:#f6dede; animation:shake .2s} .mole.gone{opacity:0; transform:translateY(10px); transition:all .2s}
   @keyframes molein{from{transform:translateY(60%) scale(.8); opacity:0} to{transform:none; opacity:1}}
   @keyframes shake{25%{transform:translateX(-4px)} 75%{transform:translateX(4px)}}
@@ -2077,12 +2080,12 @@ function screenPack(mode, topic0){
   clearInterval(window._wallT);
   function cityCard(cp, metroNote){
     var ago = function(ts){ var m = Math.round((Date.now() - new Date(ts)) / 60000); return m < 60 ? m + 'm' : m < 1440 ? Math.round(m / 60) + 'h' : Math.round(m / 1440) + 'd'; };
-    var recent = (cp.pins || []).slice(0, 12).map(function(r){ return '<div class="crrow"><span class="crdot" style="background:' + TILE_COLORS[(TOPIC_LIST.indexOf(r.topic) + 13) % TILE_COLORS.length] + '"></span>' +
+    var recent = (cp.pins || []).slice(0, 60).map(function(r){ return '<div class="crrow"><span class="crdot" style="background:' + TILE_COLORS[(TOPIC_LIST.indexOf(r.topic) + 13) % TILE_COLORS.length] + '"></span>' +
       esc(r.type.replace(/ Case$/, '')) + '<small>' + (r.area ? esc(r.area) + ' · ' : '') + ago(r.ts) + '</small></div>'; }).join('');
     return '<div class="cityrep"><div class="crh">🏛️ ' + esc(cp.city) + ' reported <b>' + cp.week_total.toLocaleString() + '</b> things to 3-1-1 this week' +
       (cp.today ? ' · ' + cp.today + ' today' : '') + (metroNote ? '<span class="crmetro">' + metroNote + '</span>' : '') + '</div><div class="crchips">' +
       (cp.by_topic || []).filter(function(t){ return t.topic !== 'other'; }).slice(0, 8).map(function(t){ return '<span class="chip">#' + esc(t.topic) + ' <b>' + t.n + '</b></span>'; }).join('') +
-      '</div>' + (recent ? '<details class="crlatest"><summary>Latest reports</summary>' + recent + '</details>' : '') +
+      '</div>' + (recent ? '<details class="crlatest"><summary>Latest reports (' + Math.min((cp.pins || []).length, 60) + ')</summary><div class="crscroll">' + recent + '</div></details>' : '') +
       '<div class="crsrc">City of ' + esc(cp.city) + ' 3-1-1 open data · Open Government Licence – Vancouver · the city&rsquo;s records (type, area, time: no text or photos), not resident posts</div></div>';
   }
   var cityKey = place ? place.split(',')[0].toLowerCase() : null;
@@ -2376,7 +2379,7 @@ function screenPack(mode, topic0){
   }).catch(function(e){ document.getElementById('board').textContent = 'The pack is napping: ' + e.message; });
 }
 
-var APP_VERSION = "20261001013840";
+var APP_VERSION = "20261001014015";
 (function(){
   try {
     fetch('/version.json?t=' + Date.now(), { cache: 'no-store' }).then(function(r){ return r.json(); }).then(function(j){
@@ -2715,6 +2718,7 @@ function screenManage(){
 }
 
 // ---------- Pup Patrol: smash today's real issues of the called topic. Awareness only: taps never count as "same here". ----------
+var TOPIC_EMOJI = { housing: '🏠', homelessness: '⛺', transit: '🚌', infrastructure: '🚧', utilities: '💡', safety: '🚨', 'cost of living': '💸', health: '🏥', education: '🎒', climate: '🌡️', cleanliness: '🧹', parks: '🌳', other: '📌' };
 var PATROL_DEMO = [{ body: 'Overflowing bin at the bus loop', topic: 'cleanliness' }, { body: 'Pothole on 4th Ave', topic: 'infrastructure' }, { body: 'Bus 99 full again', topic: 'transit' },
   { body: 'Graffiti on the seawall', topic: 'cleanliness' }, { body: 'Street light out on Main', topic: 'infrastructure' }, { body: 'Rent up 18%', topic: 'housing' },
   { body: 'Litter after the market', topic: 'cleanliness' }, { body: 'No shade at the playground', topic: 'parks' }, { body: 'Crosswalk light too short', topic: 'safety' },
@@ -2740,14 +2744,15 @@ function screenPlay(){
     var level = 1, score = 0, bar = 30, met = {}, timer = null, popT = null, target = topics[0], left = 30, bonus = false, best = +(localStorage.getItem('vp.patrolbest') || 0);
     function intro(){
       g.innerHTML = '<div class="gtop"><b>🎯 Pup Patrol</b><a href="/pack" class="gx">✕</a></div>' +
-        '<div class="gintro"><div class="gbig">' + nm + ' needs a hand.</div><p>Today&rsquo;s real issues in ' + city + ' pop up for a second each. <b>Smash the ones about the called topic.</b> Wrong smash or a missed one drains the Fix-it bar. Fill it before the clock runs out.</p>' +
+        '<div class="gintro"><div class="gbig">' + nm + ' needs a hand.</div><p>Today&rsquo;s real issues in ' + city + ' pop up, each with its topic colour and icon. <b>Smash the ones that match the called topic.</b> Wrong smash or a missed one drains the Fix-it bar. Fill it before the clock runs out.</p>' +
+        '<div class="glegend">' + TOPIC_LIST.filter(function(t){ return t !== 'other'; }).map(function(t){ return '<span style="background:' + TILE_COLORS[TOPIC_LIST.indexOf(t) % TILE_COLORS.length] + '">' + TOPIC_EMOJI[t] + ' #' + esc(t) + '</span>'; }).join('') + '</div>' +
         '<p class="hint" style="text-align:left">30 seconds · ' + pool.length + ' issues in play' + (best ? ' · your best: ' + best : '') + '</p>' +
         '<button class="btn gold" id="gstart">Start level 1</button></div>';
       document.getElementById('gstart').onclick = function(){ level = 1; score = 0; met = {}; start(); };
     }
     function hud(){
       var tg = document.getElementById('gtarget'), tm = document.getElementById('gtime'), sc = document.getElementById('gscore'), bf = document.getElementById('gbarfill');
-      if (tg) tg.innerHTML = bonus ? '✅ BONUS: smash every <b>Fixed now</b>!' : 'Smash <b>#' + esc(target) + '</b>';
+      if (tg) tg.innerHTML = bonus ? '✅ BONUS: smash every <b>Fixed now</b>!' : 'Smash the <span class="gsw" style="background:' + TILE_COLORS[(TOPIC_LIST.indexOf(target) + 13) % TILE_COLORS.length] + '">' + (TOPIC_EMOJI[target] || '📌') + '</span> <b>#' + esc(target) + '</b> ones';
       if (tm) tm.textContent = left + 's'; if (sc) sc.textContent = score;
       if (bf) { bf.style.width = Math.max(0, Math.min(100, bar)) + '%'; bf.className = bar < 30 ? 'low' : bar > 75 ? 'high' : ''; }
     }
@@ -2762,8 +2767,8 @@ function screenPlay(){
       hud();
       timer = setInterval(function(){ left--; if (level === 2 && left % 10 === 0 && left > 0) { target = topics[(topics.indexOf(target) + 1) % Math.min(topics.length, 3)]; hud(); }
         hud(); if (left <= 0) { stop(); finish(false); } }, 1000);
-      var speed = 850;
-      (function loop(){ popT = setTimeout(function(){ pop(); speed = Math.max(520, speed - 12); loop(); }, speed); })();
+      var speed = level === 1 ? 1000 : 800;
+      (function loop(){ popT = setTimeout(function(){ pop(); speed = Math.max(level === 1 ? 650 : 520, speed - 10); loop(); }, speed); })();
     }
     function stop(){ clearInterval(timer); clearTimeout(popT); Array.prototype.forEach.call(document.querySelectorAll('.hole'), function(hh){ hh.innerHTML = ''; }); }
     function pop(){
@@ -2774,7 +2779,7 @@ function screenPlay(){
       if (bonus) it = { body: 'Fixed now', topic: '__fixed', golden: true };
       else { var wantRight = Math.random() < 0.55; var cand = pool.filter(function(x){ return (x.topic === target) === wantRight; }); it = cand[Math.floor(Math.random() * cand.length)] || pool[0]; }
       var m = document.createElement('div'); m.className = 'mole' + (it.golden ? ' golden' : ''); m.style.setProperty('--c', it.golden ? '#e8b84b' : TILE_COLORS[(TOPIC_LIST.indexOf(it.topic) + 13) % TILE_COLORS.length]);
-      m.innerHTML = (it.golden ? '✅ ' : '<i></i>') + esc(it.body.slice(0, 42)) + (it.city ? ' 🏛️' : '');
+      m.innerHTML = '<span class="memo">' + (it.golden ? '✅' : (TOPIC_EMOJI[it.topic] || '📌')) + '</span><span class="mtxt">' + esc(it.golden ? 'Fixed now' : it.body.slice(0, 34)) + (it.city ? ' 🏛️' : '') + '</span>';
       var live = true;
       m.onpointerdown = function(ev){ ev.preventDefault(); if (!live) return; live = false;
         var ok = it.golden || it.topic === target;
@@ -2784,7 +2789,7 @@ function screenPlay(){
         if (bar >= 100 && !bonus) { stop(); bonusRound(); }
       };
       hole.appendChild(m);
-      setTimeout(function(){ if (live && m.parentNode) { live = false; if (!bonus && it.topic === target) { bar -= 4; hud(); } m.classList.add('gone'); setTimeout(function(){ if (m.parentNode) m.parentNode.removeChild(m); }, 200); } }, bonus ? 900 : 1250);
+      setTimeout(function(){ if (live && m.parentNode) { live = false; if (!bonus && it.topic === target) { bar -= 4; hud(); } m.classList.add('gone'); setTimeout(function(){ if (m.parentNode) m.parentNode.removeChild(m); }, 200); } }, bonus ? 900 : (level === 1 ? 1700 : 1300));
     }
     function bonusRound(){
       bonus = true; left = 10; hud();
