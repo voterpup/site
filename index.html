@@ -430,9 +430,10 @@
   .sharetile .stkcard{margin-top:0; justify-content:center}
   .sharetile .stkthumb,.sharetile .stkthumb img{width:56px; height:34px}
   .packhero{display:flex; gap:12px; align-items:center; background:var(--card); border:1px solid var(--line);
-      border-radius:16px; padding:8px; margin:0 0 12px; box-shadow:0 1px 2px rgba(16,24,40,.05)}
-  .packhero .slotmedia{width:78px; height:100px; flex:0 0 auto}
-  .packhero .ft{font-size:14px; font-weight:700; line-height:1.35}
+      border-radius:14px; padding:6px 10px 6px 6px; margin:0 0 10px; box-shadow:0 1px 2px rgba(16,24,40,.05)}
+  .packhero .slotmedia{width:44px; height:44px; flex:0 0 auto; border-radius:10px}
+  .packhero .ft{font-size:13px; font-weight:700; line-height:1.3}
+  .pupline{font-size:14px; color:var(--sub); margin:10px 2px} .pupline b{color:var(--ink)} .pupline a{color:#3b6fb6; font-weight:700; margin-left:4px}
   .packhero .ft small{display:block; font-weight:500; color:var(--sub); font-size:12px; margin-top:3px}
   .momwrap{margin:14px 0 4px}
   .momwrap .mhead{font-size:12px; font-weight:800; color:var(--sub); text-transform:uppercase; letter-spacing:.5px; margin:0 2px 8px}
@@ -1255,9 +1256,8 @@ function screenCapture(prefGripe, prefName){
         '<div class="spacer"></div>' +
       '</div>' +
     '</div>' +
-    '<div class="namefield"><input id="pname" maxlength="20" placeholder="Name the pup who&rsquo;ll remember it"></div>' +
-    '<div class="chips">' + ['Maple','Scout','Biscuit','Beaver'].map(function(s){
-        return '<span class="chip" data-n="'+s+'">'+s+'</span>'; }).join('') + '</div>' +
+    '<div class="pupline">🐶 Your pup is <b id="pnameshow"></b> <a href="#" id="pnamechg">change</a></div>' +
+    '<div class="namefield" id="pnamebox" hidden><input id="pname" maxlength="20" placeholder="Pup&rsquo;s name"></div>' +
     '<button class="btn gold" id="open" disabled>Open the box 🎁</button>' +
     (saved && !KIOSK ? '<button class="btn ghost" id="resume">Continue with ' + esc(saved.name) + ' →</button>' : '') +
     '<p class="privacy">🔒 Private by default. No account needed.</p>' +
@@ -1268,17 +1268,17 @@ function screenCapture(prefGripe, prefName){
   var gr = document.getElementById('grestore'); if (gr) gr.onclick = function(ev){ ev.preventDefault(); gr.style.display = 'none'; startRestore(document.getElementById('grslot')); };
   var ta = document.getElementById('gripe'), inp = document.getElementById('pname');
   if (prefGripe) ta.value = prefGripe;
-  if (prefName) inp.value = prefName;
-  function upd(){ document.getElementById('open').disabled =
-    !((ta.value.trim() || pendingFiles.length) && inp.value.trim()); }
-  ta.oninput = upd; inp.oninput = upd;
+  var PUPNAMES = ['Maple','Scout','Biscuit','Beaver','Oreo','Juno','Pepper','Milo','Hazel','Kobe','Nala','Toffee'];
+  inp.value = prefName || PUPNAMES[Math.floor(Math.random() * PUPNAMES.length)];
+  var show = document.getElementById('pnameshow'); show.textContent = inp.value;
+  document.getElementById('pnamechg').onclick = function(ev){ ev.preventDefault(); document.getElementById('pnamebox').hidden = false; this.parentNode.hidden = true; inp.select(); inp.focus(); };
+  function upd(){ if (!inp.value.trim()) inp.value = show.textContent; show.textContent = inp.value.trim() || show.textContent;
+    document.getElementById('open').disabled = !(ta.value.trim() || pendingFiles.length); }
+  ta.oninput = upd; inp.oninput = function(){ if (inp.value.trim()) show.textContent = inp.value.trim(); upd(); };
   document.getElementById('fpick').addEventListener('change', function(){ setTimeout(upd, 60); });
   document.getElementById('fcam').addEventListener('change', function(){ setTimeout(upd, 60); });
-  Array.prototype.forEach.call(document.querySelectorAll('.chip[data-n]'), function(c){
-    c.onclick = function(){ inp.value = c.getAttribute('data-n'); upd(); };
-  });
   upd();
-  document.getElementById('open').onclick = function(){ screenUnbox(inp.value.trim(), ta.value.trim()); };
+  document.getElementById('open').onclick = function(){ screenUnbox(inp.value.trim() || show.textContent, ta.value.trim()); };
   if (saved && !KIOSK) document.getElementById('resume').onclick = function(){ location.href = pupURL(saved.tail); };
 }
 
@@ -2560,7 +2560,7 @@ function screenPack(mode, topic0){
   }).catch(function(e){ document.getElementById('board').textContent = 'The pack is napping: ' + e.message; });
 }
 
-var APP_VERSION = "20261002064311";
+var APP_VERSION = "20261002171850";
 (function(){
   try {
     fetch('/version.json?t=' + Date.now(), { cache: 'no-store' }).then(function(r){ return r.json(); }).then(function(j){
