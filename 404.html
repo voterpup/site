@@ -16,15 +16,15 @@
 <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
-  :root{ --bg:#f6f8fa; --card:#ffffff; --ink:#212b36; --sub:#5b6b7c;
-         --accent:#2f7d5f; --gold:#e8b84b; --goldink:#2a2418; --line:#e3e9ee; --chip:#eef2f5; }
+  :root{ --bg:#faf6ef; --card:#ffffff; --ink:#1f2430; --sub:#5d6573;
+         --accent:#22786a; --gold:#f4b63f; --goldink:#2a2014; --goldtext:#9a5f00; --line:#ece4d6; --chip:#f4efe6; }
   *{box-sizing:border-box} html,body{margin:0}
   body{background:var(--bg); color:var(--ink);
        font:16px/1.55 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
        padding:max(18px,env(safe-area-inset-top)) 16px calc(86px + env(safe-area-inset-bottom));
        display:flex; justify-content:center}
   .wrap{width:100%; max-width:560px}
-  .brand{color:var(--gold); font-size:21px; font-weight:800; margin-bottom:12px}
+  .brand{color:var(--goldtext); font-size:21px; font-weight:800; margin-bottom:12px}
   .q{font-size:23px; font-weight:700; line-height:1.32; margin:4px 0 10px}
   .hint{color:var(--sub); font-size:13px; margin:0 0 12px}
   textarea,input{width:100%; background:var(--chip); color:var(--ink); border:1px solid var(--line);
@@ -41,11 +41,11 @@
   .chips{display:flex; gap:8px; flex-wrap:wrap; margin-top:10px}
   .chip{background:var(--chip); border:1px solid var(--line); color:var(--sub); border-radius:999px;
         padding:6px 12px; font-size:12.5px; cursor:pointer}
-  .chip.goldline{border-color:var(--gold); color:var(--gold)}
+  .chip.goldline{border-color:var(--goldtext); color:var(--goldtext)}
   .chip.same{border-color:#d9c38a; color:#8a6a14; background:#fff; font-weight:700; cursor:pointer}
-  .chip.same.on{background:#faf3df; border-color:var(--gold); color:#7a5a0c}
+  .chip.same.on{background:#faf3df; border-color:var(--goldtext); color:#7a5a0c}
   .chip.same.static{cursor:default}
-  .chip.goldfill{background:#faf3df; border-color:var(--gold); color:var(--gold); font-weight:700; cursor:default}
+  .chip.goldfill{background:#faf3df; border-color:var(--goldtext); color:var(--goldtext); font-weight:700; cursor:default}
   .card{background:var(--card); border:1px solid var(--line); border-radius:14px; padding:14px; margin-top:10px}
   .privacy{color:var(--sub); font-size:12.5px; margin:12px 0 2px}
   .entry-body{font-size:15px}
@@ -137,7 +137,7 @@
   .froll{flex:1; overflow-y:auto; padding-bottom:30px}
   .fgroup{display:flex; gap:10px; margin:6px 0 14px}
   .fdate{flex:0 0 46px; text-align:center; position:sticky; top:0; align-self:flex-start}
-  .fdate b{display:block; font-size:24px; line-height:1} .fdate span{display:block; font-size:11px; color:#e8b84b; text-transform:uppercase; font-weight:800}
+  .fdate b{display:block; font-size:24px; line-height:1} .fdate span{display:block; font-size:11px; color:var(--goldtext); text-transform:uppercase; font-weight:800}
   .fdate small{font-size:10.5px; color:#8793a5}
   .fcol{flex:1; display:flex; flex-direction:column; gap:8px; border-left:2px solid #2d3848; padding-left:10px}
   .fcard{background:#f7f4ec; color:#1f2733; border-radius:14px; padding:10px 12px; border-left:4px solid var(--gold);
@@ -163,7 +163,7 @@
   .slotglare{position:absolute; left:10px; right:10px; top:10px; bottom:10px; border-radius:12px; pointer-events:none;
       background:linear-gradient(rgba(20,26,34,.35), rgba(20,26,34,0) 30%, rgba(20,26,34,0) 70%, rgba(20,26,34,.35))}
   .slotimg{flex:0 0 72px; width:72px; height:72px; object-fit:cover; border-radius:10px; display:block}
-  .slotcount{margin-top:12px; font-size:12px; font-weight:800; color:#e8b84b; letter-spacing:.5px; min-height:16px}
+  .slotcount{margin-top:12px; font-size:12px; font-weight:800; color:var(--goldtext); letter-spacing:.5px; min-height:16px}
   .fcalwrap.landed .slotbox{animation:slotpop .35s ease}
   @keyframes slotpop{50%{transform:scale(1.04)}}
   .fcalhint{margin-top:18px; font-size:11.5px; color:#6b7a8f}
@@ -171,11 +171,11 @@
   .remtime input{font-size:16px; padding:7px 10px; border:1px solid var(--line); border-radius:10px}
   .installchip{align-self:center; font-size:12px; font-weight:800; color:#7a5a0c; background:#faf3df;
       border:1px solid var(--gold); border-radius:999px; padding:6px 10px; text-decoration:none; white-space:nowrap}
-  .dfetch{position:relative; border-color:var(--gold); background:#fffdf5; align-items:flex-start}
+  .dfetch{position:relative; border-color:var(--goldtext); background:#fffdf5; align-items:flex-start}
   .dfetch .ft{flex:1; min-width:0} .dfetch .dfk{font-size:11px; font-weight:800; color:#8a6a14; text-transform:uppercase; letter-spacing:.4px; margin-bottom:3px}
   .dfetch .ft small{margin-top:4px} .dfetch .mact{margin-top:8px}
   .dfx{position:absolute; top:6px; right:10px; color:var(--sub); text-decoration:none; font-size:15px}
-  .rankchip{background:#fff3d6; border-color:var(--gold); color:#7a5a0c; font-weight:800}
+  .rankchip{background:#fff3d6; border-color:var(--goldtext); color:#7a5a0c; font-weight:800}
   .fixedcard{opacity:.72} .fixedchip{background:#eef6f2; border-color:#cfe5da; color:#2f7d5f; font-weight:700}
   .report{padding:6px 2px 40px}
   .rphead{display:flex; align-items:center; gap:12px; margin:8px 0 16px}
@@ -215,12 +215,12 @@
   @keyframes stampyes{0%,50%,100%{opacity:0} 30%{opacity:1}} @keyframes stampno{0%,55%,100%{opacity:0} 75%{opacity:1}}
   .dcard.done{align-items:center; justify-content:center; text-align:center; background:#fffdf5}
   .deckhint{display:flex; justify-content:space-between; font-size:10.5px; color:var(--sub); margin-top:6px; padding:0 4px}
-  .iconbtn.on{background:#faf3df; border-color:var(--gold)}
+  .iconbtn.on{background:#faf3df; border-color:var(--goldtext)}
   .spotchip{display:inline-block; font-size:12px; color:#7a5a0c; background:#faf3df; border:1px solid var(--gold); border-radius:999px; padding:4px 10px; margin-top:8px; max-width:100%;
       overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
   .spotchip b{cursor:pointer; margin-left:4px}
   .chip.spotlink{text-decoration:none; color:#3b6fb6}
-  .chip.react{cursor:pointer} .chip.react.on{background:#faf3df; border-color:var(--gold); color:#7a5a0c; font-weight:700}
+  .chip.react{cursor:pointer} .chip.react.on{background:#faf3df; border-color:var(--goldtext); color:#7a5a0c; font-weight:700}
   .dreact{margin-top:6px} .dreact .chip{font-size:10.5px; padding:3px 7px}
   .mapbtn{position:fixed; right:16px; bottom:84px; z-index:8; display:flex; align-items:center; gap:6px; padding:10px 14px 10px 12px;
       border-radius:999px; background:#1f2733; color:#fff; text-decoration:none; font-size:18px; box-shadow:0 6px 18px rgba(0,0,0,.25)}
@@ -321,7 +321,7 @@
   .walkbtn::after{content:''; position:absolute; inset:0; background:linear-gradient(110deg, transparent 35%, rgba(255,255,255,.55) 50%, transparent 65%); transform:translateX(-120%); animation:shine 3.2s ease-in-out infinite}
   @keyframes walkglow{0%,100%{box-shadow:0 6px 18px rgba(232,184,75,.45), inset 0 1px 0 rgba(255,255,255,.5)} 50%{box-shadow:0 8px 26px rgba(232,184,75,.75), inset 0 1px 0 rgba(255,255,255,.5)}}
   @keyframes wag{0%,100%{transform:rotate(-12deg)} 50%{transform:rotate(12deg)}}
-  .walksheet{height:92vh; overflow-y:auto}   /* fixed height from the start, so the cards fill it instead of the sheet jumping */ .walkline{font-size:15px; font-weight:700; color:#c98a00; margin:2px 0 10px}
+  .walksheet{height:92vh; overflow-y:auto}   /* fixed height from the start, so the cards fill it instead of the sheet jumping */ .walkline{font-size:15px; font-weight:700; color:var(--goldtext); margin:2px 0 10px}
   .walkpic{position:relative; border-radius:14px; overflow:hidden; background:#eee; max-height:38vh} .walkpic img{width:100%; max-height:38vh; object-fit:cover; display:block}
   .walkpic .shine{position:absolute; inset:0; background:linear-gradient(110deg, transparent 30%, rgba(255,255,255,.55) 50%, transparent 70%); background-size:200% 100%; animation:scan 1.2s linear infinite}
   @keyframes scan{from{background-position:200% 0} to{background-position:-200% 0}}
@@ -342,6 +342,11 @@
   .sharechip{cursor:pointer; font-weight:800}
   .nahead{font-weight:800; font-size:15px; margin:10px 0 8px} .nacard{margin:0 0 8px} #notalone{margin:4px 0 6px}
   .plusbtn{flex:0 0 76px !important; position:relative}
+  .ic{display:inline-block; width:1.25em; height:1.25em; vertical-align:-.28em; object-fit:contain; pointer-events:none; user-select:none}
+  .ic.btnic{margin-right:6px} .ic.segic{width:1.15em; height:1.15em; margin-right:5px} .ic.bigic{width:56px; height:56px}
+  .ic.tabic{display:block; width:28px; height:28px; margin:0 auto 1px} .tabbar a:not(.on) .tabic{filter:saturate(.6) opacity(.75)}
+  .ic.feedic{width:32px; height:32px; vertical-align:middle}
+  .walkbtn .wpaw{background:#fff !important} .wpaw .ic.btnic{margin:0; width:24px; height:24px}
   .plusbtn b{font-size:24px !important; line-height:50px !important; transition:transform .15s ease}
   .plusbtn:active b{transform:translateX(-50%) scale(.92)}
   .plusbtn .walklbl{position:absolute; left:0; right:0; bottom:6px; font-size:11px; font-weight:800; color:#8a6410}
@@ -373,7 +378,7 @@
   .addtop{display:flex; align-items:center; gap:10px; margin-bottom:10px}
   .addthumb{width:46px; height:46px; border-radius:12px; overflow:hidden; flex:0 0 auto; background:#e9edf1}
   .addthumb video{width:100%; height:100%; object-fit:cover; object-position:50% 60%; display:block}
-  .addtag{font-size:12px; font-weight:900; letter-spacing:.6px; text-transform:uppercase; color:#b8860b; margin-top:2px}
+  .addtag{font-size:12px; font-weight:900; letter-spacing:.6px; text-transform:uppercase; color:var(--goldtext); margin-top:2px}
   .stksheet .mp{font-size:12.5px; color:var(--sub); margin:0 0 8px; line-height:1.45}
   .addsheet textarea{width:100%; min-height:90px; border:1px solid var(--line); border-radius:12px; padding:10px; font:inherit; resize:vertical}
   .addfoot{display:flex; gap:8px; align-items:center; margin-top:10px}
@@ -494,7 +499,7 @@
   .acct{font-size:13px; font-weight:700; color:#3b6fb6; text-decoration:none; padding:5px 10px;
       border:1px solid var(--line); border-radius:999px; background:var(--card)}
   .navr{display:flex; gap:6px; align-items:center}
-  .acct.show{color:#8a6a14; border-color:var(--gold); background:#faf3df}
+  .acct.show{color:#8a6a14; border-color:var(--goldtext); background:#faf3df}
   @media (max-width:380px){ .acct{padding:5px 8px; font-size:12px} .brand{font-size:15px} }
   .viewsum{display:flex; flex-wrap:wrap; gap:6px; margin:4px 0 12px}
   .switchrow{display:flex; align-items:center; gap:10px; font-size:13px; color:var(--ink); margin:10px 2px}
@@ -512,7 +517,7 @@
   footer a{color:var(--sub)}
   .nav{display:flex; align-items:center; justify-content:space-between; margin-bottom:12px}
   .nav .brand{margin:0}
-  .nav a{color:var(--gold); font-size:13.5px; font-weight:700; text-decoration:none}
+  .nav a{color:var(--goldtext); font-size:13.5px; font-weight:700; text-decoration:none}
   .packtag{color:var(--sub); font-size:13px; margin:2px 0 12px}
   .scopebar{display:flex; align-items:center; gap:8px; margin:0 0 10px}
   .seg{flex:1; display:flex; background:#ece8de; border-radius:999px; padding:3px}
@@ -520,7 +525,7 @@
   .segbtn.on{background:var(--card); color:var(--ink); box-shadow:0 1px 3px rgba(16,24,40,.12)}
   .segedit{flex:0 0 auto; width:38px; height:38px; border-radius:50%; border:0; background:#ece8de; color:var(--ink); font-size:16px; cursor:pointer}
   .searchwrap{display:flex; align-items:center; gap:8px; background:var(--card); border:1px solid var(--line); border-radius:999px; padding:0 14px; margin:0 0 12px; color:var(--sub); box-shadow:0 1px 2px rgba(16,24,40,.04)}
-  .searchwrap:focus-within{border-color:#e8b84b; box-shadow:0 0 0 3px rgba(232,184,75,.22)}
+  .searchwrap:focus-within{border-color:var(--goldtext); box-shadow:0 0 0 3px rgba(232,184,75,.22)}
   .searchbar{flex:1; width:100%; background:transparent; border:0; outline:0; padding:11px 0; font-size:15px; color:var(--ink)}
   .tilegrid{display:grid; grid-template-columns:1fr 1fr; gap:10px}
   .tile{border-radius:14px; color:#fff; padding:12px; min-height:118px; position:relative; overflow:hidden;
@@ -1441,11 +1446,11 @@ function screenLedger(tail){
       '<div class="puphead"><span class="pupav-wrap"><img class="pupav" src="/pup-face.jpg" alt=""></span><div><div class="pupname">' + esc(L.name) + '</div>' +
         '<div class="pupsub">' + (n ? 'remembers ' + n + ' thing' + (n === 1 ? '' : 's') : 'tap 📸 to feed ' + esc(L.name) + ' a photo') + '</div></div>' +
         '</div>' +
-      (KIOSK ? '' : '<div class="quickrow"><button class="qbtn gold" id="qwalk">📸 Feed ' + esc(L.name) + '</button><button class="qbtn" id="qnote">✍️ Write</button><a class="qbtn" href="/play">🎯 Play</a></div>') +
+      (KIOSK ? '' : '<div class="quickrow"><button class="qbtn gold" id="qwalk">' + ic('camera_with_flash', 'btnic') + 'Feed ' + esc(L.name) + '</button><button class="qbtn" id="qnote">' + ic('writing_hand', 'btnic') + 'Write</button><a class="qbtn" href="/play">' + ic('bullseye', 'btnic') + 'Play</a></div>') +
       '<div id="fetchslot"></div>' +
       '<div class="momwrap" id="votestrip"></div>' +
       '<div id="entries" class="grid2"></div>' + '<div id="backedbox"></div>' +
-      (KIOSK ? '' : '<a href="#" class="flashbtn" id="flashbtn" aria-label="Flashback">⚡<span>Flashback</span></a>') + tabbar('pup');
+      (KIOSK ? '' : '<a href="#" class="flashbtn" id="flashbtn" aria-label="Flashback">' + ic('high_voltage', 'btnic') + '<span>Flashback</span></a>') + tabbar('pup');
     wireTabs(); renderVoteStrip(); refreshPlaceIfStale();
     var qw = document.getElementById('qwalk'); if (qw) qw.onclick = startWalk; var qn = document.getElementById('qnote'); if (qn) qn.onclick = function(){ openAdd(); };
     var fb = document.getElementById('flashbtn'); if (fb) fb.onclick = function(ev){ ev.preventDefault(); openFlashback(L); };
@@ -1637,13 +1642,13 @@ function startWalk(){
     var ov = document.createElement('div'); ov.className = 'stkover'; document.body.appendChild(ov);
     var close = function(){ if (ov.parentNode) ov.parentNode.removeChild(ov); };
     ov.onclick = function(ev){ if (ev.target === ov) close(); };
-    ov.innerHTML = '<div class="stksheet" style="text-align:center"><div style="font-size:40px">📍</div><div class="addhead">' + esc(s.name) + ' needs to know where you are</div>' +
+    ov.innerHTML = '<div class="stksheet" style="text-align:center"><div>' + ic('round_pushpin', 'bigic') + '</div><div class="addhead">' + esc(s.name) + ' needs to know where you are</div>' +
       '<p class="hint" style="margin:6px 0 12px">So every photo is from a real street, and the city list stays free of spam. Only the street name is shown, never your exact spot.</p>' +
-      '<button class="btn gold" id="locgo">📍 Allow location</button><button class="btn ghost" id="locno">Not now</button></div>';
+      '<button class="btn gold" id="locgo">' + ic('round_pushpin', 'btnic') + 'Allow location</button><button class="btn ghost" id="locno">Not now</button></div>';
     document.getElementById('locno').onclick = close;
     document.getElementById('locgo').onclick = function(){
       var b = this; b.disabled = true; b.textContent = 'Asking your phone…';
-      grabSpot(function(sp){ pendingSpot = sp; b.disabled = false; b.textContent = '📸 Open the camera'; b.onclick = function(){ close(); openCamera(s); }; },
+      grabSpot(function(sp){ pendingSpot = sp; b.disabled = false; b.innerHTML = ic('camera_with_flash', 'btnic') + 'Open the camera'; b.onclick = function(){ close(); openCamera(s); }; },
         function(why){ b.disabled = false; b.textContent = '📍 Try again';
           ov.querySelector('.hint').innerHTML = why === 'denied' ? 'Location is blocked for voterpup.com. Allow it in your browser’s site settings (the 🔒 next to the address), then try again.' : 'Couldn’t get a location. Turn on location services, then try again.'; });
     };
@@ -1651,12 +1656,13 @@ function startWalk(){
   if (navigator.permissions && navigator.permissions.query) navigator.permissions.query({ name: 'geolocation' }).then(function(st){ st.state === 'granted' ? granted() : ask(); }).catch(ask);
   else ask();
 }
+function ic(n, cls){ return '<img class="ic' + (cls ? ' ' + cls : '') + '" src="/ic/' + n + '.webp" alt="" draggable="false">'; }
 function tabName(){ var s = loadLocal(); return s && s.name ? (s.name.length > 12 ? s.name.slice(0, 11) + '…' : s.name) : 'My pup'; }
 function tabbar(active){
   return '<div class="tabbar">' +
-    '<a href="/pack" class="' + (active==='pack'?'on':'') + '">🏙️<span>Your city</span></a>' +
-    '<a href="#" class="plusbtn" id="tab-plus" aria-label="Feed your pup a photo"><b>📸</b><span class="walklbl">Feed</span></a>' +
-    '<a href="#" id="tab-pup" class="' + (active==='pup'||active==='manage'?'on':'') + '">🐶<span>' + esc(tabName()) + '</span></a>' +
+    '<a href="/pack" class="' + (active==='pack'?'on':'') + '">' + ic('cityscape', 'tabic') + '<span>Your city</span></a>' +
+    '<a href="#" class="plusbtn" id="tab-plus" aria-label="Feed your pup a photo"><b>' + ic('camera_with_flash', 'feedic') + '</b><span class="walklbl">Feed</span></a>' +
+    '<a href="#" id="tab-pup" class="' + (active==='pup'||active==='manage'?'on':'') + '">' + ic('dog_face', 'tabic') + '<span>' + esc(tabName()) + '</span></a>' +
   '</div>';
 }
 function wireTabs(){
@@ -2259,7 +2265,7 @@ function openAdd(){
   ov.innerHTML = '<div class="stksheet addsheet"><div class="addtop">' +
       '<div class="addthumb"><video src="/pup-robo.mp4" poster="/pup-robo.jpg" muted autoplay loop playsinline></video></div>' +
       '<div><div class="addhead" style="margin:0">✍️ Tell ' + nm + '</div><div class="addtag">Break the Algo</div></div></div>' +
-    '<button class="walkbtn" id="walkbtn"><span class="wpaw">📸</span>Feed ' + nm + ' a photo<small>anything on your street · it names what it sees</small></button>' +
+    '<button class="walkbtn" id="walkbtn"><span class="wpaw">' + ic('camera_with_flash', 'btnic') + '</span>Feed ' + nm + ' a photo<small>anything on your street · it names what it sees</small></button>' +
     '<input id="fwalk" type="file" accept="image/*" capture="environment" hidden>' +
     '<textarea id="gripe" placeholder="Or type it: what should be fixed? Five words is plenty."></textarea>' +
     '<div id="thumbs" class="attach"></div>' + tagRowHTML() + spotLineHTML() +
@@ -2428,14 +2434,14 @@ function screenPack(mode, topic0){
     '<div id="citystrip"></div>' +
     (loadLocal() ? '' : '<div class="newbie">\ud83d\udc4b New here? Tap <b>📸 Feed</b> to get your own pup.</div>') +
     '<div class="scopebar"><div class="seg">' +
-      (city ? '<span class="segbtn' + (mode==='local'?' on':'') + '" id="mlocal">📍 ' + esc(city) + '</span>'
-            : '<span class="segbtn" id="mfind">📍 Near me</span>') +
-      '<span class="segbtn' + (mode==='all'?' on':'') + '" id="mall">🌍 Everywhere</span></div>' +
+      (city ? '<span class="segbtn' + (mode==='local'?' on':'') + '" id="mlocal">' + ic('round_pushpin', 'segic') + esc(city) + '</span>'
+            : '<span class="segbtn" id="mfind">' + ic('round_pushpin', 'segic') + 'Near me</span>') +
+      '<span class="segbtn' + (mode==='all'?' on':'') + '" id="mall">' + ic('globe_showing_americas', 'segic') + 'Everywhere</span></div>' +
       (city ? '<button class="segedit chgloc" title="change place" aria-label="change place">✎</button>' : '') + '</div>' +
     '<label class="searchwrap"><svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><circle cx="11" cy="11" r="7" fill="none" stroke="currentColor" stroke-width="2.2"/><path d="M20 20l-3.5-3.5" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>' +
       '<input class="searchbar" id="packsearch" placeholder="' + (mode === 'local' && city ? 'Search ' + esc(city) : 'Search everywhere') + '" enterkeyhint="search"></label>' +
     '<div id="board" class="hint">fetching the pack...</div>' +
-    (wall ? '' : '<a href="#" class="mapbtn" id="mapbtn" hidden>🗺️<span>Map</span></a>') +
+    (wall ? '' : '<a href="#" class="mapbtn" id="mapbtn" hidden>' + ic('world_map', 'btnic') + '<span>Map</span></a>') +
     '<footer>Only what people chose to share. \ud83c\udf31 \u00b7 <a href="mailto:hi@voterpup.com">hi@voterpup.com</a></footer>' +
     tabbar('pack');
   wireTabs();
@@ -2459,9 +2465,9 @@ function screenPack(mode, topic0){
     var b = document.getElementById('board');
     if (!rows.length && !mine.length) {
       b.className = '';
-      b.innerHTML = '<div class="emptycity"><div class="ecpaw">🐾</div><div class="ech">Quiet' + (mode === 'local' && city ? ' in ' + esc(city) : ' here') + ', for now.</div>' +
+      b.innerHTML = '<div class="emptycity"><div class="ecpaw">' + ic('paw_prints', 'bigic') + '</div><div class="ech">Quiet' + (mode === 'local' && city ? ' in ' + esc(city) : ' here') + ', for now.</div>' +
         '<div class="ecp">Feed your pup one photo from your street, good or broken. It chews on it and tells you what it sees.</div>' +
-        '<button class="btn gold" id="ecsnap">📸 Feed the first one</button></div>';
+        '<button class="btn gold" id="ecsnap">' + ic('camera_with_flash', 'btnic') + 'Feed the first one</button></div>';
       document.getElementById('ecsnap').onclick = startWalk;
       return;
     }
@@ -2691,7 +2697,7 @@ function screenPack(mode, topic0){
   }).catch(function(e){ document.getElementById('board').textContent = 'The pack is napping: ' + e.message; });
 }
 
-var APP_VERSION = "20261002183356";
+var APP_VERSION = "20261002184238";
 (function(){
   try {
     fetch('/version.json?t=' + Date.now(), { cache: 'no-store' }).then(function(r){ return r.json(); }).then(function(j){
