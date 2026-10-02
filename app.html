@@ -362,7 +362,7 @@
   img.ic.tabic{display:block; width:30px; height:30px; margin:0 auto 2px} i.ic.tabic{display:block; font-size:28px; margin:1px auto 2px}
   .tabbar a:not(.on) .tabic{filter:grayscale(.5) opacity(.7)}
   i.ic.feedic{font-size:28px; vertical-align:middle; color:var(--goldink)}
-  .walkbtn .wpaw{background:#fff !important} .wpaw .ic.btnic{margin:0; width:24px; height:24px}
+  .walkbtn .wpaw{background:#fff !important} .wpaw .ic.btnic{margin:0; font-size:22px; color:var(--goldink)}
   .plusbtn b{font-size:24px !important; line-height:50px !important; transition:transform .08s ease, box-shadow .08s ease; box-shadow:0 4px 0 #d0961f !important}
   .plusbtn:active b{transform:translateX(-50%) translateY(4px); box-shadow:none !important}
   .plusbtn .walklbl{position:absolute; left:0; right:0; bottom:6px; font-size:11px; font-weight:800; color:#8a6410}
@@ -2722,7 +2722,7 @@ function screenPack(mode, topic0){
   }).catch(function(e){ document.getElementById('board').textContent = 'The pack is napping: ' + e.message; });
 }
 
-var APP_VERSION = "20261002185231";
+var APP_VERSION = "20261002185439";
 (function(){
   try {
     fetch('/version.json?t=' + Date.now(), { cache: 'no-store' }).then(function(r){ return r.json(); }).then(function(j){
