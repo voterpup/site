@@ -745,7 +745,7 @@ var BASE = location.origin;
 var KIOSK = new URLSearchParams(location.search).get('kiosk') === '1';
 (function(){ var q = new URLSearchParams(location.search), s = q.get('src'), pl = q.get('place');
   if (s) try { sessionStorage.setItem('vp.src', s.slice(0, 20)); if (!localStorage.getItem('vp.src0')) localStorage.setItem('vp.src0', s.slice(0, 20)); } catch (e) {}
-  if (pl && /^[A-Za-z .'’()-]+(, [A-Za-z .'’()-]+){1,3}$/.test(pl.trim())) savePlace(pl.trim(), true); })();
+  if (pl && /^[A-Za-z .'’()-]+(, [A-Za-z .'’()-]+){1,3}$/.test(pl.trim())) { savePlace(pl.trim(), true); try { localStorage.setItem('vp.placeqr', '1'); } catch (e) {} } })();   // a QR's city is a guess: the first real location wins
 function fromBooth(){ try { return sessionStorage.getItem('vp.src') === 'booth'; } catch (e) { return false; } }
 var root = document.getElementById('root');
 
@@ -865,7 +865,8 @@ function grabSpot(done, fail){
         var a = g.address || {};
         var label = [a.road || a.pedestrian || a.footway || a.park || a.amenity || '', a.neighbourhood || a.suburb || a.quarter || '']
           .filter(Boolean).join(', ') || (la + ', ' + lo);
-        if (!getPlace() && a.city) savePlace(osmLabel(a), false);
+        var qrGuess = false; try { qrGuess = localStorage.getItem('vp.placeqr') === '1'; } catch (e) {}
+        if (a.city && (!getPlace() || qrGuess)) { savePlace(osmLabel(a), false); try { localStorage.removeItem('vp.placeqr'); } catch (e) {} }
         var sp = { lat: la, lng: lo, spot: label.slice(0, 80) }; window._lastSpot = { spot: sp, ts: Date.now() }; done(sp);
       }).catch(function(){ done({ lat: la, lng: lo, spot: la + ', ' + lo }); });
   }, function(err){ fail && fail(err && err.code === 1 ? 'denied' : 'error'); }, { enableHighAccuracy: true, timeout: 10000 });
@@ -2976,7 +2977,7 @@ function screenPack(mode, topic0){
   }).catch(function(e){ document.getElementById('board').textContent = 'The pack is napping: ' + e.message; });
 }
 
-var APP_VERSION = "20261002224329";
+var APP_VERSION = "20261002230657";
 (function(){
   try {
     fetch('/version.json?t=' + Date.now(), { cache: 'no-store' }).then(function(r){ return r.json(); }).then(function(j){
