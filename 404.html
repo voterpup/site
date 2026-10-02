@@ -337,6 +337,7 @@
   #walkout .walkmsg{animation:fadein .3s ease both}
   @keyframes cardin{from{opacity:0; transform:translateY(14px) scale(.98)} to{opacity:1; transform:none}} .wcard.kept{opacity:.6} .wline{font-size:15px; font-weight:700; flex:1 1 60%} .wcard .chips{margin:0} .wcard .wkeep{margin-left:auto}
   .sharechip{cursor:pointer; font-weight:800}
+  .nahead{font-weight:800; font-size:15px; margin:10px 0 8px} .nacard{margin:0 0 8px} #notalone{margin:4px 0 6px}
   .plusbtn{flex:0 0 64px !important; position:relative}
   .playbtn{position:absolute; left:calc(50% + 16px); top:14px; width:26px; height:26px; border-radius:50%; background:#1f2733; color:#fff;
       font-size:14px; line-height:26px; text-align:center; text-decoration:none; border:2px solid var(--card); box-shadow:0 2px 6px rgba(0,0,0,.25); z-index:2}
@@ -744,6 +745,21 @@ function wireSpot(){
 }
 function spotArgs(){ return pendingSpot ? { p_lat: pendingSpot.lat, p_lng: pendingSpot.lng, p_spot: pendingSpot.spot } : {}; }
 var SHARE_BASE = '';   // 'https://voterpup.com/i' once the Cloudflare route exists; empty = link straight to the Pack
+function notAlone(body, tail, mount){   // mount: element to fill (inline) or null for a sheet
+  if (!body || !getPlace()) return Promise.resolve(false);
+  return rpc('vp_similar', { p_place: getPlace(), p_body: body, p_tail: tail }).then(function(list){
+    if (!list || !list.length) return false;
+    var html = '<div class="nahead">🐾 ' + (list.length === 1 ? 'Someone near you said this too' : list.length + ' people near you said this too') + '</div>' +
+      list.map(function(r){ return '<div class="card nacard"><div class="entry-body">' + esc(r.body) + '</div><div class="chips">' + (r.topic && r.topic !== 'other' ? '<span class="topicchip">#' + esc(r.topic) + '</span>' : '') + sameChip(r.id, r.backs || 0, false, false) + '</div></div>'; }).join('');
+    track('fetch', { kind: 'not_alone', n: list.length });
+    if (mount) { mount.innerHTML = html; mount.hidden = false; return true; }
+    var ov = document.createElement('div'); ov.className = 'stkover'; document.body.appendChild(ov);
+    ov.innerHTML = '<div class="stksheet">' + html + '<button class="btn gold" id="naok" style="margin-top:10px">Good to know</button></div>';
+    var close = function(){ if (ov.parentNode) ov.parentNode.removeChild(ov); };
+    ov.onclick = function(ev){ if (ev.target === ov) close(); }; document.getElementById('naok').onclick = close;
+    return true;
+  }).catch(function(){ return false; });
+}
 function shareChip(e){ return '<span class="chip sharechip" data-id="' + (e.id || '') + '" data-share="' + esc(e.body || '') + '" data-shared="' + (e.shared ? 1 : 0) + '" data-topic="' + esc(e.topic || '') + '" data-backs="' + (e.backs || 0) + '" data-place="' + esc((e.place || '').split(',')[0]) + '" title="send to a friend">↗</span>'; }
 // the preview card chat apps show: drawn here, uploaded once, 1200x630
 function drawShareCard(d){
@@ -1311,7 +1327,7 @@ function screenUnbox(name, gripe){
       document.getElementById('sticker').onclick = function(){ makeSticker(l.name, url); };
       document.getElementById('newpup').onclick = function(){ location.href = location.pathname + '?kiosk=1'; };
     } else {
-      try { sessionStorage.setItem('vp.first', l.first || ''); if (!fromBooth()) sessionStorage.setItem('vp.tour', '1'); } catch (e) {}
+      try { sessionStorage.setItem('vp.first', l.first || ''); sessionStorage.setItem('vp.firstbody', gripe || ''); if (!fromBooth()) sessionStorage.setItem('vp.tour', '1'); } catch (e) {}
       location.href = url + '?report=1';
       return;
     }
@@ -1815,6 +1831,7 @@ function screenReport(tail){
       '<div class="rprow"><span>🗳️</span><div><b>' + voteLine + '</b><small>your Flashback, and what&rsquo;s on your ballot</small></div></div>' +
       '<div class="rprow"><span>📋</span><div><b>After the vote</b><small>promises made vs. what got fixed</small></div></div>' +
       proof +
+      '<div id="notalone" hidden></div>' +
       (first ? '<label class="switchrow" style="margin:12px 2px"><input type="checkbox" id="rpshare"> Count my first issue on The Pack 🌱 <small style="color:var(--sub)">(public, no name)</small></label>' : '') +
       '<input type="email" id="rpemail" placeholder="Email for the Flashback on voting morning (optional)" autocomplete="email" style="margin:4px 0 10px">' +
       '<button class="btn gold" id="rpgo">Let ' + nm + ' report back 🔔</button>' +
@@ -1822,6 +1839,7 @@ function screenReport(tail){
       '<p class="privacy" id="rperr"></p></div>';
     track('report_seen', {});
     document.getElementById('rpskip').onclick = function(ev){ ev.preventDefault(); track('report_skip', {}); try { localStorage.setItem('vp.remasked', '1'); } catch (e) {} go(); };
+    (function(){ var fb = ''; try { fb = sessionStorage.getItem('vp.firstbody') || ''; } catch (e) {} if (fb) notAlone(fb, tail, document.getElementById('notalone')); })();
     document.getElementById('rpgo').onclick = function(){
       var b = this; b.disabled = true; b.textContent = 'One sec…';
       var sh = document.getElementById('rpshare');
@@ -2155,6 +2173,7 @@ function openAdd(){
       if (location.pathname === '/pack') screenPack();
       else if (location.pathname.indexOf('/p/') === 0) screenLedger(s.tail);
       else location.href = pupURL(s.tail);
+      setTimeout(function(){ notAlone(ta.value.trim(), s.tail, null); }, 700);
     }).catch(function(e){ alert('The pup stumbled: ' + e.message); upd(); });
   }
   document.getElementById('priv').onclick = function(){ submit(false); };
@@ -2541,7 +2560,7 @@ function screenPack(mode, topic0){
   }).catch(function(e){ document.getElementById('board').textContent = 'The pack is napping: ' + e.message; });
 }
 
-var APP_VERSION = "20261002055121";
+var APP_VERSION = "20261002064311";
 (function(){
   try {
     fetch('/version.json?t=' + Date.now(), { cache: 'no-store' }).then(function(r){ return r.json(); }).then(function(j){

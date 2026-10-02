@@ -36,15 +36,13 @@ Deno.serve(async (req) => {
   }
   let body: { test?: string; key?: string } = {};
   try { body = await req.json(); } catch (_) { /* cron */ }
-  const line = (f: any, name: string) => {
-    const st = f?.stats ?? {};
-    if (f?.top?.rank && f.top.rank <= 5) return `“${String(f.top.body || "your photo").slice(0, 40)}” is #${f.top.rank}${f.top.city ? " in " + f.top.city : ""} this week. Anything new today?`;
-    if ((f?.backs ?? 0) > 0) return `${f.backs} ${f.backs === 1 ? "person feels" : "people feel"} the same as you so far. Anything new today?`;
-    if (f?.city && ((f.today?.issues ?? 0) >= 2 || (f.city_reports?.n ?? 0) >= 20)) return `Today in ${f.city}: ` + ((f.today?.issues ?? 0) ? `${f.today.issues} issues from ${f.today.pups} people` : "") +
-      ((f.today?.issues ?? 0) && (f.city_reports?.n ?? 0) ? " + " : "") + ((f.city_reports?.n ?? 0) ? `${f.city_reports.n} 3-1-1 reports` : "") +
-      ((f.today?.top_topic || f.city_reports?.top_topic) ? `, most on #${f.today?.top_topic || f.city_reports.top_topic}` : "") + `. Anything to add?`;
-    if (f?.city && (st.issues_week ?? 0) >= 3) return `This week in ${f.city}: ${st.issues_week} issues from ${st.pups_week} people` + (st.top_topic ? `, most on #${st.top_topic}` : "") + `. Anything to add?`;
-    return LINES[Math.floor(Math.random() * LINES.length)](name);
+  const line = (f: any, name: string, first: boolean): [string, string] | null => {
+    const nb = f?.new_backs, q = (t: string) => "\u201c" + String(t).slice(0, 44) + "\u201d";
+    if (nb?.n > 0) return [(nb.n === 1 ? "Someone near you agrees: " : nb.n + " people near you agree: ") + q(nb.body), "See who"];
+    if (f?.top?.rank && f.top.rank <= 5) return [q(f.top.body || "your photo") + " is #" + f.top.rank + (f.top.city ? " in " + f.top.city : "") + " this week.", "Open " + name];
+    if (f?.good_nearby) return [name + " found something good nearby: " + q(f.good_nearby), "See it"];
+    if (first) return [name + " sniffed around" + (f?.city ? " " + f.city : "") + ". No \u201csame here\u201d on your list yet. Walk me tomorrow?", "Walk " + name];
+    return null;   // nothing happened: no mail
   };
   if (body.test) {
     if (body.key !== Deno.env.get("REPORT_KEY")) return new Response("no", { status: 403 });
@@ -56,8 +54,10 @@ Deno.serve(async (req) => {
   const { data: due } = await db.rpc("vp_due_mails");
   for (const s of due ?? []) {
     const { data: f } = await db.rpc("vp_reminder_facts", { p_tail: s.tail });
-    const text = line(f, s.name);
-    const m = wrap(s.name, text, "Tell " + s.name, `${SITE}/p/${s.tail}?add=1`, `${FN}?unsub=${s.token}`);
+    const got = line(f, s.name, !s.last_sent);
+    if (!got) { await db.from("mail_subs").update({ last_sent: new Date().toISOString() }).eq("email", s.email); continue; }
+    const text = got[0];
+    const m = wrap(s.name, text, got[1], `${SITE}/p/${s.tail}`, `${FN}?unsub=${s.token}`);
     try { await sendMail(s.email, `🐾 ${s.name}: ${text.slice(0, 60)}`, m.html, m.text); await db.from("mail_subs").update({ last_sent: new Date().toISOString(), fails: 0 }).eq("email", s.email); sent++; }
     catch (e) { console.log("mail fail", String((e as Error).message).slice(0, 120)); await db.from("mail_subs").update({ fails: s.fails + 1 }).eq("email", s.email); failed++; }
   }

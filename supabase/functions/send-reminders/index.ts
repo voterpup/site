@@ -39,31 +39,22 @@ Deno.serve(async (req) => {
       }
     }
   }
-  let sent = 0, gone = 0, failed = 0;
+  let sent = 0, gone = 0, failed = 0, quiet = 0;
   for (const s of due ?? []) {
-    let line = LINES[Math.floor(Math.random() * LINES.length)](s.name);
+    // The pup's report: one concrete thing about YOU, or nothing. (First evening: always something.)
+    let line = LINES[Math.floor(Math.random() * LINES.length)](s.name), url = "/p/" + s.tail + "?add=1";
     if (!body.test) {
       const { data: f } = await db.rpc("vp_reminder_facts", { p_tail: s.tail });
-      const st = f?.stats ?? {};
-      if (!s.last_sent && f?.city && (st.issues_week ?? 0) >= 3)
-        line = `${s.name}'s first report: ${st.issues_week} issues raised in ${f.city} this week` +
-               (st.top_topic ? `, most on #${st.top_topic}` : "") + ". Anything to add?";
-      else if (f?.top?.rank && f.top.rank <= 5)
-        line = `\u201c${String(f.top.body || "your photo").slice(0, 40)}\u201d is #${f.top.rank}${f.top.city ? " in " + f.top.city : ""} this week. Anything new today?`;
-      else if ((f?.backs ?? 0) > 0)
-        line = `${f.backs} ${f.backs === 1 ? "person feels" : "people feel"} the same as you so far. Anything new today?`;
-      else if ((f?.entries ?? 0) === 0)
-        line = `${s.name} hasn't heard anything yet. What should be fixed?`;
-      else if (f?.city && ((f.today?.issues ?? 0) >= 2 || (f.city_reports?.n ?? 0) >= 20))   // the day's pulse, different every day
-        line = `Today in ${f.city}: ` + ((f.today?.issues ?? 0) ? `${f.today.issues} issues from ${f.today.pups} people` : "") +
-               ((f.today?.issues ?? 0) && (f.city_reports?.n ?? 0) ? " + " : "") + ((f.city_reports?.n ?? 0) ? `${f.city_reports.n} 3-1-1 reports` : "") +
-               ((f.today?.top_topic || f.city_reports?.top_topic) ? `, most on #${f.today?.top_topic || f.city_reports.top_topic}` : "") + `. Anything to add?`;
-      else if (f?.city && (st.issues_week ?? 0) >= 3)
-        line = `This week in ${f.city}: ${st.issues_week} issues from ${st.pups_week} people` + (st.top_topic ? `, most on #${st.top_topic}` : "") + `. Anything to add?`;
+      const nb = f?.new_backs, q = (t: string) => "\u201c" + String(t).slice(0, 44) + "\u201d";
+      if (nb?.n > 0) { line = (nb.n === 1 ? "Someone near you agrees: " : nb.n + " people near you agree: ") + q(nb.body); url = "/p/" + s.tail; }
+      else if (f?.top?.rank && f.top.rank <= 5) { line = q(f.top.body || "your photo") + " is #" + f.top.rank + (f.top.city ? " in " + f.top.city : "") + " this week."; url = "/p/" + s.tail; }
+      else if (f?.good_nearby) { line = s.name + " found something good nearby: " + q(f.good_nearby); url = "/pack?q=" + encodeURIComponent(String(f.good_nearby).slice(0, 40)); }
+      else if (!s.last_sent) { line = s.name + " sniffed around" + (f?.city ? " " + f.city : "") + ". No \u201csame here\u201d on your list yet. Walk me tomorrow?"; url = "/p/" + s.tail + "?add=walk"; }
+      else { await db.from("push_subs").update({ last_sent: new Date().toISOString() }).eq("endpoint", s.endpoint); quiet++; continue; }   // nothing happened: say nothing
     }
     try {
       const r = await webpush.sendNotification({ endpoint: s.endpoint, keys: { p256dh: s.p256dh, auth: s.auth } },
-        JSON.stringify({ title: "🐾 " + s.name, body: body.test ? "Test reminder: this is how " + s.name + " will ask." : line, url: "/p/" + s.tail + "?add=1" }),
+        JSON.stringify({ title: "🐾 " + s.name, body: body.test ? "Test reminder: this is how " + s.name + " will ask." : line, url }),
         { TTL: 3600, urgency: "high" });
       console.log("push", new URL(s.endpoint).host, r.statusCode);
       if (!body.test) await db.from("push_subs").update({ last_sent: new Date().toISOString(), fails: 0 }).eq("endpoint", s.endpoint);
@@ -74,5 +65,5 @@ Deno.serve(async (req) => {
       else { failed++; }
     }
   }
-  return new Response(JSON.stringify({ due: due?.length ?? 0, sent, gone, failed, votes }), { headers: CORS });
+  return new Response(JSON.stringify({ due: due?.length ?? 0, sent, quiet, gone, failed, votes }), { headers: CORS });
 });
