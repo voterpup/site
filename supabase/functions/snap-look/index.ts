@@ -7,6 +7,7 @@ const CORS = { "Access-Control-Allow-Origin": "*", "Access-Control-Allow-Headers
 const anthropic = new Anthropic({ apiKey: Deno.env.get("ANTHROPIC_API_KEY")! });
 const MODEL = "claude-haiku-4-5-20251001", PRICE_IN = 1e-6, PRICE_OUT = 5e-6;
 const DAILY_CALLS = 800;   // ~$3/day
+const SPOTS = ["tree", "bench", "bike", "art", "bin", "light", "crosswalk", "puddle", "flowers", "bus", "sign", "cone", "park", "shop", "leaves", "crack", "mailbox"];
 const TOPICS = ["cleanliness", "infrastructure", "transit", "parks", "safety", "utilities", "housing", "climate", "health", "homelessness", "cost of living", "education"];
 
 const RULES = `You are the eyes of a small dog that walks a city block with its person and notices what the CITY could fix, and what the city got right.
@@ -24,6 +25,8 @@ Hard rules:
 - Lines: lowercase, at most 8 words, the thing itself. No hedges ("may need", "could be"), no advice, no adjectives like "ugly".
 - Unsure about a finding: lower confidence. Nothing visible worth reporting: safe "ok" with an empty list.
 
+Also list "spotted": every one of these things clearly visible in the photo (for a scavenger hunt), using only these words: tree, bench, bike (a bicycle, bike rack or bike lane), art (mural, graffiti, street art), bin (any garbage/recycling bin), light (street light or lamp post), crosswalk, puddle, flowers, bus (bus stop or bus), sign (street or traffic sign), cone (traffic cone or barrier), park (park, playground or field), shop (a shop front), leaves (fallen leaves), crack (crack or pothole in pavement), mailbox. Be generous: if it is plainly in the frame, list it. Empty list if the photo is unsafe or of people.
+
 Also write THREE "quips", each using a DIFFERENT technique below, then set "best" to the index (0-2) of the one most likely to make an adult laugh out loud. Each quip: the funniest line a golden-retriever puppy comedian would say about the main THING in the photo. Aim for a real laugh, not "cute". Techniques that work:
 - Deadpan dog logic: treat the object with total seriousness from a dog's worldview ("PUP has measured this pothole. It is 3 tennis balls deep. Unacceptable.").
 - Dramatic overreaction: a crumbled curb is a personal betrayal; a puddle is a lake PUP must report to the authorities of fetch.
@@ -40,12 +43,13 @@ Call report exactly once.`;
 const tool = { name: "report", description: "The dog's report for this photo.", strict: true, input_schema: { type: "object", properties: {
   safe: { type: "string", enum: ["ok", "people", "skip", "block"] },
   scene: { type: "string", description: "3-6 words: what kind of place this is, no names" },
+  spotted: { type: "array", items: { type: "string", enum: SPOTS } },
   quips: { type: "array", items: { type: "string" }, description: "three puppy-comedian lines, different techniques" },
   best: { type: "integer", description: "index of the funniest quip" },
   findings: { type: "array", items: { type: "object", properties: {
     kind: { type: "string", enum: ["issue", "good"] }, topic: { type: "string", enum: TOPICS }, line: { type: "string" }, confidence: { type: "number" } },
     required: ["kind", "topic", "line", "confidence"], additionalProperties: false } } },
-  required: ["safe", "scene", "findings", "quips", "best"], additionalProperties: false } };
+  required: ["safe", "scene", "findings", "spotted", "quips", "best"], additionalProperties: false } };
 // second line of defence: anything that drifts toward people, politics, or harm is dropped (the app then shows a stock line)
 const QUIP_BAN = /\b(people|person|neighbou?rs?|worker|crew|city|council|mayor|government|govt|official|politic|party|parties|tax|vote|voter|election|candidate|homeless|drug|crime|police|cop|dead|death|die|kill|blood|injur|poop|pee|piss|shit|crap|damn|hell|stupid|human|mark|territor|pee|vandal|planner|engineer|staff|crew|driver|cyclist|owner|resident|idiot|lazy|useless|ugly|fat|rich|poor|immigrant|religio|god|race|bomb|gun)/i;
 
@@ -87,6 +91,7 @@ Deno.serve(async (req) => {
     const qs: unknown[] = Array.isArray(inp.quips) ? inp.quips : []; const b = Number.isInteger(inp.best) ? inp.best : 0;
     const order = [b, ...[0, 1, 2].filter((k) => k !== b)];
     let quip = ""; if (safe === "ok") for (const k of order) { quip = clean(qs[k]); if (quip) break; }
-    return json({ safe, scene: String(inp.scene || "").slice(0, 60), findings, quip, cost: Math.round(cost * 1e5) / 1e5 });
+    const spotted = safe === "ok" && Array.isArray(inp.spotted) ? [...new Set(inp.spotted.filter((x: string) => SPOTS.includes(x)))] : [];
+    return json({ safe, scene: String(inp.scene || "").slice(0, 60), findings, quip, spotted, cost: Math.round(cost * 1e5) / 1e5 });
   } catch (e) { return json({ error: String((e as Error).message).slice(0, 200) }, 502); }
 });
