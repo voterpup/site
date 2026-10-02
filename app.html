@@ -356,17 +356,25 @@
   .ecardsheet .stksheet .ecard{margin:0; border:0 !important; padding:4px 2px}
   .chip.danger{color:#a94b4b; border-color:#f0c9c9}
   .mgrid{display:grid; grid-template-columns:1fr 1fr; gap:10px}
-  .mgrid .mrow{flex-direction:column; align-items:stretch; margin:0; padding:12px; border:2px solid var(--line); border-radius:18px; box-shadow:0 4px 0 #e3d8c4; gap:8px}
-  .mgrid .mthumb{width:100%; height:86px; border-radius:12px}
-  .mgrid .mkeythumb{font-size:38px}
-  .mgrid .mh{font-size:15px; font-weight:900; line-height:1.2}
-  .mgrid .mp{font-size:12px; line-height:1.3; margin:2px 0 0; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden}
+  .mgrid .mrow{flex-direction:column; align-items:stretch; margin:0; padding:9px; border:2px solid var(--line); border-radius:18px; box-shadow:0 4px 0 #e3d8c4; gap:8px}
+  .mgrid .mthumb{width:100%; height:54px; border-radius:10px}
+  .mgrid .mkeythumb{font-size:28px}
+  .mgrid .mh{font-size:13.5px; font-weight:900; line-height:1.2}
+  .mgrid .mp{font-size:11px; line-height:1.3; margin:2px 0 0; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden}
   .mgrid .mact{display:flex; flex-direction:column; gap:6px; margin-top:auto} .mgrid .mbody{display:flex; flex-direction:column; flex:1}
-  .mgrid .mact .btn,.mgrid .mact .mbtn{margin:0; padding:9px 8px; font-size:13px; width:100%}
+  .mgrid .mact .btn,.mgrid .mact .mbtn{margin:0; padding:7px 6px; font-size:12px; width:100%}
+  .mgrid{gap:8px}
   .huntcard{background:var(--card); border:2px solid var(--line); border-radius:20px; padding:12px 12px 10px; margin:0 0 16px; cursor:pointer; box-shadow:0 4px 0 #e3d8c4; transition:transform .08s, box-shadow .08s}
   .huntcard:active{transform:translateY(4px); box-shadow:none}
   .hhead{display:flex; justify-content:space-between; align-items:baseline; margin:0 2px 8px} .hhead b{font-size:16px; font-weight:900} .hhead span{font-size:12px; color:var(--sub); font-weight:700}
-  .hcircles{display:grid; grid-template-columns:repeat(6, 1fr); gap:4px}
+  .hcircles{display:grid; grid-template-columns:repeat(5, 1fr); gap:4px}
+  .pring{position:relative; display:inline-block; padding-bottom:12px}
+  .pring svg{display:block; transform:rotate(-90deg)} .prbg{fill:none; stroke:#ece4d6; stroke-width:6} .prfg{fill:none; stroke:#22786a; stroke-width:6; stroke-linecap:round; transition:stroke-dashoffset .8s cubic-bezier(.2,.8,.2,1)}
+  .pring .pupav{position:absolute; left:9px; top:9px; width:calc(100% - 18px) !important; height:auto !important; aspect-ratio:1; border-radius:50%; object-fit:cover; border:0 !important}
+  .ppts{position:absolute; left:50%; bottom:0; transform:translateX(-50%); background:var(--gold); color:var(--goldink); font-weight:900; font-size:12px; padding:1px 9px; border-radius:999px; box-shadow:0 2px 0 #d0961f; white-space:nowrap}
+  .pupav-wrap:has(.pring){overflow:visible; border-radius:0}
+  .pupav-wrap:has(.pring)::after{border-radius:50%; inset:9px 9px 21px 9px}
+  .hwpts{background:#22786a; color:#fff; border-radius:999px; padding:1px 8px; font-size:13px; margin-left:4px}
   .hc{text-align:center} .hc small{display:block; font-size:10.5px; line-height:1.15; color:var(--sub); font-weight:700; margin-top:4px}
   .hcdot{position:relative; display:inline-flex; align-items:center; justify-content:center; width:46px; height:46px; border-radius:50%; border:2.5px dashed #d8ccb6; font-size:22px; color:#b9ad97; background:#fbf8f2}
   .hc.on .hcdot{border:2.5px solid var(--c); background:var(--c); color:#fff} .hc.on small{color:var(--ink)}
@@ -1516,7 +1524,7 @@ function screenLedger(tail){
     pendingFiles = [];
     root.innerHTML = nav(KIOSK ? '' : '<a href="#" class="navpill" id="navshow" title="A read-only code for candidates"><i class="ph-duotone ph-share-network"></i> My issues</a><a href="/manage" class="iconnav" id="navman" title="Manage"><i class="ph-duotone ph-gear-six"></i></a>').replace('class="nav"', 'class="nav compact"') +
       (KIOSK ? '' : '<div class="island" id="island"></div>') +
-      '<div class="puphead"><span class="pupav-wrap"><img class="pupav" src="/pup-face.jpg" alt=""></span><div><div class="pupname">' + esc(L.name) + '</div>' +
+      '<div class="puphead"><span class="pupav-wrap">' + pupRing(76) + '</span><div><div class="pupname">' + esc(L.name) + '</div>' +
         '<div class="pupsub">' + (n ? 'remembers ' + n + ' thing' + (n === 1 ? '' : 's') : 'tap 📸 to feed ' + esc(L.name) + ' a photo') + '</div></div>' +
         '</div>' +
       (KIOSK ? '' : '<div class="quickrow"><button class="qbtn gold" id="qwalk">' + ic('camera_with_flash', 'btnic') + 'Feed ' + esc(L.name) + '</button><button class="qbtn" id="qnote">' + ic('writing_hand', 'btnic') + 'Write</button></div>' + huntCardHTML(L.name)) +
@@ -2424,25 +2432,34 @@ var HUNT_ITEMS = { tree: ['ph-tree', 'a tree', '#2f7d5f'], bench: ['ph-chair', '
   flowers: ['ph-flower-tulip', 'flowers', '#d1495b'], bus: ['ph-bus', 'a bus stop', '#22786a'], sign: ['ph-signpost', 'a street sign', '#9a5f00'], cone: ['ph-traffic-cone', 'a traffic cone', '#e0702a'],
   park: ['ph-park', 'a park', '#2f7d5f'], shop: ['ph-storefront', 'a shop front', '#a34ea8'], leaves: ['ph-leaf', 'fallen leaves', '#c26a1b'], crack: ['ph-road-horizon', 'a crack or pothole', '#5d6573'], mailbox: ['ph-mailbox', 'a mailbox', '#d1495b'] };
 var HUNT_EASY = ['tree', 'sign', 'light', 'bin', 'shop', 'leaves', 'crosswalk', 'bike'], HUNT_FUN = ['bench', 'art', 'puddle', 'flowers', 'bus', 'cone', 'park', 'crack', 'mailbox'];
-function huntWeek(){ var d = new Date(); d.setHours(0, 0, 0, 0); d.setDate(d.getDate() - ((d.getDay() + 6) % 7)); return d.toISOString().slice(0, 10); }   // Monday
+function huntWeek(){ var d = new Date(); return d.getFullYear() + '-' + (d.getMonth() + 1) + '-' + d.getDate(); }   // today (local): a new challenge every day
 function huntTargets(){ var wk = huntWeek(), sd = idSeed('hunt' + wk), pick = function(arr, n, salt){ var a = arr.slice(), out = []; var x = sd ^ salt; while (out.length < n) { x = Math.imul(x ^ (x >>> 15), 2246822507) >>> 0; out.push(a.splice(x % a.length, 1)[0]); } return out; };
-  return pick(HUNT_EASY, 4, 7).concat(pick(HUNT_FUN, 2, 13)); }   // same 6 for everyone this week: 4 easy, 2 fun
+  return pick(HUNT_EASY, 3, 7).concat(pick(HUNT_FUN, 2, 13)); }   // same 5 for everyone today: 3 easy, 2 fun
 function huntState(){ var s = null; try { s = JSON.parse(localStorage.getItem('vp.hunt') || 'null'); } catch (e) {} if (!s || s.week !== huntWeek()) s = { week: huntWeek(), found: {}, done: false }; return s; }
 function confettiBurst(){ var cs = ['#f4b63f', '#22786a', '#d1495b', '#3b6fb6', '#a34ea8']; for (var i = 0; i < 60; i++) { var c = document.createElement('i'); c.className = 'cfx';
   c.style.left = (Math.random() * 100) + 'vw'; c.style.background = cs[i % cs.length]; c.style.animationDelay = (Math.random() * .4) + 's'; c.style.transform = 'rotate(' + (Math.random() * 360) + 'deg)';
   document.body.appendChild(c); setTimeout(function(x){ return function(){ x.remove(); }; }(c), 2600); } }
+function pupPoints(){ try { return +(localStorage.getItem('vp.pts') || 0); } catch (e) { return 0; } }
+function pupRing(size){   // MyZone-style ring: today's progress around the pup, points underneath
+  var s = huntState(), tg = huntTargets(), n = tg.filter(function(k){ return s.found[k]; }).length, r = size / 2 - 5, C = 2 * Math.PI * r;
+  return '<div class="pring" style="width:' + size + 'px"><svg width="' + size + '" height="' + size + '"><circle cx="' + size / 2 + '" cy="' + size / 2 + '" r="' + r + '" class="prbg"/>' +
+    '<circle cx="' + size / 2 + '" cy="' + size / 2 + '" r="' + r + '" class="prfg" style="stroke-dasharray:' + C + ';stroke-dashoffset:' + (C * (1 - n / 5)) + '"/></svg>' +
+    '<img class="pupav" src="/pup-face.jpg" alt=""><span class="ppts">' + pupPoints() + '</span></div>'; }
 function huntSave(s){ try { localStorage.setItem('vp.hunt', JSON.stringify(s)); } catch (e) {} }
 function huntCircles(found, fresh){ return '<div class="hcircles">' + huntTargets().map(function(k){ var it = HUNT_ITEMS[k], on = !!found[k];
     return '<div class="hc' + (on ? ' on' : '') + (fresh && fresh.indexOf(k) >= 0 ? ' pop' : '') + '"><span class="hcdot" style="--c:' + it[2] + '"><i class="ph-duotone ' + it[0] + '"></i>' + (on ? '<b>✓</b>' : '') + '</span><small>' + esc(it[1]) + '</small></div>'; }).join('') + '</div>'; }
 function huntCardHTML(name){ var s = huntState(), n = huntTargets().filter(function(k){ return s.found[k]; }).length;
-  return '<div class="huntcard" id="huntcard"><div class="hhead"><b>' + (n >= 6 ? '🏆 Hunt complete!' : '🔍 Sniff hunt') + '</b><span>' + n + '/6 · new hunt Monday</span></div>' +
-    huntCircles(s.found) + '<div class="hfoot">' + (n >= 6 ? esc(name) + ' found everything this week. Legend.' : 'Feed ' + esc(name) + ' a photo of any of these.') + '</div></div>'; }
+  return '<div class="huntcard" id="huntcard"><div class="hhead"><b>' + (n >= 5 ? '🏆 Challenge done!' : '🔍 Today&rsquo;s sniff challenge') + '</b><span>' + n + '/5 · new tomorrow</span></div>' +
+    huntCircles(s.found) + '<div class="hfoot">' + (n >= 5 ? esc(name) + ' found everything today. Legend.' : 'Each find is worth more: 10 · 20 · 30 · 40 · 50 points, +50 for all five.') + '</div></div>'; }
 function huntApply(spotted){   // returns the newly found targets
   var s = huntState(), tg = huntTargets(), fresh = (spotted || []).filter(function(k){ return tg.indexOf(k) >= 0 && !s.found[k]; });
   fresh.forEach(function(k){ s.found[k] = Date.now(); });
-  var n = tg.filter(function(k){ return s.found[k]; }).length; var completed = n >= 6 && !s.done; if (completed) s.done = true;
-  huntSave(s); if (fresh.length) track('fetch', { kind: 'hunt', n: n });
-  return { fresh: fresh, n: n, completed: completed, found: s.found };
+  var before = tg.filter(function(k){ return s.found[k] && fresh.indexOf(k) < 0; }).length, gained = 0;
+  fresh.forEach(function(_, i){ gained += 10 * (before + i + 1); });   // compounding: 10, 20, 30, 40, 50
+  var n = before + fresh.length; var completed = n >= 5 && !s.done; if (completed) { s.done = true; gained += 50; }   // +50 for all five
+  huntSave(s); if (gained) { var pts = pupPoints() + gained; try { localStorage.setItem('vp.pts', String(pts)); } catch (e) {} }
+  if (fresh.length) track('fetch', { kind: 'hunt', n: n });
+  return { fresh: fresh, n: n, completed: completed, found: s.found, gained: gained };
 }
 // ---------- Walk the pup: one photo -> the pup names what it sees -> tap Keep ----------
 var WALK_LINES = ['Today&rsquo;s walk, tomorrow&rsquo;s fix.', 'You walk past it every day. Today the pup sees it too.', 'Same street, new eyes.', 'Your eyes. Show the pup.'];
@@ -2476,7 +2493,7 @@ function walkSheet(s, file){
     track('snap', { safe: r.safe, n: (r.findings || []).length });
     var hu = huntApply(r.spotted);
     if (hu.fresh.length) { var hb = document.createElement('div'); hb.className = 'huntwin';
-      hb.innerHTML = '<div class="hwtitle">' + (hu.completed ? '🏆 Hunt complete! ' + esc(s.name) + ' found all 6.' : '🔍 Hunt: found ' + hu.fresh.map(function(k){ return HUNT_ITEMS[k][1]; }).join(' + ') + '!') + '</div>' + huntCircles(hu.found, hu.fresh);
+      hb.innerHTML = '<div class="hwtitle">' + (hu.completed ? '🏆 Challenge done! ' + esc(s.name) + ' found all 5.' : '🔍 Found ' + hu.fresh.map(function(k){ return HUNT_ITEMS[k][1]; }).join(' + ') + '!') + ' <span class="hwpts">+' + hu.gained + '</span></div>' + huntCircles(hu.found, hu.fresh);
       document.querySelector('.walksheet').insertBefore(hb, document.querySelector('.walksheet .walkline'));
       if (navigator.vibrate) navigator.vibrate(hu.completed ? [60, 40, 60, 40, 120] : 50); if (hu.completed) confettiBurst(); }
     var uploaded = null;
@@ -2838,7 +2855,7 @@ function screenPack(mode, topic0){
   }).catch(function(e){ document.getElementById('board').textContent = 'The pack is napping: ' + e.message; });
 }
 
-var APP_VERSION = "20261002194730";
+var APP_VERSION = "20261002200722";
 (function(){
   try {
     fetch('/version.json?t=' + Date.now(), { cache: 'no-store' }).then(function(r){ return r.json(); }).then(function(j){
