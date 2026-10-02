@@ -335,6 +335,7 @@
   #walkout .wcard{animation:cardin .4s ease both; animation-delay:calc(.15s + var(--i, 0) * .16s)}
   #walkout .walkmsg{animation:fadein .3s ease both}
   @keyframes cardin{from{opacity:0; transform:translateY(14px) scale(.98)} to{opacity:1; transform:none}} .wcard.kept{opacity:.6} .wline{font-size:15px; font-weight:700; flex:1 1 60%} .wcard .chips{margin:0} .wcard .wkeep{margin-left:auto}
+  .sharechip{cursor:pointer; font-weight:800}
   .plusbtn{flex:0 0 64px !important; position:relative}
   .playbtn{position:absolute; left:calc(50% + 16px); top:14px; width:26px; height:26px; border-radius:50%; background:#1f2733; color:#fff;
       font-size:14px; line-height:26px; text-align:center; text-decoration:none; border:2px solid var(--card); box-shadow:0 2px 6px rgba(0,0,0,.25); z-index:2}
@@ -741,6 +742,16 @@ function wireSpot(){
   autoSpot();
 }
 function spotArgs(){ return pendingSpot ? { p_lat: pendingSpot.lat, p_lng: pendingSpot.lng, p_spot: pendingSpot.spot } : {}; }
+function shareChip(e){ return '<span class="chip sharechip" data-share="' + esc(e.body || '') + '" data-shared="' + (e.shared ? 1 : 0) + '" data-topic="' + esc(e.topic || '') + '" title="send to a friend">↗</span>'; }
+document.addEventListener('click', function(ev){
+  var c = ev.target.closest && ev.target.closest('.sharechip'); if (!c) return; ev.preventDefault(); ev.stopPropagation();
+  var body = c.getAttribute('data-share'), shared = c.getAttribute('data-shared') === '1', topic = c.getAttribute('data-topic');
+  var url = shared ? 'https://voterpup.com/pack?q=' + encodeURIComponent(body.slice(0, 40)) : 'https://voterpup.com';
+  var text = '“' + body + '”' + (topic && topic !== 'other' ? ' #' + topic : '') + (shared ? '\nSame here? Tap to agree: ' : '\nI told my pup. Get yours: ');
+  track('share_code', { kind: 'issue', shared: shared });
+  if (navigator.share) navigator.share({ text: text + url }).catch(function(){});
+  else if (navigator.clipboard) navigator.clipboard.writeText(text + url).then(function(){ toast('Copied. Paste it anywhere.'); });
+});
 function hashChips(e){ return (e && e.tags && e.tags.length) ? e.tags.map(function(t){ return '<a class="chip htag" href="/pack?q=%23' + encodeURIComponent(t) + '">#' + esc(t) + '</a>'; }).join('') : ''; }
 function spotChip(e){
   if (!e || !e.spot) return '';
@@ -1392,7 +1403,7 @@ function screenLedger(tail){
       return '<div class="card' + (e.fixed_at ? ' fixedcard' : '') + '">' +
         (e.body ? '<div class="entry-body">' + esc(e.body) + '</div>' : '') + mediaHTML(e.media) +
         '<div class="ts">' + new Date(e.ts).toLocaleString() + '</div>' +
-        '<div class="chips">' + placeChip(e.place, e.topic) + spotChip(e) + (e.topic ? '<a class="topicchip" href="/pack?t=' + encodeURIComponent(e.topic) + '">#' + esc(e.topic) + '</a>' : '') + hashChips(e) + '<span class="chip" data-edit="' + e.id + '" title="change topic">\u270e</span>' + reactChips(e, null, true) +
+        '<div class="chips">' + placeChip(e.place, e.topic) + spotChip(e) + (e.topic ? '<a class="topicchip" href="/pack?t=' + encodeURIComponent(e.topic) + '">#' + esc(e.topic) + '</a>' : '') + hashChips(e) + '<span class="chip" data-edit="' + e.id + '" title="change topic">\u270e</span>' + shareChip(e) + reactChips(e, null, true) +
         (e.fixed_at ? '<span class="chip fixedchip" data-fix="' + e.id + '" data-on="1" title="tap if it broke again">✅ Fixed ' + new Date(e.fixed_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) + '</span>'
                     : '<span class="chip" data-fix="' + e.id + '" data-on="0" title="mark as fixed">✔</span>') + (e.shared
           ? '<span class="chip goldfill">🌿 Counted with the community</span>' + sameChip(e.id, e.backs || 0, true, true) +
@@ -2286,7 +2297,7 @@ function screenPack(mode, topic0){
           (r.place ? '<span class="chip" style="cursor:default">\ud83d\udccd ' + esc(r.place.split(',')[0]) + '</span>' : '') + '</div>' : '') +
         (r.body ? '<div class="entry-body">' + esc(r.body) + '</div>' : '') + mediaHTML(r.media) +
         '<div class="ts">\u2014 ' + esc(r.pup) + ' \u00b7 ' + new Date(r.ts).toLocaleDateString() + '</div>' +
-        (r.id ? '<div class="chips" style="margin-top:6px">' + spotChip(r) + hashChips(r) + sameChip(r.id, r.backs || 0, !!backed[r.id], !!myIds[r.id]) +
+        (r.id ? '<div class="chips" style="margin-top:6px">' + spotChip(r) + hashChips(r) + sameChip(r.id, r.backs || 0, !!backed[r.id], !!myIds[r.id]) + shareChip(Object.assign({}, r, { shared: true })) +
           (myIds[r.id] ? reactChips(r, null, true) : reactChips(r, myReacts[r.id], false)) + '</div>' : '') +
         '</div>';
     }
@@ -2503,7 +2514,7 @@ function screenPack(mode, topic0){
   }).catch(function(e){ document.getElementById('board').textContent = 'The pack is napping: ' + e.message; });
 }
 
-var APP_VERSION = "20261002022644";
+var APP_VERSION = "20261002051733";
 (function(){
   try {
     fetch('/version.json?t=' + Date.now(), { cache: 'no-store' }).then(function(r){ return r.json(); }).then(function(j){
