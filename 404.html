@@ -341,8 +341,22 @@
   @keyframes cardin{from{opacity:0; transform:translateY(14px) scale(.98)} to{opacity:1; transform:none}} .wcard.kept{opacity:.6} .wline{font-size:15px; font-weight:700; flex:1 1 60%} .wcard .chips{margin:0} .wcard .wkeep{margin-left:auto}
   .sharechip{cursor:pointer; font-weight:800}
   .nahead{font-weight:800; font-size:15px; margin:10px 0 8px} .nacard{margin:0 0 8px} #notalone{margin:4px 0 6px}
-  .plusbtn{flex:0 0 64px !important; position:relative}
-  .playbtn{position:absolute; left:calc(50% + 16px); top:14px; width:26px; height:26px; border-radius:50%; background:#1f2733; color:#fff;
+  .plusbtn{flex:0 0 76px !important; position:relative}
+  .plusbtn b{font-size:24px !important; line-height:50px !important; transition:transform .15s ease}
+  .plusbtn:active b{transform:translateX(-50%) scale(.92)}
+  .plusbtn .walklbl{position:absolute; left:0; right:0; bottom:6px; font-size:11px; font-weight:800; color:#8a6410}
+  .btn{border-radius:14px; transition:transform .12s ease, box-shadow .2s ease, filter .2s ease; -webkit-tap-highlight-color:transparent}
+  .btn:active:not(:disabled){transform:scale(.97); filter:brightness(.97)}
+  .btn.gold{box-shadow:0 4px 14px rgba(232,184,75,.35)}
+  .btn.ghost{background:var(--card); color:var(--ink); border:1px solid var(--line)}
+  .chip{transition:transform .12s ease, background .18s ease; -webkit-tap-highlight-color:transparent} .chip:active{transform:scale(.95)}
+  #root > *{animation:screenin .22s ease both} @keyframes screenin{from{opacity:0; transform:translateY(6px)} to{opacity:1; transform:none}}
+  .stkover{animation:fadein .18s ease} .stksheet{animation:sheetup .28s cubic-bezier(.2,.8,.2,1)} @keyframes sheetup{from{transform:translateY(40px); opacity:.4} to{transform:none; opacity:1}}
+  .quickrow{display:flex; gap:8px; margin:2px 0 12px} .qbtn{flex:1; border:1px solid var(--line); background:var(--card); color:var(--ink); border-radius:999px; padding:10px 8px; font-size:14px; font-weight:800; text-align:center; text-decoration:none; cursor:pointer; transition:transform .12s ease}
+  .qbtn:active{transform:scale(.96)} .qbtn.gold{flex:1.6; background:var(--gold); color:var(--goldink); border-color:transparent; box-shadow:0 4px 12px rgba(232,184,75,.35)}
+  .emptycity{text-align:center; padding:26px 16px; background:var(--card); border:1px dashed #e3d7b8; border-radius:18px}
+  .ecpaw{font-size:40px} .ech{font-size:18px; font-weight:800; margin:6px 0 4px; color:var(--ink)} .ecp{font-size:14px; color:var(--sub); margin:0 0 4px}
+  .playbtn{display:none; position:absolute; left:calc(50% + 16px); top:14px; width:26px; height:26px; border-radius:50%; background:#1f2733; color:#fff;
       font-size:14px; line-height:26px; text-align:center; text-decoration:none; border:2px solid var(--card); box-shadow:0 2px 6px rgba(0,0,0,.25); z-index:2}
   .plusbtn b{position:absolute; left:50%; top:-18px; transform:translateX(-50%); width:54px; height:54px; border-radius:50%;
       background:var(--gold); color:#2a2418; font-size:32px; font-weight:600; line-height:52px; text-align:center;
@@ -1270,7 +1284,7 @@ function screenCapture(prefGripe, prefName){
     '<button class="btn gold" id="open" disabled>Open the box 🎁</button>' +
     (saved && !KIOSK ? '<button class="btn ghost" id="resume">Continue with ' + esc(saved.name) + ' →</button>' : '') +
     '<p class="privacy">🔒 Private by default. No account needed.</p>' +
-    (!saved && !KIOSK ? '<p class="privacy"><a href="/pack" style="color:#3b6fb6;font-weight:700">Just looking? Peek at The Pack →</a></p>' : '') +
+    (!saved && !KIOSK ? '<p class="privacy"><a href="/pack" style="color:#3b6fb6;font-weight:700">Just looking? See what your city wants fixed →</a></p>' : '') +
     (GOOGLE_READY && !saved && !KIOSK ? '<p class="privacy"><a href="#" id="grestore" style="color:#3b6fb6;font-weight:700">Backed up a pup before? Find it →</a></p><div id="grslot"></div>' : '') +
     tabbar('pup');
   wireAttach(); wireTabs(); pendingSpot = null; wireSpot(); wireTags(document.getElementById('gripe'));
@@ -1352,7 +1366,7 @@ function screenUnbox(name, gripe){
 function startTour(name, k0){
   var nm = esc(name);
   var steps = [
-    { sel: '#tab-plus', text: 'Tap <b>+</b> anytime to tell ' + nm + ' what should be fixed.' },
+    { sel: '#tab-plus', text: 'Tap <b>📸 Walk</b> and point at anything. ' + nm + ' reads it, and makes you laugh.' },
     { sel: '#votestrip', text: '<b>When you can act 🗳️</b> ' + nm + ' brings your issues back at voting time.' },
     { sel: '#navman', text: '<b>⚙️ Back up ' + nm + '</b> with Google so you never lose it.', last: true }
   ].filter(function(s){ return document.querySelector(s.sel); });
@@ -1425,13 +1439,15 @@ function screenLedger(tail){
     root.innerHTML = nav(KIOSK ? '' : '<a href="#" class="navpill" id="navshow" title="A read-only code for candidates">📤 My issues</a><a href="/manage" class="iconnav" id="navman" title="Manage">⚙️</a>').replace('class="nav"', 'class="nav compact"') +
       (KIOSK ? '' : '<div class="island" id="island"></div>') +
       '<div class="puphead"><span class="pupav-wrap"><img class="pupav" src="/pup-face.jpg" alt=""></span><div><div class="pupname">' + esc(L.name) + '</div>' +
-        '<div class="pupsub">' + (n ? 'remembers ' + n + ' thing' + (n === 1 ? '' : 's') : 'tap + to tell ' + esc(L.name) + ' something') + '</div></div>' +
+        '<div class="pupsub">' + (n ? 'remembers ' + n + ' thing' + (n === 1 ? '' : 's') : 'tap 📸 to walk ' + esc(L.name)) + '</div></div>' +
         '</div>' +
+      (KIOSK ? '' : '<div class="quickrow"><button class="qbtn gold" id="qwalk">📸 Walk ' + esc(L.name) + '</button><button class="qbtn" id="qnote">✍️ Write</button><a class="qbtn" href="/play">🎯 Play</a></div>') +
       '<div id="fetchslot"></div>' +
       '<div class="momwrap" id="votestrip"></div>' +
       '<div id="entries" class="grid2"></div>' + '<div id="backedbox"></div>' +
       (KIOSK ? '' : '<a href="#" class="flashbtn" id="flashbtn" aria-label="Flashback">⚡<span>Flashback</span></a>') + tabbar('pup');
     wireTabs(); renderVoteStrip(); refreshPlaceIfStale();
+    var qw = document.getElementById('qwalk'); if (qw) qw.onclick = startWalk; var qn = document.getElementById('qnote'); if (qn) qn.onclick = function(){ openAdd(); };
     var fb = document.getElementById('flashbtn'); if (fb) fb.onclick = function(ev){ ev.preventDefault(); openFlashback(L); };
     renderIsland(tail, L.name);
 
@@ -1478,7 +1494,7 @@ function screenLedger(tail){
     var bk = L.backed || [];
     var bb = document.getElementById('backedbox');
     if (bb && bk.length) {
-      bb.innerHTML = '<div class="count">🐾 ' + esc(L.name) + ' also backs ' + bk.length + ' issue' + (bk.length === 1 ? '' : 's') + ' from the Pack</div>' +
+      bb.innerHTML = '<div class="count">🐾 ' + esc(L.name) + ' also backs ' + bk.length + ' issue' + (bk.length === 1 ? '' : 's') + ' from Your city</div>' +
         '<div class="grid2">' + bk.map(function(e){
           return '<div class="card">' +
             (e.body ? '<div class="entry-body">' + esc(e.body) + '</div>' : '') + mediaHTML(e.media) +
@@ -1604,11 +1620,20 @@ function say(text, small, name){
   return '<div class="say"><img class="avatar" src="/pup-face.jpg" alt="">' +
     '<div class="balloon">' + text + (small ? '<small>' + small + '</small>' : '') + '</div></div>';
 }
+// Walk: the camera opens straight away; the pup reads the photo. (Typing lives in "✍️ Write it instead".)
+function startWalk(){
+  var s = loadLocal(); if (!s || KIOSK) { location.href = '/app.html?new=1'; return; }
+  if (window._tourEnd) window._tourEnd();
+  var inp = document.createElement('input'); inp.type = 'file'; inp.accept = 'image/*'; inp.setAttribute('capture', 'environment'); inp.style.display = 'none';
+  document.body.appendChild(inp);
+  inp.addEventListener('change', function(){ var f = inp.files && inp.files[0]; inp.remove(); if (f) walkSheet(s, f); });
+  inp.click();
+}
 function tabName(){ var s = loadLocal(); return s && s.name ? (s.name.length > 12 ? s.name.slice(0, 11) + '…' : s.name) : 'My pup'; }
 function tabbar(active){
   return '<div class="tabbar">' +
-    '<a href="/pack" class="' + (active==='pack'?'on':'') + '">🐾<span>Pack</span></a>' +
-    '<a href="#" class="plusbtn" id="tab-plus" aria-label="Tell your pup"><b>+</b><a href="/play" class="playbtn" aria-label="Pup Patrol">🎲</a></a>' +
+    '<a href="/pack" class="' + (active==='pack'?'on':'') + '">🏙️<span>Your city</span></a>' +
+    '<a href="#" class="plusbtn" id="tab-plus" aria-label="Walk: snap something"><b>📸</b><span class="walklbl">Walk</span></a>' +
     '<a href="#" id="tab-pup" class="' + (active==='pup'||active==='manage'?'on':'') + '">🐶<span>' + esc(tabName()) + '</span></a>' +
   '</div>';
 }
@@ -1617,7 +1642,7 @@ function wireTabs(){
   if (t) t.onclick = function(ev){ ev.preventDefault();
     var s = loadLocal(); location.href = s ? pupURL(s.tail) : '/app.html?new=1'; };
   var pl = document.getElementById('tab-plus');
-  if (pl) pl.onclick = function(ev){ if (ev.target.closest && ev.target.closest('.playbtn')) return; ev.preventDefault(); openAdd(); };
+  if (pl) pl.onclick = function(ev){ ev.preventDefault(); startWalk(); };
 }
 // Flashback: every issue this pup remembers (its own + the ones it backs), rolled out by date.
 var FLASH_DEMO = [
@@ -1668,7 +1693,7 @@ function openFlashback(L){
       '<div class="flashsub">' + (demo ? 'A demo of what yours will look like' :
         mine + ' issue' + (mine === 1 ? '' : 's') + (backs ? ' · ' + backs + ' you back' : '') + ' · since ' + first.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })) + '</div></div>' +
       '<a href="#" class="flashx" id="flashx">✕</a></div>' +
-    (demo ? '<div class="flashdemo">DEMO · Tap + to start yours</div>' : '') +
+    (demo ? '<div class="flashdemo">DEMO · Tap 📸 to start yours</div>' : '') +
     '<div class="fstrip">' + strip + '</div>' +
     '<div class="froll">' + roll + '<div class="fend">That&rsquo;s everything ' + nm + ' remembers 🐾<br>It brings these back when you can vote.</div></div>' +
     '<div class="ffoot"><button class="btn gold" id="flashdone">Done</button></div>';
@@ -1841,7 +1866,7 @@ function screenReport(tail){
       '<div class="rprow"><span>📋</span><div><b>After the vote</b><small>promises made vs. what got fixed</small></div></div>' +
       proof +
       '<div id="notalone" hidden></div>' +
-      (first ? '<label class="switchrow" style="margin:12px 2px"><input type="checkbox" id="rpshare"> Count my first issue on The Pack 🌱 <small style="color:var(--sub)">(public, no name)</small></label>' : '') +
+      (first ? '<label class="switchrow" style="margin:12px 2px"><input type="checkbox" id="rpshare"> Add it to Your city 🌱 <small style="color:var(--sub)">(public, no name)</small></label>' : '') +
       '<input type="email" id="rpemail" placeholder="Email for the Flashback on voting morning (optional)" autocomplete="email" style="margin:4px 0 10px">' +
       '<button class="btn gold" id="rpgo">Let ' + nm + ' report back 🔔</button>' +
       '<a href="#" class="rpskip" id="rpskip">Not now</a>' +
@@ -2017,12 +2042,12 @@ function dailyFetch(L, tail){
     var d = g.backs - (seen[g.id] || 0);
     pick = { kind: 'backs', title: (d === 1 ? 'Someone feels the same' : d + ' more people feel the same'),
       body: '&ldquo;' + esc(g.body || '📷 your photo') + '&rdquo; now has ' + g.backs + ' 🐾',
-      actions: '<a class="btn gold mbtn" href="/pack' + (g.topic ? '?t=' + encodeURIComponent(g.topic) : '') + '">See the Pack</a>' };
+      actions: '<a class="btn gold mbtn" href="/pack' + (g.topic ? '?t=' + encodeURIComponent(g.topic) : '') + '">See Your city</a>' };
   } else if (L.entries.some(function(e){ return e.rank && e.rank <= 10 && e.rank < (seenRank[e.id] || 99); })) {
     var rr = L.entries.filter(function(e){ return e.rank && e.rank <= 10 && e.rank < (seenRank[e.id] || 99); }).sort(function(a, b){ return a.rank - b.rank; })[0];
     pick = { kind: 'rank', title: 'Your issue climbed to #' + rr.rank + (rr.city ? ' in ' + esc(rr.city) : ''),
       body: '&ldquo;' + esc(rr.body || '📷 your photo') + '&rdquo; · ' + (rr.backs || 0) + ' 🐾 this week',
-      actions: '<a class="btn gold mbtn" href="/pack' + (rr.topic ? '?t=' + encodeURIComponent(rr.topic) : '') + '">See the Pack</a>' };
+      actions: '<a class="btn gold mbtn" href="/pack' + (rr.topic ? '?t=' + encodeURIComponent(rr.topic) : '') + '">See Your city</a>' };
   } else if (L.entries.some(function(e){ return !e.fixed_at && (e.fixedv || 0) > 0 && !seenFixedAsk(e.id); })) {
     var fx = L.entries.filter(function(e){ return !e.fixed_at && (e.fixedv || 0) > 0 && !seenFixedAsk(e.id); })[0];
     markFixedAsk(fx.id);
@@ -2080,7 +2105,7 @@ function dailyFetch(L, tail){
     function draw(){
       if (idx >= deck.length) {
         el.innerHTML = '<div class="dcard done"><div class="dbody">That&rsquo;s everyone nearby 🐾' + (backed ? '<br>You backed ' + backed + '.' : '') + '</div>' +
-          '<a class="btn ghost mbtn" href="/pack">Browse the Pack</a></div>';
+          '<a class="btn ghost mbtn" href="/pack">See Your city</a></div>';
         var hh = host.querySelector('.deckhint'); if (hh) hh.style.display = 'none'; return;
       }
       el.innerHTML = (deck[idx + 1] ? '<div class="dunder">' + cardHTML(deck[idx + 1]) + '</div>' : '') + cardHTML(deck[idx]);
@@ -2211,7 +2236,7 @@ function openAdd(){
   ov.onclick = function(ev){ if (ev.target === ov) close(); };
   ov.innerHTML = '<div class="stksheet addsheet"><div class="addtop">' +
       '<div class="addthumb"><video src="/pup-robo.mp4" poster="/pup-robo.jpg" muted autoplay loop playsinline></video></div>' +
-      '<div><div class="addhead" style="margin:0">🐾 Tell ' + nm + '</div><div class="addtag">Break the Algo</div></div></div>' +
+      '<div><div class="addhead" style="margin:0">✍️ Tell ' + nm + '</div><div class="addtag">Break the Algo</div></div></div>' +
     '<button class="walkbtn" id="walkbtn"><span class="wpaw">🐾</span>Walk ' + nm + '<small>snap one thing that could be better · it names what it sees</small></button>' +
     '<input id="fwalk" type="file" accept="image/*" capture="environment" hidden>' +
     '<textarea id="gripe" placeholder="Or type it: what should be fixed? Five words is plenty."></textarea>' +
@@ -2239,7 +2264,7 @@ function openAdd(){
       var c = 0; try { c = +(localStorage.getItem('vp.adds') || 0) + 1; localStorage.setItem('vp.adds', String(c)); } catch (e) {}
       if (c === 3 && GOOGLE_READY && !isBackedUp(s.tail))
         toast(nm + ' remembers this 🐾<br><a href="/manage">Give ' + nm + ' a home so you never lose it →</a>', 6000);
-      else toast(nm + ' remembers this 🐾' + (tag && tag !== 'other' ? ' · #' + esc(tag) : '') + (shared ? ' · shared to the Pack 🌱' : ''));
+      else toast(nm + ' remembers this 🐾' + (tag && tag !== 'other' ? ' · #' + esc(tag) : '') + (shared ? ' · added to Your city 🌱' : ''));
       if (location.pathname === '/pack') screenPack();
       else if (location.pathname.indexOf('/p/') === 0) screenLedger(s.tail);
       else location.href = pupURL(s.tail);
@@ -2289,7 +2314,7 @@ function walkSheet(s, file){
       out.innerHTML = quipLine(r.quip, s.name) + '<div class="walkmsg">' + (r.scene ? esc(r.scene) + ' · ' : '') + 'tap what to keep</div>' +
         r.findings.map(function(f, i){ return '<div class="wcard' + (f.kind === 'good' ? ' good' : '') + '" data-i="' + i + '" style="--i:' + i + '"><div class="wline">' + (f.kind === 'good' ? '🟢 ' : '🔴 ') + esc(f.line) + '</div>' +
           '<div class="chips"><span class="topicchip">#' + esc(f.topic) + '</span>' + (f.kind === 'good' ? '<span class="chip" style="cursor:default">#good</span>' : '') + '</div><button class="btn compact wkeep">Keep</button></div>'; }).join('') +
-        '<label class="switchrow" style="margin:8px 2px"><input type="checkbox" id="wshare"> 🌱 Count kept ones on the Pack <small style="color:var(--sub)">(anonymous)</small></label>' + ownLine();
+        '<label class="switchrow" style="margin:8px 2px"><input type="checkbox" id="wshare"> 🌱 Add kept ones to Your city <small style="color:var(--sub)">(anonymous)</small></label>' + ownLine();
       Array.prototype.forEach.call(out.querySelectorAll('.wkeep'), function(b){
         b.onclick = function(){ var card = b.closest('.wcard'), f = r.findings[+card.getAttribute('data-i')], shared = document.getElementById('wshare').checked; b.disabled = true; b.textContent = '…';
           ensurePlace().then(upload).then(function(media){
@@ -2367,9 +2392,9 @@ function screenPack(mode, topic0){
   root.innerHTML = nav() +
     (wall ? '<div class="wallhead">🐾 What ' + esc(city || 'the Pack') + ' wants fixed<em>The agenda is set for us. Time we set it.</em><small id="wallstat">voterpup.com · scan the sticker, name a pup, add yours</small></div>' : '') +
     '<div class="packhero">' + slotMedia('pack') +
-      '<div class="ft">The Pack \ud83d\udc3e<small>The agenda is set for us. Time we set it.</small></div></div>' +
+      '<div class="ft">What ' + esc(city || 'your city') + ' wants fixed<small>The agenda is set for us. Time we set it.</small></div></div>' +
     '<div id="citystrip"></div>' +
-    (loadLocal() ? '' : '<div class="newbie">\ud83d\udc4b New here? Tap <b>+</b> to get your own pup.</div>') +
+    (loadLocal() ? '' : '<div class="newbie">\ud83d\udc4b New here? Tap <b>📸 Walk</b> to get your own pup.</div>') +
     '<div class="scopebar"><div class="seg">' +
       (city ? '<span class="segbtn' + (mode==='local'?' on':'') + '" id="mlocal">📍 ' + esc(city) + '</span>'
             : '<span class="segbtn" id="mfind">📍 Near me</span>') +
@@ -2401,9 +2426,11 @@ function screenPack(mode, topic0){
     var backed = {}; backedList.forEach(function(e){ backed[e.id] = 1; });
     var b = document.getElementById('board');
     if (!rows.length && !mine.length) {
-      b.innerHTML = mode === 'local'
-        ? 'The Pack is quiet in ' + esc(city) + ' \u2014 be the first to be counted. \ud83c\udf31'
-        : 'The Pack is quiet \u2014 be the first to be counted. \ud83c\udf31';
+      b.className = '';
+      b.innerHTML = '<div class="emptycity"><div class="ecpaw">🐾</div><div class="ech">Quiet' + (mode === 'local' && city ? ' in ' + esc(city) : ' here') + ', for now.</div>' +
+        '<div class="ecp">Snap one thing on your street, good or broken. Your pup reads it.</div>' +
+        '<button class="btn gold" id="ecsnap">📸 Snap the first one</button></div>';
+      document.getElementById('ecsnap').onclick = startWalk;
       return;
     }
     b.className = '';
@@ -2632,7 +2659,7 @@ function screenPack(mode, topic0){
   }).catch(function(e){ document.getElementById('board').textContent = 'The pack is napping: ' + e.message; });
 }
 
-var APP_VERSION = "20261002181426";
+var APP_VERSION = "20261002182655";
 (function(){
   try {
     fetch('/version.json?t=' + Date.now(), { cache: 'no-store' }).then(function(r){ return r.json(); }).then(function(j){
@@ -3084,7 +3111,7 @@ function screenPlay(){
         '<div class="gmet">' + list.slice(0, 10).map(function(x){ return '<div class="card"><div class="entry-body">' + esc(x.body) + '</div><div class="chips">' +
           '<span class="topicchip">#' + esc(x.topic) + '</span>' + (x.city ? '<span class="chip" style="cursor:default">🏛️ city 3-1-1 report</span>' : sameChip(x.id, x.backs, false, false)) + '</div></div>'; }).join('') + '</div>' +
         (done && level === 1 ? '<button class="btn gold" id="gnext">Level 2: the target keeps changing →</button>' : '<button class="btn gold" id="gagain">Play again</button>') +
-        '<a href="/pack" class="rpskip">Back to the Pack · new issues every day</a></div>';
+        '<a href="/pack" class="rpskip">Back to Your city · new things every day</a></div>';
       var nx = document.getElementById('gnext'); if (nx) nx.onclick = function(){ level = 2; score = 0; start(); };
       var ag = document.getElementById('gagain'); if (ag) ag.onclick = function(){ score = 0; met = {}; start(); };
     }
@@ -3105,7 +3132,7 @@ function screenPlay(){
 var INTRO = [
   { e: '🐾', h: 'Meet your pup.', p: 'Tell it what your city should fix, in five words or a photo. It remembers, privately, for as long as it takes.' },
   { e: '⚡', h: 'The morning you vote, it hands you your list.', p: 'Everything you wanted fixed, next to what&rsquo;s on your ballot. Nothing forgotten.' },
-  { e: '🌍', h: 'The Pack.', p: 'What your neighbours want fixed, ranked by how many agree. Anonymous. No ads, no parties, no names.' }
+  { e: '🏙️', h: 'Your city.', p: 'What your neighbours want fixed, ranked by how many agree. Anonymous. No ads, no parties, no names.' }
 ];
 function introSeen(){ try { return localStorage.getItem('vp.intro') === '1'; } catch (e) { return true; } }
 function introShow(then){
