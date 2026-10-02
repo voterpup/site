@@ -1933,8 +1933,8 @@ function drawIdCard(name, tail, nItems){
       x.fillStyle = '#ffffff'; var fs = 92; x.font = '800 ' + fs + 'px system-ui, sans-serif'; while (x.measureText(name).width > W - 120 - tx - 40 && fs > 48) { fs -= 4; x.font = '800 ' + fs + 'px system-ui, sans-serif'; } x.fillText(name, tx, y0 + 40 + fs);
       x.fillStyle = '#e8b84b'; x.font = '800 36px system-ui, sans-serif'; x.fillText(pick(ID_TITLES, 3), tx, y0 + 200);
       x.fillStyle = '#9aa3b5'; x.font = '700 26px system-ui, sans-serif'; x.fillText('ID NO.', tx, y0 + 270); x.fillText('MEMBER SINCE', tx, y0 + 340);
-      x.fillStyle = '#ffffff'; x.font = '700 32px system-ui, sans-serif'; x.fillText(no, tx + 200, y0 + 270);
-      x.fillText(new Date().toLocaleDateString(undefined, { month: 'short', year: 'numeric' }), tx + 200, y0 + 340);
+      x.fillStyle = '#ffffff'; x.font = '700 32px system-ui, sans-serif'; x.fillText(no, tx + 250, y0 + 270);
+      x.fillText(new Date().toLocaleDateString(undefined, { month: 'short', year: 'numeric' }), tx + 250, y0 + 340);
       var ly = y0 + ph + 90; x.fillStyle = '#9aa3b5'; x.font = '700 28px system-ui, sans-serif'; x.fillText('SKILLS', 120, ly);
       x.fillStyle = '#ffffff'; x.font = '600 40px system-ui, sans-serif'; x.fillText('• ' + s1, 120, ly + 56); x.fillText('• ' + s2, 120, ly + 112);
       x.fillStyle = '#9aa3b5'; x.font = '700 28px system-ui, sans-serif'; x.fillText('ALLERGIC TO', 120, ly + 196);
@@ -2631,7 +2631,7 @@ function screenPack(mode, topic0){
   }).catch(function(e){ document.getElementById('board').textContent = 'The pack is napping: ' + e.message; });
 }
 
-var APP_VERSION = "20261002175351";
+var APP_VERSION = "20261002175526";
 (function(){
   try {
     fetch('/version.json?t=' + Date.now(), { cache: 'no-store' }).then(function(r){ return r.json(); }).then(function(j){
