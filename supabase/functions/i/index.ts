@@ -17,5 +17,6 @@ Deno.serve(async (req) => {
 <meta property="og:url" content="${esc(url.href)}"><meta name="twitter:card" content="summary_large_image"><meta name="twitter:title" content="${esc(title)}"><meta name="twitter:description" content="${esc(desc)}"><meta name="twitter:image" content="${card}">
 <meta name="viewport" content="width=device-width"><meta http-equiv="refresh" content="0;url=${esc(to)}"><script>location.replace(${JSON.stringify(to)})</script>
 <style>body{font-family:system-ui;padding:40px;text-align:center;color:#1d2433}</style></head><body><p>${esc(title)}</p><p><a href="${esc(to)}">Open on VoterPup →</a></p></body></html>`;
-  return new Response(html, { headers: { "content-type": "text/html; charset=utf-8", "cache-control": "public, max-age=300" } });
+  const h = new Headers(); h.set("Content-Type", "text/html; charset=utf-8"); h.set("Cache-Control", "public, max-age=300");
+  return new Response(html, { status: 200, headers: h });
 });

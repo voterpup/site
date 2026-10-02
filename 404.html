@@ -2,6 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
+<meta property="og:site_name" content="VoterPup"><meta property="og:title" content="VoterPup — a pup that remembers what you want fixed"><meta property="og:description" content="Say what should be fixed. Your pup keeps it, counts who agrees, and walks you back every time you vote. Free, no account."><meta property="og:image" content="https://voterpup.com/pup-share.jpg"><meta property="og:type" content="website"><meta name="twitter:card" content="summary_large_image">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <link rel="manifest" href="/manifest.webmanifest">
 <link rel="icon" href="/icon-192.png">
@@ -742,7 +743,7 @@ function wireSpot(){
   autoSpot();
 }
 function spotArgs(){ return pendingSpot ? { p_lat: pendingSpot.lat, p_lng: pendingSpot.lng, p_spot: pendingSpot.spot } : {}; }
-var SHARE_BASE = 'https://setyjmgijsbplgyqynlh.supabase.co/functions/v1/i';   // later: https://voterpup.com/i
+var SHARE_BASE = '';   // 'https://voterpup.com/i' once the Cloudflare route exists; empty = link straight to the Pack
 function shareChip(e){ return '<span class="chip sharechip" data-id="' + (e.id || '') + '" data-share="' + esc(e.body || '') + '" data-shared="' + (e.shared ? 1 : 0) + '" data-topic="' + esc(e.topic || '') + '" data-backs="' + (e.backs || 0) + '" data-place="' + esc((e.place || '').split(',')[0]) + '" title="send to a friend">↗</span>'; }
 // the preview card chat apps show: drawn here, uploaded once, 1200x630
 function drawShareCard(d){
@@ -776,7 +777,7 @@ document.addEventListener('click', function(ev){
   };
   if (!d.shared || !d.id) return send('https://voterpup.com');
   c.textContent = '…';
-  drawShareCard(d).then(function(blob){ return uploadShareCard(d.id, blob); }).catch(function(){}).then(function(){ c.textContent = '↗'; send(SHARE_BASE + '?e=' + d.id); });
+  drawShareCard(d).then(function(blob){ return uploadShareCard(d.id, blob); }).catch(function(){}).then(function(){ c.textContent = '↗'; send(SHARE_BASE ? SHARE_BASE + '/' + d.id : 'https://voterpup.com/pack?q=' + encodeURIComponent(d.body.slice(0, 40))); });
 });
 function hashChips(e){ return (e && e.tags && e.tags.length) ? e.tags.map(function(t){ return '<a class="chip htag" href="/pack?q=%23' + encodeURIComponent(t) + '">#' + esc(t) + '</a>'; }).join('') : ''; }
 function spotChip(e){
@@ -2540,7 +2541,7 @@ function screenPack(mode, topic0){
   }).catch(function(e){ document.getElementById('board').textContent = 'The pack is napping: ' + e.message; });
 }
 
-var APP_VERSION = "20261002053500";
+var APP_VERSION = "20261002055121";
 (function(){
   try {
     fetch('/version.json?t=' + Date.now(), { cache: 'no-store' }).then(function(r){ return r.json(); }).then(function(j){
