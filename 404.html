@@ -369,7 +369,8 @@
   .hhead{display:flex; justify-content:space-between; align-items:baseline; margin:0 2px 8px} .hhead b{font-size:16px; font-weight:900} .hhead span{font-size:12px; color:var(--sub); font-weight:700}
   .hcircles{display:grid; grid-template-columns:repeat(5, 1fr); gap:4px}
   .pring{position:relative; display:inline-block; padding-bottom:12px}
-  .pring svg{display:block; transform:rotate(-90deg)} .prbg{fill:none; stroke:#ece4d6; stroke-width:6} .prfg{fill:none; stroke:#22786a; stroke-width:6; stroke-linecap:round; transition:stroke-dashoffset .8s cubic-bezier(.2,.8,.2,1)}
+  .pring svg{display:block; transform:rotate(-90deg)} .prbg{fill:none; stroke:#ece4d6; stroke-width:6} .prfg{fill:none; stroke:#d1495b; stroke-width:6; stroke-linecap:round}
+  .pring.full{animation:ringpop .6s cubic-bezier(.2,1.6,.4,1)} @keyframes ringpop{50%{transform:scale(1.08)}}
   .pring .pupav{position:absolute; left:9px; top:9px; width:calc(100% - 18px) !important; height:auto !important; aspect-ratio:1; border-radius:50%; object-fit:cover; border:0 !important}
   .ppts{position:absolute; left:50%; bottom:0; transform:translateX(-50%); background:var(--gold); color:var(--goldink); font-weight:900; font-size:12px; padding:1px 9px; border-radius:999px; box-shadow:0 2px 0 #d0961f; white-space:nowrap}
   .pupav-wrap:has(.pring){overflow:visible; border-radius:0}
@@ -1533,7 +1534,7 @@ function screenLedger(tail){
       '<div id="entries" class="elist"></div>' + '<div id="backedbox"></div>' +
       (KIOSK ? '' : '<a href="#" class="flashbtn" id="flashbtn" aria-label="Flashback">' + ic('high_voltage', 'btnic') + '<span>Flashback</span></a>') + tabbar('pup');
     wireTabs(); renderVoteStrip(); refreshPlaceIfStale();
-    var hcd = document.getElementById('huntcard'); if (hcd) hcd.onclick = startWalk;
+    var hcd = document.getElementById('huntcard'); if (hcd) hcd.onclick = startWalk; animateRing();
     var qw = document.getElementById('qwalk'); if (qw) qw.onclick = startWalk; var qn = document.getElementById('qnote'); if (qn) qn.onclick = function(){ openAdd(); };
     var fb = document.getElementById('flashbtn'); if (fb) fb.onclick = function(ev){ ev.preventDefault(); openFlashback(L); };
     renderIsland(tail, L.name);
@@ -2443,8 +2444,20 @@ function pupPoints(){ try { return +(localStorage.getItem('vp.pts') || 0); } cat
 function pupRing(size){   // MyZone-style ring: today's progress around the pup, points underneath
   var s = huntState(), tg = huntTargets(), n = tg.filter(function(k){ return s.found[k]; }).length, r = size / 2 - 5, C = 2 * Math.PI * r;
   return '<div class="pring" style="width:' + size + 'px"><svg width="' + size + '" height="' + size + '"><circle cx="' + size / 2 + '" cy="' + size / 2 + '" r="' + r + '" class="prbg"/>' +
-    '<circle cx="' + size / 2 + '" cy="' + size / 2 + '" r="' + r + '" class="prfg" style="stroke-dasharray:' + C + ';stroke-dashoffset:' + (C * (1 - n / 5)) + '"/></svg>' +
-    '<img class="pupav" src="/pup-face.jpg" alt=""><span class="ppts">' + pupPoints() + '</span></div>'; }
+    '<circle cx="' + size / 2 + '" cy="' + size / 2 + '" r="' + r + '" class="prfg" data-c="' + C + '" data-to="' + (n / 5) + '" style="stroke-dasharray:' + C + ';stroke-dashoffset:' + C + '"/></svg>' +
+    '<img class="pupav" src="/pup-face.jpg" alt=""><span class="ppts" data-to="' + pupPoints() + '">0</span></div>'; }
+// fill the ring from empty, colour warming red -> orange -> honey -> lime -> green as it fills; points count up alongside
+var RING_STOPS = [[209, 73, 91], [224, 112, 42], [244, 182, 63], [139, 191, 63], [34, 120, 106]];
+function ringColor(f){ var x = Math.max(0, Math.min(1, f)) * (RING_STOPS.length - 1), i = Math.min(Math.floor(x), RING_STOPS.length - 2), t = x - i, a = RING_STOPS[i], b = RING_STOPS[i + 1];
+  return 'rgb(' + a.map(function(v, k){ return Math.round(v + (b[k] - v) * t); }).join(',') + ')'; }
+function animateRing(){
+  Array.prototype.forEach.call(document.querySelectorAll('.pring'), function(el){
+    var fg = el.querySelector('.prfg'), pts = el.querySelector('.ppts'); if (!fg || fg._done) return; fg._done = true;
+    var C = +fg.getAttribute('data-c'), to = +fg.getAttribute('data-to'), P = +pts.getAttribute('data-to'), t0 = null, D = 1400;
+    requestAnimationFrame(function(ts){ t0 = ts; requestAnimationFrame(function step(ts2){ var k = Math.min(1, (ts2 - t0) / D), e = 1 - Math.pow(1 - k, 3), f = to * e;
+      fg.style.strokeDashoffset = C * (1 - f); fg.style.stroke = ringColor(f); pts.textContent = Math.round(P * e); if (k < 1) requestAnimationFrame(step); else if (to >= 1) el.classList.add('full'); }); });
+  });
+}
 function huntSave(s){ try { localStorage.setItem('vp.hunt', JSON.stringify(s)); } catch (e) {} }
 function huntCircles(found, fresh){ return '<div class="hcircles">' + huntTargets().map(function(k){ var it = HUNT_ITEMS[k], on = !!found[k];
     return '<div class="hc' + (on ? ' on' : '') + (fresh && fresh.indexOf(k) >= 0 ? ' pop' : '') + '"><span class="hcdot" style="--c:' + it[2] + '"><i class="ph-duotone ' + it[0] + '"></i>' + (on ? '<b>✓</b>' : '') + '</span><small>' + esc(it[1]) + '</small></div>'; }).join('') + '</div>'; }
@@ -2855,7 +2868,7 @@ function screenPack(mode, topic0){
   }).catch(function(e){ document.getElementById('board').textContent = 'The pack is napping: ' + e.message; });
 }
 
-var APP_VERSION = "20261002201044";
+var APP_VERSION = "20261002201358";
 (function(){
   try {
     fetch('/version.json?t=' + Date.now(), { cache: 'no-store' }).then(function(r){ return r.json(); }).then(function(j){
