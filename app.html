@@ -2855,7 +2855,7 @@ function screenPack(mode, topic0){
   }).catch(function(e){ document.getElementById('board').textContent = 'The pack is napping: ' + e.message; });
 }
 
-var APP_VERSION = "20261002200722";
+var APP_VERSION = "20261002201009";
 (function(){
   try {
     fetch('/version.json?t=' + Date.now(), { cache: 'no-store' }).then(function(r){ return r.json(); }).then(function(j){
@@ -3361,7 +3361,7 @@ function introShow(then){
   else if (qs.get('new') === '1' || KIOSK || !loadLocal()) {   // first visit: make your pup
     if (!loadLocal() && !KIOSK && !introSeen() && srcTag() !== 'booth' && srcTag() !== 'demo') introShow(screenCapture); else screenCapture();
   }
-  else screenPack();
+  else { var lp = loadLocal(); history.replaceState(null, '', '/p/' + lp.tail); screenLedger(lp.tail); }   // returning: your pup (and today's challenge) is home
 })();
 </script>
 <script>
