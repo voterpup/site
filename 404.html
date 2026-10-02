@@ -802,7 +802,7 @@ function slotMedia(key){
   if (s.loop) {
     var once = !window['_vpSlot_' + key];
     return '<div class="slotmedia" data-slot="' + key + '">' +
-      '<video src="' + s.loop + '" poster="' + s.poster + '" muted autoplay loop playsinline preload="auto"></video>' +
+      '<img src="' + s.poster + '" alt="">' +
       (once ? '<video class="slotonce" src="' + s.video + '" poster="' + s.poster + '" muted autoplay playsinline preload="auto"></video>' : '') +
       '</div>';
   }
@@ -815,7 +815,8 @@ function wireSlots(){
     var key = v.parentNode.getAttribute('data-slot');
     window['_vpSlot_' + key] = true;
     var done = function(){ v.style.opacity = 0; setTimeout(function(){ if (v.parentNode) v.parentNode.removeChild(v); }, 400); };
-    v.addEventListener('ended', done); v.addEventListener('error', done);
+    v.addEventListener('ended', function(){ try { v.pause(); } catch (e) {} });   // played once: hold the last frame
+    v.addEventListener('error', done);
     var p = v.play(); if (p && p.catch) p.catch(done);
   });
 }
@@ -2501,7 +2502,7 @@ function screenPack(mode, topic0){
   }).catch(function(e){ document.getElementById('board').textContent = 'The pack is napping: ' + e.message; });
 }
 
-var APP_VERSION = "20261002021215";
+var APP_VERSION = "20261002021946";
 (function(){
   try {
     fetch('/version.json?t=' + Date.now(), { cache: 'no-store' }).then(function(r){ return r.json(); }).then(function(j){
