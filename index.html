@@ -364,6 +364,9 @@
   .mgrid .mact{display:flex; flex-direction:column; gap:6px; margin-top:auto} .mgrid .mbody{display:flex; flex-direction:column; flex:1}
   .mgrid .mact .btn,.mgrid .mact .mbtn{margin:0; padding:7px 6px; font-size:12px; width:100%}
   .mgrid{gap:8px}
+  .picks .pick{padding:6px 11px; font-size:13px; box-shadow:0 2px 0 #e3d8c4} .picks .pick i{font-size:16px} .picks{gap:6px}
+  .composer #gripe{min-height:52px; height:52px}
+  #open{position:sticky; bottom:calc(84px + env(safe-area-inset-bottom)); z-index:5}
   .pickhead{font-weight:900; font-size:15px; margin:4px 2px 8px}
   .picks{display:flex; flex-wrap:wrap; gap:8px; margin:0 0 12px}
   .pick{display:inline-flex; align-items:center; gap:6px; border:2px solid var(--line); background:var(--card); color:var(--ink); border-radius:999px; padding:8px 12px; font:inherit; font-size:14px; font-weight:800; cursor:pointer; box-shadow:0 3px 0 #e3d8c4; transition:transform .08s, box-shadow .08s}
@@ -2896,7 +2899,7 @@ function screenPack(mode, topic0){
   }).catch(function(e){ document.getElementById('board').textContent = 'The pack is napping: ' + e.message; });
 }
 
-var APP_VERSION = "20261002202252";
+var APP_VERSION = "20261002202423";
 (function(){
   try {
     fetch('/version.json?t=' + Date.now(), { cache: 'no-store' }).then(function(r){ return r.json(); }).then(function(j){
