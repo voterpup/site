@@ -373,6 +373,16 @@
   .pick i{font-size:18px; color:var(--goldtext)} .pick:active{transform:translateY(3px); box-shadow:none}
   .pick.on{background:var(--gold); border-color:var(--gold); box-shadow:0 3px 0 #d0961f} .pick.on i{color:var(--goldink)}
   .quickrow.small{margin:-6px 0 14px} .quickrow.small .qbtn{padding:7px 8px; font-size:13.5px; border-radius:14px} .quickrow.small .qbtn.gold{flex:1.4}
+  .askhead{margin:6px 2px 14px} .askwhen{font-size:22px; font-weight:800; color:var(--sub); line-height:1.25} .askwhen b{color:var(--ink)}
+  .askq{font-size:30px; font-weight:900; line-height:1.15; margin-top:2px}
+  .askgrid{display:grid; grid-template-columns:1fr 1fr; gap:10px; margin:0 0 12px}
+  .asktile{position:relative; display:flex; flex-direction:column; justify-content:space-between; align-items:flex-start; text-align:left; height:104px; padding:12px; border:0 !important; border-radius:18px !important;
+           background:var(--c) !important; color:#fff !important; font:inherit; font-size:15px !important; font-weight:900; box-shadow:0 4px 0 rgba(0,0,0,.18) !important; cursor:pointer}
+  .asktile i{align-self:flex-end; font-size:36px !important; color:rgba(255,255,255,.95) !important}
+  .asktile.on{outline:3px solid var(--gold); outline-offset:2px} .asktile:active{transform:translateY(4px); box-shadow:none !important}
+  .askown{display:block; text-align:center; font-weight:800; color:#3b6fb6; margin:2px 0 12px; text-decoration:none}
+  .permrow{display:flex; align-items:center; gap:12px; padding:12px; border:2px solid var(--line); border-radius:16px; margin:10px 0} .permrow > i{font-size:30px}
+  .permrow b{display:block; font-size:15px} .permrow small{display:block; color:var(--sub); font-size:12.5px; line-height:1.3} .permst{margin-left:auto; font-size:24px}
   .huntcard{background:var(--card); border:2px solid var(--line); border-radius:20px; padding:12px 12px 10px; margin:0 0 16px; cursor:pointer; box-shadow:0 4px 0 #e3d8c4; transition:transform .08s, box-shadow .08s}
   .huntcard:active{transform:translateY(4px); box-shadow:none}
   .hhead{display:flex; justify-content:space-between; align-items:baseline; margin:0 2px 8px} .hhead b{font-size:16px; font-weight:900} .hhead span{font-size:12px; color:var(--sub); font-weight:700}
@@ -1377,11 +1387,11 @@ function screenCapture(prefGripe, prefName){
   var saved = loadLocal();
   pendingFiles = [];
   root.innerHTML = nav() +
-    '<div class="manifesto"><b>The agenda is set for us.<br>Time we set it.</b>' +
-      '<span>Algorithms make you forget what mattered. Your pup fetches them back.</span></div>' +
-    '<div class="pickhead">Tap what bugs you most</div>' +
-    '<div class="picks">' + QUICK_ISSUES.map(function(q){ return '<button class="pick" data-q="' + esc(q[1]) + '"><i class="ph-duotone ' + q[0] + '"></i>' + esc(q[1]) + '</button>'; }).join('') + '</div>' +
-    '<div class="composer">' +
+    '<div class="askhead"><div class="askwhen">It&rsquo;s <b>' + dayPart() + '</b>' + (getPlace() ? ' in <b>' + esc(getPlace().split(',')[0]) + '</b>' : '') + '.</div>' +
+      '<div class="askq">What bugs you most?</div></div>' +
+    '<div class="askgrid">' + QUICK_ISSUES.map(function(q, i){ return '<button class="asktile pick" style="--c:' + ASK_COLORS[i % ASK_COLORS.length] + '" data-q="' + esc(q[1]) + '"><span>' + esc(q[1]) + '</span><i class="ph-duotone ' + q[0] + '"></i></button>'; }).join('') + '</div>' +
+    '<a href="#" class="askown" id="askown">✍️ Something else? Write it</a>' +
+    '<div class="composer" id="askcomposer" hidden>' +
       '<textarea id="gripe" placeholder="…or write your own. Five words is plenty."></textarea>' +
       '<div id="thumbs" class="attach"></div>' + tagRowHTML() + spotLineHTML() +
       '<div class="cfoot">' +
@@ -1393,7 +1403,7 @@ function screenCapture(prefGripe, prefName){
     '</div>' +
     '<div class="pupline">🐶 Your pup is <b id="pnameshow"></b> <a href="#" id="pnamechg">change</a></div>' +
     '<div class="namefield" id="pnamebox" hidden><input id="pname" maxlength="20" placeholder="Pup&rsquo;s name"></div>' +
-    '<button class="btn gold" id="open" disabled>Meet your pup 🐾</button>' +
+    '<button class="btn gold" id="open" disabled hidden>Meet your pup 🐾</button>' +
     (saved && !KIOSK ? '<button class="btn ghost" id="resume">Continue with ' + esc(saved.name) + ' →</button>' : '') +
     '<p class="privacy">🔒 Private by default. No account needed.</p>' +
     (!saved && !KIOSK ? '<p class="privacy"><a href="/pack" style="color:#3b6fb6;font-weight:700">Just looking? See what your city wants fixed →</a></p>' : '') +
@@ -1409,7 +1419,9 @@ function screenCapture(prefGripe, prefName){
   document.getElementById('pnamechg').onclick = function(ev){ ev.preventDefault(); document.getElementById('pnamebox').hidden = false; this.parentNode.hidden = true; inp.select(); inp.focus(); };
   Array.prototype.forEach.call(document.querySelectorAll('.pick'), function(b){ b.onclick = function(){
     var on = b.classList.contains('on'); Array.prototype.forEach.call(document.querySelectorAll('.pick.on'), function(x){ x.classList.remove('on'); });
-    if (!on) { b.classList.add('on'); ta.value = b.getAttribute('data-q'); } else ta.value = ''; upd(); }; });
+    if (!on) { b.classList.add('on'); ta.value = b.getAttribute('data-q'); } else ta.value = ''; upd();
+    if (!on && b.classList.contains('asktile')) setTimeout(function(){ document.getElementById('open').click(); }, 220); }; });
+  var ao = document.getElementById('askown'); if (ao) ao.onclick = function(ev){ ev.preventDefault(); document.getElementById('askcomposer').hidden = false; ao.hidden = true; document.getElementById('open').hidden = false; ta.focus(); };
   function upd(){ if (!inp.value.trim()) inp.value = show.textContent; show.textContent = inp.value.trim() || show.textContent;
     document.getElementById('open').textContent = 'Meet ' + show.textContent + ' 🐾';
     document.getElementById('open').disabled = !(ta.value.trim() || pendingFiles.length); }
@@ -1422,6 +1434,9 @@ function screenCapture(prefGripe, prefName){
   if (saved && !KIOSK) document.getElementById('resume').onclick = function(){ location.href = pupURL(saved.tail); };
 }
 
+var ASK_COLORS = ['#22786a', '#3b6fb6', '#c26a1b', '#a34ea8', '#2f5d8a', '#d1495b', '#2f7d5f', '#9a5f00', '#5d4fb3', '#b0573a'];
+function dayPart(){ var d = new Date(), hr = d.getHours(), wd = d.toLocaleDateString(undefined, { weekday: 'long' });
+  return wd + ' ' + (hr < 5 ? 'night' : hr < 12 ? 'morning' : hr < 17 ? 'afternoon' : hr < 21 ? 'evening' : 'night'); }
 var QUICK_ISSUES = [['ph-road-horizon', 'Potholes on my street'], ['ph-trash', 'Bins overflowing'], ['ph-bus', 'Bus too crowded'], ['ph-house-line', 'Rent too high'],
   ['ph-lamp', 'Dark street at night'], ['ph-traffic-sign', 'Unsafe crossing'], ['ph-bicycle', 'Bike lane blocked'], ['ph-tree', 'Not enough green space'], ['ph-speaker-high', 'Too much noise at night'], ['ph-paint-brush', 'Litter and graffiti']];
 function screenUnbox(name, gripe){
@@ -1469,8 +1484,8 @@ function screenUnbox(name, gripe){
       document.getElementById('sticker').onclick = function(){ makeSticker(l.name, url); };
       document.getElementById('newpup').onclick = function(){ location.href = location.pathname + '?kiosk=1'; };
     } else {
-      try { sessionStorage.setItem('vp.first', l.first || ''); sessionStorage.setItem('vp.firstbody', gripe || ''); if (!fromBooth()) sessionStorage.setItem('vp.tour', '1'); } catch (e) {}
-      location.href = url + '?report=1';
+      try { sessionStorage.setItem('vp.first', l.first || ''); sessionStorage.setItem('vp.firstbody', gripe || ''); sessionStorage.setItem('vp.tour', '1'); } catch (e) {}
+      location.href = url;
       return;
     }
     r.className = 'reveal show';
@@ -1485,9 +1500,9 @@ function screenUnbox(name, gripe){
 function startTour(name, k0){
   var nm = esc(name);
   var steps = [
-    { sel: '#tab-plus', text: 'Tap <b>📸 Feed</b> and point at anything. ' + nm + ' chews on it, and makes you laugh.' },
-    { sel: '#votestrip', text: '<b>When you can act 🗳️</b> ' + nm + ' brings your issues back at voting time.' },
-    { sel: '#navman', text: '<b>⚙️ Back up ' + nm + '</b> with Google so you never lose it.', last: true }
+    { sel: '#huntcard', text: '<b>Today&rsquo;s sniff challenge.</b> Find these 5 things and feed ' + nm + ' a photo of each. Every find is worth more points.' },
+    { sel: '#tab-city', text: '<b>Your city.</b> What everyone near you wants fixed, ranked by how many agree. Tap &ldquo;same here&rdquo; on yours.' },
+    { sel: '#flashbtn', text: '<b>Memory Lane.</b> Everything ' + nm + ' remembers, walked back to you, and ready on the morning you vote.', last: true }
   ].filter(function(s){ return document.querySelector(s.sel); });
   if (!steps.length) return;
   var k = Math.min(k0 || 0, steps.length - 1);
@@ -1502,7 +1517,7 @@ function startTour(name, k0){
     try { localStorage.setItem('vp.toured', '1'); } catch (e) {}
     if (quiet) return;
     var s0 = loadLocal(); var asked = false; try { asked = !!localStorage.getItem('vp.remasked'); } catch (e) {}
-    if (s0 && !remPref() && !asked && !KIOSK) setTimeout(function(){ reminderSheet(s0.tail, s0.name); }, 300);
+    if (s0 && !KIOSK) setTimeout(function(){ permsSheet(s0.tail, s0.name); }, 300);
   }
   function place(){
     var s = steps[k], el = document.querySelector(s.sel);
@@ -1518,8 +1533,7 @@ function startTour(name, k0){
     var s = steps[k], el = document.querySelector(s.sel);
     tip.innerHTML = '<div class="tourtxt">' + s.text + '</div><div class="tourrow"><span>' + (k + 1) + ' / ' + steps.length + '</span>' +
       '<a href="#" id="tskip">Skip</a>' + (k ? '<button class="tbtn ghost" id="tback">Back</button>' : '') +
-      (s.last && GOOGLE_READY && !KIOSK ? '<button class="tbtn" id="tman">🔐 Back up now</button><button class="tbtn ghost" id="tnext">Done</button>'
-                                        : '<button class="tbtn" id="tnext">' + (s.last ? 'Done' : 'Next') + '</button>') + '</div>';
+      '<button class="tbtn" id="tnext">' + (s.last ? 'Got it' : 'Next') + '</button>' + '</div>';
     if (!el.closest('.tabbar')) el.scrollIntoView({ block: 'center', behavior: 'instant' });
     requestAnimationFrame(function(){ requestAnimationFrame(place); });
     document.getElementById('tskip').onclick = function(ev){ ev.preventDefault(); end(); };
@@ -1814,7 +1828,7 @@ function ic(n, cls){
 function tabName(){ var s = loadLocal(); return s && s.name ? (s.name.length > 12 ? s.name.slice(0, 11) + '…' : s.name) : 'My pup'; }
 function tabbar(active){
   return '<div class="tabbar">' +
-    '<a href="/pack" class="' + (active==='pack'?'on':'') + '">' + ic('cityscape', 'tabic') + '<span>Your city</span></a>' +
+    '<a href="/pack" id="tab-city" class="' + (active==='pack'?'on':'') + '">' + ic('cityscape', 'tabic') + '<span>Your city</span></a>' +
     '<a href="#" class="plusbtn" id="tab-plus" aria-label="Feed your pup a photo"><b>' + ic('camera_with_flash', 'feedic') + '</b><span class="walklbl">Feed</span></a>' +
     '<a href="#" id="tab-pup" class="' + (active==='pup'||active==='manage'?'on':'') + '">' + ic('dog', 'tabic') + '<span>' + esc(tabName()) + '</span></a>' +
   '</div>';
@@ -1952,6 +1966,24 @@ function saveReminder(tail, p){
     return rpc('vp_set_reminder', { p_tail: tail, p_endpoint: j.endpoint, p_p256dh: j.keys.p256dh, p_auth: j.keys.auth,
       p_tz: Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC', p_freq: p.freq, p_hour: p.hour, p_minute: p.minute });
   }).then(function(){ localStorage.setItem('vp.rem', JSON.stringify(p)); track('reminder_on', { freq: p.freq, hour: p.hour }); });
+}
+// one sheet, both permissions the pup needs: location (to feed photos, spam-free) and the 7 pm report
+function permsSheet(tail, name){
+  var nm = esc(name), ov = document.createElement('div'); ov.className = 'stkover'; document.body.appendChild(ov);
+  var close = function(){ if (ov.parentNode) ov.parentNode.removeChild(ov); try { localStorage.setItem('vp.remasked', '1'); } catch (e) {} };
+  var row = function(id, icon, col, t, s){ return '<div class="permrow" id="' + id + '"><i class="ph-duotone ' + icon + '" style="color:' + col + '"></i><div><b>' + t + '</b><small>' + s + '</small></div><span class="permst"></span></div>'; };
+  ov.innerHTML = '<div class="stksheet"><div class="addhead">' + nm + ' needs two things</div>' +
+    row('perm-loc', 'ph-map-pin', '#d1495b', 'Your location', 'so ' + nm + ' can read your photos and keep the city list spam-free') +
+    (pushOK() ? row('perm-rem', 'ph-bell-ringing', '#f4b63f', 'A note at 7 pm', 'one thing ' + nm + ' found, or nothing at all') : '') +
+    '<button class="btn gold" id="permgo">Allow</button><button class="btn ghost" id="permno">Not now</button></div>';
+  document.getElementById('permno').onclick = close;
+  var mark = function(id, ok){ var r = document.getElementById(id); if (r) r.querySelector('.permst').innerHTML = ok ? '<i class="ph-fill ph-check-circle" style="color:#22786a"></i>' : '<i class="ph-fill ph-x-circle" style="color:#a94b4b"></i>'; };
+  document.getElementById('permgo').onclick = function(){
+    var b = this; b.disabled = true; b.textContent = 'Asking your phone…';
+    new Promise(function(res){ grabSpot(function(sp){ pendingSpot = sp; mark('perm-loc', true); res(); }, function(){ mark('perm-loc', false); res(); }); })
+      .then(function(){ return pushOK() ? saveReminder(tail, Object.assign({}, REM_DEFAULT)).then(function(){ mark('perm-rem', true); }, function(){ mark('perm-rem', false); }) : null; })
+      .then(function(){ b.disabled = false; b.textContent = 'Done'; b.onclick = function(){ close(); if (!pushOK() && !hasMail()) emailSheet(tail, name); }; });
+  };
 }
 function reminderSheet(tail, name, after){
   var nm = esc(name), cur = remPref(), p = (cur && !cur.off) ? cur : Object.assign({}, REM_DEFAULT), off = !!(cur && cur.off);
@@ -2936,7 +2968,7 @@ function screenPack(mode, topic0){
   }).catch(function(e){ document.getElementById('board').textContent = 'The pack is napping: ' + e.message; });
 }
 
-var APP_VERSION = "20261002204655";
+var APP_VERSION = "20261002205429";
 (function(){
   try {
     fetch('/version.json?t=' + Date.now(), { cache: 'no-store' }).then(function(r){ return r.json(); }).then(function(j){
