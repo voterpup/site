@@ -368,6 +368,12 @@
   .huntcard:active{transform:translateY(4px); box-shadow:none}
   .hhead{display:flex; justify-content:space-between; align-items:baseline; margin:0 2px 8px} .hhead b{font-size:16px; font-weight:900} .hhead span{font-size:12px; color:var(--sub); font-weight:700}
   .hcircles{display:grid; grid-template-columns:repeat(5, 1fr); gap:4px}
+  .hcircles.trail{display:block; position:relative; height:142px; margin:0 -4px}
+  .htrail{position:absolute; left:0; top:0; width:100%; height:108px; overflow:visible}
+  .htrail path{fill:none; stroke-width:5; stroke-linecap:round}
+  .htrail .tp{stroke:#d8ccb6; stroke-dasharray:2 10} .htrail .tw{stroke:#22786a; stroke-dasharray:none; stroke-width:6}
+  .trail .hc{position:absolute; width:72px; margin-left:-36px; text-align:center}
+  .trail .hc small{margin-top:3px; font-size:10px}
   .pring{position:relative; display:inline-block; padding-bottom:12px}
   .pring svg{display:block; transform:rotate(-90deg)} .prbg{fill:none; stroke:#ece4d6; stroke-width:6} .prfg{fill:none; stroke:#d1495b; stroke-width:6; stroke-linecap:round}
   .pring.full{animation:ringpop .6s cubic-bezier(.2,1.6,.4,1)} @keyframes ringpop{50%{transform:scale(1.08)}}
@@ -2459,8 +2465,16 @@ function animateRing(){
   });
 }
 function huntSave(s){ try { localStorage.setItem('vp.hunt', JSON.stringify(s)); } catch (e) {} }
-function huntCircles(found, fresh){ return '<div class="hcircles">' + huntTargets().map(function(k){ var it = HUNT_ITEMS[k], on = !!found[k];
-    return '<div class="hc' + (on ? ' on' : '') + (fresh && fresh.indexOf(k) >= 0 ? ' pop' : '') + '"><span class="hcdot" style="--c:' + it[2] + '"><i class="ph-duotone ' + it[0] + '"></i>' + (on ? '<b>✓</b>' : '') + '</span><small>' + esc(it[1]) + '</small></div>'; }).join('') + '</div>'; }
+function huntCircles(found, fresh){   // a little winding trail: stop, stop, stop… the walked part turns solid green
+  var tg = huntTargets(), X = [50, 150, 250, 350, 450], Y = [74, 34, 74, 34, 74];
+  var seg = function(i){ var x0 = X[i], y0 = Y[i], x1 = X[i + 1], y1 = Y[i + 1], mx = (x0 + x1) / 2; return 'M' + x0 + ',' + y0 + ' C' + mx + ',' + y0 + ' ' + mx + ',' + y1 + ' ' + x1 + ',' + y1; };
+  var svg = '<svg class="htrail" viewBox="0 0 500 108" preserveAspectRatio="none">';
+  for (var i = 0; i < 4; i++) { var walked = found[tg[i]] && found[tg[i + 1]];
+    svg += '<path d="' + seg(i) + '" class="' + (walked ? 'tw' : 'tp') + '"/>'; }
+  svg += '</svg>';
+  return '<div class="hcircles trail">' + svg + tg.map(function(k, i){ var it = HUNT_ITEMS[k], on = !!found[k];
+    return '<div class="hc' + (on ? ' on' : '') + (fresh && fresh.indexOf(k) >= 0 ? ' pop' : '') + '" style="left:' + (X[i] / 5) + '%;top:' + (Y[i] - 24) + 'px">' +
+      '<span class="hcdot" style="--c:' + it[2] + '"><i class="ph-duotone ' + it[0] + '"></i>' + (on ? '<b>✓</b>' : '') + '</span><small>' + esc(it[1]) + '</small></div>'; }).join('') + '</div>'; }
 function huntCardHTML(name){ var s = huntState(), n = huntTargets().filter(function(k){ return s.found[k]; }).length;
   return '<div class="huntcard" id="huntcard"><div class="hhead"><b>' + (n >= 5 ? '🏆 Challenge done!' : '🔍 Today&rsquo;s sniff challenge') + '</b><span>' + n + '/5 · new tomorrow</span></div>' +
     huntCircles(s.found) + '<div class="hfoot">' + (n >= 5 ? esc(name) + ' found everything today. Legend.' : 'Each find is worth more: 10 · 20 · 30 · 40 · 50 points, +50 for all five.') + '</div></div>'; }
@@ -2868,7 +2882,7 @@ function screenPack(mode, topic0){
   }).catch(function(e){ document.getElementById('board').textContent = 'The pack is napping: ' + e.message; });
 }
 
-var APP_VERSION = "20261002201358";
+var APP_VERSION = "20261002201635";
 (function(){
   try {
     fetch('/version.json?t=' + Date.now(), { cache: 'no-store' }).then(function(r){ return r.json(); }).then(function(j){
