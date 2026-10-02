@@ -346,6 +346,23 @@
   .sharechip{cursor:pointer; font-weight:800}
   .nahead{font-weight:800; font-size:15px; margin:10px 0 8px} .nacard{margin:0 0 8px} #notalone{margin:4px 0 6px}
   .plusbtn{flex:0 0 76px !important; position:relative}
+  .etiles{display:grid; grid-template-columns:1fr 1fr; gap:10px}
+  .etile{position:relative; border:0; border-radius:18px; aspect-ratio:1/1.05; padding:10px; color:#fff; text-align:left; font:inherit; cursor:pointer; background-size:cover; background-position:center;
+         display:flex; flex-direction:column; justify-content:space-between; box-shadow:0 4px 0 rgba(0,0,0,.12); transition:transform .08s, box-shadow .08s; overflow:hidden}
+  .etile:active{transform:translateY(4px); box-shadow:none}
+  .etop{display:flex; justify-content:space-between; align-items:center; font-size:11.5px; font-weight:900; opacity:.95} .etop i{font-size:16px}
+  .etxt{font-size:14.5px; font-weight:900; line-height:1.25; display:-webkit-box; -webkit-line-clamp:4; -webkit-box-orient:vertical; overflow:hidden; text-shadow:0 1px 3px rgba(0,0,0,.3)}
+  .ebot{font-size:12px; font-weight:800; opacity:.95}
+  .ecardsheet .stksheet .ecard{margin:0; border:0 !important; padding:4px 2px}
+  .chip.danger{color:#a94b4b; border-color:#f0c9c9}
+  .mgrid{display:grid; grid-template-columns:1fr 1fr; gap:10px}
+  .mgrid .mrow{flex-direction:column; align-items:stretch; margin:0; padding:12px; border:2px solid var(--line); border-radius:18px; box-shadow:0 4px 0 #e3d8c4; gap:8px}
+  .mgrid .mthumb{width:100%; height:86px; border-radius:12px}
+  .mgrid .mkeythumb{font-size:38px}
+  .mgrid .mh{font-size:15px; font-weight:900; line-height:1.2}
+  .mgrid .mp{font-size:12px; line-height:1.3; margin:2px 0 0; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden}
+  .mgrid .mact{display:flex; flex-direction:column; gap:6px; margin-top:auto} .mgrid .mbody{display:flex; flex-direction:column; flex:1}
+  .mgrid .mact .btn,.mgrid .mact .mbtn{margin:0; padding:9px 8px; font-size:13px; width:100%}
   .huntcard{background:var(--card); border:2px solid var(--line); border-radius:20px; padding:12px 12px 10px; margin:0 0 16px; cursor:pointer; box-shadow:0 4px 0 #e3d8c4; transition:transform .08s, box-shadow .08s}
   .huntcard:active{transform:translateY(4px); box-shadow:none}
   .hhead{display:flex; justify-content:space-between; align-items:baseline; margin:0 2px 8px} .hhead b{font-size:16px; font-weight:900} .hhead span{font-size:12px; color:var(--sub); font-weight:700}
@@ -844,7 +861,7 @@ document.addEventListener('click', function(ev){
   var m = ev.target.closest && ev.target.closest('[data-more]'); if (!m) return; ev.preventDefault();
   var menu = document.querySelector('[data-menu="' + m.getAttribute('data-more') + '"]'); if (menu) { menu.hidden = !menu.hidden; m.classList.toggle('on', !menu.hidden); }
 });
-function shareChip(e){ return '<span class="chip sharechip" data-id="' + (e.id || '') + '" data-share="' + esc(e.body || '') + '" data-shared="' + (e.shared ? 1 : 0) + '" data-topic="' + esc(e.topic || '') + '" data-backs="' + (e.backs || 0) + '" data-place="' + esc((e.place || '').split(',')[0]) + '" title="send to a friend">↗</span>'; }
+function shareChip(e){ return '<span class="chip sharechip" data-id="' + (e.id || '') + '" data-share="' + esc(e.body || '') + '" data-shared="' + (e.shared ? 1 : 0) + '" data-topic="' + esc(e.topic || '') + '" data-backs="' + (e.backs || 0) + '" data-place="' + esc((e.place || '').split(',')[0]) + '" title="send to a friend"><i class="ph-duotone ph-share-network"></i></span>'; }
 // the preview card chat apps show: drawn here, uploaded once, 1200x630
 function drawShareCard(d){
   var W = 1200, H = 630, c = document.createElement('canvas'); c.width = W; c.height = H; var x = c.getContext('2d');
@@ -877,7 +894,7 @@ document.addEventListener('click', function(ev){
   };
   if (!d.shared || !d.id) return send('https://voterpup.com');
   c.textContent = '…';
-  drawShareCard(d).then(function(blob){ return uploadShareCard(d.id, blob); }).catch(function(){}).then(function(){ c.textContent = '↗'; send(SHARE_BASE ? SHARE_BASE + '/' + d.id : 'https://voterpup.com/pack?q=' + encodeURIComponent(d.body.slice(0, 40))); });
+  drawShareCard(d).then(function(blob){ return uploadShareCard(d.id, blob); }).catch(function(){}).then(function(){ c.innerHTML = '<i class="ph-duotone ph-share-network"></i>'; send(SHARE_BASE ? SHARE_BASE + '/' + d.id : 'https://voterpup.com/pack?q=' + encodeURIComponent(d.body.slice(0, 40))); });
 });
 function hashChips(e){ return (e && e.tags && e.tags.length) ? e.tags.map(function(t){ return '<a class="chip htag" href="/pack?q=%23' + encodeURIComponent(t) + '">#' + esc(t) + '</a>'; }).join('') : ''; }
 function spotChip(e){
@@ -1486,6 +1503,7 @@ function prefetchDeck(){
   return window._deckP;
 }
 function screenLedger(tail){
+  document.querySelectorAll('.ecardsheet').forEach(function(x){ x.remove(); });
   if (!KIOSK) prefetchDeck();
   readLedger(tail).then(function(L){
     if (!L) {
@@ -1528,9 +1546,15 @@ function screenLedger(tail){
       if (n > 0) showCandidate(tail, L.name);
       else toast('Tell ' + esc(L.name) + ' one thing first, then share it with candidates.'); };
     var box = document.getElementById('entries');
-    box.innerHTML = L.entries.map(function(e){
+    var tileOf = function(e){ var img = null; (e.media || []).forEach(function(m){ if (!img && m.url && (!m.type || m.type.indexOf('image') === 0)) img = m.url; });
+      var col = TILE_COLORS[(TOPIC_LIST.indexOf(e.topic) + 13) % TILE_COLORS.length];
+      return '<button class="etile" data-open="' + e.id + '" style="background-color:' + col + (img ? ';background-image:linear-gradient(rgba(20,26,33,.15),rgba(20,26,33,.75)),url(' + esc(img) + ')' : '') + '">' +
+        '<span class="etop">' + (e.topic ? '#' + esc(e.topic) : '') + '<i class="ph-fill ' + (e.fixed_at ? 'ph-check-circle' : e.shared ? 'ph-users-three' : 'ph-lock-simple') + '"></i></span>' +
+        '<span class="etxt">' + esc(e.body || '📷') + '</span>' +
+        '<span class="ebot">' + (e.fixed_at ? 'Fixed' : e.shared ? (e.backs ? '🐾 ' + e.backs + ' agree' : 'In Your city') : 'Private') + '</span></button>'; };
+    box.innerHTML = '<div class="etiles">' + L.entries.map(tileOf).join('') + '</div><div class="ecards" hidden>' + L.entries.map(function(e){
       var fixedTxt = e.fixed_at ? new Date(e.fixed_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) : '';
-      return '<div class="card ecard' + (e.fixed_at ? ' fixedcard' : '') + '">' +
+      return '<div class="card ecard' + (e.fixed_at ? ' fixedcard' : '') + '" data-card="' + e.id + '">' +
         '<div class="ehead">' + (e.topic ? '<a class="topicchip" href="/pack?t=' + encodeURIComponent(e.topic) + '">#' + esc(e.topic) + '</a>' : '<span></span>') +
           (e.fixed_at ? '<span class="estat fixed">✓ Fixed ' + fixedTxt + '</span>' : e.shared ? '<span class="estat on">In Your city</span>' : '<span class="estat">Private</span>') + '</div>' +
         (e.body ? '<div class="entry-body">' + esc(e.body) + '</div>' : '') + mediaHTML(e.media) +
@@ -1545,9 +1569,25 @@ function screenLedger(tail){
         '<div class="emenu" data-menu="' + e.id + '" hidden>' +
           '<span class="chip" data-edit="' + e.id + '">✎ Change topic</span>' +
           (e.fixed_at ? '<span class="chip" data-fix="' + e.id + '" data-on="1">↺ It broke again</span>' : '') +
-          (e.shared ? '<span class="chip" data-a="unshare" data-id="' + e.id + '">🔒 Make private</span>' : '') + hashChips(e) + reactChips(e, null, true) + '</div>' +
+          (e.shared ? '<span class="chip" data-a="unshare" data-id="' + e.id + '">🔒 Make private</span>' : '') + hashChips(e) + reactChips(e, null, true) +
+          '<span class="chip danger" data-del="' + e.id + '"><i class="ph-duotone ph-trash"></i> Delete</span></div>' +
         '</div>';
-    }).join('');
+    }).join('') + '</div>';
+    // open a tile: its full card slides up in a sheet; on close it goes back
+    Array.prototype.forEach.call(box.querySelectorAll('[data-open]'), function(t){ t.onclick = function(){
+      var card = box.querySelector('[data-card="' + t.getAttribute('data-open') + '"]'); if (!card) return; var home = card.parentNode;
+      var ov = document.createElement('div'); ov.className = 'stkover ecardsheet'; ov.innerHTML = '<div class="stksheet"></div>'; document.body.appendChild(ov);
+      ov.firstChild.appendChild(card);
+      var close = function(){ if (card.parentNode !== home) home.appendChild(card); if (ov.parentNode) ov.parentNode.removeChild(ov); };
+      ov.onclick = function(ev){ if (ev.target === ov) close(); };
+    }; });
+    Array.prototype.forEach.call(box.querySelectorAll('[data-del]'), function(d){ d.onclick = function(){
+      if (!confirm('Delete this post and its photos? This can’t be undone.')) return;
+      d.textContent = 'Deleting…';
+      fetch(SUPABASE_URL + '/functions/v1/delete-pup', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ tail: tail, id: d.getAttribute('data-del') }) })
+        .then(function(r){ if (!r.ok) throw new Error('could not delete'); document.querySelectorAll('.ecardsheet').forEach(function(x){ x.remove(); }); toast('Deleted.'); screenLedger(tail); })
+        .catch(function(e){ d.textContent = 'Delete'; alert(e.message); });
+    }; });
     fillEntryElections();
     Array.prototype.forEach.call(box.querySelectorAll('[data-fix]'), function(c){
       c.onclick = function(){
@@ -2250,7 +2290,7 @@ function reactChips(e, mine, own){
   if (!e || !e.id) return '';
   var f = e.fixedv || 0;
   if (own) return f ? '<span class="chip" style="cursor:default" title="what neighbours say">✅ ' + f + ' say it&rsquo;s fixed now</span>' : '';
-  return '<span class="chip react' + (mine === 'fixed' ? ' on' : '') + '" data-react="fixed" data-id="' + esc(e.id) + '">✅ Fixed now' + (f ? ' · ' + f : '') + '</span>';
+  return '<span class="chip react' + (mine === 'fixed' ? ' on' : '') + '" data-react="fixed" data-id="' + esc(e.id) + '"><i class="ph-duotone ph-check-circle"></i> Fixed now' + (f ? ' · ' + f : '') + '</span>';
 }
 document.addEventListener('click', function(ev){
   var c = ev.target && ev.target.closest ? ev.target.closest('[data-react]') : null;
@@ -2798,7 +2838,7 @@ function screenPack(mode, topic0){
   }).catch(function(e){ document.getElementById('board').textContent = 'The pack is napping: ' + e.message; });
 }
 
-var APP_VERSION = "20261002192427";
+var APP_VERSION = "20261002194730";
 (function(){
   try {
     fetch('/version.json?t=' + Date.now(), { cache: 'no-store' }).then(function(r){ return r.json(); }).then(function(j){
@@ -3049,25 +3089,25 @@ function screenManage(){
         (email ? 'Signed in as <b>' + esc(email) + '</b>' : 'Never lose ' + nm + '. No mail, ever.'),
         '<button class="btn gold mbtn" id="mbackup">' + (email ? 'Add ' + nm + ' to my account' : 'Back up with Google') + '</button><div id="mslot"></div>');
     }
-    if (!(email && backed)) rows += mrow('<div class="mkeythumb">🔑</div>', 'Private link',
+    if (!(email && backed)) rows += mrow('<div class="mkeythumb"><i class="ph-duotone ph-key" style="color:#9a5f00"></i></div>', 'Private link',
       'Your only key until you back up.',
       '<button class="btn ghost mbtn" id="mcopy">Copy link</button><button class="btn ghost mbtn" id="mstk">🏷️ Key sticker</button>');
-    if (!KIOSK) rows += mrow('<div class="mkeythumb">📧</div>', 'Reports by email', hasMail() ? 'On, 7 pm daily' : 'For phones without notifications',
+    if (!KIOSK) rows += mrow('<div class="mkeythumb"><i class="ph-duotone ph-envelope-simple" style="color:#3b6fb6"></i></div>', 'Reports by email', hasMail() ? 'On, 7 pm daily' : 'For phones without notifications',
       '<button class="btn ' + (hasMail() ? 'ghost' : 'gold') + ' mbtn" id="mmail">' + (hasMail() ? 'Change' : 'Turn on') + '</button>' + (hasMail() ? '<button class="btn ghost mbtn" id="mmailoff">Stop</button>' : ''));
     if (!KIOSK) rows += mrow('<video class="fit" src="/pup-bark.mp4" poster="/pup-bark.jpg" muted autoplay playsinline></video>', '🔔 Reminders', remLabel(remPref()),
       '<button class="btn ' + (remPref() && !remPref().off ? 'ghost' : 'gold') + ' mbtn" id="mrem">' + (remPref() && !remPref().off ? 'Change' : 'Turn on') + '</button>');
-    rows += mrow('<div class="mkeythumb">🪪</div>', nm + '&rsquo;s ID card', 'Silly, shareable, no private link on it.', '<button class="btn gold mbtn" id="midcard">Show it</button>');
-    rows += mrow('<div class="mkeythumb">🎯</div>', 'Pup Patrol', 'Smash today&rsquo;s issues. 30 seconds.', '<a class="btn gold mbtn" href="/play">Play</a>');
+    rows += mrow('<div class="mkeythumb"><i class="ph-duotone ph-identification-card" style="color:#22786a"></i></div>', nm + '&rsquo;s ID card', 'Silly, shareable, no private link on it.', '<button class="btn gold mbtn" id="midcard">Show it</button>');
+    rows += mrow('<div class="mkeythumb"><i class="ph-duotone ph-game-controller" style="color:#d1495b"></i></div>', 'Pup Patrol', 'Smash today&rsquo;s issues. 30 seconds.', '<a class="btn gold mbtn" href="/play">Play</a>');
     rows += mrow('<img id="invthumb" alt="">', '🐾 Invite your friends',
       '',
       '<button class="btn gold mbtn" id="minv">Share invite</button><button class="btn ghost mbtn" id="minvstk">🏷️ Invite sticker</button>');
     rows += mrow('<img src="/pup-watch.jpg" alt="">', '🐶 Pups', '',
       (GOOGLE_READY && !KIOSK && !(email && backed) ? '<button class="btn ghost mbtn" id="mpups">My backed-up pups</button><div id="mrslot"></div>' : '') +
       '<button class="btn ghost mbtn" id="mnew">＋ Start another pup</button><button class="btn ghost mbtn" id="mtour">▶ Take the tour</button>');
-    rows += mrow('<div class="mkeythumb">🗑️</div>', 'Delete ' + nm, 'Everything ' + nm + ' remembers: issues, photos, reactions, reminders, backup. Gone for good.',
+    rows += mrow('<div class="mkeythumb"><i class="ph-duotone ph-trash" style="color:#a94b4b"></i></div>', 'Delete ' + nm, 'Everything ' + nm + ' remembers: issues, photos, reactions, reminders, backup. Gone for good.',
       '<button class="btn ghost mbtn" id="mdel" style="color:#a94b4b;border-color:#e3b3b3">Delete ' + nm + ' and all its data</button>');
     root.innerHTML = nav() + '<div class="mtitle" id="mtitle"><span class="q" style="font-size:20px">' + nm + ' ⚙️</span>' +
-      (KIOSK ? '' : '<a href="#" class="mlink" id="mrename">✏️ Rename</a>') + '</div>' + rows +
+      (KIOSK ? '' : '<a href="#" class="mlink" id="mrename">✏️ Rename</a>') + '</div>' + '<div class="mgrid">' + rows + '</div>' +
       '<footer><a href="/privacy.html">Privacy</a> · <a href="mailto:hi@voterpup.com">hi@voterpup.com</a></footer>' + tabbar('manage');
     wireTabs(); wireHero();
     var on = function(id, fn){ var el = document.getElementById(id); if (el) el.onclick = fn; };
