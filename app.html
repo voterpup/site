@@ -751,14 +751,14 @@ function drawShareCard(d){
   var col = d.topic ? TILE_COLORS[(TOPIC_LIST.indexOf(d.topic) + 13) % TILE_COLORS.length] : '#e8b84b'; x.fillStyle = col; x.fillRect(0, 0, 22, H);
   x.fillStyle = '#1d2433'; x.font = '800 60px system-ui, -apple-system, Segoe UI, Roboto, sans-serif';
   var words = ('“' + d.body + '”').split(' '), lines = [], cur = '';
-  words.forEach(function(w){ var t = cur ? cur + ' ' + w : w; if (x.measureText(t).width > W - 160 && cur) { lines.push(cur); cur = w; } else cur = t; }); if (cur) lines.push(cur);
+  words.forEach(function(w){ var t = cur ? cur + ' ' + w : w; if (x.measureText(t).width > 880 && cur) { lines.push(cur); cur = w; } else cur = t; }); if (cur) lines.push(cur);
   if (lines.length > 4) { lines = lines.slice(0, 4); lines[3] = lines[3].replace(/.{3}$/, '…”'); }
   var y0 = 150; lines.forEach(function(l, k){ x.fillText(l, 80, y0 + k * 76); });
   x.font = '700 34px system-ui, sans-serif'; x.fillStyle = '#5b6579';
   var meta = [d.backs ? d.backs + (d.backs === 1 ? ' person agrees' : ' people agree') : 'Same here?', d.topic && d.topic !== 'other' ? '#' + d.topic : null, d.place || null].filter(Boolean).join('  ·  ');
   x.fillText(meta, 80, 500);
   x.font = '800 36px system-ui, sans-serif'; x.fillStyle = '#c98a00'; x.fillText('VoterPup', 80, 570);
-  x.font = '600 30px system-ui, sans-serif'; x.fillStyle = '#5b6579'; x.fillText('a pup that remembers what you want fixed  ·  voterpup.com', 250, 570);
+  x.font = '600 30px system-ui, sans-serif'; x.fillStyle = '#5b6579'; x.fillText('a pup that remembers what you want fixed  ·  voterpup.com', 275, 570);
   return new Promise(function(res){ var av = new Image(); av.onload = function(){ x.save(); x.beginPath(); x.arc(1080, 110, 70, 0, Math.PI * 2); x.clip(); x.drawImage(av, 1010, 40, 140, 140); x.restore(); c.toBlob(res, 'image/png'); };
     av.onerror = function(){ c.toBlob(res, 'image/png'); }; av.src = '/pup-face.jpg'; });
 }
@@ -2540,7 +2540,7 @@ function screenPack(mode, topic0){
   }).catch(function(e){ document.getElementById('board').textContent = 'The pack is napping: ' + e.message; });
 }
 
-var APP_VERSION = "20261002052920";
+var APP_VERSION = "20261002053134";
 (function(){
   try {
     fetch('/version.json?t=' + Date.now(), { cache: 'no-store' }).then(function(r){ return r.json(); }).then(function(j){
