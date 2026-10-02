@@ -2446,7 +2446,7 @@ function walkSheet(s, file){
     if (r.error) throw new Error(r.error);
     if (r.safe === 'people') { out.innerHTML = '<div class="walkmsg">🐾 ' + nm + ' only reports places. Step back from people and pets and snap the street.</div><button class="btn ghost" id="wagain">Snap again</button>'; }
     else if (r.safe === 'block' || r.safe === 'skip') { out.innerHTML = '<div class="walkmsg">🐾 ' + nm + ' couldn&rsquo;t read this one. Try the street, a park, a stop.</div><button class="btn ghost" id="wagain">Snap again</button>'; }
-    else if (!r.findings.length) { out.innerHTML = '<div class="walkmsg">🐾 Nothing to fix here that ' + nm + ' can see. ' + (r.scene ? esc(r.scene) + '. ' : '') + 'Add your own?</div>' + ownLine(); }
+    else if (!r.findings.length) { out.innerHTML = quipLine(r.quip, s.name) + '<div class="walkmsg">🐾 Nothing to fix here that ' + nm + ' can see. ' + (r.scene ? esc(r.scene) + '. ' : '') + 'Add your own?</div>' + ownLine(); }
     else {
       out.innerHTML = quipLine(r.quip, s.name) + '<div class="walkmsg">' + (r.scene ? esc(r.scene) + ' · ' : '') + 'tap what to keep</div>' +
         r.findings.map(function(f, i){ return '<div class="wcard' + (f.kind === 'good' ? ' good' : '') + '" data-i="' + i + '" style="--i:' + i + '"><div class="wline">' + (f.kind === 'good' ? '🟢 ' : '🔴 ') + esc(f.line) + '</div>' +
@@ -2798,7 +2798,7 @@ function screenPack(mode, topic0){
   }).catch(function(e){ document.getElementById('board').textContent = 'The pack is napping: ' + e.message; });
 }
 
-var APP_VERSION = "20261002192259";
+var APP_VERSION = "20261002192427";
 (function(){
   try {
     fetch('/version.json?t=' + Date.now(), { cache: 'no-store' }).then(function(r){ return r.json(); }).then(function(j){
