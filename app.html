@@ -346,6 +346,22 @@
   .sharechip{cursor:pointer; font-weight:800}
   .nahead{font-weight:800; font-size:15px; margin:10px 0 8px} .nacard{margin:0 0 8px} #notalone{margin:4px 0 6px}
   .plusbtn{flex:0 0 76px !important; position:relative}
+  .ecard{padding:14px 14px 12px}
+  .ehead{display:flex; justify-content:space-between; align-items:center; margin:0 0 6px}
+  .ehead .topicchip{font-size:12px}
+  .estat{font-size:11.5px; font-weight:800; color:var(--sub); background:var(--chip); border-radius:999px; padding:3px 9px}
+  .estat.on{color:#1b5f54; background:#dff1ea} .estat.fixed{color:#1b5f54; background:#c9ecd9}
+  .ecard .entry-body{font-size:16.5px; font-weight:800; line-height:1.35; margin:2px 0 8px}
+  .emeta{font-size:12.5px; color:var(--sub); margin:6px 0 2px} .emeta b{color:var(--goldtext)}
+  .efoot{display:flex; justify-content:space-between; align-items:center; margin-top:10px; gap:8px}
+  .eleft{min-width:0} .eright{display:flex; gap:6px; flex:0 0 auto}
+  .eagree{font-weight:900; font-size:14px; color:var(--goldtext)} .eagree.muted{color:var(--sub); font-weight:700; font-size:13px}
+  .iconchip{width:36px; height:36px; padding:0 !important; display:inline-flex !important; align-items:center; justify-content:center; font-size:18px; border-radius:50% !important}
+  .iconchip.on{background:var(--ink); color:#fff}
+  .ecard .sharechip{width:36px; height:36px; padding:0 !important; display:inline-flex; align-items:center; justify-content:center; border-radius:50%}
+  .emenu{display:flex; flex-wrap:wrap; gap:6px; margin-top:10px; padding-top:10px; border-top:2px dashed var(--line)}
+  .mappin.photo{width:44px !important; height:44px !important; border-radius:50%; background-size:cover; background-position:center; border:3px solid #fff; box-shadow:0 3px 10px rgba(0,0,0,.3)}
+  .mpopimg{width:100%; height:130px; object-fit:cover; border-radius:10px; margin:0 0 8px; display:block}
   button,input,textarea,select{font-family:inherit}
   .searchwrap .searchbar{border:0 !important; background:transparent !important; box-shadow:none !important; border-radius:0 !important; padding:11px 0 !important}
   .iconbtn i,.iconnav i,.navpill i{font-size:20px; vertical-align:-4px}
@@ -808,6 +824,10 @@ function notAlone(body, tail, mount){   // mount: element to fill (inline) or nu
     return true;
   }).catch(function(){ return false; });
 }
+document.addEventListener('click', function(ev){
+  var m = ev.target.closest && ev.target.closest('[data-more]'); if (!m) return; ev.preventDefault();
+  var menu = document.querySelector('[data-menu="' + m.getAttribute('data-more') + '"]'); if (menu) { menu.hidden = !menu.hidden; m.classList.toggle('on', !menu.hidden); }
+});
 function shareChip(e){ return '<span class="chip sharechip" data-id="' + (e.id || '') + '" data-share="' + esc(e.body || '') + '" data-shared="' + (e.shared ? 1 : 0) + '" data-topic="' + esc(e.topic || '') + '" data-backs="' + (e.backs || 0) + '" data-place="' + esc((e.place || '').split(',')[0]) + '" title="send to a friend">↗</span>'; }
 // the preview card chat apps show: drawn here, uploaded once, 1200x630
 function drawShareCard(d){
@@ -1465,7 +1485,7 @@ function screenLedger(tail){
       '<div class="puphead"><span class="pupav-wrap"><img class="pupav" src="/pup-face.jpg" alt=""></span><div><div class="pupname">' + esc(L.name) + '</div>' +
         '<div class="pupsub">' + (n ? 'remembers ' + n + ' thing' + (n === 1 ? '' : 's') : 'tap 📸 to feed ' + esc(L.name) + ' a photo') + '</div></div>' +
         '</div>' +
-      (KIOSK ? '' : '<div class="quickrow"><button class="qbtn gold" id="qwalk">' + ic('camera_with_flash', 'btnic') + 'Feed ' + esc(L.name) + '</button><button class="qbtn" id="qnote">' + ic('writing_hand', 'btnic') + 'Write</button><a class="qbtn" href="/play">' + ic('bullseye', 'btnic') + 'Play</a></div>') +
+      (KIOSK ? '' : '<div class="quickrow"><button class="qbtn gold" id="qwalk">' + ic('camera_with_flash', 'btnic') + 'Feed ' + esc(L.name) + '</button><button class="qbtn" id="qnote">' + ic('writing_hand', 'btnic') + 'Write</button></div>') +
       '<div id="fetchslot"></div>' +
       '<div class="momwrap" id="votestrip"></div>' +
       '<div id="entries" class="grid2"></div>' + '<div id="backedbox"></div>' +
@@ -1492,18 +1512,24 @@ function screenLedger(tail){
       else toast('Tell ' + esc(L.name) + ' one thing first, then share it with candidates.'); };
     var box = document.getElementById('entries');
     box.innerHTML = L.entries.map(function(e){
-      return '<div class="card' + (e.fixed_at ? ' fixedcard' : '') + '">' +
+      var fixedTxt = e.fixed_at ? new Date(e.fixed_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) : '';
+      return '<div class="card ecard' + (e.fixed_at ? ' fixedcard' : '') + '">' +
+        '<div class="ehead">' + (e.topic ? '<a class="topicchip" href="/pack?t=' + encodeURIComponent(e.topic) + '">#' + esc(e.topic) + '</a>' : '<span></span>') +
+          (e.fixed_at ? '<span class="estat fixed">✓ Fixed ' + fixedTxt + '</span>' : e.shared ? '<span class="estat on">In Your city</span>' : '<span class="estat">Private</span>') + '</div>' +
         (e.body ? '<div class="entry-body">' + esc(e.body) + '</div>' : '') + mediaHTML(e.media) +
-        '<div class="ts">' + new Date(e.ts).toLocaleString() + '</div>' +
-        '<div class="chips">' + placeChip(e.place, e.topic) + spotChip(e) + (e.topic ? '<a class="topicchip" href="/pack?t=' + encodeURIComponent(e.topic) + '">#' + esc(e.topic) + '</a>' : '') + hashChips(e) + '<span class="chip" data-edit="' + e.id + '" title="change topic">\u270e</span>' + shareChip(e) + reactChips(e, null, true) +
-        (e.fixed_at ? '<span class="chip fixedchip" data-fix="' + e.id + '" data-on="1" title="tap if it broke again">✅ Fixed ' + new Date(e.fixed_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) + '</span>'
-                    : '<span class="chip" data-fix="' + e.id + '" data-on="0" title="mark as fixed">✔</span>') + (e.shared
-          ? '<span class="chip goldfill">🌿 Counted with the community</span>' + sameChip(e.id, e.backs || 0, true, true) +
-            (e.rank && e.rank <= 10 ? '<span class="chip rankchip">🏆 #' + e.rank + (e.city ? ' in ' + esc(e.city) : '') + ' this week</span>' : '') +
-            '<span class="chip" data-a="unshare" data-id="'+e.id+'">↩ make private</span>'
-          : '<span class="chip" style="cursor:default">🔒 Private</span>' +
-            '<span class="chip goldline" data-a="share" data-id="'+e.id+'">🌱 Make it count</span>') +
-        '</div></div>';
+        '<div class="emeta">' + (e.spot ? '<span>' + esc(e.spot) + '</span> · ' : '') + new Date(e.ts).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) +
+          (e.shared && e.rank && e.rank <= 10 ? ' · <b>#' + e.rank + (e.city ? ' in ' + esc(e.city) : '') + '</b>' : '') + '</div>' + placeChip(e.place, e.topic) +
+        '<div class="efoot"><div class="eleft">' +
+          (e.shared ? (e.backs ? '<span class="eagree">🐾 ' + e.backs + (e.backs === 1 ? ' agrees' : ' agree') + '</span>' : '<span class="eagree muted">No same-heres yet</span>')
+                    : '<button class="chip goldfill" data-a="share" data-id="' + e.id + '">🌱 Add to Your city</button>') +
+        '</div><div class="eright">' + shareChip(e) +
+          (e.fixed_at ? '' : '<span class="chip iconchip" data-fix="' + e.id + '" data-on="0" title="mark as fixed"><i class="ph-duotone ph-check-circle"></i></span>') +
+          '<span class="chip iconchip emore" data-more="' + e.id + '" title="more"><i class="ph-fill ph-dots-three"></i></span></div></div>' +
+        '<div class="emenu" data-menu="' + e.id + '" hidden>' +
+          '<span class="chip" data-edit="' + e.id + '">✎ Change topic</span>' +
+          (e.fixed_at ? '<span class="chip" data-fix="' + e.id + '" data-on="1">↺ It broke again</span>' : '') +
+          (e.shared ? '<span class="chip" data-a="unshare" data-id="' + e.id + '">🔒 Make private</span>' : '') + hashChips(e) + reactChips(e, null, true) + '</div>' +
+        '</div>';
     }).join('');
     fillEntryElections();
     Array.prototype.forEach.call(box.querySelectorAll('[data-fix]'), function(c){
@@ -1677,7 +1703,7 @@ function startWalk(){
 }
 var PH = { camera_with_flash: ['ph-fill ph-camera', 'inherit'], cityscape: ['ph-duotone ph-buildings', '#22786a'], writing_hand: ['ph-duotone ph-pencil-simple-line', '#3b6fb6'],
   bullseye: ['ph-duotone ph-game-controller', '#d1495b'], high_voltage: ['ph-fill ph-lightning', '#f4b63f'], world_map: ['ph-duotone ph-map-trifold', '#22786a'],
-  round_pushpin: ['ph-fill ph-map-pin', '#d1495b'], globe_showing_americas: ['ph-duotone ph-globe-hemisphere-west', '#3b6fb6'], paw_prints: ['ph-duotone ph-paw-print', '#9a5f00'] };
+  round_pushpin: ['ph-fill ph-map-pin', '#d1495b'], globe_showing_americas: ['ph-duotone ph-globe-hemisphere-west', '#3b6fb6'], paw_prints: ['ph-duotone ph-paw-print', '#9a5f00'], dog: ['ph-duotone ph-dog', '#9a5f00'] };
 function ic(n, cls){
   var p = PH[n]; if (!p) return '<img class="ic' + (cls ? ' ' + cls : '') + '" src="/ic/' + n + '.webp" alt="" draggable="false">';   // the mascot stays 3D
   return '<i class="ic ph ' + p[0] + (cls ? ' ' + cls : '') + '"' + (p[1] !== 'inherit' ? ' style="color:' + p[1] + '"' : '') + ' aria-hidden="true"></i>';
@@ -1687,7 +1713,7 @@ function tabbar(active){
   return '<div class="tabbar">' +
     '<a href="/pack" class="' + (active==='pack'?'on':'') + '">' + ic('cityscape', 'tabic') + '<span>Your city</span></a>' +
     '<a href="#" class="plusbtn" id="tab-plus" aria-label="Feed your pup a photo"><b>' + ic('camera_with_flash', 'feedic') + '</b><span class="walklbl">Feed</span></a>' +
-    '<a href="#" id="tab-pup" class="' + (active==='pup'||active==='manage'?'on':'') + '">' + ic('dog_face', 'tabic') + '<span>' + esc(tabName()) + '</span></a>' +
+    '<a href="#" id="tab-pup" class="' + (active==='pup'||active==='manage'?'on':'') + '">' + ic('dog', 'tabic') + '<span>' + esc(tabName()) + '</span></a>' +
   '</div>';
 }
 function wireTabs(){
@@ -2658,9 +2684,11 @@ function screenPack(mode, topic0){
         m.addControl(new maplibregl.NavigationControl({ showCompass: false }), 'top-right');
         var b0 = null;
         pinned.forEach(function(r){
-          var dot = document.createElement('div'); dot.className = 'mappin';
+          var dot = document.createElement('div'), pimg = itemImg(r); dot.className = 'mappin' + (pimg ? ' photo' : '');
           dot.style.background = TILE_COLORS[(TOPIC_LIST.indexOf(r.topic) + 13) % TILE_COLORS.length];
-          var pop = new maplibregl.Popup({ offset: 14, maxWidth: '260px', closeButton: false }).setHTML('<div class="mpop">' +
+          if (pimg) { dot.style.backgroundImage = 'url(' + pimg + ')'; dot.style.borderColor = TILE_COLORS[(TOPIC_LIST.indexOf(r.topic) + 13) % TILE_COLORS.length]; }
+          var pop = new maplibregl.Popup({ offset: pimg ? 26 : 14, maxWidth: '260px', closeButton: false }).setHTML('<div class="mpop">' +
+            (pimg ? '<img class="mpopimg" src="' + esc(pimg) + '" alt="">' : '') +
             (r.topic ? '<span class="topicchip">#' + esc(r.topic) + '</span> ' : '') +
             '<div class="entry-body" style="margin:6px 0">' + esc(r.body || '📷') + '</div>' +
             '<div class="ts">— ' + esc(r.pup) + (r.spot ? ' · 📍 ' + esc(r.spot) : '') + '</div>' +
@@ -2722,7 +2750,7 @@ function screenPack(mode, topic0){
   }).catch(function(e){ document.getElementById('board').textContent = 'The pack is napping: ' + e.message; });
 }
 
-var APP_VERSION = "20261002185439";
+var APP_VERSION = "20261002190419";
 (function(){
   try {
     fetch('/version.json?t=' + Date.now(), { cache: 'no-store' }).then(function(r){ return r.json(); }).then(function(j){
