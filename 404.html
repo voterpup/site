@@ -331,6 +331,7 @@
   .wskel{height:62px; border-radius:12px; margin:0 0 8px; border-left:5px solid #e3dccb; background:linear-gradient(90deg, #f1ede4 25%, #faf8f3 50%, #f1ede4 75%); background-size:200% 100%; animation:scan 1.4s linear infinite; animation-delay:calc(var(--i, 0) * .2s); opacity:.9}
   .wskel:first-of-type{margin-top:10px}
   .idwrap{margin:10px 0} .idwrap img{width:100%; border-radius:14px; display:block; box-shadow:0 6px 20px rgba(0,0,0,.18)}
+  .walksheet{display:flex; flex-direction:column} .walksheet #walkout{display:contents} .walksheet .wquip{order:-1; font-size:16px} .walksheet .addhead{order:-2}
   .wquip{background:#fff7e2; border:1px solid #f0d99a; border-radius:12px; padding:9px 12px; margin:10px 0 2px; font-size:14.5px; font-weight:700; color:#5a4410; animation:fadein .4s ease both}
   .walkmsg{font-size:14px; font-weight:600; margin:10px 0 8px; color:var(--sub)}
   .wcard{background:var(--card); border:1px solid var(--line); border-left:5px solid #a94b4b; border-radius:12px; padding:10px 12px; margin:0 0 8px; display:flex; align-items:center; gap:10px; flex-wrap:wrap}
@@ -2285,10 +2286,10 @@ function walkSheet(s, file){
     else if (r.safe === 'block' || r.safe === 'skip') { out.innerHTML = '<div class="walkmsg">🐾 ' + nm + ' couldn&rsquo;t read this one. Try the street, a park, a stop.</div><button class="btn ghost" id="wagain">Snap again</button>'; }
     else if (!r.findings.length) { out.innerHTML = '<div class="walkmsg">🐾 Nothing to fix here that ' + nm + ' can see. ' + (r.scene ? esc(r.scene) + '. ' : '') + 'Add your own?</div>' + ownLine(); }
     else {
-      out.innerHTML = '<div class="walkmsg">' + (r.scene ? esc(r.scene) + ' · ' : '') + 'tap what to keep</div>' +
+      out.innerHTML = quipLine(r.quip, s.name) + '<div class="walkmsg">' + (r.scene ? esc(r.scene) + ' · ' : '') + 'tap what to keep</div>' +
         r.findings.map(function(f, i){ return '<div class="wcard' + (f.kind === 'good' ? ' good' : '') + '" data-i="' + i + '" style="--i:' + i + '"><div class="wline">' + (f.kind === 'good' ? '🟢 ' : '🔴 ') + esc(f.line) + '</div>' +
           '<div class="chips"><span class="topicchip">#' + esc(f.topic) + '</span>' + (f.kind === 'good' ? '<span class="chip" style="cursor:default">#good</span>' : '') + '</div><button class="btn compact wkeep">Keep</button></div>'; }).join('') +
-        quipLine(r.quip, s.name) + '<label class="switchrow" style="margin:8px 2px"><input type="checkbox" id="wshare"> 🌱 Count kept ones on the Pack <small style="color:var(--sub)">(anonymous)</small></label>' + ownLine();
+        '<label class="switchrow" style="margin:8px 2px"><input type="checkbox" id="wshare"> 🌱 Count kept ones on the Pack <small style="color:var(--sub)">(anonymous)</small></label>' + ownLine();
       Array.prototype.forEach.call(out.querySelectorAll('.wkeep'), function(b){
         b.onclick = function(){ var card = b.closest('.wcard'), f = r.findings[+card.getAttribute('data-i')], shared = document.getElementById('wshare').checked; b.disabled = true; b.textContent = '…';
           ensurePlace().then(upload).then(function(media){
@@ -2631,7 +2632,7 @@ function screenPack(mode, topic0){
   }).catch(function(e){ document.getElementById('board').textContent = 'The pack is napping: ' + e.message; });
 }
 
-var APP_VERSION = "20261002175526";
+var APP_VERSION = "20261002181426";
 (function(){
   try {
     fetch('/version.json?t=' + Date.now(), { cache: 'no-store' }).then(function(r){ return r.json(); }).then(function(j){
