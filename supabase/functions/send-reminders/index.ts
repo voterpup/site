@@ -50,7 +50,10 @@ Deno.serve(async (req) => {
       else if (f?.top?.rank && f.top.rank <= 5) { line = q(f.top.body || "your photo") + " is #" + f.top.rank + (f.top.city ? " in " + f.top.city : "") + " this week."; url = "/p/" + s.tail; }
       else if (f?.good_nearby) { line = s.name + " found something good nearby: " + q(f.good_nearby); url = "/pack?q=" + encodeURIComponent(String(f.good_nearby).slice(0, 40)); }
       else if (!s.last_sent) { line = s.name + " sniffed around" + (f?.city ? " " + f.city : "") + ". No \u201csame here\u201d on your list yet. Walk me tomorrow?"; url = "/p/" + s.tail + "?add=walk"; }
-      else { await db.from("push_subs").update({ last_sent: new Date().toISOString() }).eq("endpoint", s.endpoint); quiet++; continue; }   // nothing happened: say nothing
+      else if (Date.now() - new Date(s.last_sent).getTime() > 44 * 3600e3) {   // nothing new for 2 evenings: one friendly nudge, never two nights running
+        const NUDGE = [s.name + " is sitting by the door with the leash. Walk me?", s.name + " found nothing today. " + s.name + " blames the squirrels. Walk tomorrow?", s.name + " has been staring at the window. Snap one thing for me?"];
+        line = NUDGE[Math.floor(Math.random() * NUDGE.length)]; url = "/p/" + s.tail + "?add=walk"; }
+      else { quiet++; continue; }   // nothing happened and we spoke recently: say nothing
     }
     try {
       const r = await webpush.sendNotification({ endpoint: s.endpoint, keys: { p256dh: s.p256dh, auth: s.auth } },
