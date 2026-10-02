@@ -346,7 +346,9 @@
   .sharechip{cursor:pointer; font-weight:800}
   .nahead{font-weight:800; font-size:15px; margin:10px 0 8px} .nacard{margin:0 0 8px} #notalone{margin:4px 0 6px}
   .plusbtn{flex:0 0 76px !important; position:relative}
+  .elist{display:flex; flex-direction:column; gap:12px}
   .ecard{padding:14px 14px 12px}
+  .eleft .chip.goldfill{white-space:nowrap; padding:8px 14px; font-size:13.5px; border:0; box-shadow:0 3px 0 #d0961f}
   .ehead{display:flex; justify-content:space-between; align-items:center; margin:0 0 6px}
   .ehead .topicchip{font-size:12px}
   .estat{font-size:11.5px; font-weight:800; color:var(--sub); background:var(--chip); border-radius:999px; padding:3px 9px}
@@ -1488,7 +1490,7 @@ function screenLedger(tail){
       (KIOSK ? '' : '<div class="quickrow"><button class="qbtn gold" id="qwalk">' + ic('camera_with_flash', 'btnic') + 'Feed ' + esc(L.name) + '</button><button class="qbtn" id="qnote">' + ic('writing_hand', 'btnic') + 'Write</button></div>') +
       '<div id="fetchslot"></div>' +
       '<div class="momwrap" id="votestrip"></div>' +
-      '<div id="entries" class="grid2"></div>' + '<div id="backedbox"></div>' +
+      '<div id="entries" class="elist"></div>' + '<div id="backedbox"></div>' +
       (KIOSK ? '' : '<a href="#" class="flashbtn" id="flashbtn" aria-label="Flashback">' + ic('high_voltage', 'btnic') + '<span>Flashback</span></a>') + tabbar('pup');
     wireTabs(); renderVoteStrip(); refreshPlaceIfStale();
     var qw = document.getElementById('qwalk'); if (qw) qw.onclick = startWalk; var qn = document.getElementById('qnote'); if (qn) qn.onclick = function(){ openAdd(); };
@@ -1524,7 +1526,7 @@ function screenLedger(tail){
                     : '<button class="chip goldfill" data-a="share" data-id="' + e.id + '">🌱 Add to Your city</button>') +
         '</div><div class="eright">' + shareChip(e) +
           (e.fixed_at ? '' : '<span class="chip iconchip" data-fix="' + e.id + '" data-on="0" title="mark as fixed"><i class="ph-duotone ph-check-circle"></i></span>') +
-          '<span class="chip iconchip emore" data-more="' + e.id + '" title="more"><i class="ph-fill ph-dots-three"></i></span></div></div>' +
+          '<span class="chip iconchip emore" data-more="' + e.id + '" title="more"><i class="ph-duotone ph-dots-three-outline"></i></span></div></div>' +
         '<div class="emenu" data-menu="' + e.id + '" hidden>' +
           '<span class="chip" data-edit="' + e.id + '">✎ Change topic</span>' +
           (e.fixed_at ? '<span class="chip" data-fix="' + e.id + '" data-on="1">↺ It broke again</span>' : '') +
@@ -2750,7 +2752,7 @@ function screenPack(mode, topic0){
   }).catch(function(e){ document.getElementById('board').textContent = 'The pack is napping: ' + e.message; });
 }
 
-var APP_VERSION = "20261002190419";
+var APP_VERSION = "20261002190817";
 (function(){
   try {
     fetch('/version.json?t=' + Date.now(), { cache: 'no-store' }).then(function(r){ return r.json(); }).then(function(j){
