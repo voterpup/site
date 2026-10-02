@@ -2457,7 +2457,8 @@ var HUNT_ITEMS = { tree: ['ph-tree', 'a tree', '#2f7d5f'], bench: ['ph-chair', '
   park: ['ph-park', 'a park', '#2f7d5f'], shop: ['ph-storefront', 'a shop front', '#a34ea8'], leaves: ['ph-leaf', 'fallen leaves', '#c26a1b'], crack: ['ph-road-horizon', 'a crack or pothole', '#5d6573'], mailbox: ['ph-mailbox', 'a mailbox', '#d1495b'] };
 var HUNT_EASY = ['tree', 'sign', 'light', 'bin', 'shop', 'leaves', 'crosswalk', 'bike'], HUNT_FUN = ['bench', 'art', 'puddle', 'flowers', 'bus', 'cone', 'park', 'crack', 'mailbox'];
 function huntWeek(){ var d = new Date(); return d.getFullYear() + '-' + (d.getMonth() + 1) + '-' + d.getDate(); }   // today (local): a new challenge every day
-function huntTargets(){ var wk = huntWeek(), sd = idSeed('hunt' + wk), pick = function(arr, n, salt){ var a = arr.slice(), out = []; var x = sd ^ salt; while (out.length < n) { x = Math.imul(x ^ (x >>> 15), 2246822507) >>> 0; out.push(a.splice(x % a.length, 1)[0]); } return out; };
+var HUNT_CURATED = { '2026-10-2': ['tree', 'sign', 'light', 'bin', 'shop'], '2026-10-3': ['tree', 'crosswalk', 'sign', 'leaves', 'bench'], '2026-10-4': ['light', 'shop', 'bin', 'leaves', 'bike'] };   // hand-picked easy days (booth weekend)
+function huntTargets(){ if (HUNT_CURATED[huntWeek()]) return HUNT_CURATED[huntWeek()].slice(); var wk = huntWeek(), sd = idSeed('hunt' + wk), pick = function(arr, n, salt){ var a = arr.slice(), out = []; var x = sd ^ salt; while (out.length < n) { x = Math.imul(x ^ (x >>> 15), 2246822507) >>> 0; out.push(a.splice(x % a.length, 1)[0]); } return out; };
   return pick(HUNT_EASY, 3, 7).concat(pick(HUNT_FUN, 2, 13)); }   // same 5 for everyone today: 3 easy, 2 fun
 function huntState(){ var s = null; try { s = JSON.parse(localStorage.getItem('vp.hunt') || 'null'); } catch (e) {} if (!s || s.week !== huntWeek()) s = { week: huntWeek(), found: {}, done: false }; return s; }
 function confettiBurst(){ var cs = ['#f4b63f', '#22786a', '#d1495b', '#3b6fb6', '#a34ea8']; for (var i = 0; i < 60; i++) { var c = document.createElement('i'); c.className = 'cfx';
@@ -2483,8 +2484,12 @@ function animateRing(){
 }
 function huntSave(s){ try { localStorage.setItem('vp.hunt', JSON.stringify(s)); } catch (e) {} }
 function huntCircles(found, fresh){   // a little winding trail: stop, stop, stop… the walked part turns solid green
-  var tg = huntTargets(), X = [50, 150, 250, 350, 450], Y = [74, 34, 74, 34, 74];
-  var seg = function(i){ var x0 = X[i], y0 = Y[i], x1 = X[i + 1], y1 = Y[i + 1], mx = (x0 + x1) / 2; return 'M' + x0 + ',' + y0 + ' C' + mx + ',' + y0 + ' ' + mx + ',' + y1 + ' ' + x1 + ',' + y1; };
+  var tg = huntTargets(), X = [50, 150, 250, 350, 450], Y = [70, 40, 64, 36, 66];
+  var P = function(i){ i = Math.max(0, Math.min(4, i)); return [X[i], Y[i]]; };
+  var seg = function(i){   // Catmull-Rom through all five stops: one smooth, continuous curve
+    var p0 = P(i - 1), p1 = P(i), p2 = P(i + 1), p3 = P(i + 2);
+    var c1 = [p1[0] + (p2[0] - p0[0]) / 6, p1[1] + (p2[1] - p0[1]) / 6], c2 = [p2[0] - (p3[0] - p1[0]) / 6, p2[1] - (p3[1] - p1[1]) / 6];
+    return 'M' + p1 + ' C' + c1 + ' ' + c2 + ' ' + p2; };
   var svg = '<svg class="htrail" viewBox="0 0 500 108" preserveAspectRatio="none">';
   for (var i = 0; i < 4; i++) { var walked = found[tg[i]] && found[tg[i + 1]];
     svg += '<path d="' + seg(i) + '" class="' + (walked ? 'tw' : 'tp') + '"/>'; }
@@ -2899,7 +2904,7 @@ function screenPack(mode, topic0){
   }).catch(function(e){ document.getElementById('board').textContent = 'The pack is napping: ' + e.message; });
 }
 
-var APP_VERSION = "20261002202423";
+var APP_VERSION = "20261002202710";
 (function(){
   try {
     fetch('/version.json?t=' + Date.now(), { cache: 'no-store' }).then(function(r){ return r.json(); }).then(function(j){
