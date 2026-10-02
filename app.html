@@ -364,6 +364,11 @@
   .mgrid .mact{display:flex; flex-direction:column; gap:6px; margin-top:auto} .mgrid .mbody{display:flex; flex-direction:column; flex:1}
   .mgrid .mact .btn,.mgrid .mact .mbtn{margin:0; padding:7px 6px; font-size:12px; width:100%}
   .mgrid{gap:8px}
+  .pickhead{font-weight:900; font-size:15px; margin:4px 2px 8px}
+  .picks{display:flex; flex-wrap:wrap; gap:8px; margin:0 0 12px}
+  .pick{display:inline-flex; align-items:center; gap:6px; border:2px solid var(--line); background:var(--card); color:var(--ink); border-radius:999px; padding:8px 12px; font:inherit; font-size:14px; font-weight:800; cursor:pointer; box-shadow:0 3px 0 #e3d8c4; transition:transform .08s, box-shadow .08s}
+  .pick i{font-size:18px; color:var(--goldtext)} .pick:active{transform:translateY(3px); box-shadow:none}
+  .pick.on{background:var(--gold); border-color:var(--gold); box-shadow:0 3px 0 #d0961f} .pick.on i{color:var(--goldink)}
   .huntcard{background:var(--card); border:2px solid var(--line); border-radius:20px; padding:12px 12px 10px; margin:0 0 16px; cursor:pointer; box-shadow:0 4px 0 #e3d8c4; transition:transform .08s, box-shadow .08s}
   .huntcard:active{transform:translateY(4px); box-shadow:none}
   .hhead{display:flex; justify-content:space-between; align-items:baseline; margin:0 2px 8px} .hhead b{font-size:16px; font-weight:900} .hhead span{font-size:12px; color:var(--sub); font-weight:700}
@@ -1361,8 +1366,10 @@ function screenCapture(prefGripe, prefName){
   root.innerHTML = nav() +
     '<div class="manifesto"><b>The agenda is set for us.<br>Time we set it.</b>' +
       '<span>Algorithms make you forget what mattered. Your pup fetches them back.</span></div>' +
+    '<div class="pickhead">Tap what bugs you most</div>' +
+    '<div class="picks">' + QUICK_ISSUES.map(function(q){ return '<button class="pick" data-q="' + esc(q[1]) + '"><i class="ph-duotone ' + q[0] + '"></i>' + esc(q[1]) + '</button>'; }).join('') + '</div>' +
     '<div class="composer">' +
-      '<textarea id="gripe" placeholder="What should be fixed? Five words is plenty."></textarea>' +
+      '<textarea id="gripe" placeholder="…or write your own. Five words is plenty."></textarea>' +
       '<div id="thumbs" class="attach"></div>' + tagRowHTML() + spotLineHTML() +
       '<div class="cfoot">' +
         '<div class="iconbtn" id="addmedia" title="take a photo"><i class="ph-duotone ph-camera" style="color:#9a5f00"></i></div><div class="iconbtn" id="addgallery" title="choose from your photos"><i class="ph-duotone ph-image" style="color:#3b6fb6"></i></div>' + spotButtonHTML() +
@@ -1373,7 +1380,7 @@ function screenCapture(prefGripe, prefName){
     '</div>' +
     '<div class="pupline">🐶 Your pup is <b id="pnameshow"></b> <a href="#" id="pnamechg">change</a></div>' +
     '<div class="namefield" id="pnamebox" hidden><input id="pname" maxlength="20" placeholder="Pup&rsquo;s name"></div>' +
-    '<button class="btn gold" id="open" disabled>Open the box 🎁</button>' +
+    '<button class="btn gold" id="open" disabled>Meet your pup 🐾</button>' +
     (saved && !KIOSK ? '<button class="btn ghost" id="resume">Continue with ' + esc(saved.name) + ' →</button>' : '') +
     '<p class="privacy">🔒 Private by default. No account needed.</p>' +
     (!saved && !KIOSK ? '<p class="privacy"><a href="/pack" style="color:#3b6fb6;font-weight:700">Just looking? See what your city wants fixed →</a></p>' : '') +
@@ -1387,9 +1394,14 @@ function screenCapture(prefGripe, prefName){
   inp.value = prefName || PUPNAMES[Math.floor(Math.random() * PUPNAMES.length)];
   var show = document.getElementById('pnameshow'); show.textContent = inp.value;
   document.getElementById('pnamechg').onclick = function(ev){ ev.preventDefault(); document.getElementById('pnamebox').hidden = false; this.parentNode.hidden = true; inp.select(); inp.focus(); };
+  Array.prototype.forEach.call(document.querySelectorAll('.pick'), function(b){ b.onclick = function(){
+    var on = b.classList.contains('on'); Array.prototype.forEach.call(document.querySelectorAll('.pick.on'), function(x){ x.classList.remove('on'); });
+    if (!on) { b.classList.add('on'); ta.value = b.getAttribute('data-q'); } else ta.value = ''; upd(); }; });
   function upd(){ if (!inp.value.trim()) inp.value = show.textContent; show.textContent = inp.value.trim() || show.textContent;
+    document.getElementById('open').textContent = 'Meet ' + show.textContent + ' 🐾';
     document.getElementById('open').disabled = !(ta.value.trim() || pendingFiles.length); }
-  ta.oninput = upd; inp.oninput = function(){ if (inp.value.trim()) show.textContent = inp.value.trim(); upd(); };
+  ta.oninput = function(){ Array.prototype.forEach.call(document.querySelectorAll('.pick.on'), function(x){ if (x.getAttribute('data-q') !== ta.value) x.classList.remove('on'); }); upd(); };
+  inp.oninput = function(){ if (inp.value.trim()) show.textContent = inp.value.trim(); upd(); };
   document.getElementById('fpick').addEventListener('change', function(){ setTimeout(upd, 60); });
   document.getElementById('fcam').addEventListener('change', function(){ setTimeout(upd, 60); });
   upd();
@@ -1397,6 +1409,8 @@ function screenCapture(prefGripe, prefName){
   if (saved && !KIOSK) document.getElementById('resume').onclick = function(){ location.href = pupURL(saved.tail); };
 }
 
+var QUICK_ISSUES = [['ph-road-horizon', 'Potholes on my street'], ['ph-trash', 'Bins overflowing'], ['ph-bus', 'Bus too crowded'], ['ph-house-line', 'Rent too high'],
+  ['ph-lamp', 'Dark street at night'], ['ph-traffic-sign', 'Unsafe crossing'], ['ph-bicycle', 'Bike lane blocked'], ['ph-tree', 'Not enough green space'], ['ph-speaker-high', 'Too much noise at night'], ['ph-paint-brush', 'Litter and graffiti']];
 function screenUnbox(name, gripe){
   var still = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   root.innerHTML = nav() +
@@ -2882,7 +2896,7 @@ function screenPack(mode, topic0){
   }).catch(function(e){ document.getElementById('board').textContent = 'The pack is napping: ' + e.message; });
 }
 
-var APP_VERSION = "20261002201749";
+var APP_VERSION = "20261002202252";
 (function(){
   try {
     fetch('/version.json?t=' + Date.now(), { cache: 'no-store' }).then(function(r){ return r.json(); }).then(function(j){
