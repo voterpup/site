@@ -30,7 +30,7 @@ Deno.serve(async (req) => {
       try {
         await webpush.sendNotification({ endpoint: v.endpoint, keys: { p256dh: v.p256dh, auth: v.auth } },
           JSON.stringify({ title: "\ud83d\uddf3\ufe0f Today you vote" + (v.city ? " in " + v.city : ""),
-                           body: v.name + " has your Flashback ready. " + v.election + ".", url: "/p/" + v.tail + "?flash=1" }),
+                           body: v.name + " has your Memory Lane ready. " + v.election + ".", url: "/p/" + v.tail + "?flash=1" }),
           { TTL: 12 * 3600, urgency: "high" });
         await db.from("push_subs").update({ last_vote_push: new Date().toISOString().slice(0, 10) }).eq("endpoint", v.endpoint);
         votes++;

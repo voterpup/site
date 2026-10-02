@@ -372,6 +372,7 @@
   .pick{display:inline-flex; align-items:center; gap:6px; border:2px solid var(--line); background:var(--card); color:var(--ink); border-radius:999px; padding:8px 12px; font:inherit; font-size:14px; font-weight:800; cursor:pointer; box-shadow:0 3px 0 #e3d8c4; transition:transform .08s, box-shadow .08s}
   .pick i{font-size:18px; color:var(--goldtext)} .pick:active{transform:translateY(3px); box-shadow:none}
   .pick.on{background:var(--gold); border-color:var(--gold); box-shadow:0 3px 0 #d0961f} .pick.on i{color:var(--goldink)}
+  .quickrow.small{margin:-6px 0 14px} .quickrow.small .qbtn{padding:7px 8px; font-size:13.5px; border-radius:14px} .quickrow.small .qbtn.gold{flex:1.4}
   .huntcard{background:var(--card); border:2px solid var(--line); border-radius:20px; padding:12px 12px 10px; margin:0 0 16px; cursor:pointer; box-shadow:0 4px 0 #e3d8c4; transition:transform .08s, box-shadow .08s}
   .huntcard:active{transform:translateY(4px); box-shadow:none}
   .hhead{display:flex; justify-content:space-between; align-items:baseline; margin:0 2px 8px} .hhead b{font-size:16px; font-weight:900} .hhead span{font-size:12px; color:var(--sub); font-weight:700}
@@ -1560,11 +1561,11 @@ function screenLedger(tail){
       '<div class="puphead"><span class="pupav-wrap">' + pupRing(76) + '</span><div><div class="pupname">' + esc(L.name) + '</div>' +
         '<div class="pupsub">' + (n ? 'remembers ' + n + ' thing' + (n === 1 ? '' : 's') : 'tap 📸 to feed ' + esc(L.name) + ' a photo') + '</div></div>' +
         '</div>' +
-      (KIOSK ? '' : '<div class="quickrow"><button class="qbtn gold" id="qwalk">' + ic('camera_with_flash', 'btnic') + 'Feed ' + esc(L.name) + '</button><button class="qbtn" id="qnote">' + ic('writing_hand', 'btnic') + 'Write</button></div>' + huntCardHTML(L.name)) +
+      (KIOSK ? '' : huntCardHTML(L.name) + '<div class="quickrow small"><button class="qbtn gold" id="qwalk">' + ic('camera_with_flash', 'btnic') + 'Feed ' + esc(L.name) + '</button><button class="qbtn" id="qnote">' + ic('writing_hand', 'btnic') + 'Note</button></div>') +
       '<div id="fetchslot"></div>' +
       '<div class="momwrap" id="votestrip"></div>' +
       '<div id="entries" class="elist"></div>' + '<div id="backedbox"></div>' +
-      (KIOSK ? '' : '<a href="#" class="flashbtn" id="flashbtn" aria-label="Flashback">' + ic('high_voltage', 'btnic') + '<span>Flashback</span></a>') + tabbar('pup');
+      (KIOSK ? '' : '<a href="#" class="flashbtn" id="flashbtn" aria-label="Memory Lane">' + ic('memory', 'btnic') + '<span>Memory Lane</span></a>') + tabbar('pup');
     wireTabs(); renderVoteStrip(); refreshPlaceIfStale();
     var hcd = document.getElementById('huntcard'); if (hcd) hcd.onclick = function(ev){ if (ev.target.closest('.htoggle,.hview[data-hview="map"]')) return; startWalk(); };
     Array.prototype.forEach.call(document.querySelectorAll('[data-hv]'), function(b){ b.onclick = function(ev){ ev.stopPropagation(); var v = b.getAttribute('data-hv');
@@ -1805,7 +1806,7 @@ function startWalk(){
 }
 var PH = { camera_with_flash: ['ph-fill ph-camera', 'inherit'], cityscape: ['ph-duotone ph-buildings', '#22786a'], writing_hand: ['ph-duotone ph-pencil-simple-line', '#3b6fb6'],
   bullseye: ['ph-duotone ph-game-controller', '#d1495b'], high_voltage: ['ph-fill ph-lightning', '#f4b63f'], world_map: ['ph-duotone ph-map-trifold', '#22786a'],
-  round_pushpin: ['ph-fill ph-map-pin', '#d1495b'], globe_showing_americas: ['ph-duotone ph-globe-hemisphere-west', '#3b6fb6'], paw_prints: ['ph-duotone ph-paw-print', '#9a5f00'], dog: ['ph-duotone ph-dog', '#9a5f00'] };
+  round_pushpin: ['ph-fill ph-map-pin', '#d1495b'], globe_showing_americas: ['ph-duotone ph-globe-hemisphere-west', '#3b6fb6'], paw_prints: ['ph-duotone ph-paw-print', '#9a5f00'], memory: ['ph-duotone ph-clock-counter-clockwise', '#f4b63f'], dog: ['ph-duotone ph-dog', '#9a5f00'] };
 function ic(n, cls){
   var p = PH[n]; if (!p) return '<img class="ic' + (cls ? ' ' + cls : '') + '" src="/ic/' + n + '.webp" alt="" draggable="false">';   // the mascot stays 3D
   return '<i class="ic ph ' + p[0] + (cls ? ' ' + cls : '') + '"' + (p[1] !== 'inherit' ? ' style="color:' + p[1] + '"' : '') + ' aria-hidden="true"></i>';
@@ -1870,7 +1871,7 @@ function openFlashback(L){
       g.d.toLocaleDateString(undefined, { month: 'short' }) + '</span><small>' + g.d.toLocaleDateString(undefined, { weekday: 'short' }) + '</small></div>' +
       '<div class="fcol">' + g.list.map(function(it){ return card(it, k++); }).join('') + '</div></div>';
   }).join('');
-  ov.innerHTML = '<div class="flashtop"><div><div class="flashtitle">⚡ ' + nm + '&rsquo;s flashback</div>' +
+  ov.innerHTML = '<div class="flashtop"><div><div class="flashtitle">' + nm + '&rsquo;s Memory Lane</div>' +
       '<div class="flashsub">' + (demo ? 'A demo of what yours will look like' :
         mine + ' issue' + (mine === 1 ? '' : 's') + (backs ? ' · ' + backs + ' you back' : '') + ' · since ' + first.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })) + '</div></div>' +
       '<a href="#" class="flashx" id="flashx">✕</a></div>' +
@@ -2043,12 +2044,12 @@ function screenReport(tail){
     root.innerHTML = '<div class="report">' +
       '<div class="rphead"><img src="/pup-face.jpg" alt=""><div><div class="rpk">From now on</div><div class="rpt">' + nm + ' reports back</div></div></div>' +
       '<div class="rprow"><span>🔔</span><div><b>Tonight at 7</b><small>how many people feel the same as you</small></div></div>' +
-      '<div class="rprow"><span>🗳️</span><div><b>' + voteLine + '</b><small>your Flashback, and what&rsquo;s on your ballot</small></div></div>' +
+      '<div class="rprow"><span>🗳️</span><div><b>' + voteLine + '</b><small>your Memory Lane, and what&rsquo;s on your ballot</small></div></div>' +
       '<div class="rprow"><span>📋</span><div><b>After the vote</b><small>promises made vs. what got fixed</small></div></div>' +
       proof +
       '<div id="notalone" hidden></div>' +
       (first ? '<label class="switchrow" style="margin:12px 2px"><input type="checkbox" id="rpshare"> Add it to Your city 🌱 <small style="color:var(--sub)">(public, no name)</small></label>' : '') +
-      '<input type="email" id="rpemail" placeholder="Email for the Flashback on voting morning (optional)" autocomplete="email" style="margin:4px 0 10px">' +
+      '<input type="email" id="rpemail" placeholder="Email for your Memory Lane on voting morning (optional)" autocomplete="email" style="margin:4px 0 10px">' +
       '<button class="btn gold" id="rpgo">Let ' + nm + ' report back 🔔</button>' +
       '<a href="#" class="rpskip" id="rpskip">Not now</a>' +
       '<p class="privacy" id="rperr"></p></div>';
@@ -2379,7 +2380,7 @@ function whySheet(kind, name){
     ] : [
       'Algorithms make you forget what mattered.', '<b>' + nm + ' fetches them back.</b>',
       'Give it what should be fixed.', 'Private, unless you say so.',
-      'The morning you vote, ' + nm + ' hands you your Flashback.',
+      'The morning you vote, ' + nm + ' walks you down Memory Lane.',
       '<b>Make them earn it.</b>'
     ];
   var media = kind === 'pack' ? '<img src="/pup-watch.jpg" alt="">'
@@ -2935,7 +2936,7 @@ function screenPack(mode, topic0){
   }).catch(function(e){ document.getElementById('board').textContent = 'The pack is napping: ' + e.message; });
 }
 
-var APP_VERSION = "20261002204434";
+var APP_VERSION = "20261002204508";
 (function(){
   try {
     fetch('/version.json?t=' + Date.now(), { cache: 'no-store' }).then(function(r){ return r.json(); }).then(function(j){

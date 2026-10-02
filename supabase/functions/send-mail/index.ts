@@ -63,7 +63,7 @@ Deno.serve(async (req) => {
   }
   const { data: vd } = await db.rpc("vp_due_vote_mails");
   for (const v of vd ?? []) {
-    const m = wrap(v.name, `Today you vote${v.city ? " in " + v.city : ""}. ${v.election}. ${v.name} has your Flashback ready.`, "Open my Flashback", `${SITE}/p/${v.tail}?flash=1`, `${FN}?unsub=${v.token}`);
+    const m = wrap(v.name, `Today you vote${v.city ? " in " + v.city : ""}. ${v.election}. ${v.name} has your Memory Lane ready.`, "Open my Memory Lane", `${SITE}/p/${v.tail}?flash=1`, `${FN}?unsub=${v.token}`);
     try { await sendMail(v.email, `🗳️ Today you vote${v.city ? " in " + v.city : ""}`, m.html, m.text); await db.from("mail_subs").update({ last_vote: new Date().toISOString().slice(0, 10) }).eq("email", v.email); votes++; }
     catch (e) { failed++; }
   }
