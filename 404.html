@@ -980,7 +980,13 @@ function renderThumbs(){
     r.onclick = function(){ pendingFiles.splice(+r.getAttribute('data-i'), 1); renderThumbs(); };
   });
 }
-function uploadPending(){
+function uploadPending(){   // photos are shrunk on the phone first (1024 px JPEG, ~150 KB) so viewing them stays cheap and fast
+  return Promise.all(pendingFiles.map(function(f){
+    if (!f.type || f.type.indexOf('image/') !== 0 || f.type === 'image/gif' || f.size < 300000) return Promise.resolve(f);
+    return shrinkPhoto(f).then(function(b){ return new File([b], (f.name || 'photo').replace(/\.[^.]*$/, '') + '.jpg', { type: 'image/jpeg' }); }).catch(function(){ return f; });
+  })).then(function(files){ pendingFiles = files; return uploadRaw(); });
+}
+function uploadRaw(){
   var ups = pendingFiles.map(function(f){
     var ext = (f.name.split('.').pop() || 'bin').toLowerCase().replace(/[^a-z0-9]/g,'').slice(0,5);
     var name = (crypto.randomUUID ? crypto.randomUUID() : String(Date.now()+Math.random())) + '.' + ext;
@@ -2977,7 +2983,7 @@ function screenPack(mode, topic0){
   }).catch(function(e){ document.getElementById('board').textContent = 'The pack is napping: ' + e.message; });
 }
 
-var APP_VERSION = "20261002230657";
+var APP_VERSION = "20261002233328";
 (function(){
   try {
     fetch('/version.json?t=' + Date.now(), { cache: 'no-store' }).then(function(r){ return r.json(); }).then(function(j){
