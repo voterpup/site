@@ -2501,7 +2501,7 @@ function screenPack(mode, topic0){
   }).catch(function(e){ document.getElementById('board').textContent = 'The pack is napping: ' + e.message; });
 }
 
-var APP_VERSION = "20261002020324";
+var APP_VERSION = "20261002021215";
 (function(){
   try {
     fetch('/version.json?t=' + Date.now(), { cache: 'no-store' }).then(function(r){ return r.json(); }).then(function(j){
@@ -2739,7 +2739,7 @@ function screenManage(){
     var L = res[0], sess = res[1] && res[1].data && res[1].data.session, email = sess && sess.user && sess.user.email;
     if (!L) { root.innerHTML = nav() + say('This pup couldn&rsquo;t be found.', 'start a new one') + tabbar('manage'); wireTabs(); return; }
     var n = L.entries.length, nm = esc(L.name), backed = isBackedUp(tail);
-    var rows = (canOfferInstall() ? mrow('<img src="/icon-192.png" alt="">', '📲 Get the app', 'Home-screen icon, full screen, reminders.',
+    var rows = (canOfferInstall() ? mrow('<div class="mkeythumb">📲</div>', 'Get the app', 'Home-screen icon, full screen, reminders.',
         '<button class="btn gold mbtn" id="minstall">Install VoterPup</button>') : '') +
       (KIOSK ? '' : mrow(slotMedia('share'), 'Show what matters to you', 'Candidates see your issues, never you.',
         '<button class="btn gold mbtn" id="mshare"' + (n ? '' : ' disabled') + '>' + (n ? '📤 Share my issues' : 'Tell ' + nm + ' one issue first') + '</button>'));
@@ -2755,9 +2755,9 @@ function screenManage(){
     if (!(email && backed)) rows += mrow('<div class="mkeythumb">🔑</div>', 'Private link',
       'Your only key until you back up.',
       '<button class="btn ghost mbtn" id="mcopy">Copy link</button><button class="btn ghost mbtn" id="mstk">🏷️ Key sticker</button>');
-    if (!KIOSK) rows += mrow('<img src="/pup-face.jpg" alt="">', '📧 Reports by email', hasMail() ? 'On, 7 pm daily' : 'For phones without notifications',
+    if (!KIOSK) rows += mrow('<div class="mkeythumb">📧</div>', 'Reports by email', hasMail() ? 'On, 7 pm daily' : 'For phones without notifications',
       '<button class="btn ' + (hasMail() ? 'ghost' : 'gold') + ' mbtn" id="mmail">' + (hasMail() ? 'Change' : 'Turn on') + '</button>' + (hasMail() ? '<button class="btn ghost mbtn" id="mmailoff">Stop</button>' : ''));
-    if (!KIOSK) rows += mrow('<img src="/pup-sit.webp" alt="" style="object-position:50% 12%">', '🔔 Reminders', remLabel(remPref()),
+    if (!KIOSK) rows += mrow('<video src="/pup-bark.mp4" poster="/pup-bark.jpg" muted autoplay loop playsinline></video>', '🔔 Reminders', remLabel(remPref()),
       '<button class="btn ' + (remPref() && !remPref().off ? 'ghost' : 'gold') + ' mbtn" id="mrem">' + (remPref() && !remPref().off ? 'Change' : 'Turn on') + '</button>');
     rows += mrow('<div class="mkeythumb">🎯</div>', 'Pup Patrol', 'Smash today&rsquo;s issues. 30 seconds.', '<a class="btn gold mbtn" href="/play">Play</a>');
     rows += mrow('<img id="invthumb" alt="">', '🐾 Invite your friends',
