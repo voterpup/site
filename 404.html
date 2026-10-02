@@ -101,11 +101,11 @@
   .reveal.show{opacity:1}
   .namefield{margin-top:10px}
   .unboxwrap{position:relative; width:100%; max-width:300px; margin:8px auto 4px; border-radius:18px; overflow:hidden;
-      aspect-ratio:9/16; max-height:58vh; background:#e9edf1; box-shadow:0 6px 24px rgba(16,24,40,.12)}
+      aspect-ratio:5/6; max-height:58vh; background:#e9edf1; box-shadow:0 6px 24px rgba(16,24,40,.12)}
   .unboxwrap video{width:100%; height:100%; object-fit:cover; display:block}
   .unboxwrap .tag{bottom:14px; left:50%; transform:translateX(-50%) scale(0)}
   @keyframes poptag{0%{opacity:0; transform:translateX(-50%) scale(0)}70%{opacity:1; transform:translateX(-50%) scale(1.15)}100%{opacity:1; transform:translateX(-50%) scale(1)}}
-  .unboxwrap .tag{animation:poptag .45s cubic-bezier(.34,1.56,.64,1) 3.1s forwards}
+  .unboxwrap .tag{animation:poptag .45s cubic-bezier(.34,1.56,.64,1) 2.6s forwards}
   .fetchcard{display:flex; gap:12px; align-items:center; background:var(--card); border:1px solid var(--line);
       border-radius:16px; padding:8px; margin:0 0 12px; box-shadow:0 1px 2px rgba(16,24,40,.05)}
   .fetchcard video{width:78px; height:120px; object-fit:cover; border-radius:12px; flex:0 0 auto; background:#e9edf1}
@@ -2496,7 +2496,7 @@ function huntCircles(found, fresh){   // a little winding trail: stop, stop, sto
     return '<div class="hc' + (on ? ' on' : '') + (fresh && fresh.indexOf(k) >= 0 ? ' pop' : '') + '" style="left:' + (X[i] / 5) + '%;top:' + (Y[i] - 24) + 'px">' +
       '<span class="hcdot" style="--c:' + it[2] + '"><i class="ph-duotone ' + it[0] + '"></i>' + (on ? '<b>✓</b>' : '') + '</span><small>' + esc(it[1]) + '</small></div>'; }).join('') + '</div>'; }
 function huntCardHTML(name){ var s = huntState(), n = huntTargets().filter(function(k){ return s.found[k]; }).length;
-  return '<div class="huntcard" id="huntcard"><div class="hhead"><b>' + (n >= 5 ? '🏆 Challenge done!' : '🔍 Today&rsquo;s sniff challenge') + '</b><span>' + n + '/5 · new tomorrow</span></div>' +
+  return '<div class="huntcard" id="huntcard"><div class="hhead"><b>' + (n >= 5 ? '🏆 Challenge done!' : 'Today&rsquo;s sniff challenge') + '</b><span>' + n + '/5 · new tomorrow</span></div>' +
     huntCircles(s.found) + '<div class="hfoot">' + (n >= 5 ? esc(name) + ' found everything today. Legend.' : 'Each find is worth more: 10 · 20 · 30 · 40 · 50 points, +50 for all five.') + '</div></div>'; }
 function huntApply(spotted){   // returns the newly found targets
   var s = huntState(), tg = huntTargets(), fresh = (spotted || []).filter(function(k){ return tg.indexOf(k) >= 0 && !s.found[k]; });
@@ -2540,7 +2540,7 @@ function walkSheet(s, file){
     track('snap', { safe: r.safe, n: (r.findings || []).length });
     var hu = huntApply(r.spotted);
     if (hu.fresh.length) { var hb = document.createElement('div'); hb.className = 'huntwin';
-      hb.innerHTML = '<div class="hwtitle">' + (hu.completed ? '🏆 Challenge done! ' + esc(s.name) + ' found all 5.' : '🔍 Found ' + hu.fresh.map(function(k){ return HUNT_ITEMS[k][1]; }).join(' + ') + '!') + ' <span class="hwpts">+' + hu.gained + '</span></div>' + huntCircles(hu.found, hu.fresh);
+      hb.innerHTML = '<div class="hwtitle">' + (hu.completed ? '🏆 Challenge done! ' + esc(s.name) + ' found all 5.' : 'Found ' + hu.fresh.map(function(k){ return HUNT_ITEMS[k][1]; }).join(' + ') + '!') + ' <span class="hwpts">+' + hu.gained + '</span></div>' + huntCircles(hu.found, hu.fresh);
       document.querySelector('.walksheet').insertBefore(hb, document.querySelector('.walksheet .walkline'));
       if (navigator.vibrate) navigator.vibrate(hu.completed ? [60, 40, 60, 40, 120] : 50); if (hu.completed) confettiBurst(); }
     var uploaded = null;
@@ -2902,7 +2902,7 @@ function screenPack(mode, topic0){
   }).catch(function(e){ document.getElementById('board').textContent = 'The pack is napping: ' + e.message; });
 }
 
-var APP_VERSION = "20261002202840";
+var APP_VERSION = "20261002203220";
 (function(){
   try {
     fetch('/version.json?t=' + Date.now(), { cache: 'no-store' }).then(function(r){ return r.json(); }).then(function(j){
