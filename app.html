@@ -387,6 +387,9 @@
   .huntcard{background:var(--card); border:2px solid var(--line); border-radius:20px; padding:12px 12px 10px; margin:0 0 16px; cursor:pointer; box-shadow:0 4px 0 #e3d8c4; transition:transform .08s, box-shadow .08s}
   .huntcard:active{transform:translateY(4px); box-shadow:none}
   .hhead{display:flex; justify-content:space-between; align-items:baseline; margin:0 2px 8px} .hhead b{font-size:16px; font-weight:900} .hhead span{font-size:12px; color:var(--sub); font-weight:700}
+  .puplv{font-size:12.5px; color:var(--sub); font-weight:700} .puplv b{color:var(--goldtext)}
+  .hprog{display:flex; align-items:center; gap:8px; margin:-2px 2px 10px} .hprog b{font-size:13px; font-weight:900}
+  .hbar{flex:1; height:10px; border-radius:999px; background:#ece4d6; overflow:hidden} .hbar i{display:block; height:100%; border-radius:999px; transition:width .9s cubic-bezier(.2,.8,.2,1)}
   .htoggle{display:inline-flex; background:#ece8de; border-radius:999px; padding:3px; margin:0 0 6px} .htoggle span{padding:4px 12px; border-radius:999px; font-size:12px; font-weight:900; color:var(--sub); cursor:pointer}
   .htoggle span.on{background:#fff; color:var(--ink); box-shadow:0 1px 3px rgba(0,0,0,.12)}
   .hview[data-hview="map"]{position:relative}
@@ -1573,7 +1576,7 @@ function screenLedger(tail){
     pendingFiles = [];
     root.innerHTML = nav(KIOSK ? '' : '<a href="#" class="navpill" id="navshow" title="A read-only code for candidates"><i class="ph-duotone ph-share-network"></i> My issues</a><a href="/manage" class="iconnav" id="navman" title="Manage"><i class="ph-duotone ph-gear-six"></i></a>').replace('class="nav"', 'class="nav compact"') +
       (KIOSK ? '' : '<div class="island" id="island"></div>') +
-      '<div class="puphead"><span class="pupav-wrap">' + pupRing(76) + '</span><div><div class="pupname">' + esc(L.name) + '</div>' +
+      '<div class="puphead"><span class="pupav-wrap">' + pupRing(76) + '</span><div><div class="pupname">' + esc(L.name) + '</div><div class="puplv">' + (function(lv){ return '<b>' + lv.name + '</b>' + (lv.next ? ' · ' + lv.toNext + ' pts to ' + lv.next : ''); })(pupLevel()) + '</div>' +
         '<div class="pupsub">' + (n ? 'remembers ' + n + ' thing' + (n === 1 ? '' : 's') : 'tap 📸 to feed ' + esc(L.name) + ' a photo') + '</div></div>' +
         '</div>' +
       (KIOSK ? '' : huntCardHTML(L.name) + '<div class="quickrow small"><button class="qbtn gold" id="qwalk">' + ic('camera_with_flash', 'btnic') + 'Feed ' + esc(L.name) + '</button><button class="qbtn" id="qnote">' + ic('writing_hand', 'btnic') + 'Note</button></div>') +
@@ -2512,8 +2515,11 @@ function confettiBurst(){ var cs = ['#f4b63f', '#22786a', '#d1495b', '#3b6fb6', 
   c.style.left = (Math.random() * 100) + 'vw'; c.style.background = cs[i % cs.length]; c.style.animationDelay = (Math.random() * .4) + 's'; c.style.transform = 'rotate(' + (Math.random() * 360) + 'deg)';
   document.body.appendChild(c); setTimeout(function(x){ return function(){ x.remove(); }; }(c), 2600); } }
 function pupPoints(){ try { return +(localStorage.getItem('vp.pts') || 0); } catch (e) { return 0; } }
-function pupRing(size){   // MyZone-style ring: today's progress around the pup, points underneath
-  var s = huntState(), tg = huntTargets(), n = tg.filter(function(k){ return s.found[k]; }).length, r = size / 2 - 5, C = 2 * Math.PI * r;
+var PUP_LEVELS = [[0, 'Puppy'], [150, 'Sniffer'], [400, 'Scout'], [900, 'Ranger'], [1800, 'Pack Leader'], [3500, 'Legend']];
+function pupLevel(){ var p = pupPoints(), i = 0; while (i + 1 < PUP_LEVELS.length && p >= PUP_LEVELS[i + 1][0]) i++;
+  var lo = PUP_LEVELS[i][0], hi = PUP_LEVELS[i + 1] ? PUP_LEVELS[i + 1][0] : lo; return { i: i, name: PUP_LEVELS[i][1], next: PUP_LEVELS[i + 1] ? PUP_LEVELS[i + 1][1] : null, frac: hi > lo ? (p - lo) / (hi - lo) : 1, toNext: hi - p }; }
+function pupRing(size){   // MyZone-style ring: the pup's overall growth (progress to the next level), points underneath
+  var lv = pupLevel(), r = size / 2 - 5, C = 2 * Math.PI * r, n = lv.frac * 5;
   return '<div class="pring" style="width:' + size + 'px"><svg width="' + size + '" height="' + size + '"><circle cx="' + size / 2 + '" cy="' + size / 2 + '" r="' + r + '" class="prbg"/>' +
     '<circle cx="' + size / 2 + '" cy="' + size / 2 + '" r="' + r + '" class="prfg" data-c="' + C + '" data-to="' + (n / 5) + '" style="stroke-dasharray:' + C + ';stroke-dashoffset:' + C + '"/></svg>' +
     '<img class="pupav" src="/pup-face.jpg" alt=""><span class="ppts" data-to="' + pupPoints() + '">0</span></div>'; }
@@ -2562,7 +2568,8 @@ function huntCircles(found, fresh){   // a little winding trail: stop, stop, sto
     return '<div class="hc' + (on ? ' on' : '') + (fresh && fresh.indexOf(k) >= 0 ? ' pop' : '') + '" style="left:' + (X[i] / 5) + '%;top:' + (Y[i] - 24) + 'px">' +
       '<span class="hcdot" style="--c:' + it[2] + '"><i class="ph-duotone ' + it[0] + '"></i>' + (on ? '<b>✓</b>' : '') + '</span><small>' + esc(it[1]) + '</small></div>'; }).join('') + '</div>'; }
 function huntCardHTML(name){ var s = huntState(), n = huntTargets().filter(function(k){ return s.found[k]; }).length;
-  return '<div class="huntcard" id="huntcard"><div class="hhead"><b>' + (n >= 5 ? '🏆 Challenge done!' : 'Today&rsquo;s sniff challenge') + '</b><span>' + n + '/5 · new tomorrow</span></div>' +
+  return '<div class="huntcard" id="huntcard"><div class="hhead"><b>' + (n >= 5 ? '🏆 Challenge done!' : 'Today&rsquo;s sniff challenge') + '</b><span>new tomorrow</span></div>' +
+    '<div class="hprog"><div class="hbar"><i style="width:' + (n / 5 * 100) + '%;background:' + ringColor(n / 5) + '"></i></div><b>' + n + '/5</b></div>' +
     '<div class="htoggle"><span class="on" data-hv="trail">Trail</span><span data-hv="map">Map</span></div>' +
     '<div class="hview" data-hview="trail">' + huntCircles(s.found) + '</div><div class="hview" data-hview="map" hidden><div class="hmap" id="hmap"></div><div class="hstack" id="hstack"></div></div>' + '<div class="hfoot">' + (n >= 5 ? esc(name) + ' found everything today. Legend.' : 'Each find is worth more: 10 · 20 · 30 · 40 · 50 points, +50 for all five.') + '</div></div>'; }
 function huntApply(spotted, sp){   // returns the newly found targets; sp = where the photo was taken
@@ -2969,7 +2976,7 @@ function screenPack(mode, topic0){
   }).catch(function(e){ document.getElementById('board').textContent = 'The pack is napping: ' + e.message; });
 }
 
-var APP_VERSION = "20261002213132";
+var APP_VERSION = "20261002213358";
 (function(){
   try {
     fetch('/version.json?t=' + Date.now(), { cache: 'no-store' }).then(function(r){ return r.json(); }).then(function(j){
