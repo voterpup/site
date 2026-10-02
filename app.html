@@ -1366,7 +1366,7 @@ function screenUnbox(name, gripe){
 function startTour(name, k0){
   var nm = esc(name);
   var steps = [
-    { sel: '#tab-plus', text: 'Tap <b>📸 Walk</b> and point at anything. ' + nm + ' reads it, and makes you laugh.' },
+    { sel: '#tab-plus', text: 'Tap <b>📸 Feed</b> and point at anything. ' + nm + ' chews on it, and makes you laugh.' },
     { sel: '#votestrip', text: '<b>When you can act 🗳️</b> ' + nm + ' brings your issues back at voting time.' },
     { sel: '#navman', text: '<b>⚙️ Back up ' + nm + '</b> with Google so you never lose it.', last: true }
   ].filter(function(s){ return document.querySelector(s.sel); });
@@ -1439,9 +1439,9 @@ function screenLedger(tail){
     root.innerHTML = nav(KIOSK ? '' : '<a href="#" class="navpill" id="navshow" title="A read-only code for candidates">📤 My issues</a><a href="/manage" class="iconnav" id="navman" title="Manage">⚙️</a>').replace('class="nav"', 'class="nav compact"') +
       (KIOSK ? '' : '<div class="island" id="island"></div>') +
       '<div class="puphead"><span class="pupav-wrap"><img class="pupav" src="/pup-face.jpg" alt=""></span><div><div class="pupname">' + esc(L.name) + '</div>' +
-        '<div class="pupsub">' + (n ? 'remembers ' + n + ' thing' + (n === 1 ? '' : 's') : 'tap 📸 to walk ' + esc(L.name)) + '</div></div>' +
+        '<div class="pupsub">' + (n ? 'remembers ' + n + ' thing' + (n === 1 ? '' : 's') : 'tap 📸 to feed ' + esc(L.name) + ' a photo') + '</div></div>' +
         '</div>' +
-      (KIOSK ? '' : '<div class="quickrow"><button class="qbtn gold" id="qwalk">📸 Walk ' + esc(L.name) + '</button><button class="qbtn" id="qnote">✍️ Write</button><a class="qbtn" href="/play">🎯 Play</a></div>') +
+      (KIOSK ? '' : '<div class="quickrow"><button class="qbtn gold" id="qwalk">📸 Feed ' + esc(L.name) + '</button><button class="qbtn" id="qnote">✍️ Write</button><a class="qbtn" href="/play">🎯 Play</a></div>') +
       '<div id="fetchslot"></div>' +
       '<div class="momwrap" id="votestrip"></div>' +
       '<div id="entries" class="grid2"></div>' + '<div id="backedbox"></div>' +
@@ -1452,7 +1452,7 @@ function screenLedger(tail){
     renderIsland(tail, L.name);
 
     var q0 = new URLSearchParams(location.search);
-    if (q0.get('add') === 'walk' && !KIOSK) { history.replaceState(null, '', location.pathname); track('notif_open', { kind: 'walk' }); setTimeout(function(){ openAdd(); toast('🐾 Tap Walk ' + esc(L.name) + ' and snap something'); }, 400); }
+    if (q0.get('add') === 'walk' && !KIOSK) { history.replaceState(null, '', location.pathname); track('notif_open', { kind: 'walk' }); setTimeout(function(){ openAdd(); toast('🐾 Tap 📸 Feed to give ' + esc(L.name) + ' a photo'); }, 400); }
     if (q0.get('add') === '1' && !KIOSK) { history.replaceState(null, '', location.pathname); track('notif_open', { kind: 'reminder' }); setTimeout(openAdd, 250); }   // from a reminder
     if (q0.get('flash') === '1') { history.replaceState(null, '', location.pathname); track('notif_open', { kind: 'vote' }); setTimeout(function(){ openFlashback(L); }, 400); }   // vote morning
     var wantTour = false; try { wantTour = sessionStorage.getItem('vp.tour') === '1'; sessionStorage.removeItem('vp.tour'); } catch (e) {}
@@ -1620,20 +1620,42 @@ function say(text, small, name){
   return '<div class="say"><img class="avatar" src="/pup-face.jpg" alt="">' +
     '<div class="balloon">' + text + (small ? '<small>' + small + '</small>' : '') + '</div></div>';
 }
-// Walk: the camera opens straight away; the pup reads the photo. (Typing lives in "✍️ Write it instead".)
-function startWalk(){
-  var s = loadLocal(); if (!s || KIOSK) { location.href = '/app.html?new=1'; return; }
-  if (window._tourEnd) window._tourEnd();
+// Feed: the pup needs your location (it keeps things real and stops spam), then the camera opens.
+function openCamera(s){
   var inp = document.createElement('input'); inp.type = 'file'; inp.accept = 'image/*'; inp.setAttribute('capture', 'environment'); inp.style.display = 'none';
   document.body.appendChild(inp);
   inp.addEventListener('change', function(){ var f = inp.files && inp.files[0]; inp.remove(); if (f) walkSheet(s, f); });
   inp.click();
 }
+function startWalk(){
+  var s = loadLocal(); if (!s || KIOSK) { location.href = '/app.html?new=1'; return; }
+  if (window._tourEnd) window._tourEnd();
+  var fresh = window._lastSpot && Date.now() - window._lastSpot.ts < 600000;
+  var granted = function(){ grabSpot(function(sp){ pendingSpot = sp; }, function(){}); openCamera(s); };
+  if (fresh) { pendingSpot = window._lastSpot.spot; openCamera(s); return; }
+  var ask = function(){
+    var ov = document.createElement('div'); ov.className = 'stkover'; document.body.appendChild(ov);
+    var close = function(){ if (ov.parentNode) ov.parentNode.removeChild(ov); };
+    ov.onclick = function(ev){ if (ev.target === ov) close(); };
+    ov.innerHTML = '<div class="stksheet" style="text-align:center"><div style="font-size:40px">📍</div><div class="addhead">' + esc(s.name) + ' needs to know where you are</div>' +
+      '<p class="hint" style="margin:6px 0 12px">So every photo is from a real street, and the city list stays free of spam. Only the street name is shown, never your exact spot.</p>' +
+      '<button class="btn gold" id="locgo">📍 Allow location</button><button class="btn ghost" id="locno">Not now</button></div>';
+    document.getElementById('locno').onclick = close;
+    document.getElementById('locgo').onclick = function(){
+      var b = this; b.disabled = true; b.textContent = 'Asking your phone…';
+      grabSpot(function(sp){ pendingSpot = sp; b.disabled = false; b.textContent = '📸 Open the camera'; b.onclick = function(){ close(); openCamera(s); }; },
+        function(why){ b.disabled = false; b.textContent = '📍 Try again';
+          ov.querySelector('.hint').innerHTML = why === 'denied' ? 'Location is blocked for voterpup.com. Allow it in your browser’s site settings (the 🔒 next to the address), then try again.' : 'Couldn’t get a location. Turn on location services, then try again.'; });
+    };
+  };
+  if (navigator.permissions && navigator.permissions.query) navigator.permissions.query({ name: 'geolocation' }).then(function(st){ st.state === 'granted' ? granted() : ask(); }).catch(ask);
+  else ask();
+}
 function tabName(){ var s = loadLocal(); return s && s.name ? (s.name.length > 12 ? s.name.slice(0, 11) + '…' : s.name) : 'My pup'; }
 function tabbar(active){
   return '<div class="tabbar">' +
     '<a href="/pack" class="' + (active==='pack'?'on':'') + '">🏙️<span>Your city</span></a>' +
-    '<a href="#" class="plusbtn" id="tab-plus" aria-label="Walk: snap something"><b>📸</b><span class="walklbl">Walk</span></a>' +
+    '<a href="#" class="plusbtn" id="tab-plus" aria-label="Feed your pup a photo"><b>📸</b><span class="walklbl">Feed</span></a>' +
     '<a href="#" id="tab-pup" class="' + (active==='pup'||active==='manage'?'on':'') + '">🐶<span>' + esc(tabName()) + '</span></a>' +
   '</div>';
 }
@@ -2237,7 +2259,7 @@ function openAdd(){
   ov.innerHTML = '<div class="stksheet addsheet"><div class="addtop">' +
       '<div class="addthumb"><video src="/pup-robo.mp4" poster="/pup-robo.jpg" muted autoplay loop playsinline></video></div>' +
       '<div><div class="addhead" style="margin:0">✍️ Tell ' + nm + '</div><div class="addtag">Break the Algo</div></div></div>' +
-    '<button class="walkbtn" id="walkbtn"><span class="wpaw">🐾</span>Walk ' + nm + '<small>snap one thing that could be better · it names what it sees</small></button>' +
+    '<button class="walkbtn" id="walkbtn"><span class="wpaw">📸</span>Feed ' + nm + ' a photo<small>anything on your street · it names what it sees</small></button>' +
     '<input id="fwalk" type="file" accept="image/*" capture="environment" hidden>' +
     '<textarea id="gripe" placeholder="Or type it: what should be fixed? Five words is plenty."></textarea>' +
     '<div id="thumbs" class="attach"></div>' + tagRowHTML() + spotLineHTML() +
@@ -2272,9 +2294,14 @@ function openAdd(){
     }).catch(function(e){ alert('The pup stumbled: ' + e.message); upd(); });
   }
   document.getElementById('priv').onclick = function(){ submit(false); };
-  document.getElementById('share').onclick = function(){ submit(true); };
+  document.getElementById('share').onclick = function(){
+    if (pendingSpot) return submit(true);
+    var b = this; b.textContent = '📍…';
+    grabSpot(function(sp){ pendingSpot = sp; renderSpot(); b.textContent = '🌱 Be counted'; submit(true); },
+      function(){ b.textContent = '🌱 Be counted'; toast('To add it to Your city, ' + nm + ' needs your location (it keeps the list spam-free). Keep it private instead, or allow location.', 5000); });
+  };
   var fw = document.getElementById('fwalk');
-  document.getElementById('walkbtn').onclick = function(){ fw.click(); };
+  document.getElementById('walkbtn').onclick = function(){ close(); startWalk(); };
   fw.addEventListener('change', function(){ if (fw.files && fw.files[0]) { close(); walkSheet(s, fw.files[0]); } });
 }
 // ---------- Walk the pup: one photo -> the pup names what it sees -> tap Keep ----------
@@ -2295,17 +2322,22 @@ function walkSheet(s, file){
   function close(){ if (ov.parentNode) ov.parentNode.removeChild(ov); pendingSpot = null; }
   ov.onclick = function(ev){ if (ev.target === ov) close(); };
   var line = WALK_LINES[Math.floor(Math.random() * WALK_LINES.length)];
-  ov.innerHTML = '<div class="stksheet addsheet walksheet"><div class="addhead">🐾 ' + nm + ' is looking…</div><div class="walkline">' + line + '</div>' +
+  ov.innerHTML = '<div class="stksheet addsheet walksheet"><div class="addhead">🐾 ' + nm + ' is chewing on it…</div><div class="walkline">' + line + '</div>' +
     '<div class="walkpic"><img id="walkimg" alt=""><div class="shine"></div><video class="scanpup" src="/pup-scan.mp4" muted autoplay loop playsinline></video></div><div id="walkout"><div class="hint">reading the photo</div><div class="wskel" style="--i:0"></div><div class="wskel" style="--i:1"></div><div class="wskel" style="--i:2"></div></div></div>';
-  var blob = null; pendingSpot = null; autoSpot();
+  var blob = null;
+  var spotReady = new Promise(function(res){ var t0 = Date.now(); (function wait(){ if (pendingSpot || Date.now() - t0 > 9000) return res(pendingSpot); setTimeout(wait, 250); })(); });
   shrinkPhoto(file).then(function(b){ blob = b; document.getElementById('walkimg').src = URL.createObjectURL(b);
     return new Promise(function(res){ var r = new FileReader(); r.onload = function(){ res(r.result.split(',')[1]); }; r.readAsDataURL(b); });
-  }).then(function(b64){ return fetch(SUPABASE_URL + '/functions/v1/snap-look', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ image: b64, type: 'image/jpeg' }) }).then(function(r){ return r.json(); });
+  }).then(function(b64){ return spotReady.then(function(sp){
+      if (!sp) return { error: 'location' };
+      return fetch(SUPABASE_URL + '/functions/v1/snap-look', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ image: b64, type: 'image/jpeg', lat: sp.lat, lng: sp.lng, dev: devId() }) }).then(function(r){ return r.json(); }); });
   }).then(function(r){
     var out = document.getElementById('walkout'); document.querySelector('.walkpic .shine').remove(); var sp = document.querySelector('.walkpic .scanpup'); if (sp) { sp.classList.add('bye'); setTimeout(function(){ sp.remove(); }, 400); }
     track('snap', { safe: r.safe, n: (r.findings || []).length });
     var uploaded = null;
     function upload(){ if (uploaded) return uploaded; var f = new File([blob], 'walk.jpg', { type: 'image/jpeg' }); pendingFiles = [f]; uploaded = uploadPending().then(function(m){ pendingFiles = []; return m; }); return uploaded; }
+    if (r.error === 'location') throw new Error(s.name + ' needs your location to read this. Turn location on and feed again.');
+    if (r.error === 'slow') throw new Error(s.name + ' is full! Too many photos for now. Try again in a few minutes.');
     if (r.error) throw new Error(r.error);
     if (r.safe === 'people') { out.innerHTML = '<div class="walkmsg">🐾 ' + nm + ' only reports places. Step back from people and pets and snap the street.</div><button class="btn ghost" id="wagain">Snap again</button>'; }
     else if (r.safe === 'block' || r.safe === 'skip') { out.innerHTML = '<div class="walkmsg">🐾 ' + nm + ' couldn&rsquo;t read this one. Try the street, a park, a stop.</div><button class="btn ghost" id="wagain">Snap again</button>'; }
@@ -2325,7 +2357,7 @@ function walkSheet(s, file){
         };
       });
     }
-    var ag = document.getElementById('wagain'); if (ag) ag.onclick = function(){ close(); openAdd(); setTimeout(function(){ var w = document.getElementById('fwalk'); if (w) w.click(); }, 100); };
+    var ag = document.getElementById('wagain'); if (ag) ag.onclick = function(){ close(); startWalk(); };
     wireOwn(upload);
     var dn = document.getElementById('wdone'); if (dn) dn.onclick = function(){ close(); if (location.pathname.indexOf('/p/') === 0) screenLedger(s.tail); else if (location.pathname === '/pack') screenPack(); };
   }).catch(function(e){ var out = document.getElementById('walkout'); if (out) out.innerHTML = '<div class="walkmsg">The pup stumbled: ' + esc(e.message) + '</div><button class="btn ghost" id="wagain">Try again</button>'; var ag = document.getElementById('wagain'); if (ag) ag.onclick = function(){ close(); openAdd(); }; });
@@ -2394,7 +2426,7 @@ function screenPack(mode, topic0){
     '<div class="packhero">' + slotMedia('pack') +
       '<div class="ft">What ' + esc(city || 'your city') + ' wants fixed<small>The agenda is set for us. Time we set it.</small></div></div>' +
     '<div id="citystrip"></div>' +
-    (loadLocal() ? '' : '<div class="newbie">\ud83d\udc4b New here? Tap <b>📸 Walk</b> to get your own pup.</div>') +
+    (loadLocal() ? '' : '<div class="newbie">\ud83d\udc4b New here? Tap <b>📸 Feed</b> to get your own pup.</div>') +
     '<div class="scopebar"><div class="seg">' +
       (city ? '<span class="segbtn' + (mode==='local'?' on':'') + '" id="mlocal">📍 ' + esc(city) + '</span>'
             : '<span class="segbtn" id="mfind">📍 Near me</span>') +
@@ -2428,8 +2460,8 @@ function screenPack(mode, topic0){
     if (!rows.length && !mine.length) {
       b.className = '';
       b.innerHTML = '<div class="emptycity"><div class="ecpaw">🐾</div><div class="ech">Quiet' + (mode === 'local' && city ? ' in ' + esc(city) : ' here') + ', for now.</div>' +
-        '<div class="ecp">Snap one thing on your street, good or broken. Your pup reads it.</div>' +
-        '<button class="btn gold" id="ecsnap">📸 Snap the first one</button></div>';
+        '<div class="ecp">Feed your pup one photo from your street, good or broken. It chews on it and tells you what it sees.</div>' +
+        '<button class="btn gold" id="ecsnap">📸 Feed the first one</button></div>';
       document.getElementById('ecsnap').onclick = startWalk;
       return;
     }
@@ -2659,7 +2691,7 @@ function screenPack(mode, topic0){
   }).catch(function(e){ document.getElementById('board').textContent = 'The pack is napping: ' + e.message; });
 }
 
-var APP_VERSION = "20261002182655";
+var APP_VERSION = "20261002183356";
 (function(){
   try {
     fetch('/version.json?t=' + Date.now(), { cache: 'no-store' }).then(function(r){ return r.json(); }).then(function(j){

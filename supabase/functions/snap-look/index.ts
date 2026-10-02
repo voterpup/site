@@ -52,11 +52,20 @@ const QUIP_BAN = /\b(people|person|neighbou?rs?|worker|crew|city|council|mayor|g
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: CORS });
   const json = (o: unknown, status = 200) => new Response(JSON.stringify(o), { status, headers: { ...CORS, "content-type": "application/json" } });
-  let body: { image?: string; type?: string } = {};
+  let body: { image?: string; type?: string; lat?: number; lng?: number; dev?: string } = {};
   try { body = await req.json(); } catch (_) { return json({ error: "bad json" }, 400); }
   const type = String(body.type || "image/jpeg");
   if (!/^image\/(jpeg|png|webp)$/.test(type) || !body.image || body.image.length > 2_800_000) return json({ error: "bad image" }, 400);
   const db = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
+  // location is required (no location, no read), and each device gets 30 reads a day, 8 per 10 minutes
+  const lat = Number(body.lat), lng = Number(body.lng), dev = String(body.dev || "").replace(/[^a-z0-9]/g, "").slice(0, 32);
+  if (!isFinite(lat) || !isFinite(lng) || Math.abs(lat) > 90 || Math.abs(lng) > 180 || (lat === 0 && lng === 0)) return json({ error: "location", safe: "skip", findings: [] }, 400);
+  if (dev.length < 8) return json({ error: "device", safe: "skip", findings: [] }, 400);
+  const since = (ms: number) => new Date(Date.now() - ms).toISOString();
+  const { count: perDay } = await db.from("snap_log").select("id", { count: "exact", head: true }).eq("dev", dev).gte("ts", since(864e5));
+  const { count: perTen } = await db.from("snap_log").select("id", { count: "exact", head: true }).eq("dev", dev).gte("ts", since(6e5));
+  if ((perDay ?? 0) >= 30 || (perTen ?? 0) >= 8) return json({ error: "slow", safe: "skip", findings: [] }, 429);
+  await db.from("snap_log").insert({ dev, lat: Math.round(lat * 1e3) / 1e3, lng: Math.round(lng * 1e3) / 1e3 });
   const day = new Date().toISOString().slice(0, 10);
   const { data: log } = await db.from("svc_log").select("calls").eq("day", day).eq("svc", "snap").maybeSingle();
   if ((log?.calls ?? 0) >= DAILY_CALLS) return json({ safe: "ok", scene: "", findings: [], capped: true });
