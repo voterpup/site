@@ -330,6 +330,8 @@
   @keyframes sniff{0%,100%{transform:translateX(0)} 50%{transform:translateX(8px)}}
   .wskel{height:62px; border-radius:12px; margin:0 0 8px; border-left:5px solid #e3dccb; background:linear-gradient(90deg, #f1ede4 25%, #faf8f3 50%, #f1ede4 75%); background-size:200% 100%; animation:scan 1.4s linear infinite; animation-delay:calc(var(--i, 0) * .2s); opacity:.9}
   .wskel:first-of-type{margin-top:10px}
+  .idwrap{margin:10px 0} .idwrap img{width:100%; border-radius:14px; display:block; box-shadow:0 6px 20px rgba(0,0,0,.18)}
+  .wquip{background:#fff7e2; border:1px solid #f0d99a; border-radius:12px; padding:9px 12px; margin:10px 0 2px; font-size:14.5px; font-weight:700; color:#5a4410; animation:fadein .4s ease both}
   .walkmsg{font-size:14px; font-weight:600; margin:10px 0 8px; color:var(--sub)}
   .wcard{background:var(--card); border:1px solid var(--line); border-left:5px solid #a94b4b; border-radius:12px; padding:10px 12px; margin:0 0 8px; display:flex; align-items:center; gap:10px; flex-wrap:wrap}
   .wcard.good{border-left-color:#2f7d5f}
@@ -1907,9 +1909,70 @@ function emailSheet(tail, name, after){
 function hasMail(){ try { return localStorage.getItem('vp.mail') === '1'; } catch (e) { return false; } }
 
 // ---------- setup island: the things left to set up, one tap each; disappears when nothing is left ----------
+// ---------- the pup ID card: a shareable, slightly silly card (no private link on it) ----------
+var ID_SKILLS = ['sniffing out potholes', 'remembering what you forgot', 'spotting broken benches', 'judging puddles', 'counting same-heres', 'finding the good stuff too', 'never losing a list', 'side-eyeing overflowing bins', 'walking you back on vote day'];
+var ID_ALLERGIES = ['being ignored', 'unread lists', 'forgotten promises', 'dark street corners', 'endless “we’ll look into it”', 'waiting until next election'];
+var ID_TITLES = ['Certified Noticer', 'Chief Sniffing Officer', 'Keeper of the List', 'Professional Rememberer', 'Neighbourhood Good Pup'];
+function idSeed(str){ var x = 2166136261; for (var i = 0; i < str.length; i++) { x ^= str.charCodeAt(i); x = Math.imul(x, 16777619); } return x >>> 0; }
+function drawIdCard(name, tail, nItems){
+  var W = 1080, H = 1350, c = document.createElement('canvas'); c.width = W; c.height = H; var x = c.getContext('2d');
+  var sd = idSeed(name + '|' + tail), pick = function(a, k){ return a[(sd >>> k) % a.length]; };
+  var s1 = pick(ID_SKILLS, 0), s2 = pick(ID_SKILLS, 7); if (s2 === s1) s2 = ID_SKILLS[(ID_SKILLS.indexOf(s1) + 3) % ID_SKILLS.length];
+  var no = 'VP-' + ((sd % 900000) + 100000);
+  x.fillStyle = '#f7f1e3'; x.fillRect(0, 0, W, H);
+  x.fillStyle = '#1f2733'; x.beginPath(); x.roundRect(60, 60, W - 120, H - 120, 48); x.fill();
+  x.fillStyle = '#e8b84b'; x.beginPath(); x.roundRect(60, 60, W - 120, 150, [48, 48, 0, 0]); x.fill();
+  x.fillStyle = '#2a2418'; x.font = '800 54px system-ui, -apple-system, Segoe UI, Roboto, sans-serif'; x.fillText('VOTERPUP', 120, 155);
+  x.font = '700 34px system-ui, sans-serif'; x.textAlign = 'right'; x.fillText('OFFICIAL PUP ID', W - 120, 152); x.textAlign = 'left';
+  var y0 = 270, ph = 380;
+  return new Promise(function(res){
+    var av = new Image(); av.onload = function(){
+      x.save(); x.beginPath(); x.roundRect(120, y0, ph, ph, 32); x.clip(); x.drawImage(av, 120, y0, ph, ph); x.restore();
+      x.strokeStyle = '#e8b84b'; x.lineWidth = 8; x.beginPath(); x.roundRect(120, y0, ph, ph, 32); x.stroke();
+      var tx = 560; x.fillStyle = '#9aa3b5'; x.font = '700 28px system-ui, sans-serif'; x.fillText('NAME', tx, y0 + 40);
+      x.fillStyle = '#ffffff'; var fs = 92; x.font = '800 ' + fs + 'px system-ui, sans-serif'; while (x.measureText(name).width > W - 120 - tx - 40 && fs > 48) { fs -= 4; x.font = '800 ' + fs + 'px system-ui, sans-serif'; } x.fillText(name, tx, y0 + 40 + fs);
+      x.fillStyle = '#e8b84b'; x.font = '800 36px system-ui, sans-serif'; x.fillText(pick(ID_TITLES, 3), tx, y0 + 200);
+      x.fillStyle = '#9aa3b5'; x.font = '700 26px system-ui, sans-serif'; x.fillText('ID NO.', tx, y0 + 270); x.fillText('MEMBER SINCE', tx, y0 + 340);
+      x.fillStyle = '#ffffff'; x.font = '700 32px system-ui, sans-serif'; x.fillText(no, tx + 200, y0 + 270);
+      x.fillText(new Date().toLocaleDateString(undefined, { month: 'short', year: 'numeric' }), tx + 200, y0 + 340);
+      var ly = y0 + ph + 90; x.fillStyle = '#9aa3b5'; x.font = '700 28px system-ui, sans-serif'; x.fillText('SKILLS', 120, ly);
+      x.fillStyle = '#ffffff'; x.font = '600 40px system-ui, sans-serif'; x.fillText('• ' + s1, 120, ly + 56); x.fillText('• ' + s2, 120, ly + 112);
+      x.fillStyle = '#9aa3b5'; x.font = '700 28px system-ui, sans-serif'; x.fillText('ALLERGIC TO', 120, ly + 196);
+      x.fillStyle = '#ffffff'; x.font = '600 40px system-ui, sans-serif'; x.fillText(pick(ID_ALLERGIES, 11), 120, ly + 252);
+      x.fillStyle = '#9aa3b5'; x.font = '700 28px system-ui, sans-serif'; x.fillText('REMEMBERS', 120, ly + 336);
+      x.fillStyle = '#e8b84b'; x.font = '800 44px system-ui, sans-serif'; x.fillText(nItems + (nItems === 1 ? ' thing' : ' things') + ' for you', 120, ly + 394);
+      var q = new Image(); q.onload = function(){ x.fillStyle = '#fff'; x.beginPath(); x.roundRect(W - 120 - 230, ly + 170, 230, 230, 20); x.fill(); x.drawImage(q, W - 120 - 220, ly + 180, 210, 210);
+        x.fillStyle = '#9aa3b5'; x.font = '600 24px system-ui, sans-serif'; x.textAlign = 'center'; x.fillText('get your own pup', W - 120 - 115, ly + 440); x.textAlign = 'left';
+        x.fillStyle = '#6b7387'; x.font = '600 26px system-ui, sans-serif'; x.fillText('voterpup.com · no parties, no names, no ads', 120, H - 100);
+        c.toBlob(res, 'image/png'); };
+      q.src = qrDataURL('https://voterpup.com/?src=card', 8);
+    };
+    av.onerror = function(){ c.toBlob(res, 'image/png'); }; av.src = '/pup-face.jpg';
+  });
+}
+function openIdCard(tail, name, nItems){
+  var ov = document.createElement('div'); ov.className = 'stkover'; document.body.appendChild(ov);
+  var close = function(){ if (ov.parentNode) ov.parentNode.removeChild(ov); };
+  ov.onclick = function(ev){ if (ev.target === ov) close(); };
+  ov.innerHTML = '<div class="stksheet"><div class="addhead">🪪 ' + esc(name) + '&rsquo;s ID card</div><div class="idwrap"><div class="hint">printing…</div></div>' +
+    '<div class="btnrow"><button class="btn gold" id="idshare">Share it</button><button class="btn ghost" id="idclose">Close</button></div></div>';
+  document.getElementById('idclose').onclick = close;
+  try { localStorage.setItem('vp.idseen', tail); } catch (e) {}
+  track('share_code', { kind: 'id_view' });
+  drawIdCard(name, tail, nItems).then(function(blob){
+    var url = URL.createObjectURL(blob); ov.querySelector('.idwrap').innerHTML = '<img src="' + url + '" alt="' + esc(name) + ' ID card">';
+    document.getElementById('idshare').onclick = function(){
+      track('share_code', { kind: 'id_share' });
+      var f = new File([blob], name.replace(/[^a-z0-9]+/gi, '-') + '-pup-id.png', { type: 'image/png' });
+      if (navigator.canShare && navigator.canShare({ files: [f] })) navigator.share({ files: [f], text: 'Meet ' + name + ', my pup. Get yours: https://voterpup.com' }).catch(function(){});
+      else { var a = document.createElement('a'); a.href = url; a.download = f.name; a.click(); }
+    };
+  });
+}
 function renderIsland(tail, name){
   var el = document.getElementById('island'); if (!el) return;
-  var rp = remPref(), items = [];
+  var rp = remPref(), items = [], idseen = false; try { idseen = localStorage.getItem('vp.idseen') === tail; } catch (e) {}
+  if (!idseen) items.push({ k: 'id', t: '🪪 ' + name + '&rsquo;s ID card', f: function(){ openIdCard(tail, name, document.querySelectorAll('#entries .card, #entries .entry').length || 1); renderIsland(tail, name); } });
   if ((!rp || rp.off) && !hasMail()) items.push({ k: 'rem', t: pushOK() ? '🔔 Turn on reminders' : '📧 Reports by email', f: function(){ (pushOK() ? reminderSheet : emailSheet)(tail, name, function(){ renderIsland(tail, name); }); } });
   if (GOOGLE_READY && !isBackedUp(tail)) items.push({ k: 'bk', t: '🔐 Back up with Google', f: function(){ location.href = '/manage?do=backup'; } });
   if (canOfferInstall()) items.push({ k: 'app', t: '📲 Get the app', f: installApp });
@@ -2199,6 +2262,8 @@ function shrinkPhoto(file){   // 1024 px JPEG on a white background: cheap to se
     im.onerror = function(){ rej(new Error('photo')); }; im.src = url;
   });
 }
+var STOCK_QUIPS = ['PUP sniffed it twice. Still not a treat.', 'PUP has filed this under “things to bark about.”', 'PUP tilted its head. Noted.', 'PUP would fetch this if it could.', 'PUP gives this spot one paw out of five.'];
+function quipLine(q, name){ var t = q || STOCK_QUIPS[Math.floor(Math.random() * STOCK_QUIPS.length)]; return '<div class="wquip">🐾 ' + esc(t.replace(/PUP/g, name)) + '</div>'; }
 function walkSheet(s, file){
   var nm = esc(s.name), ov = document.createElement('div'); ov.className = 'stkover'; document.body.appendChild(ov);
   function close(){ if (ov.parentNode) ov.parentNode.removeChild(ov); pendingSpot = null; }
@@ -2223,7 +2288,7 @@ function walkSheet(s, file){
       out.innerHTML = '<div class="walkmsg">' + (r.scene ? esc(r.scene) + ' · ' : '') + 'tap what to keep</div>' +
         r.findings.map(function(f, i){ return '<div class="wcard' + (f.kind === 'good' ? ' good' : '') + '" data-i="' + i + '" style="--i:' + i + '"><div class="wline">' + (f.kind === 'good' ? '🟢 ' : '🔴 ') + esc(f.line) + '</div>' +
           '<div class="chips"><span class="topicchip">#' + esc(f.topic) + '</span>' + (f.kind === 'good' ? '<span class="chip" style="cursor:default">#good</span>' : '') + '</div><button class="btn compact wkeep">Keep</button></div>'; }).join('') +
-        '<label class="switchrow" style="margin:8px 2px"><input type="checkbox" id="wshare"> 🌱 Count kept ones on the Pack <small style="color:var(--sub)">(anonymous)</small></label>' + ownLine();
+        quipLine(r.quip, s.name) + '<label class="switchrow" style="margin:8px 2px"><input type="checkbox" id="wshare"> 🌱 Count kept ones on the Pack <small style="color:var(--sub)">(anonymous)</small></label>' + ownLine();
       Array.prototype.forEach.call(out.querySelectorAll('.wkeep'), function(b){
         b.onclick = function(){ var card = b.closest('.wcard'), f = r.findings[+card.getAttribute('data-i')], shared = document.getElementById('wshare').checked; b.disabled = true; b.textContent = '…';
           ensurePlace().then(upload).then(function(media){
@@ -2566,7 +2631,7 @@ function screenPack(mode, topic0){
   }).catch(function(e){ document.getElementById('board').textContent = 'The pack is napping: ' + e.message; });
 }
 
-var APP_VERSION = "20261002172436";
+var APP_VERSION = "20261002175351";
 (function(){
   try {
     fetch('/version.json?t=' + Date.now(), { cache: 'no-store' }).then(function(r){ return r.json(); }).then(function(j){
@@ -2824,6 +2889,7 @@ function screenManage(){
       '<button class="btn ' + (hasMail() ? 'ghost' : 'gold') + ' mbtn" id="mmail">' + (hasMail() ? 'Change' : 'Turn on') + '</button>' + (hasMail() ? '<button class="btn ghost mbtn" id="mmailoff">Stop</button>' : ''));
     if (!KIOSK) rows += mrow('<video class="fit" src="/pup-bark.mp4" poster="/pup-bark.jpg" muted autoplay playsinline></video>', '🔔 Reminders', remLabel(remPref()),
       '<button class="btn ' + (remPref() && !remPref().off ? 'ghost' : 'gold') + ' mbtn" id="mrem">' + (remPref() && !remPref().off ? 'Change' : 'Turn on') + '</button>');
+    rows += mrow('<div class="mkeythumb">🪪</div>', nm + '&rsquo;s ID card', 'Silly, shareable, no private link on it.', '<button class="btn gold mbtn" id="midcard">Show it</button>');
     rows += mrow('<div class="mkeythumb">🎯</div>', 'Pup Patrol', 'Smash today&rsquo;s issues. 30 seconds.', '<a class="btn gold mbtn" href="/play">Play</a>');
     rows += mrow('<img id="invthumb" alt="">', '🐾 Invite your friends',
       '',
@@ -2888,6 +2954,7 @@ function screenManage(){
           alert(L.name + ' is gone. Thank you for trying VoterPup.'); location.href = '/app.html?new=1'; })
         .catch(function(e){ b.disabled = false; b.textContent = 'Delete ' + L.name + ' and all its data'; alert(e.message); });
     });
+    on('midcard', function(){ openIdCard(tail, L.name, n || 1); });
     on('mnew', function(){
       if (!(email && backed) && !confirm(L.name + ' isn\u2019t backed up yet. This device will switch to the new pup, and ' + L.name + ' will only be reachable through its private link. Continue?')) return;
       location.href = '/app.html?new=1'; });

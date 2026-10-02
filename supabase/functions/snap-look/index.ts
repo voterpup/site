@@ -23,15 +23,26 @@ Hard rules:
 - People in the background of a street scene are fine (just never describe them). Plaques, memorial names, house numbers, shop signs and address numbers are never findings and never quoted.
 - Lines: lowercase, at most 8 words, the thing itself. No hedges ("may need", "could be"), no advice, no adjectives like "ugly".
 - Unsure about a finding: lower confidence. Nothing visible worth reporting: safe "ok" with an empty list.
+
+Also write ONE "quip": a gentle joke a golden-retriever puppy would make about the main THING in the photo. Rules for the quip:
+- Dog's point of view, warm and silly, like a kid's cartoon: puns about sniffing, fetching, treats, puddles, squirrels, walks, naps, tails. At most 12 words.
+- The joke is ONLY about the object (the pothole, the bin, the bench). Never about people, neighbours, workers, the city, officials, politicians, parties, governments, taxes, any group, religion, race, money, crime, homelessness, drugs, death, injury, or bodily functions.
+- No sarcasm, no blame, no insults, no swearing, no innuendo. If in doubt, make it about the puppy being confused or delighted.
+- If the photo is unsafe, of people, or there is nothing to joke about, return an empty quip.
+- Call the puppy PUP (the app puts the real name in). Never "he" or "she"; use PUP again or "this pup".
+Good: "PUP checked: this puddle is too deep to fetch from." / "Free bathtub? PUP is suspicious." / "This bench is PUP-approved for naps. 10/10."
 Call report exactly once.`;
 
 const tool = { name: "report", description: "The dog's report for this photo.", strict: true, input_schema: { type: "object", properties: {
   safe: { type: "string", enum: ["ok", "people", "skip", "block"] },
   scene: { type: "string", description: "3-6 words: what kind of place this is, no names" },
+  quip: { type: "string", description: "one gentle puppy joke about the main object, max 12 words, or empty" },
   findings: { type: "array", items: { type: "object", properties: {
     kind: { type: "string", enum: ["issue", "good"] }, topic: { type: "string", enum: TOPICS }, line: { type: "string" }, confidence: { type: "number" } },
     required: ["kind", "topic", "line", "confidence"], additionalProperties: false } } },
-  required: ["safe", "scene", "findings"], additionalProperties: false } };
+  required: ["safe", "scene", "findings", "quip"], additionalProperties: false } };
+// second line of defence: anything that drifts toward people, politics, or harm is dropped (the app then shows a stock line)
+const QUIP_BAN = /\b(people|person|neighbou?rs?|worker|crew|city|council|mayor|government|govt|official|politic|party|parties|tax|vote|voter|election|candidate|homeless|drug|crime|police|cop|dead|death|die|kill|blood|injur|poop|pee|piss|shit|crap|damn|hell|stupid|idiot|lazy|useless|ugly|fat|rich|poor|immigrant|religio|god|race|bomb|gun)/i;
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: CORS });
@@ -57,6 +68,9 @@ Deno.serve(async (req) => {
     const findings = safe !== "ok" ? [] : (inp.findings || []).filter((f: any) => f && f.confidence >= 0.5 && TOPICS.includes(f.topic) && /^[\w ,'’.-]{3,60}$/.test(String(f.line)))
       .map((f: any) => ({ kind: f.kind === "good" ? "good" : "issue", topic: f.topic, line: String(f.line).trim().replace(/\.$/, "").split(/\s+/).slice(0, 9).join(" "), confidence: Math.round(f.confidence * 100) / 100 }))
       .filter((f: any) => !/\b(number|plaque|address|sign reads|named)\b/i.test(f.line)).slice(0, 5);
-    return json({ safe, scene: String(inp.scene || "").slice(0, 60), findings, cost: Math.round(cost * 1e5) / 1e5 });
+    let quip = safe === "ok" ? String(inp.quip || "").trim().replace(/^["“]|["”]$/g, "") : "";
+    quip = quip.replace(/\bOreo\b/g, "PUP").replace(/\b(she|he|her|him|his|hers)\b/gi, "PUP");
+    if (quip.split(/\s+/).length > 14 || QUIP_BAN.test(quip)) quip = "";
+    return json({ safe, scene: String(inp.scene || "").slice(0, 60), findings, quip, cost: Math.round(cost * 1e5) / 1e5 });
   } catch (e) { return json({ error: String((e as Error).message).slice(0, 200) }, 502); }
 });
