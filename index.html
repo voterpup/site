@@ -383,6 +383,7 @@
   .askown{display:block; text-align:center; font-weight:800; color:#3b6fb6; margin:2px 0 12px; text-decoration:none}
   .permrow{display:flex; align-items:center; gap:12px; padding:12px; border:2px solid var(--line); border-radius:16px; margin:10px 0} .permrow > i{font-size:30px}
   .permrow b{display:block; font-size:15px} .permrow small{display:block; color:var(--sub); font-size:12.5px; line-height:1.3} .permst{margin-left:auto; font-size:24px}
+  .isin i{font-size:17px; vertical-align:-3px; margin-right:4px}
   .huntcard{background:var(--card); border:2px solid var(--line); border-radius:20px; padding:12px 12px 10px; margin:0 0 16px; cursor:pointer; box-shadow:0 4px 0 #e3d8c4; transition:transform .08s, box-shadow .08s}
   .huntcard:active{transform:translateY(4px); box-shadow:none}
   .hhead{display:flex; justify-content:space-between; align-items:baseline; margin:0 2px 8px} .hhead b{font-size:16px; font-weight:900} .hhead span{font-size:12px; color:var(--sub); font-weight:700}
@@ -2212,12 +2213,12 @@ function openIdCard(tail, name, nItems){
 function renderIsland(tail, name){
   var el = document.getElementById('island'); if (!el) return;
   var rp = remPref(), items = [], idseen = false; try { idseen = localStorage.getItem('vp.idseen') === tail; } catch (e) {}
-  if (!idseen) items.push({ k: 'id', t: '🪪 ' + name + '&rsquo;s ID card', f: function(){ openIdCard(tail, name, document.querySelectorAll('#entries .card, #entries .entry').length || 1); renderIsland(tail, name); } });
+  if (!idseen) items.push({ k: 'id', t: '<i class="ph-duotone ph-identification-card"></i> ' + esc(name) + '&rsquo;s ID card', f: function(){ openIdCard(tail, name, document.querySelectorAll('#entries .card, #entries .entry').length || 1); renderIsland(tail, name); } });
   if ((!rp || rp.off) && !hasMail()) items.push({ k: 'rem', t: pushOK() ? '🔔 Turn on reminders' : '📧 Reports by email', f: function(){ (pushOK() ? reminderSheet : emailSheet)(tail, name, function(){ renderIsland(tail, name); }); } });
-  if (GOOGLE_READY && !isBackedUp(tail)) items.push({ k: 'bk', t: '🔐 Back up with Google', f: function(){ location.href = '/manage?do=backup'; } });
+  if (GOOGLE_READY && !isBackedUp(tail)) items.push({ k: 'bk', t: '<i class="ph-duotone ph-cloud-check"></i> Back up with Google', f: function(){ location.href = '/manage?do=backup'; } });
   if (canOfferInstall()) items.push({ k: 'app', t: '<i class="ph-duotone ph-device-mobile"></i> Get the app', f: installApp });
-  if (!getPlace()) items.push({ k: 'city', t: '📍 Set your city', f: changePlaceSheet });
-  items.push({ k: 'inv', t: '🐾 Invite friends', f: function(){ location.href = '/manage?do=invite'; } });
+  if (!getPlace()) items.push({ k: 'city', t: '<i class="ph-duotone ph-map-pin"></i> Set your city', f: changePlaceSheet });
+  items.push({ k: 'inv', t: '<i class="ph-duotone ph-paw-print"></i> Invite friends', f: function(){ location.href = '/manage?do=invite'; } });
   if (!items.length) { el.hidden = true; return; }
   el.hidden = false;
   clearInterval(window._islT);
@@ -2229,7 +2230,7 @@ function renderIsland(tail, name){
   if (items.length > 1 && !reduceMotionPref()) window._islT = setInterval(function(){
     var span = chip.querySelector('.isin'); if (!span || !document.body.contains(chip)) { clearInterval(window._islT); return; }
     span.classList.add('out');
-    setTimeout(function(){ k = (k + 1) % items.length; span.textContent = items[k].t; span.classList.remove('out'); span.classList.add('in');
+    setTimeout(function(){ k = (k + 1) % items.length; span.innerHTML = items[k].t; span.classList.remove('out'); span.classList.add('in');
       Array.prototype.forEach.call(el.querySelectorAll('.isdots i'), function(d, i){ d.className = i === k ? 'on' : ''; });
       setTimeout(function(){ span.classList.remove('in'); }, 300); }, 300);
   }, 3200);
@@ -2968,7 +2969,7 @@ function screenPack(mode, topic0){
   }).catch(function(e){ document.getElementById('board').textContent = 'The pack is napping: ' + e.message; });
 }
 
-var APP_VERSION = "20261002205653";
+var APP_VERSION = "20261002210246";
 (function(){
   try {
     fetch('/version.json?t=' + Date.now(), { cache: 'no-store' }).then(function(r){ return r.json(); }).then(function(j){
