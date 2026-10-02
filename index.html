@@ -375,6 +375,15 @@
   .huntcard{background:var(--card); border:2px solid var(--line); border-radius:20px; padding:12px 12px 10px; margin:0 0 16px; cursor:pointer; box-shadow:0 4px 0 #e3d8c4; transition:transform .08s, box-shadow .08s}
   .huntcard:active{transform:translateY(4px); box-shadow:none}
   .hhead{display:flex; justify-content:space-between; align-items:baseline; margin:0 2px 8px} .hhead b{font-size:16px; font-weight:900} .hhead span{font-size:12px; color:var(--sub); font-weight:700}
+  .htoggle{display:inline-flex; background:#ece8de; border-radius:999px; padding:3px; margin:0 0 6px} .htoggle span{padding:4px 12px; border-radius:999px; font-size:12px; font-weight:900; color:var(--sub); cursor:pointer}
+  .htoggle span.on{background:#fff; color:var(--ink); box-shadow:0 1px 3px rgba(0,0,0,.12)}
+  .hview[data-hview="map"]{position:relative}
+  .hmap{height:190px; border-radius:14px; overflow:hidden; background:#eef1ea}
+  .hmapempty{height:100%; display:flex; align-items:center; justify-content:center; text-align:center; padding:20px; font-size:13px; color:var(--sub); font-weight:700}
+  .hstack{position:absolute; right:8px; top:8px; bottom:8px; display:flex; flex-direction:column; gap:6px; justify-content:center; pointer-events:none}
+  .hcdot.sm{width:34px; height:34px; font-size:16px; background:rgba(255,255,255,.92)} .hdone{background:#22786a; color:#fff; font-size:11px; font-weight:900; padding:3px 8px; border-radius:999px}
+  .hpin{width:36px; height:36px; border-radius:50%; border:3px solid #fff; color:#fff; display:flex; align-items:center; justify-content:center; font-size:18px; box-shadow:0 3px 8px rgba(0,0,0,.3); position:relative}
+  .hpin b{position:absolute; right:-6px; top:-6px; background:#1f2430; color:#fff; font-size:10px; width:18px; height:18px; border-radius:50%; display:flex; align-items:center; justify-content:center; border:2px solid #fff}
   .hcircles{display:grid; grid-template-columns:repeat(5, 1fr); gap:4px}
   .hcircles.trail{display:block; position:relative; height:118px; margin:0 -4px}
   .htrail{position:absolute; left:0; top:0; width:100%; height:108px; overflow:visible}
@@ -1557,7 +1566,11 @@ function screenLedger(tail){
       '<div id="entries" class="elist"></div>' + '<div id="backedbox"></div>' +
       (KIOSK ? '' : '<a href="#" class="flashbtn" id="flashbtn" aria-label="Flashback">' + ic('high_voltage', 'btnic') + '<span>Flashback</span></a>') + tabbar('pup');
     wireTabs(); renderVoteStrip(); refreshPlaceIfStale();
-    var hcd = document.getElementById('huntcard'); if (hcd) hcd.onclick = startWalk; animateRing();
+    var hcd = document.getElementById('huntcard'); if (hcd) hcd.onclick = function(ev){ if (ev.target.closest('.htoggle,.hview[data-hview="map"]')) return; startWalk(); };
+    Array.prototype.forEach.call(document.querySelectorAll('[data-hv]'), function(b){ b.onclick = function(ev){ ev.stopPropagation(); var v = b.getAttribute('data-hv');
+      document.querySelectorAll('[data-hv]').forEach(function(x){ x.classList.toggle('on', x === b); });
+      document.querySelectorAll('[data-hview]').forEach(function(x){ x.hidden = x.getAttribute('data-hview') !== v; });
+      if (v === 'map') huntMap(); }; }); animateRing();
     var qw = document.getElementById('qwalk'); if (qw) qw.onclick = startWalk; var qn = document.getElementById('qnote'); if (qn) qn.onclick = function(){ openAdd(); };
     var fb = document.getElementById('flashbtn'); if (fb) fb.onclick = function(ev){ ev.preventDefault(); openFlashback(L); };
     renderIsland(tail, L.name);
@@ -2482,6 +2495,25 @@ function animateRing(){
       fg.style.strokeDashoffset = C * (1 - f); fg.style.stroke = ringColor(f); pts.textContent = Math.round(P * e); if (k < 1) requestAnimationFrame(step); else if (to >= 1) el.classList.add('full'); }); });
   });
 }
+function huntMap(){   // finds on a map, joined in the order you found them; the ones still to find wait on the right
+  var s = huntState(), tg = huntTargets(), st = document.getElementById('hstack'), el = document.getElementById('hmap'); if (!el || el._m) return;
+  var got = tg.filter(function(k){ return s.found[k]; }).map(function(k){ var f = s.found[k]; return { k: k, t: f.t || f, lat: f.lat, lng: f.lng }; }).sort(function(a, b){ return a.t - b.t; });
+  var placed = got.filter(function(g){ return g.lat != null && g.lng != null; });
+  st.innerHTML = tg.filter(function(k){ return !s.found[k]; }).map(function(k){ var it = HUNT_ITEMS[k]; return '<span class="hcdot sm" title="' + esc(it[1]) + '"><i class="ph-duotone ' + it[0] + '"></i></span>'; }).join('') || '<span class="hdone">All found!</span>';
+  if (!placed.length) { el.innerHTML = '<div class="hmapempty">Your finds will appear here, on the street where you found them.</div>'; return; }
+  loadMapLib().then(function(){
+    var m = new maplibregl.Map({ container: el, style: 'https://tiles.openfreemap.org/styles/liberty', center: [placed[0].lng, placed[0].lat], zoom: 15, attributionControl: false, interactive: true });
+    el._m = m;
+    m.on('load', function(){
+      if (placed.length > 1) { m.addSource('ht', { type: 'geojson', data: { type: 'Feature', geometry: { type: 'LineString', coordinates: placed.map(function(g){ return [g.lng, g.lat]; }) } } });
+        m.addLayer({ id: 'ht', type: 'line', source: 'ht', paint: { 'line-color': '#22786a', 'line-width': 5, 'line-dasharray': [1, 1.6] }, layout: { 'line-cap': 'round', 'line-join': 'round' } }); }
+      var b = new maplibregl.LngLatBounds();
+      placed.forEach(function(g, i){ var it = HUNT_ITEMS[g.k], d = document.createElement('div'); d.className = 'hpin'; d.style.background = it[2]; d.innerHTML = '<i class="ph-duotone ' + it[0] + '"></i><b>' + (i + 1) + '</b>';
+        new maplibregl.Marker({ element: d }).setLngLat([g.lng, g.lat]).addTo(m); b.extend([g.lng, g.lat]); });
+      if (placed.length > 1) m.fitBounds(b, { padding: { top: 40, bottom: 40, left: 40, right: 70 }, maxZoom: 17, duration: 0 });
+    });
+  });
+}
 function huntSave(s){ try { localStorage.setItem('vp.hunt', JSON.stringify(s)); } catch (e) {} }
 function huntCircles(found, fresh){   // a little winding trail: stop, stop, stop… the walked part turns solid green
   var tg = huntTargets(), X = [50, 150, 250, 350, 450];
@@ -2497,10 +2529,11 @@ function huntCircles(found, fresh){   // a little winding trail: stop, stop, sto
       '<span class="hcdot" style="--c:' + it[2] + '"><i class="ph-duotone ' + it[0] + '"></i>' + (on ? '<b>✓</b>' : '') + '</span><small>' + esc(it[1]) + '</small></div>'; }).join('') + '</div>'; }
 function huntCardHTML(name){ var s = huntState(), n = huntTargets().filter(function(k){ return s.found[k]; }).length;
   return '<div class="huntcard" id="huntcard"><div class="hhead"><b>' + (n >= 5 ? '🏆 Challenge done!' : 'Today&rsquo;s sniff challenge') + '</b><span>' + n + '/5 · new tomorrow</span></div>' +
-    huntCircles(s.found) + '<div class="hfoot">' + (n >= 5 ? esc(name) + ' found everything today. Legend.' : 'Each find is worth more: 10 · 20 · 30 · 40 · 50 points, +50 for all five.') + '</div></div>'; }
-function huntApply(spotted){   // returns the newly found targets
+    '<div class="htoggle"><span class="on" data-hv="trail">Trail</span><span data-hv="map">Map</span></div>' +
+    '<div class="hview" data-hview="trail">' + huntCircles(s.found) + '</div><div class="hview" data-hview="map" hidden><div class="hmap" id="hmap"></div><div class="hstack" id="hstack"></div></div>' + '<div class="hfoot">' + (n >= 5 ? esc(name) + ' found everything today. Legend.' : 'Each find is worth more: 10 · 20 · 30 · 40 · 50 points, +50 for all five.') + '</div></div>'; }
+function huntApply(spotted, sp){   // returns the newly found targets; sp = where the photo was taken
   var s = huntState(), tg = huntTargets(), fresh = (spotted || []).filter(function(k){ return tg.indexOf(k) >= 0 && !s.found[k]; });
-  fresh.forEach(function(k){ s.found[k] = Date.now(); });
+  fresh.forEach(function(k){ s.found[k] = { t: Date.now(), lat: sp && sp.lat, lng: sp && sp.lng }; });
   var before = tg.filter(function(k){ return s.found[k] && fresh.indexOf(k) < 0; }).length, gained = 0;
   fresh.forEach(function(_, i){ gained += 10 * (before + i + 1); });   // compounding: 10, 20, 30, 40, 50
   var n = before + fresh.length; var completed = n >= 5 && !s.done; if (completed) { s.done = true; gained += 50; }   // +50 for all five
@@ -2538,7 +2571,7 @@ function walkSheet(s, file){
   }).then(function(r){
     var out = document.getElementById('walkout'); document.querySelector('.walkpic .shine').remove(); var sp = document.querySelector('.walkpic .scanpup'); if (sp) { sp.classList.add('bye'); setTimeout(function(){ sp.remove(); }, 400); }
     track('snap', { safe: r.safe, n: (r.findings || []).length });
-    var hu = huntApply(r.spotted);
+    var hu = huntApply(r.spotted, pendingSpot);
     if (hu.fresh.length) { var hb = document.createElement('div'); hb.className = 'huntwin';
       hb.innerHTML = '<div class="hwtitle">' + (hu.completed ? '🏆 Challenge done! ' + esc(s.name) + ' found all 5.' : 'Found ' + hu.fresh.map(function(k){ return HUNT_ITEMS[k][1]; }).join(' + ') + '!') + ' <span class="hwpts">+' + hu.gained + '</span></div>' + huntCircles(hu.found, hu.fresh);
       document.querySelector('.walksheet').insertBefore(hb, document.querySelector('.walksheet .walkline'));
@@ -2902,7 +2935,7 @@ function screenPack(mode, topic0){
   }).catch(function(e){ document.getElementById('board').textContent = 'The pack is napping: ' + e.message; });
 }
 
-var APP_VERSION = "20261002203528";
+var APP_VERSION = "20261002203639";
 (function(){
   try {
     fetch('/version.json?t=' + Date.now(), { cache: 'no-store' }).then(function(r){ return r.json(); }).then(function(j){
