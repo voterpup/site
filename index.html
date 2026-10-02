@@ -347,6 +347,8 @@
   .nahead{font-weight:800; font-size:15px; margin:10px 0 8px} .nacard{margin:0 0 8px} #notalone{margin:4px 0 6px}
   .plusbtn{flex:0 0 76px !important; position:relative}
   button,input,textarea,select{font-family:inherit}
+  .searchwrap .searchbar{border:0 !important; background:transparent !important; box-shadow:none !important; border-radius:0 !important; padding:11px 0 !important}
+  .iconbtn i,.iconnav i,.navpill i{font-size:20px; vertical-align:-4px}
   textarea,input{border:2px solid var(--line) !important; border-radius:16px !important; background:var(--card) !important; font-weight:600}
   textarea:focus,input:focus{outline:0; border-color:var(--gold) !important; box-shadow:0 0 0 3px rgba(244,182,63,.25)}
   .card{border:2px solid var(--line) !important; border-radius:18px !important; box-shadow:none !important}
@@ -750,7 +752,7 @@ function applyChosenTopic(tail, id, serverTopic){
   if (pendingTopic && id && pendingTopic !== serverTopic) return rpc('vp_set_topic', { p_tail: tail, p_id: id, p_topic: pendingTopic }).catch(function(){});
   return Promise.resolve();
 }   // {lat, lng, spot} attached to the issue being written
-function spotButtonHTML(){ return '<div class="iconbtn" id="addspot" title="attach where this is">📍</div>'; }
+function spotButtonHTML(){ return '<div class="iconbtn" id="addspot" title="attach where this is"><i class="ph-fill ph-map-pin" style="color:#d1495b"></i></div>'; }
 function spotLineHTML(){ return '<div class="spotchip" id="spotchip" hidden></div>'; }
 function renderSpot(){
   var c = document.getElementById('spotchip'), b = document.getElementById('addspot'); if (!c || !b) return;
@@ -775,7 +777,7 @@ function grabSpot(done, fail){
 // Location is on by default: opening the box asks the phone (permission popup if needed) and fills the chip. ✕ removes it.
 function autoSpot(){
   var b = document.getElementById('addspot'); if (!b || pendingSpot) return;
-  var go = function(){ b.textContent = '…'; grabSpot(function(sp){ pendingSpot = sp; b.textContent = '📍'; renderSpot(); }, function(){ b.textContent = '📍'; }); };
+  var go = function(){ b.textContent = '…'; grabSpot(function(sp){ pendingSpot = sp; b.innerHTML = '<i class="ph-fill ph-map-pin" style="color:#d1495b"></i>'; renderSpot(); }, function(){ b.innerHTML = '<i class="ph-fill ph-map-pin" style="color:#d1495b"></i>'; }); };
   if (navigator.permissions && navigator.permissions.query) navigator.permissions.query({ name: 'geolocation' }).then(function(st){ if (st.state !== 'denied') go(); }).catch(go);
   else go();
 }
@@ -784,8 +786,8 @@ function wireSpot(){
   b.onclick = function(){
     if (pendingSpot) { pendingSpot = null; renderSpot(); return; }
     b.textContent = '…';
-    grabSpot(function(sp){ pendingSpot = sp; b.textContent = '📍'; renderSpot(); },
-             function(why){ b.textContent = '📍'; toast(why === 'nogeo' ? 'This browser can’t share a location.' : 'Location is off for this site. Allow it in your browser settings.'); });
+    grabSpot(function(sp){ pendingSpot = sp; b.innerHTML = '<i class="ph-fill ph-map-pin" style="color:#d1495b"></i>'; renderSpot(); },
+             function(why){ b.innerHTML = '<i class="ph-fill ph-map-pin" style="color:#d1495b"></i>'; toast(why === 'nogeo' ? 'This browser can’t share a location.' : 'Location is off for this site. Allow it in your browser settings.'); });
   };
   autoSpot();
 }
@@ -1295,7 +1297,7 @@ function screenCapture(prefGripe, prefName){
       '<textarea id="gripe" placeholder="What should be fixed? Five words is plenty."></textarea>' +
       '<div id="thumbs" class="attach"></div>' + tagRowHTML() + spotLineHTML() +
       '<div class="cfoot">' +
-        '<div class="iconbtn" id="addmedia" title="take a photo">📷</div><div class="iconbtn" id="addgallery" title="choose from your photos">🖼️</div>' + spotButtonHTML() +
+        '<div class="iconbtn" id="addmedia" title="take a photo"><i class="ph-duotone ph-camera" style="color:#9a5f00"></i></div><div class="iconbtn" id="addgallery" title="choose from your photos"><i class="ph-duotone ph-image" style="color:#3b6fb6"></i></div>' + spotButtonHTML() +
         '<input id="fcam" type="file" accept="image/*" capture="environment" hidden>' +
         '<input id="fpick" type="file" accept="image/*,video/*" multiple hidden>' +
         '<div class="spacer"></div>' +
@@ -1458,7 +1460,7 @@ function screenLedger(tail){
     saveLocal(tail, L.name);
     var n = L.entries.length;
     pendingFiles = [];
-    root.innerHTML = nav(KIOSK ? '' : '<a href="#" class="navpill" id="navshow" title="A read-only code for candidates">📤 My issues</a><a href="/manage" class="iconnav" id="navman" title="Manage">⚙️</a>').replace('class="nav"', 'class="nav compact"') +
+    root.innerHTML = nav(KIOSK ? '' : '<a href="#" class="navpill" id="navshow" title="A read-only code for candidates"><i class="ph-duotone ph-share-network"></i> My issues</a><a href="/manage" class="iconnav" id="navman" title="Manage"><i class="ph-duotone ph-gear-six"></i></a>').replace('class="nav"', 'class="nav compact"') +
       (KIOSK ? '' : '<div class="island" id="island"></div>') +
       '<div class="puphead"><span class="pupav-wrap"><img class="pupav" src="/pup-face.jpg" alt=""></span><div><div class="pupname">' + esc(L.name) + '</div>' +
         '<div class="pupsub">' + (n ? 'remembers ' + n + ' thing' + (n === 1 ? '' : 's') : 'tap 📸 to feed ' + esc(L.name) + ' a photo') + '</div></div>' +
@@ -1637,7 +1639,7 @@ function showSticker(canvas, name, url){
 }
 
 function nav(extra){ return '<div class="nav"><div class="brand">Voter<b>Pup</b> 🐾</div><div class="navr">' +
-  (canOfferInstall() ? '<a href="#" class="installchip">📲<span> Get the app</span></a>' : '') + (extra || '') + '</div></div>'; }
+  (canOfferInstall() ? '<a href="#" class="installchip"><i class="ph-duotone ph-device-mobile"></i><span> Get the app</span></a>' : '') + (extra || '') + '</div></div>'; }
 function say(text, small, name){
   return '<div class="say"><img class="avatar" src="/pup-face.jpg" alt="">' +
     '<div class="balloon">' + text + (small ? '<small>' + small + '</small>' : '') + '</div></div>';
@@ -2052,7 +2054,7 @@ function renderIsland(tail, name){
   if (!idseen) items.push({ k: 'id', t: '🪪 ' + name + '&rsquo;s ID card', f: function(){ openIdCard(tail, name, document.querySelectorAll('#entries .card, #entries .entry').length || 1); renderIsland(tail, name); } });
   if ((!rp || rp.off) && !hasMail()) items.push({ k: 'rem', t: pushOK() ? '🔔 Turn on reminders' : '📧 Reports by email', f: function(){ (pushOK() ? reminderSheet : emailSheet)(tail, name, function(){ renderIsland(tail, name); }); } });
   if (GOOGLE_READY && !isBackedUp(tail)) items.push({ k: 'bk', t: '🔐 Back up with Google', f: function(){ location.href = '/manage?do=backup'; } });
-  if (canOfferInstall()) items.push({ k: 'app', t: '📲 Get the app', f: installApp });
+  if (canOfferInstall()) items.push({ k: 'app', t: '<i class="ph-duotone ph-device-mobile"></i> Get the app', f: installApp });
   if (!getPlace()) items.push({ k: 'city', t: '📍 Set your city', f: changePlaceSheet });
   items.push({ k: 'inv', t: '🐾 Invite friends', f: function(){ location.href = '/manage?do=invite'; } });
   if (!items.length) { el.hidden = true; return; }
@@ -2292,7 +2294,7 @@ function openAdd(){
     '<input id="fwalk" type="file" accept="image/*" capture="environment" hidden>' +
     '<textarea id="gripe" placeholder="Or type it: what should be fixed? Five words is plenty."></textarea>' +
     '<div id="thumbs" class="attach"></div>' + tagRowHTML() + spotLineHTML() +
-    '<div class="addfoot"><div class="iconbtn" id="addmedia" title="take a photo">📷</div><div class="iconbtn" id="addgallery" title="choose from your photos">🖼️</div>' + spotButtonHTML() +
+    '<div class="addfoot"><div class="iconbtn" id="addmedia" title="take a photo"><i class="ph-duotone ph-camera" style="color:#9a5f00"></i></div><div class="iconbtn" id="addgallery" title="choose from your photos"><i class="ph-duotone ph-image" style="color:#3b6fb6"></i></div>' + spotButtonHTML() +
       '<input id="fcam" type="file" accept="image/*" capture="environment" hidden>' +
       '<input id="fpick" type="file" accept="image/*,video/*" multiple hidden>' +
       '<button class="btn compact" id="priv" disabled>🔒 Keep private</button>' +
@@ -2720,7 +2722,7 @@ function screenPack(mode, topic0){
   }).catch(function(e){ document.getElementById('board').textContent = 'The pack is napping: ' + e.message; });
 }
 
-var APP_VERSION = "20261002185025";
+var APP_VERSION = "20261002185231";
 (function(){
   try {
     fetch('/version.json?t=' + Date.now(), { cache: 'no-store' }).then(function(r){ return r.json(); }).then(function(j){
@@ -2958,7 +2960,7 @@ function screenManage(){
     var L = res[0], sess = res[1] && res[1].data && res[1].data.session, email = sess && sess.user && sess.user.email;
     if (!L) { root.innerHTML = nav() + say('This pup couldn&rsquo;t be found.', 'start a new one') + tabbar('manage'); wireTabs(); return; }
     var n = L.entries.length, nm = esc(L.name), backed = isBackedUp(tail);
-    var rows = (canOfferInstall() ? mrow('<div class="mkeythumb">📲</div>', 'Get the app', 'Home-screen icon, full screen, reminders.',
+    var rows = (canOfferInstall() ? mrow('<div class="mkeythumb"><i class="ph-duotone ph-device-mobile"></i></div>', 'Get the app', 'Home-screen icon, full screen, reminders.',
         '<button class="btn gold mbtn" id="minstall">Install VoterPup</button>') : '') +
       (KIOSK ? '' : mrow(slotMedia('share'), 'Show what matters to you', 'Candidates see your issues, never you.',
         '<button class="btn gold mbtn" id="mshare"' + (n ? '' : ' disabled') + '>' + (n ? '📤 Share my issues' : 'Tell ' + nm + ' one issue first') + '</button>'));
