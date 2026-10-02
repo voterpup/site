@@ -1420,7 +1420,7 @@ function screenUnbox(name, gripe){
     '<div class="unboxwrap">' +
       (still
         ? '<img src="/pup-face.jpg" alt="" style="width:100%;height:100%;object-fit:cover">'
-        : '<video id="unboxvid" src="/pup-unbox-cape.mp4" muted autoplay playsinline preload="auto"></video>') +
+        : '<video id="unboxvid" src="/pup-unbox-cape2.mp4" muted autoplay playsinline preload="auto"></video>') +
       '<div class="tag">' + esc(name.toUpperCase()) + '</div>' +
     '</div>' +
     '<div class="reveal" id="reveal"></div>';
@@ -2902,7 +2902,7 @@ function screenPack(mode, topic0){
   }).catch(function(e){ document.getElementById('board').textContent = 'The pack is napping: ' + e.message; });
 }
 
-var APP_VERSION = "20261002203358";
+var APP_VERSION = "20261002203528";
 (function(){
   try {
     fetch('/version.json?t=' + Date.now(), { cache: 'no-store' }).then(function(r){ return r.json(); }).then(function(j){
