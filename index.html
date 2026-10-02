@@ -2503,7 +2503,7 @@ function screenPack(mode, topic0){
   }).catch(function(e){ document.getElementById('board').textContent = 'The pack is napping: ' + e.message; });
 }
 
-var APP_VERSION = "20261002022236";
+var APP_VERSION = "20261002022644";
 (function(){
   try {
     fetch('/version.json?t=' + Date.now(), { cache: 'no-store' }).then(function(r){ return r.json(); }).then(function(j){
@@ -2759,7 +2759,7 @@ function screenManage(){
       '<button class="btn ghost mbtn" id="mcopy">Copy link</button><button class="btn ghost mbtn" id="mstk">🏷️ Key sticker</button>');
     if (!KIOSK) rows += mrow('<div class="mkeythumb">📧</div>', 'Reports by email', hasMail() ? 'On, 7 pm daily' : 'For phones without notifications',
       '<button class="btn ' + (hasMail() ? 'ghost' : 'gold') + ' mbtn" id="mmail">' + (hasMail() ? 'Change' : 'Turn on') + '</button>' + (hasMail() ? '<button class="btn ghost mbtn" id="mmailoff">Stop</button>' : ''));
-    if (!KIOSK) rows += mrow('<video class="fit" src="/pup-bark.mp4" poster="/pup-bark.jpg" muted autoplay loop playsinline></video>', '🔔 Reminders', remLabel(remPref()),
+    if (!KIOSK) rows += mrow('<video class="fit" src="/pup-bark.mp4" poster="/pup-bark.jpg" muted autoplay playsinline></video>', '🔔 Reminders', remLabel(remPref()),
       '<button class="btn ' + (remPref() && !remPref().off ? 'ghost' : 'gold') + ' mbtn" id="mrem">' + (remPref() && !remPref().off ? 'Change' : 'Turn on') + '</button>');
     rows += mrow('<div class="mkeythumb">🎯</div>', 'Pup Patrol', 'Smash today&rsquo;s issues. 30 seconds.', '<a class="btn gold mbtn" href="/play">Play</a>');
     rows += mrow('<img id="invthumb" alt="">', '🐾 Invite your friends',
