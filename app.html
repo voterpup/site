@@ -2247,7 +2247,7 @@ function screenPack(mode, topic0){
       (cp.today ? ' · ' + cp.today + ' today' : '') + (metroNote ? '<span class="crmetro">' + metroNote + '</span>' : '') + '</div><div class="crchips">' +
       (cp.by_topic || []).filter(function(t){ return t.topic !== 'other'; }).slice(0, 8).map(function(t){ return '<span class="chip">#' + esc(t.topic) + ' <b>' + t.n + '</b></span>'; }).join('') +
       '</div>' + (recent ? '<details class="crlatest"><summary>Latest reports (' + Math.min((cp.pins || []).length, 60) + ')</summary><div class="crscroll">' + recent + '</div></details>' : '') +
-      '<div class="crsrc">City of ' + esc(cp.city) + ' 3-1-1 open data · Open Government Licence – Vancouver · the city&rsquo;s records (type, area, time: no text or photos), not resident posts</div></div>';
+      '<div class="crsrc">City of ' + esc(cp.city) + ' 3-1-1 open data · Open Government Licence – Vancouver</div></div>';
   }
   var cityKey = place ? place.split(',')[0].toLowerCase() : null;
   var dataCity = cityKey ? (METRO[cityKey] || cityKey) : null;   // Surrey, Burnaby… share Metro Vancouver's city data
@@ -2540,7 +2540,7 @@ function screenPack(mode, topic0){
   }).catch(function(e){ document.getElementById('board').textContent = 'The pack is napping: ' + e.message; });
 }
 
-var APP_VERSION = "20261002053134";
+var APP_VERSION = "20261002053500";
 (function(){
   try {
     fetch('/version.json?t=' + Date.now(), { cache: 'no-store' }).then(function(r){ return r.json(); }).then(function(j){
