@@ -2214,7 +2214,7 @@ function renderIsland(tail, name){
   var el = document.getElementById('island'); if (!el) return;
   var rp = remPref(), items = [], idseen = false; try { idseen = localStorage.getItem('vp.idseen') === tail; } catch (e) {}
   if (!idseen) items.push({ k: 'id', t: '<i class="ph-duotone ph-identification-card"></i> ' + esc(name) + '&rsquo;s ID card', f: function(){ openIdCard(tail, name, document.querySelectorAll('#entries .card, #entries .entry').length || 1); renderIsland(tail, name); } });
-  if ((!rp || rp.off) && !hasMail()) items.push({ k: 'rem', t: pushOK() ? '🔔 Turn on reminders' : '📧 Reports by email', f: function(){ (pushOK() ? reminderSheet : emailSheet)(tail, name, function(){ renderIsland(tail, name); }); } });
+  if ((!rp || rp.off) && !hasMail()) items.push({ k: 'rem', t: pushOK() ? '<i class="ph-duotone ph-bell-ringing"></i> Turn on reminders' : '<i class="ph-duotone ph-envelope-simple"></i> Reports by email', f: function(){ (pushOK() ? reminderSheet : emailSheet)(tail, name, function(){ renderIsland(tail, name); }); } });
   if (GOOGLE_READY && !isBackedUp(tail)) items.push({ k: 'bk', t: '<i class="ph-duotone ph-cloud-check"></i> Back up with Google', f: function(){ location.href = '/manage?do=backup'; } });
   if (canOfferInstall()) items.push({ k: 'app', t: '<i class="ph-duotone ph-device-mobile"></i> Get the app', f: installApp });
   if (!getPlace()) items.push({ k: 'city', t: '<i class="ph-duotone ph-map-pin"></i> Set your city', f: changePlaceSheet });
@@ -2969,7 +2969,7 @@ function screenPack(mode, topic0){
   }).catch(function(e){ document.getElementById('board').textContent = 'The pack is napping: ' + e.message; });
 }
 
-var APP_VERSION = "20261002210246";
+var APP_VERSION = "20261002210408";
 (function(){
   try {
     fetch('/version.json?t=' + Date.now(), { cache: 'no-store' }).then(function(r){ return r.json(); }).then(function(j){
