@@ -228,7 +228,10 @@
   .emorow:empty{display:none}
   .emo{border:1.5px solid var(--line); background:#fff; border-radius:999px; padding:2px 7px; font-size:14px; line-height:1.4; cursor:pointer; font-family:inherit; color:var(--ink); transition:transform .12s}
   .emo b{font-size:12.5px; font-weight:800; color:var(--sub); margin-left:2px} .emo.on{background:#faf3df; border-color:var(--goldtext)} .emo.on b{color:#7a5a0c}
-  .emo.static{cursor:default; background:#faf6ef} .emolabel{font-size:12px; font-weight:800; color:var(--sub); margin-right:2px}
+  .emo.static{cursor:default; background:#faf6ef} .emo.add{color:var(--sub); font-weight:800; padding:2px 8px} .emo.add i{font-size:15px; vertical-align:-2px}
+  .emogrid{display:grid; grid-template-columns:repeat(7, 1fr); gap:6px; margin-top:8px} .emogrid button{font-size:26px; background:#faf6ef; border:0; border-radius:14px; padding:8px 0; cursor:pointer}
+  .reactban{position:relative; background:#fff8e6; border:2px solid #f1d58a; border-radius:16px; padding:10px 34px 10px 12px; margin:10px 0; font-size:14px}
+  .reactban .rbrow{margin-top:4px; color:var(--sub); font-weight:700} .reactban .rbemo{font-size:16px; letter-spacing:1px} .reactban .rbx{position:absolute; top:8px; right:12px; color:var(--sub); text-decoration:none} .emolabel{font-size:12px; font-weight:800; color:var(--sub); margin-right:2px}
   .emo.pop{animation:emopop .3s ease} @keyframes emopop{40%{transform:scale(1.35)} 100%{transform:scale(1)}}
   .chip.react{cursor:pointer} .chip.react.on{background:#faf3df; border-color:var(--goldtext); color:#7a5a0c; font-weight:700}
   .dreact{margin-top:6px} .dreact .chip{font-size:10.5px; padding:3px 7px}
@@ -1624,7 +1627,7 @@ function screenLedger(tail){
     Array.prototype.forEach.call(document.querySelectorAll('[data-hv]'), function(b){ b.onclick = function(ev){ ev.stopPropagation(); var v = b.getAttribute('data-hv');
       document.querySelectorAll('[data-hv]').forEach(function(x){ x.classList.toggle('on', x === b); });
       document.querySelectorAll('[data-hview]').forEach(function(x){ x.hidden = x.getAttribute('data-hview') !== v; });
-      if (v === 'map') huntMap(); }; }); animateRing();
+      if (v === 'map') huntMap(); }; }); animateRing(); showNewReacts(tail);
     var qw = document.getElementById('qwalk'); if (qw) qw.onclick = startWalk; var qn = document.getElementById('qnote'); if (qn) qn.onclick = function(){ openAdd(); };
     var fb = document.getElementById('flashbtn'); if (fb) fb.onclick = function(ev){ ev.preventDefault(); openFlashback(L); };
     renderIsland(tail, L.name);
@@ -2409,13 +2412,47 @@ document.addEventListener('click', function(ev){
   }).catch(function(e){ c.style.opacity = 1; toast(e.message); });
 });
 // ---------- emoji reactions (one per pup per post; your own posts show what neighbours felt) ----------
-var EMOJI = [['lol', '😂'], ['wow', '😮'], ['ugh', '😤'], ['love', '❤️']];
+var EMOJI = ['😂', '😮', '😤', '❤️'];   // quick row; the + opens the full safe list (the server checks the same list)
+var EMOJI_SAFE = ["😂", "🤣", "😊", "😍", "🥰", "😎", "🤩", "🥳", "😮", "😲", "🤯", "🤔", "😅", "😬", "😢", "😭", "😤", "😩", "🙄", "😴", "🤦", "🙌", "👏", "👍", "💪", "🙏", "🫶", "❤️", "🧡", "💛", "💚", "💙", "💜", "🔥", "✨", "💯", "🎉", "🌱", "🌳", "🌸", "☀️", "🌧️", "🚌", "🚲", "🚧", "🕳️", "🗑️", "🐶", "🐾", "🏡", "📍"];
 function emoRow(id, own){ return id ? '<div class="emorow' + (own ? ' own' : '') + '" data-emo="' + esc(id) + '"></div>' : ''; }
 function emoPaint(row, s){
   var c = (s && s.counts) || {}, mine = s && s.mine, own = row.classList.contains('own');
-  if (own) { var got = EMOJI.filter(function(x){ return c[x[0]]; });
-    row.innerHTML = got.length ? '<span class="emolabel">Neighbours felt</span>' + got.map(function(x){ return '<span class="emo static">' + x[1] + ' <b>' + c[x[0]] + '</b></span>'; }).join('') : ''; return; }
-  row.innerHTML = EMOJI.map(function(x){ return '<button class="emo' + (mine === x[0] ? ' on' : '') + '" data-e="' + x[0] + '" aria-label="' + x[0] + '">' + x[1] + (c[x[0]] ? ' <b>' + c[x[0]] + '</b>' : '') + '</button>'; }).join('');
+  var used = Object.keys(c).filter(function(k){ return c[k]; }).sort(function(a, b){ return c[b] - c[a]; });
+  if (own) { row.innerHTML = used.length ? '<span class="emolabel">Neighbours felt</span>' + used.map(function(k){ return '<span class="emo static">' + k + ' <b>' + c[k] + '</b></span>'; }).join('') : ''; return; }
+  var show = EMOJI.slice(); used.forEach(function(k){ if (show.indexOf(k) < 0) show.push(k); }); if (mine && show.indexOf(mine) < 0) show.push(mine);
+  row.innerHTML = show.map(function(k){ return '<button class="emo' + (mine === k ? ' on' : '') + '" data-e="' + k + '">' + k + (c[k] ? ' <b>' + c[k] + '</b>' : '') + '</button>'; }).join('') +
+    '<button class="emo add" data-eadd="1" aria-label="more reactions"><i class="ph-duotone ph-smiley"></i>+</button>';
+}
+function emoPick(row){
+  var ov = document.createElement('div'); ov.className = 'stkover'; document.body.appendChild(ov);
+  var close = function(){ if (ov.parentNode) ov.parentNode.removeChild(ov); };
+  ov.onclick = function(ev){ if (ev.target === ov) close(); };
+  ov.innerHTML = '<div class="stksheet"><div class="addhead">React</div><div class="emogrid">' + EMOJI_SAFE.map(function(k){ return '<button data-pick="' + k + '">' + k + '</button>'; }).join('') + '</div></div>';
+  Array.prototype.forEach.call(ov.querySelectorAll('[data-pick]'), function(b){ b.onclick = function(){ close(); emoSend(row, b.getAttribute('data-pick'), false); }; });
+}
+function emoSend(row, k, on){
+  var s = loadLocal();
+  if (!s) { toast('Get your own pup first (10 seconds), then you can react.'); return; }
+  var id = row.getAttribute('data-emo');
+  track('emoji', { e: on ? 'off' : k });
+  rpc('vp_emoji', { p_tail: s.tail, p_id: id, p_emoji: on ? null : k }).then(function(r){
+    Array.prototype.forEach.call(document.querySelectorAll('.emorow[data-emo="' + id + '"]:not(.own)'), function(x){ emoPaint(x, r); });
+    var hit = row.querySelector('.emo.on'); if (hit) { hit.classList.add('pop'); setTimeout(function(){ hit.classList.remove('pop'); }, 300); }
+  }).catch(function(e){ toast(e.message); });
+}
+// new reactions on my own posts, shown once on my pup page
+function showNewReacts(tail){
+  var s = loadLocal(); if (!s || s.tail !== tail) return;
+  var key = 'vp.emoSeen.' + tail, since = null; try { since = localStorage.getItem(key); } catch (e) {}
+  rpc('vp_new_reactions', { p_tail: tail, p_since: since }).then(function(list){
+    try { localStorage.setItem(key, new Date().toISOString()); } catch (e) {}
+    if (!list || !list.length) return;
+    var head = document.querySelector('.puphead'); if (!head) return;
+    var d = document.createElement('div'); d.className = 'reactban';
+    d.innerHTML = '<b>🎉 New reactions</b>' + list.map(function(x){ return '<div class="rbrow"><span class="rbemo">' + esc(x.emojis.slice(0, 24)) + '</span> on &ldquo;' + esc(x.body) + '&rdquo;</div>'; }).join('') + '<a href="#" class="rbx">✕</a>';
+    head.parentNode.insertBefore(d, head.nextSibling);
+    d.querySelector('.rbx').onclick = function(ev){ ev.preventDefault(); d.remove(); };
+  }).catch(function(){});
 }
 var _emoT = null;
 function emoFill(){
@@ -2430,18 +2467,14 @@ function emoFill(){
 }
 new MutationObserver(function(){ clearTimeout(_emoT); _emoT = setTimeout(emoFill, 120); }).observe(document.documentElement, { childList: true, subtree: true });
 document.addEventListener('click', function(ev){
-  var b = ev.target && ev.target.closest ? ev.target.closest('.emorow .emo[data-e]') : null;
+  var b = ev.target && ev.target.closest ? ev.target.closest('.emorow .emo[data-e], .emorow .emo[data-eadd]') : null;
   if (!b) return;
   ev.stopPropagation();
-  var s = loadLocal();
-  if (!s) { toast('Get your own pup first (10 seconds), then you can react.'); return; }
-  var row = b.parentNode, id = row.getAttribute('data-emo'), k = b.getAttribute('data-e'), on = b.classList.contains('on');
-  b.classList.add('pop'); setTimeout(function(){ b.classList.remove('pop'); }, 300);
-  Array.prototype.forEach.call(row.querySelectorAll('.emo'), function(x){ x.classList.toggle('on', !on && x === b); });   // instant feedback
-  track('emoji', { e: on ? 'off' : k });
-  rpc('vp_emoji', { p_tail: s.tail, p_id: id, p_emoji: on ? null : k }).then(function(r){
-    Array.prototype.forEach.call(document.querySelectorAll('.emorow[data-emo="' + id + '"]:not(.own)'), function(x){ emoPaint(x, r); });
-  }).catch(function(e){ toast(e.message); Array.prototype.forEach.call(row.querySelectorAll('.emo'), function(x){ x.classList.toggle('on', on && x === b); }); });
+  var row = b.parentNode;
+  if (b.hasAttribute('data-eadd')) { if (!loadLocal()) { toast('Get your own pup first (10 seconds), then you can react.'); return; } emoPick(row); return; }
+  var on = b.classList.contains('on');
+  Array.prototype.forEach.call(row.querySelectorAll('.emo[data-e]'), function(x){ x.classList.toggle('on', !on && x === b); });   // instant feedback
+  emoSend(row, b.getAttribute('data-e'), on);
 }, true);
 var METRO = { 'north vancouver': 'vancouver', 'west vancouver': 'vancouver', 'burnaby': 'vancouver', 'surrey': 'vancouver', 'richmond': 'vancouver', 'new westminster': 'vancouver',
   'coquitlam': 'vancouver', 'port coquitlam': 'vancouver', 'port moody': 'vancouver', 'delta': 'vancouver', 'langley': 'vancouver', 'maple ridge': 'vancouver', 'pitt meadows': 'vancouver',
@@ -3045,7 +3078,7 @@ function screenPack(mode, topic0){
   }).catch(function(e){ document.getElementById('board').textContent = 'The pack is napping: ' + e.message; });
 }
 
-var APP_VERSION = "20261003212221";
+var APP_VERSION = "20261003212715";
 (function(){
   try {
     fetch('/version.json?t=' + Date.now(), { cache: 'no-store' }).then(function(r){ return r.json(); }).then(function(j){
