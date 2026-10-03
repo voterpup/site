@@ -224,9 +224,9 @@
       overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
   .spotchip b{cursor:pointer; margin-left:4px}
   .chip.spotlink{text-decoration:none; color:#3b6fb6}
-  .emorow{display:flex; gap:6px; flex-wrap:wrap; margin-top:8px; align-items:center; min-height:0}
+  .emorow{display:flex; gap:4px; flex-wrap:wrap; margin-top:8px; align-items:center; min-height:0}
   .emorow:empty{display:none}
-  .emo{border:1.5px solid var(--line); background:#fff; border-radius:999px; padding:3px 9px; font-size:15px; line-height:1.4; cursor:pointer; font-family:inherit; color:var(--ink); transition:transform .12s}
+  .emo{border:1.5px solid var(--line); background:#fff; border-radius:999px; padding:2px 7px; font-size:14px; line-height:1.4; cursor:pointer; font-family:inherit; color:var(--ink); transition:transform .12s}
   .emo b{font-size:12.5px; font-weight:800; color:var(--sub); margin-left:2px} .emo.on{background:#faf3df; border-color:var(--goldtext)} .emo.on b{color:#7a5a0c}
   .emo.static{cursor:default; background:#faf6ef} .emolabel{font-size:12px; font-weight:800; color:var(--sub); margin-right:2px}
   .emo.pop{animation:emopop .3s ease} @keyframes emopop{40%{transform:scale(1.35)} 100%{transform:scale(1)}}
@@ -3045,7 +3045,7 @@ function screenPack(mode, topic0){
   }).catch(function(e){ document.getElementById('board').textContent = 'The pack is napping: ' + e.message; });
 }
 
-var APP_VERSION = "20261003212114";
+var APP_VERSION = "20261003212221";
 (function(){
   try {
     fetch('/version.json?t=' + Date.now(), { cache: 'no-store' }).then(function(r){ return r.json(); }).then(function(j){
