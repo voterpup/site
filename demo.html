@@ -18,13 +18,15 @@ p{font-size:clamp(15px,2.4vh,21px);line-height:1.35;color:var(--sub);margin:0 0 
 .try{background:var(--gold);color:#2a2418;font-weight:800;font-size:18px;padding:14px 26px;border-radius:999px;box-shadow:0 6px 18px rgba(232,184,75,.5);animation:pulse 2.2s infinite}
 @keyframes pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.05)}}
 .slide.dark{background:#161b22;color:#fff} .slide.dark p{color:#c9d1dc} .slide.dark .kick{color:var(--gold)} .slide.dark .phone{border-color:#3a4150}
+.bigchoc{font-size:min(14vh,15vw);line-height:.95;font-weight:900;color:#1f2733;letter-spacing:-1px;margin:0 0 2vh}
+@media (orientation:landscape){.choco .bigchoc{font-size:min(22vh,9vw)} .choco .txt{max-width:55vw !important}}
 .brand{position:absolute;left:18px;top:14px;font-weight:800;color:var(--gold);font-size:20px}
 .ladder{display:flex;gap:10px;margin-top:4px} .ladder span{background:#fff;border-radius:14px;padding:8px 12px;font-size:14px;font-weight:800;box-shadow:0 3px 10px rgba(0,0,0,.08)} .ladder b{display:block;font-size:26px}
 @media (max-width:600px){.row .super{display:none} h1{font-size:clamp(24px,4.4vh,34px)} p{font-size:15px}}
 @media (orientation:landscape){.slide{flex-direction:row;gap:32px;text-align:left;padding-bottom:60px} .slide>div.txt{align-items:flex-start;display:flex;flex-direction:column;max-width:46vw} .phone{height:min(76vh,720px)} .slide{gap:56px; padding:40px 6vw 96px} h1{font-size:clamp(30px,6vh,58px)} p{font-size:clamp(16px,2.6vh,24px)} .super{height:min(36vh,300px)}}
 </style></head><body>
 <div class="brand">VoterPup 🐾</div>
-<section class="slide on"><div class="txt"><div class="kick">FREE · NO ACCOUNT · 30 SECONDS</div><h1>Free chocolates 🍫<br><em>Scan the QR.</em></h1><p>Get a pup. Tap what bugs you. Take a chocolate.</p></div><div class="qr"><img src="/demo/qr.png" alt="QR code"></div></section>
+<section class="slide on choco"><div class="txt"><div class="bigchoc">Free<br>chocolates 🍫</div><h1><em>Scan the QR.</em></h1><p>Get a pup. Tap what bugs you. Take a chocolate.</p></div><div class="qr"><img src="/demo/qr.png" alt="QR code"></div></section>
 <section class="slide"><div class="txt"><h1>Meet <em>your</em> pup.</h1><p>Feed it photos of your street, find today&rsquo;s 5 things, and watch it grow.</p></div><div class="row"><div class="super"><img src="/demo/pup-cape.png" alt=""></div><div class="phone"><img src="/demo/app-challenge-v2.png" alt=""></div></div></section>
 <div class="foot"><div class="dots" id="dots"></div><div class="try" id="try">👆 Tap anywhere to try it</div></div>
 <script>
