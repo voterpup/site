@@ -875,7 +875,13 @@ function renderSpot(){
 function grabSpot(done, fail){
   if (!navigator.geolocation) { fail && fail('nogeo'); return; }
   if (window._lastSpot && Date.now() - window._lastSpot.ts < 600000) { done(window._lastSpot.spot); return; }
-  navigator.geolocation.getCurrentPosition(function(pos){
+  navigator.geolocation.getCurrentPosition(function(pos){ grabSpot._got(pos, done);   }, function(err){
+    if (err && err.code === 1) { fail && fail('denied'); return; }
+    navigator.geolocation.getCurrentPosition(function(pos){ grabSpot._got(pos, done); },   // precise timed out or unavailable: approximate is fine
+      function(e2){ fail && fail(e2 && e2.code === 1 ? 'denied' : 'error'); }, { enableHighAccuracy: false, timeout: 15000, maximumAge: 600000 });
+  }, { enableHighAccuracy: true, timeout: 8000, maximumAge: 120000 });
+}
+grabSpot._got = function(pos, done){
     var la = Math.round(pos.coords.latitude * 1e4) / 1e4, lo = Math.round(pos.coords.longitude * 1e4) / 1e4;
     fetch('https://nominatim.openstreetmap.org/reverse?format=jsonv2&zoom=18&addressdetails=1&accept-language=en&email=hi%40voterpup.com&lat=' + la + '&lon=' + lo)
       .then(function(r){ return r.json(); }).then(function(g){
@@ -886,8 +892,7 @@ function grabSpot(done, fail){
         if (a.city && (!getPlace() || qrGuess)) { savePlace(osmLabel(a), false); try { localStorage.removeItem('vp.placeqr'); } catch (e) {} }
         var sp = { lat: la, lng: lo, spot: label.slice(0, 80) }; window._lastSpot = { spot: sp, ts: Date.now() }; done(sp);
       }).catch(function(){ done({ lat: la, lng: lo, spot: la + ', ' + lo }); });
-  }, function(err){ fail && fail(err && err.code === 1 ? 'denied' : 'error'); }, { enableHighAccuracy: true, timeout: 10000 });
-}
+};
 // Location is on by default: opening the box asks the phone (permission popup if needed) and fills the chip. ✕ removes it.
 function autoSpot(){
   var b = document.getElementById('addspot'); if (!b || pendingSpot) return;
@@ -1825,26 +1830,9 @@ function openCamera(s){
 function startWalk(){
   var s = loadLocal(); if (!s || KIOSK) { location.href = '/app.html?new=1'; return; }
   if (window._tourEnd) window._tourEnd();
-  var fresh = window._lastSpot && Date.now() - window._lastSpot.ts < 600000;
-  var granted = function(){ grabSpot(function(sp){ pendingSpot = sp; }, function(){}); openCamera(s); };
-  if (fresh) { pendingSpot = window._lastSpot.spot; openCamera(s); return; }
-  var ask = function(){
-    var ov = document.createElement('div'); ov.className = 'stkover'; document.body.appendChild(ov);
-    var close = function(){ if (ov.parentNode) ov.parentNode.removeChild(ov); };
-    ov.onclick = function(ev){ if (ev.target === ov) close(); };
-    ov.innerHTML = '<div class="stksheet" style="text-align:center"><div>' + ic('round_pushpin', 'bigic') + '</div><div class="addhead">' + esc(s.name) + ' needs to know where you are</div>' +
-      '<p class="hint" style="margin:6px 0 12px">So every photo is from a real street, and the city list stays free of spam. Only the street name is shown, never your exact spot.</p>' +
-      '<button class="btn gold" id="locgo">' + ic('round_pushpin', 'btnic') + 'Allow location</button><button class="btn ghost" id="locno">Not now</button></div>';
-    document.getElementById('locno').onclick = close;
-    document.getElementById('locgo').onclick = function(){
-      var b = this; b.disabled = true; b.textContent = 'Asking your phone…';
-      grabSpot(function(sp){ pendingSpot = sp; b.disabled = false; b.innerHTML = ic('camera_with_flash', 'btnic') + 'Open the camera'; b.onclick = function(){ close(); openCamera(s); }; },
-        function(why){ b.disabled = false; b.textContent = '📍 Try again';
-          ov.querySelector('.hint').innerHTML = why === 'denied' ? 'Location is blocked for voterpup.com. Allow it in your browser’s site settings (the 🔒 next to the address), then try again.' : 'Couldn’t get a location. Turn on location services, then try again.'; });
-    };
-  };
-  if (navigator.permissions && navigator.permissions.query) navigator.permissions.query({ name: 'geolocation' }).then(function(st){ st.state === 'granted' ? granted() : ask(); }).catch(ask);
-  else ask();
+  if (window._lastSpot && Date.now() - window._lastSpot.ts < 600000) pendingSpot = window._lastSpot.spot;
+  else if (navigator.permissions && navigator.permissions.query) navigator.permissions.query({ name: 'geolocation' }).then(function(st){ if (st.state === 'granted') grabSpot(function(sp){ pendingSpot = sp; }, function(){}); }).catch(function(){});
+  openCamera(s);   // never wait on anything before this: phones only open the camera straight from a tap
 }
 var PH = { camera_with_flash: ['ph-fill ph-camera', 'inherit'], cityscape: ['ph-duotone ph-buildings', '#22786a'], writing_hand: ['ph-duotone ph-pencil-simple-line', '#3b6fb6'],
   bullseye: ['ph-duotone ph-game-controller', '#d1495b'], high_voltage: ['ph-fill ph-lightning', '#f4b63f'], world_map: ['ph-duotone ph-map-trifold', '#22786a'],
@@ -2639,7 +2627,11 @@ function walkSheet(s, file){
   ov.innerHTML = '<div class="stksheet addsheet walksheet"><div class="addhead">🐾 ' + nm + ' is chewing on it…</div><div class="walkline">' + line + '</div>' +
     '<div class="walkpic"><img id="walkimg" alt=""><div class="shine"></div><video class="scanpup" src="/pup-scan.mp4" muted autoplay loop playsinline></video></div><div id="walkout"><div class="hint">reading the photo</div><div class="wskel" style="--i:0"></div><div class="wskel" style="--i:1"></div><div class="wskel" style="--i:2"></div></div></div>';
   var blob = null;
-  var spotReady = new Promise(function(res){ var t0 = Date.now(); (function wait(){ if (pendingSpot || Date.now() - t0 > 9000) return res(pendingSpot); setTimeout(wait, 250); })(); });
+  var spotReady = new Promise(function(res){
+    if (pendingSpot) return res(pendingSpot);
+    var done = false, fin = function(sp){ if (!done) { done = true; if (sp) pendingSpot = sp; res(pendingSpot); } };
+    grabSpot(fin, function(){ fin(null); });
+    setTimeout(function(){ fin(pendingSpot); }, 25000); });
   shrinkPhoto(file).then(function(b){ blob = b; document.getElementById('walkimg').src = URL.createObjectURL(b);
     return new Promise(function(res){ var r = new FileReader(); r.onload = function(){ res(r.result.split(',')[1]); }; r.readAsDataURL(b); });
   }).then(function(b64){ return spotReady.then(function(sp){
@@ -2655,7 +2647,7 @@ function walkSheet(s, file){
       if (navigator.vibrate) navigator.vibrate(hu.completed ? [60, 40, 60, 40, 120] : 50); if (hu.completed) confettiBurst(); }
     var uploaded = null;
     function upload(){ if (uploaded) return uploaded; var f = new File([blob], 'walk.jpg', { type: 'image/jpeg' }); pendingFiles = [f]; uploaded = uploadPending().then(function(m){ pendingFiles = []; return m; }); return uploaded; }
-    if (r.error === 'location') throw new Error(s.name + ' needs your location to read this. Turn location on and feed again.');
+    if (r.error === 'location') { var le = new Error(s.name + ' needs your location to read photos, so every photo is from a real street. Approximate is fine. Allow it, then tap Try again.'); le.loc = true; throw le; }
     if (r.error === 'slow') throw new Error(s.name + ' is full! Too many photos for now. Try again in a few minutes.');
     if (r.error) throw new Error(r.error);
     if (r.safe === 'people') { out.innerHTML = '<div class="walkmsg">🐾 ' + nm + ' only reports places. Step back from people and pets and snap the street.</div><button class="btn ghost" id="wagain">Snap again</button>'; }
@@ -2679,7 +2671,7 @@ function walkSheet(s, file){
     var ag = document.getElementById('wagain'); if (ag) ag.onclick = function(){ close(); startWalk(); };
     wireOwn(upload);
     var dn = document.getElementById('wdone'); if (dn) dn.onclick = function(){ close(); if (location.pathname.indexOf('/p/') === 0) screenLedger(s.tail); else if (location.pathname === '/pack') screenPack(); };
-  }).catch(function(e){ var out = document.getElementById('walkout'); if (out) out.innerHTML = '<div class="walkmsg">The pup stumbled: ' + esc(e.message) + '</div><button class="btn ghost" id="wagain">Try again</button>'; var ag = document.getElementById('wagain'); if (ag) ag.onclick = function(){ close(); openAdd(); }; });
+  }).catch(function(e){ var out = document.getElementById('walkout'); if (out) out.innerHTML = '<div class="walkmsg">' + (e.loc ? '📍 ' : 'The pup stumbled: ') + esc(e.message) + '</div><button class="btn ghost" id="wagain">Try again</button>'; var ag = document.getElementById('wagain'); if (ag) ag.onclick = function(){ close(); walkSheet(s, file); }; });   // same photo, no re-snap
   function ownLine(){ return '<div id="wownbox" hidden><textarea id="wgripe" placeholder="What did it miss? Five words is plenty. #tags welcome."></textarea>' + tagRowHTML() +
     '<div class="btnrow"><button class="btn compact" id="wownpriv" disabled>🔒 Keep private</button><button class="btn gold compact" id="wownshare" disabled>🌱 Be counted</button></div></div>' +
     '<div class="btnrow" style="margin-top:10px"><button class="btn ghost compact" id="wown">✍️ Something it missed?</button><button class="btn gold compact" id="wdone">Done</button></div>'; }
@@ -3012,7 +3004,7 @@ function screenPack(mode, topic0){
   }).catch(function(e){ document.getElementById('board').textContent = 'The pack is napping: ' + e.message; });
 }
 
-var APP_VERSION = "20261003090927";
+var APP_VERSION = "20261003192525";
 (function(){
   try {
     fetch('/version.json?t=' + Date.now(), { cache: 'no-store' }).then(function(r){ return r.json(); }).then(function(j){
