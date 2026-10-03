@@ -224,6 +224,12 @@
       overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
   .spotchip b{cursor:pointer; margin-left:4px}
   .chip.spotlink{text-decoration:none; color:#3b6fb6}
+  .emorow{display:flex; gap:6px; flex-wrap:wrap; margin-top:8px; align-items:center; min-height:0}
+  .emorow:empty{display:none}
+  .emo{border:1.5px solid var(--line); background:#fff; border-radius:999px; padding:3px 9px; font-size:15px; line-height:1.4; cursor:pointer; font-family:inherit; color:var(--ink); transition:transform .12s}
+  .emo b{font-size:12.5px; font-weight:800; color:var(--sub); margin-left:2px} .emo.on{background:#faf3df; border-color:var(--goldtext)} .emo.on b{color:#7a5a0c}
+  .emo.static{cursor:default; background:#faf6ef} .emolabel{font-size:12px; font-weight:800; color:var(--sub); margin-right:2px}
+  .emo.pop{animation:emopop .3s ease} @keyframes emopop{40%{transform:scale(1.35)} 100%{transform:scale(1)}}
   .chip.react{cursor:pointer} .chip.react.on{background:#faf3df; border-color:var(--goldtext); color:#7a5a0c; font-weight:700}
   .dreact{margin-top:6px} .dreact .chip{font-size:10.5px; padding:3px 7px}
   .mapbtn{position:fixed; right:16px; bottom:84px; z-index:8; display:flex; align-items:center; gap:6px; padding:10px 14px 10px 12px;
@@ -1658,7 +1664,7 @@ function screenLedger(tail){
                     : '<button class="chip goldfill" data-a="share" data-id="' + e.id + '">🌱 Add to Your city</button>') +
         '</div><div class="eright">' + shareChip(e) +
           (e.fixed_at ? '' : '<span class="chip iconchip" data-fix="' + e.id + '" data-on="0" title="mark as fixed"><i class="ph-duotone ph-check-circle"></i></span>') +
-          '<span class="chip iconchip emore" data-more="' + e.id + '" title="more"><i class="ph-duotone ph-dots-three-outline"></i></span></div></div>' +
+          '<span class="chip iconchip emore" data-more="' + e.id + '" title="more"><i class="ph-duotone ph-dots-three-outline"></i></span></div></div>' + (e.shared ? emoRow(e.id, true) : '') +
         '<div class="emenu" data-menu="' + e.id + '" hidden>' +
           '<span class="chip" data-edit="' + e.id + '">✎ Change topic</span>' +
           (e.fixed_at ? '<span class="chip" data-fix="' + e.id + '" data-on="1">↺ It broke again</span>' : '') +
@@ -1701,7 +1707,7 @@ function screenLedger(tail){
             '<div class="ts">— ' + esc(e.pup) + ' · ' + new Date(e.ts).toLocaleDateString() + '</div>' +
             '<div class="chips">' + placeChip(e.place, e.topic) + spotChip(e) +
               (e.topic ? '<a class="topicchip" href="/pack?t=' + encodeURIComponent(e.topic) + '">#' + esc(e.topic) + '</a>' : '') +
-              sameChip(e.id, e.backs || 0, true, false) + reactChips(e, (L.reacts || {})[e.id], false) + '</div></div>';
+              sameChip(e.id, e.backs || 0, true, false) + reactChips(e, (L.reacts || {})[e.id], false) + '</div>' + emoRow(e.id, false) + '</div>';
         }).join('') + '</div>';
       Array.prototype.forEach.call(bb.querySelectorAll('[data-back]'), function(c){
         c.onclick = function(){
@@ -2402,6 +2408,41 @@ document.addEventListener('click', function(ev){
     });
   }).catch(function(e){ c.style.opacity = 1; toast(e.message); });
 });
+// ---------- emoji reactions (one per pup per post; your own posts show what neighbours felt) ----------
+var EMOJI = [['lol', '😂'], ['wow', '😮'], ['ugh', '😤'], ['love', '❤️']];
+function emoRow(id, own){ return id ? '<div class="emorow' + (own ? ' own' : '') + '" data-emo="' + esc(id) + '"></div>' : ''; }
+function emoPaint(row, s){
+  var c = (s && s.counts) || {}, mine = s && s.mine, own = row.classList.contains('own');
+  if (own) { var got = EMOJI.filter(function(x){ return c[x[0]]; });
+    row.innerHTML = got.length ? '<span class="emolabel">Neighbours felt</span>' + got.map(function(x){ return '<span class="emo static">' + x[1] + ' <b>' + c[x[0]] + '</b></span>'; }).join('') : ''; return; }
+  row.innerHTML = EMOJI.map(function(x){ return '<button class="emo' + (mine === x[0] ? ' on' : '') + '" data-e="' + x[0] + '" aria-label="' + x[0] + '">' + x[1] + (c[x[0]] ? ' <b>' + c[x[0]] + '</b>' : '') + '</button>'; }).join('');
+}
+var _emoT = null;
+function emoFill(){
+  var rows = Array.prototype.filter.call(document.querySelectorAll('.emorow'), function(r){ return !r._done; });
+  if (!rows.length) return;
+  rows.forEach(function(r){ r._done = true; emoPaint(r, null); });
+  var ids = []; rows.forEach(function(r){ var id = r.getAttribute('data-emo'); if (ids.indexOf(id) < 0) ids.push(id); });
+  var s = loadLocal();
+  rpc('vp_emoji_counts', { p_ids: ids.slice(0, 200), p_tail: s ? s.tail : null }).then(function(m){
+    rows.forEach(function(r){ var v = m && m[r.getAttribute('data-emo')]; if (v) emoPaint(r, v); });
+  }).catch(function(){});
+}
+new MutationObserver(function(){ clearTimeout(_emoT); _emoT = setTimeout(emoFill, 120); }).observe(document.documentElement, { childList: true, subtree: true });
+document.addEventListener('click', function(ev){
+  var b = ev.target && ev.target.closest ? ev.target.closest('.emorow .emo[data-e]') : null;
+  if (!b) return;
+  ev.stopPropagation();
+  var s = loadLocal();
+  if (!s) { toast('Get your own pup first (10 seconds), then you can react.'); return; }
+  var row = b.parentNode, id = row.getAttribute('data-emo'), k = b.getAttribute('data-e'), on = b.classList.contains('on');
+  b.classList.add('pop'); setTimeout(function(){ b.classList.remove('pop'); }, 300);
+  Array.prototype.forEach.call(row.querySelectorAll('.emo'), function(x){ x.classList.toggle('on', !on && x === b); });   // instant feedback
+  track('emoji', { e: on ? 'off' : k });
+  rpc('vp_emoji', { p_tail: s.tail, p_id: id, p_emoji: on ? null : k }).then(function(r){
+    Array.prototype.forEach.call(document.querySelectorAll('.emorow[data-emo="' + id + '"]:not(.own)'), function(x){ emoPaint(x, r); });
+  }).catch(function(e){ toast(e.message); Array.prototype.forEach.call(row.querySelectorAll('.emo'), function(x){ x.classList.toggle('on', on && x === b); }); });
+}, true);
 var METRO = { 'north vancouver': 'vancouver', 'west vancouver': 'vancouver', 'burnaby': 'vancouver', 'surrey': 'vancouver', 'richmond': 'vancouver', 'new westminster': 'vancouver',
   'coquitlam': 'vancouver', 'port coquitlam': 'vancouver', 'port moody': 'vancouver', 'delta': 'vancouver', 'langley': 'vancouver', 'maple ridge': 'vancouver', 'pitt meadows': 'vancouver',
   'white rock': 'vancouver', 'anmore': 'vancouver', 'belcarra': 'vancouver', 'lions bay': 'vancouver', 'bowen island': 'vancouver', 'tsawwassen': 'vancouver', 'district of north vancouver': 'vancouver' };
@@ -2786,7 +2827,7 @@ function screenPack(mode, topic0){
         (r.body ? '<div class="entry-body">' + esc(r.body) + '</div>' : '') + mediaHTML(r.media) +
         '<div class="ts">\u2014 ' + esc(r.pup) + ' \u00b7 ' + new Date(r.ts).toLocaleDateString() + '</div>' +
         (r.id ? '<div class="chips" style="margin-top:6px">' + spotChip(r) + hashChips(r) + sameChip(r.id, r.backs || 0, !!backed[r.id], !!myIds[r.id]) + shareChip(Object.assign({}, r, { shared: true })) +
-          (myIds[r.id] ? reactChips(r, null, true) : reactChips(r, myReacts[r.id], false)) + '</div>' : '') +
+          (myIds[r.id] ? reactChips(r, null, true) : reactChips(r, myReacts[r.id], false)) + '</div>' + emoRow(r.id, !!myIds[r.id]) : '') +
         '</div>';
     }
     b.addEventListener('click', function(ev){
@@ -3004,7 +3045,7 @@ function screenPack(mode, topic0){
   }).catch(function(e){ document.getElementById('board').textContent = 'The pack is napping: ' + e.message; });
 }
 
-var APP_VERSION = "20261003192525";
+var APP_VERSION = "20261003212114";
 (function(){
   try {
     fetch('/version.json?t=' + Date.now(), { cache: 'no-store' }).then(function(r){ return r.json(); }).then(function(j){
