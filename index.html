@@ -781,7 +781,8 @@ var pendingFiles = [];
 function devId(){ try { var d = localStorage.getItem('vp.dev'); if (!d) { d = Array.from(crypto.getRandomValues(new Uint8Array(8))).map(function(b){ return b.toString(16).padStart(2, '0'); }).join(''); localStorage.setItem('vp.dev', d); } return d; } catch (e) { return 'nostorage'; } }
 function srcTag(){ try { return localStorage.getItem('vp.src0') || sessionStorage.getItem('vp.src') || 'direct'; } catch (e) { return 'direct'; } }
 function track(ev, meta){
-  if (KIOSK) return;
+  if (KIOSK || navigator.webdriver || /HeadlessChrome/.test(navigator.userAgent)) return;   // tests and robots don't count
+  try { if (localStorage.getItem('vp.internal') === '1') return; } catch (e) {}
   var s = loadLocal();
   try { rpc('vp_track', { p_dev: devId(), p_event: ev, p_tail: s ? s.tail : null, p_src: srcTag(), p_meta: meta || {} }).catch(function(){}); } catch (e) {}
 }
@@ -2994,7 +2995,7 @@ function screenPack(mode, topic0){
   }).catch(function(e){ document.getElementById('board').textContent = 'The pack is napping: ' + e.message; });
 }
 
-var APP_VERSION = "20261003032358";
+var APP_VERSION = "20261003032459";
 (function(){
   try {
     fetch('/version.json?t=' + Date.now(), { cache: 'no-store' }).then(function(r){ return r.json(); }).then(function(j){
