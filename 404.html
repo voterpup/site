@@ -389,7 +389,8 @@
   .isin i{font-size:17px; vertical-align:-3px; margin-right:4px}
   .huntcard{background:var(--card); border:2px solid var(--line); border-radius:20px; padding:12px 12px 10px; margin:0 0 16px; cursor:pointer; box-shadow:0 4px 0 #e3d8c4; transition:transform .08s, box-shadow .08s}
   .huntcard:active{transform:translateY(4px); box-shadow:none}
-  .hclock{font-variant-numeric:tabular-nums; white-space:nowrap}
+  .hclock{font-variant-numeric:tabular-nums; white-space:nowrap; display:inline-flex; align-items:center; gap:6px}
+  .hpie{display:inline-block; width:14px; height:14px; border-radius:50%; background:conic-gradient(var(--gold) var(--p), #eadfcb 0); box-shadow:inset 0 0 0 1.5px #d9c7a4}
   .hhead{display:flex; justify-content:space-between; align-items:baseline; margin:0 2px 8px} .hhead b{font-size:16px; font-weight:900} .hhead span{font-size:12px; color:var(--sub); font-weight:700}
   .puplv{font-size:12.5px; color:var(--sub); font-weight:700} .puplv b{color:var(--goldtext)}
   .hprog{display:flex; align-items:center; gap:8px; margin:-2px 2px 10px} .hprog b{font-size:13px; font-weight:900}
@@ -2610,13 +2611,13 @@ function huntApply(spotted, sp){   // returns the newly found targets; sp = wher
 function huntClockText(){
   var now = new Date(), next = new Date(now); next.setHours(24, 0, 0, 0);
   var s = Math.max(0, Math.floor((next - now) / 1000)), hh = Math.floor(s / 3600), mm = Math.floor(s % 3600 / 60), ss = s % 60;
-  return '⏱ New in ' + (hh ? hh + 'h ' + ('0' + mm).slice(-2) + 'm' : mm + 'm ' + ('0' + ss).slice(-2) + 's');
+  return (hh ? hh + 'h ' : '') + (hh ? ('0' + mm).slice(-2) : mm) + 'm<i class="hpie" style="--p:' + Math.round((60 - ss) / 60 * 360) + 'deg"></i>';   // the pie fills as the current minute runs out
 }
 (function(){ var day = new Date().toDateString();
   setInterval(function(){
     var els = document.querySelectorAll('.hclock'); if (!els.length) return;
     if (new Date().toDateString() !== day) { location.reload(); return; }   // midnight: show the new challenge
-    Array.prototype.forEach.call(els, function(el){ el.textContent = huntClockText(); });
+    var t = huntClockText(); Array.prototype.forEach.call(els, function(el){ el.innerHTML = t; });
   }, 1000); })();
 var WALK_LINES = ['Today&rsquo;s walk, tomorrow&rsquo;s fix.', 'You walk past it every day. Today the pup sees it too.', 'Same street, new eyes.', 'Your eyes. Show the pup.'];
 function shrinkPhoto(file){   // 1024 px JPEG on a white background: cheap to send, good enough to read
@@ -3011,7 +3012,7 @@ function screenPack(mode, topic0){
   }).catch(function(e){ document.getElementById('board').textContent = 'The pack is napping: ' + e.message; });
 }
 
-var APP_VERSION = "20261003090354";
+var APP_VERSION = "20261003090927";
 (function(){
   try {
     fetch('/version.json?t=' + Date.now(), { cache: 'no-store' }).then(function(r){ return r.json(); }).then(function(j){
