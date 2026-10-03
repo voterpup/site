@@ -754,6 +754,9 @@ var KIOSK = new URLSearchParams(location.search).get('kiosk') === '1';
 (function(){ var q = new URLSearchParams(location.search), s = q.get('src'), pl = q.get('place');
   if (s) try { sessionStorage.setItem('vp.src', s.slice(0, 20)); if (!localStorage.getItem('vp.src0')) localStorage.setItem('vp.src0', s.slice(0, 20)); } catch (e) {}
   if (pl && /^[A-Za-z .'’()-]+(, [A-Za-z .'’()-]+){1,3}$/.test(pl.trim())) { savePlace(pl.trim(), true); try { localStorage.setItem('vp.placeqr', '1'); } catch (e) {} } })();   // a QR's city is a guess: the first real location wins
+(function(){ if (new URLSearchParams(location.search).get('me') === '1') {   // the founder's phones: left out of every number
+  try { localStorage.setItem('vp.internal', '1'); } catch (e) {}
+  setTimeout(function(){ rpc('vp_mark_internal', { p_dev: devId() }).then(function(){ toast('This device is now left out of the numbers.'); }).catch(function(){}); }, 800); } })();
 function fromBooth(){ try { return sessionStorage.getItem('vp.src') === 'booth'; } catch (e) { return false; } }
 var root = document.getElementById('root');
 
@@ -2991,7 +2994,7 @@ function screenPack(mode, topic0){
   }).catch(function(e){ document.getElementById('board').textContent = 'The pack is napping: ' + e.message; });
 }
 
-var APP_VERSION = "20261003021402";
+var APP_VERSION = "20261003032358";
 (function(){
   try {
     fetch('/version.json?t=' + Date.now(), { cache: 'no-store' }).then(function(r){ return r.json(); }).then(function(j){

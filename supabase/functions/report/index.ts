@@ -8,6 +8,12 @@ Deno.serve(async (req) => {
   const { data, error } = await db.rpc("vp_metrics", { p_days: days });
   if (error) return new Response(error.message, { status: 500 });
   const rows = (data ?? []) as any[];
+  if (url.searchParams.get("json") === "1") {
+    const { data: recent } = await db.rpc("vp_recent_pups", { p_n: 40 });
+    const { data: spend2 } = await db.from("discovery_log").select("cost_usd").gte("run_at", new Date(Date.now() - 7 * 864e5).toISOString());
+    return new Response(JSON.stringify({ days: rows, recent: recent ?? [], spend7: (spend2 ?? []).reduce((t: number, r: any) => t + Number(r.cost_usd), 0) }),
+      { headers: { "content-type": "application/json", "cache-control": "no-store", "Access-Control-Allow-Origin": "https://voterpup.com" } });
+  }
   const { data: spend } = await db.from("discovery_log").select("cost_usd").gte("run_at", new Date(Date.now() - 7 * 864e5).toISOString());
   const week = (spend ?? []).reduce((s: number, r: any) => s + Number(r.cost_usd), 0);
   const cols = [["day", "Day"], ["opens", "Opens"], ["pups", "Pups"], ["pups_booth", "booth"], ["issues", "Issues"], ["shared", "shared"], ["reminders_on", "Rem on"], ["installs", "Inst"], ["notif_opens", "Notif→"], ["swipes", "Swipes"], ["backs", "🐾"], ["d1", "D1%"], ["d1_rem", "D1 rem"], ["d1_norem", "D1 no"], ["d7", "D7%"]];

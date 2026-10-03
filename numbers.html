@@ -1,0 +1,32 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>VoterPup numbers</title><meta name="robots" content="noindex">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Nunito:wght@600;800;900&display=swap">
+<style>
+body{font-family:Nunito,system-ui,sans-serif;background:#faf6ef;color:#1f2430;margin:0;padding:16px;max-width:760px;margin:0 auto}
+h1{font-size:22px;margin:4px 0 2px} .sub{color:#5d6573;font-size:13px;margin:0 0 14px}
+.kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:0 0 16px} .k{background:#fff;border:2px solid #ece4d6;border-radius:16px;padding:10px;text-align:center} .k b{display:block;font-size:26px;font-weight:900} .k span{font-size:11.5px;color:#5d6573;font-weight:800}
+h2{font-size:15px;margin:18px 0 8px} .wrap{overflow-x:auto;background:#fff;border:2px solid #ece4d6;border-radius:16px}
+table{border-collapse:collapse;width:100%;font-size:13px} th,td{padding:7px 8px;border-bottom:1px solid #f0e9dc;text-align:right;white-space:nowrap} th{background:#f4efe6;font-size:11.5px} td:first-child,th:first-child{text-align:left}
+.pup td{text-align:left} .yes{color:#22786a;font-weight:900} .no{color:#b9ad97}
+.err{background:#f6dede;border-radius:12px;padding:12px}
+</style></head><body>
+<h1>🐾 VoterPup numbers</h1><p class="sub">Real users only: your marked devices and test runs are left out. Vancouver time.</p>
+<div id="out">Loading…</div>
+<script>
+var key = location.hash.slice(1);
+var F = 'https://setyjmgijsbplgyqynlh.supabase.co/functions/v1/report';
+function esc(s){ return String(s == null ? '' : s).replace(/[&<>"]/g, function(c){ return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
+if (!key) document.getElementById('out').innerHTML = '<div class="err">Open this page with your private link (it ends in #…).</div>';
+else fetch(F + '?json=1&days=14&key=' + encodeURIComponent(key)).then(function(r){ if (!r.ok) throw new Error('key not accepted'); return r.json(); }).then(function(d){
+  var days = d.days || [], sum = function(k){ return days.reduce(function(t, r){ return t + (+r[k] || 0); }, 0); };
+  var today = days[0] || {}, rp = d.recent || [];
+  var h = '<div class="kpis"><div class="k"><b>' + sum('pups') + '</b><span>pups (14 days)</span></div><div class="k"><b>' + (today.pups || 0) + '</b><span>pups today</span></div>' +
+    '<div class="k"><b>' + sum('reminders_on') + '</b><span>turned on reminders</span></div><div class="k"><b>' + sum('snaps') + '</b><span>photos fed</span></div></div>';
+  h += '<h2>Newest pups</h2><div class="wrap"><table class="pup"><tr><th>When</th><th>Pup</th><th>First issue</th><th>From</th><th>Issues</th><th>Days back</th><th>7 pm note</th></tr>' +
+    rp.map(function(p){ var t = new Date(p.created); return '<tr><td>' + t.toLocaleDateString(undefined, { weekday: 'short' }) + ' ' + t.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }) + '</td><td><b>' + esc(p.name) + '</b></td><td>' + esc(p.first) + '</td><td>' + esc(p.src || '–') + '</td><td>' + p.issues + '</td><td>' + (p.days_active || 0) + '</td><td>' + ((p.push || p.mail) ? '<span class="yes">' + (p.push ? 'push' : 'email') + '</span>' : '<span class="no">off</span>') + '</td></tr>'; }).join('') + '</table></div>';
+  var cols = [['day', 'Day'], ['opens', 'Visitors'], ['pups', 'Pups'], ['pups_booth', 'At booth'], ['issues', 'Issues'], ['snaps', 'Photos'], ['reminders_on', 'Rem on'], ['notif_opens', 'Note taps'], ['d1', 'Back next day %'], ['d7', 'Back wk later %']];
+  h += '<h2>By day</h2><div class="wrap"><table><tr>' + cols.map(function(c){ return '<th>' + c[1] + '</th>'; }).join('') + '</tr>' +
+    days.map(function(r){ return '<tr>' + cols.map(function(c){ var v = r[c[0]]; return '<td>' + (c[0] === 'day' ? String(v).slice(5) : (v == null ? '–' : v)) + '</td>'; }).join('') + '</tr>'; }).join('') + '</table></div>';
+  h += '<p class="sub" style="margin-top:14px">AI spend, last 7 days: $' + (d.spend7 || 0).toFixed(2) + '</p>';
+  document.getElementById('out').innerHTML = h;
+}).catch(function(e){ document.getElementById('out').innerHTML = '<div class="err">' + esc(e.message) + '</div>'; });
+</script></body></html>
