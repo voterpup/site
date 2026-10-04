@@ -984,6 +984,10 @@
   .dmattr{position:absolute; right:4px; bottom:3px; z-index:2; font-size:8px; color:#333; background:rgba(255,255,255,.75); padding:0 4px; border-radius:3px}
   .dmpin{position:absolute; left:50%; top:50%; transform:translate(-50%, -100%); width:30px; height:30px; border-radius:50% 50% 50% 0; rotate:-45deg; border:2.5px solid #fff; box-shadow:0 3px 8px rgba(0,0,0,.45); display:flex; align-items:center; justify-content:center; font-size:14px}
   .dmpin{rotate:0deg; border-radius:50%; transform:translate(-50%, -50%)}
+  .dmap.big{height:180px; pointer-events:auto}
+  .dsheetimg{width:100%; max-height:260px; object-fit:cover; border-radius:12px; margin-bottom:10px; display:block}
+  .dsheetact{display:flex; gap:8px; margin-top:10px} .dsheetact .btn{margin:0; flex:1; padding:12px 4px; font-size:13px; white-space:nowrap} .dsheetact .btn.gold{flex:1.3}
+  .deck .dcard{cursor:pointer}
 </style>
 </head>
 <body>
@@ -2647,8 +2651,8 @@ function dailyFetch(L, tail){
       setTimeout(draw, 300);
     }
     function wire(card){
-      var x0 = null, y0 = null, dx = 0, dy = 0;
-      card.addEventListener('pointerdown', function(e){ x0 = e.clientX; y0 = e.clientY; dx = dy = 0; card.setPointerCapture(e.pointerId); card.classList.remove('nudge'); card.style.transition = 'none'; });
+      var x0 = null, y0 = null, dx = 0, dy = 0, t0 = 0;
+      card.addEventListener('pointerdown', function(e){ x0 = e.clientX; y0 = e.clientY; dx = dy = 0; t0 = Date.now(); card.setPointerCapture(e.pointerId); card.classList.remove('nudge'); card.style.transition = 'none'; });
       card.addEventListener('pointermove', function(e){
         if (x0 === null) return; dx = e.clientX - x0; dy = e.clientY - y0;
         var upward = dy < -40 && Math.abs(dy) > Math.abs(dx);
@@ -2658,11 +2662,30 @@ function dailyFetch(L, tail){
       var up = function(){
         if (x0 === null) return; x0 = null;
         var upward = dy < -90 && Math.abs(dy) > Math.abs(dx);
+        if (Math.abs(dx) < 8 && Math.abs(dy) < 8 && Date.now() - t0 < 450) { card.style.transform = ''; openDeckCard(card); return; }   // a tap: open the full card
         if (upward) decide(card, 'up');
         else if (Math.abs(dx) > 80) decide(card, dx > 0 ? 'yes' : 'no');
         else { card.style.transition = 'transform .25s ease'; card.style.transform = ''; card.classList.remove('lean-yes', 'lean-no', 'lean-up'); }
       };
       card.addEventListener('pointerup', up); card.addEventListener('pointercancel', up);
+    }
+    // tap a card: the full card in a sheet (photo or map, place, reactions, share); tap outside to go back to swiping
+    function openDeckCard(card){
+      var r = deck[idx]; if (!r) return;
+      var img = itemImgAny(r);
+      var ov = document.createElement('div'); ov.className = 'stkover ecardsheet'; document.body.appendChild(ov);
+      var close = function(){ if (ov.parentNode) ov.parentNode.removeChild(ov); };
+      ov.onclick = function(ev){ if (ev.target === ov) close(); };
+      ov.innerHTML = '<div class="stksheet"><div class="card' + (r.source === 'city311' ? ' offcard' : '') + '">' +
+        (r.source === 'city311' ? '<div class="srctag">🏛️ City 3-1-1 · official report</div>' : '') +
+        (img ? '<img class="dsheetimg" src="' + esc(img) + '" alt="">' : (r.lat != null && r.lng != null ? miniMap(r.lat, r.lng, r.topic).replace('class="dmap"', 'class="dmap big"') : '')) +
+        '<div class="entry-body" style="font-size:17px">' + esc(r.body || '📷') + '</div>' +
+        '<div class="ts">— ' + esc(r.pup || '') + (r.place ? ', ' + esc(r.place.split(',')[0]) : '') + ' · ' + new Date(r.ts).toLocaleDateString() + '</div>' +
+        '<div class="chips">' + (r.topic ? '<a class="topicchip" href="/pack?t=' + encodeURIComponent(r.topic) + '">#' + esc(r.topic) + '</a>' : '') + spotChip(r) + shareChip(Object.assign({}, r, { shared: true })) + '</div>' +
+        emoRow(r.id, false) + '</div>' +
+        '<div class="dsheetact"><button class="btn ghost" data-dd="no">Skip</button><button class="btn ghost" data-dd="up">✅ Fixed now</button><button class="btn gold" data-dd="yes">🐾 Same here</button></div></div>';
+      wakeMiniMaps(ov);
+      Array.prototype.forEach.call(ov.querySelectorAll('[data-dd]'), function(b){ b.onclick = function(){ close(); decide(el.lastElementChild, b.getAttribute('data-dd')); }; });
     }
     // a one-second nudge on first load: the top card peeks right, then left, so people know it swipes
     var nudged = false; try { nudged = sessionStorage.getItem('vp.decknudge') === '1'; } catch (e) {}
@@ -3504,7 +3527,7 @@ function screenPack(mode, topic0){
   }).catch(function(e){ document.getElementById('board').textContent = 'The pack is napping: ' + e.message; });
 }
 
-var APP_VERSION = "20261004052644";
+var APP_VERSION = "20261004052922";
 (function(){
   try {
     fetch('/version.json?t=' + Date.now(), { cache: 'no-store' }).then(function(r){ return r.json(); }).then(function(j){
