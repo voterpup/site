@@ -1005,6 +1005,17 @@
   .scopesl.compact .sclbl{font-size:11.5px; margin-bottom:4px}
   .chip.scopechip{font-weight:800; cursor:default} .chip.s-local{background:#0f3a2c; color:#7fe0b8; border-color:#1f6b50}
   .chip.s-state{background:#13284a; color:#9cc6ff; border-color:#25467a} .chip.s-national{background:#2a2310; color:var(--goldtext); border-color:#6b5418}
+  /* sniff walk: rarity */
+  .huntcard .hc.t2 .hcdot{box-shadow:0 0 0 3px rgba(156,198,255,.25)}
+  .huntcard .hc.t3 .hcdot{--fun:#ffd56a !important; --tint:#3a2e0c !important; border-style:solid !important; animation:shiny 2.4s ease-in-out infinite; position:relative}
+  .huntcard .hc.t3 .hcdot em{position:absolute; top:-8px; right:-6px; font-style:normal; font-size:14px; filter:drop-shadow(0 0 4px #ffd56a)}
+  .huntcard .hc.t3 small{color:#ffd56a !important; font-weight:900}
+  @keyframes shiny{0%,100%{box-shadow:0 0 0 0 rgba(255,213,106,.0)} 50%{box-shadow:0 0 14px 4px rgba(255,213,106,.55)}}
+  .huntcard.bonus{background:linear-gradient(135deg, #10394a 0%, #1d2a6b 60%, #3b1f6b 100%) !important}
+  .huntcard .hfoot b{color:#fff} .huntcard .hnext, .huntwin .hnext{display:block; width:100%; margin:10px 0 0}
+  .huntwin.rare{background:linear-gradient(135deg, #3a2e0c, #231d0d) !important; border-color:#ffd56a !important}
+  .fwalk{border-top-color:#ffd56a !important} .fwthumbs{display:grid; grid-template-columns:repeat(5, 1fr); gap:3px; margin-bottom:6px}
+  .fwthumbs img, .fwthumbs span{width:100%; aspect-ratio:1; object-fit:cover; border-radius:6px; display:flex; align-items:center; justify-content:center; color:#fff; font-size:12px}
 </style>
 </head>
 <body>
@@ -2191,7 +2202,8 @@ function openFlashback(L){
   var items = [];
   (L.entries || []).forEach(function(e){ items.push({ body: e.body, topic: e.topic, ts: e.ts, media: e.media, shared: e.shared, mine: true }); });
   (L.backed || []).forEach(function(e){ items.push({ body: e.body, topic: e.topic, ts: e.ts, media: e.media, backed: true, pup: e.pup }); });
-  var demo = !items.length;
+  huntWalks().forEach(function(w){ items.push({ walk: w, ts: new Date(w.ts).toISOString(), body: 'Walk #' + w.n }); });
+  var demo = !items.filter(function(x){ return !x.walk; }).length && !items.length;
   if (demo) items = FLASH_DEMO.map(function(d){ var x = Object.assign({}, d); x.ts = new Date(Date.now() - d.days * 864e5).toISOString(); return x; });
   items.sort(function(a, b){ return new Date(b.ts) - new Date(a.ts); });
   var byDay = [], idx = {};
@@ -2200,11 +2212,17 @@ function openFlashback(L){
     if (!(key in idx)) { idx[key] = byDay.length; byDay.push({ key: key, d: d, list: [] }); }
     byDay[idx[key]].list.push(it);
   });
-  var mine = items.filter(function(x){ return x.mine; }).length, backs = items.length - mine;
+  var mine = items.filter(function(x){ return x.mine; }).length, walksN = items.filter(function(x){ return x.walk; }).length, backs = items.length - mine - walksN;
   var first = byDay.length ? byDay[byDay.length - 1].d : new Date();
   var nm = esc(L.name);
   var ov = document.createElement('div'); ov.className = 'flashov';
   function card(it, k, gid){
+    if (it.walk) { var w = it.walk, d0 = new Date(it.ts);
+      return '<div class="fcard fwalk"' + (gid ? ' id="' + gid + '"' : '') + '><div class="fd"><b>' + d0.getDate() + '</b> ' + d0.toLocaleDateString(undefined, { month: 'short' }) + ' · ' + d0.toLocaleDateString(undefined, { weekday: 'short' }) + '</div>' +
+        '<div class="fwthumbs">' + w.items.map(function(i){ var it2 = HUNT_ITEMS[i.k] || HUNT_ITEMS.tree;
+          return i.img ? '<img src="' + i.img + '" alt="">' : '<span style="background:' + it2[2] + '"><i class="ph-duotone ' + it2[0] + '"></i></span>'; }).join('') + '</div>' +
+        '<div class="fbody">🐾 Walk #' + w.n + (w.walk > 1 ? ' · bonus' : '') + '</div><div class="fmeta">' + w.items.length + ' finds' + (w.pts ? ' · +' + w.pts + ' pts' : '') +
+        (w.items.some(function(i){ return huntTier(i.k) === 3; }) ? ' · ✨ ' + esc((HUNT_ITEMS[w.items.filter(function(i){ return huntTier(i.k) === 3; })[0].k] || [])[1] || '') : '') + '</div></div>'; }
     var img = null; (it.media || []).forEach(function(m){ if (!img && m.url && m.type && m.type.indexOf('image') === 0) img = m.url; });
     var d = new Date(it.ts);
     return '<div class="fcard' + (it.backed ? ' fbacked' : '') + '"' + (gid ? ' id="' + gid + '"' : '') + '>' +
@@ -2227,7 +2245,7 @@ function openFlashback(L){
   }).join('');
   ov.innerHTML = '<div class="flashtop"><div><div class="flashtitle">' + nm + '&rsquo;s Memory Lane</div>' +
       '<div class="flashsub">' + (demo ? 'A demo of what yours will look like' :
-        mine + ' issue' + (mine === 1 ? '' : 's') + (backs ? ' · ' + backs + ' you back' : '') + ' · since ' + first.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })) + '</div></div>' +
+        mine + ' issue' + (mine === 1 ? '' : 's') + (backs ? ' · ' + backs + ' you back' : '') + (walksN ? ' · ' + walksN + ' walk' + (walksN === 1 ? '' : 's') : '') + ' · since ' + first.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })) + '</div></div>' +
       '<a href="#" class="flashx" id="flashx">✕</a></div>' +
     (demo ? '<div class="flashdemo">DEMO · Tap 📸 to start yours</div>' : '') +
     '<div class="fstrip">' + strip + '</div>' +
@@ -2942,6 +2960,10 @@ function wireScopeSlider(el, onchange){
   el._set = set;
 }
 function scopeOf(id){ var el = document.getElementById(id); return el ? el.getAttribute('data-v') : null; }
+document.addEventListener('click', function(ev){
+  var b = ev.target && ev.target.closest ? ev.target.closest('#hnext') : null; if (!b) return;
+  ev.stopPropagation(); ev.preventDefault(); huntNextWalk(); var me = loadLocal(); if (me) screenLedger(me.tail);
+}, true);
 var METRO = { 'north vancouver': 'vancouver', 'west vancouver': 'vancouver', 'burnaby': 'vancouver', 'surrey': 'vancouver', 'richmond': 'vancouver', 'new westminster': 'vancouver',
   'coquitlam': 'vancouver', 'port coquitlam': 'vancouver', 'port moody': 'vancouver', 'delta': 'vancouver', 'langley': 'vancouver', 'maple ridge': 'vancouver', 'pitt meadows': 'vancouver',
   'white rock': 'vancouver', 'anmore': 'vancouver', 'belcarra': 'vancouver', 'lions bay': 'vancouver', 'bowen island': 'vancouver', 'tsawwassen': 'vancouver', 'district of north vancouver': 'vancouver' };
@@ -3064,16 +3086,59 @@ function openAdd(){
   fw.addEventListener('change', function(){ if (fw.files && fw.files[0]) { close(); walkSheet(s, fw.files[0]); } });
 }
 // ---------- Scavenger sniff: this week's 6 things to find; the photo reader ticks them off ----------
-var HUNT_ITEMS = { tree: ['ph-tree', 'a tree', '#2f7d5f'], bench: ['ph-chair', 'a bench', '#9a5f00'], bike: ['ph-bicycle', 'a bike', '#3b6fb6'], art: ['ph-paint-brush', 'street art', '#a34ea8'],
-  bin: ['ph-trash', 'a bin', '#5d6573'], light: ['ph-lamp', 'a street light', '#c98a00'], crosswalk: ['ph-traffic-sign', 'a crosswalk', '#3b6fb6'], puddle: ['ph-drop', 'a puddle', '#2a7fb8'],
-  flowers: ['ph-flower-tulip', 'flowers', '#d1495b'], bus: ['ph-bus', 'a bus stop', '#22786a'], sign: ['ph-signpost', 'a street sign', '#9a5f00'], cone: ['ph-traffic-cone', 'a traffic cone', '#e0702a'],
-  park: ['ph-park', 'a park', '#2f7d5f'], shop: ['ph-storefront', 'a shop front', '#a34ea8'], leaves: ['ph-leaf', 'fallen leaves', '#c26a1b'], crack: ['ph-road-horizon', 'a crack or pothole', '#5d6573'], mailbox: ['ph-mailbox', 'a mailbox', '#d1495b'] };
-var HUNT_EASY = ['tree', 'sign', 'light', 'bin', 'shop', 'leaves', 'crosswalk', 'bike'], HUNT_FUN = ['bench', 'art', 'puddle', 'flowers', 'bus', 'cone', 'park', 'crack', 'mailbox'];
-function huntWeek(){ var d = new Date(); return d.getFullYear() + '-' + (d.getMonth() + 1) + '-' + d.getDate(); }   // today (local): a new challenge every day
+// ---------- the sniff walk: five things to find on a walk ----------
+// What makes people go outside (Pokémon GO research, photo-hunt lists): rarity ("shiny"), collecting, discovery of hidden
+// gems, seasonal surprises and local flavour. So every walk = 3 common + 1 uncommon + 1 ✨ rare, the same for everyone today.
+// [icon, label, colour, tier]   tier: 1 common · 2 uncommon · 3 rare
+var HUNT_ITEMS = {
+  tree: ['ph-tree', 'a tree', '#2f9e44', 1], bench: ['ph-chair', 'a bench', '#b8860b', 1], bike: ['ph-bicycle', 'a bike', '#1c7ed6', 1],
+  bin: ['ph-trash', 'a bin', '#5f7d8c', 1], light: ['ph-lamp', 'a street light', '#e8a200', 1], crosswalk: ['ph-traffic-sign', 'a crosswalk', '#1c7ed6', 1],
+  puddle: ['ph-drop', 'a puddle', '#1fa2d6', 1], flowers: ['ph-flower-tulip', 'flowers', '#e64980', 1], bus: ['ph-bus', 'a bus stop', '#12b886', 1],
+  sign: ['ph-signpost', 'a street sign', '#b8860b', 1], cone: ['ph-traffic-cone', 'a traffic cone', '#f76707', 1], shop: ['ph-storefront', 'a shop front', '#7048e8', 1],
+  leaves: ['ph-leaf', 'fallen leaves', '#e8590c', 1], mailbox: ['ph-mailbox', 'a mailbox', '#e03131', 1], hydrant: ['ph-fire-extinguisher', 'a fire hydrant', '#e03131', 1],
+  manhole: ['ph-circle-dashed', 'a manhole cover', '#868e96', 1], bird: ['ph-bird', 'a bird', '#228be6', 1], park: ['ph-park', 'a park', '#2f9e44', 1],
+  art: ['ph-paint-brush', 'street art', '#ae3ec9', 2], door: ['ph-door', 'a colourful door', '#f59f00', 2], squirrel: ['ph-acorn', 'a squirrel', '#a0522d', 2],
+  library: ['ph-books', 'a little free library', '#5c7cfa', 2], garden: ['ph-plant', 'a community garden', '#2b8a3e', 2], chalk: ['ph-scribble-loop', 'a chalk drawing', '#f783ac', 2],
+  plaque: ['ph-seal', 'a heritage plaque', '#c08a00', 2], reflection: ['ph-sparkle', 'a reflection', '#15aabf', 2], sprout: ['ph-plant', 'a plant growing from a crack', '#40c057', 2],
+  fountain: ['ph-drop-half', 'a fountain', '#1c7ed6', 2], bridge: ['ph-bridge', 'a bridge', '#495057', 2], crack: ['ph-road-horizon', 'a crack or pothole', '#868e96', 2],
+  pumpkin: ['ph-orange', 'a pumpkin', '#fd7e14', 2], mushroom: ['ph-flower', 'a mushroom', '#a0522d', 2],
+  tinydoor: ['ph-door-open', 'a tiny door', '#f5b83d', 3], ghostsign: ['ph-image-square', 'a ghost sign', '#c9a227', 3], heart: ['ph-heart', 'a heart in the wild', '#ff5d73', 3],
+  rock: ['ph-paint-bucket', 'a painted rock', '#ff922b', 3], glove: ['ph-hand', 'a lost glove', '#845ef7', 3], rainbow: ['ph-rainbow', 'a rainbow', '#f5b83d', 3],
+  mountains: ['ph-mountains', 'a mountain view', '#4dabf7', 3], sunset: ['ph-sun-horizon', 'a sunset sky', '#ff8787', 3], cat: ['ph-cat', 'a cat outside', '#fab005', 3],
+  heron: ['ph-bird', 'a heron', '#748ffc', 3], halloween: ['ph-ghost', 'Halloween decorations', '#fd7e14', 3] };
+var HUNT_PTS = { 1: 10, 2: 25, 3: 60 };   // a rare find is worth six commons
+function huntPool(tier){   // seasonal: pumpkins, mushrooms and Halloween only in October
+  var oct = new Date().getMonth() === 9, seasonal = { pumpkin: oct, mushroom: oct || new Date().getMonth() === 10, halloween: oct };
+  return Object.keys(HUNT_ITEMS).filter(function(k){ return HUNT_ITEMS[k][3] === tier && (seasonal[k] === undefined || seasonal[k]); }); }
+function huntWeek(){ var d = new Date(); return d.getFullYear() + '-' + (d.getMonth() + 1) + '-' + d.getDate(); }   // today (local): a new daily walk every day
 var HUNT_CURATED = { '2026-10-2': ['tree', 'sign', 'light', 'bin', 'shop'], '2026-10-3': ['tree', 'crosswalk', 'sign', 'leaves', 'bench'], '2026-10-4': ['light', 'shop', 'bin', 'leaves', 'bike'] };   // hand-picked easy days (booth weekend)
-function huntTargets(){ if (HUNT_CURATED[huntWeek()]) return HUNT_CURATED[huntWeek()].slice(); var wk = huntWeek(), sd = idSeed('hunt' + wk), pick = function(arr, n, salt){ var a = arr.slice(), out = []; var x = sd ^ salt; while (out.length < n) { x = Math.imul(x ^ (x >>> 15), 2246822507) >>> 0; out.push(a.splice(x % a.length, 1)[0]); } return out; };
-  return pick(HUNT_EASY, 3, 7).concat(pick(HUNT_FUN, 2, 13)); }   // same 5 for everyone today: 3 easy, 2 fun
-function huntState(){ var s = null; try { s = JSON.parse(localStorage.getItem('vp.hunt') || 'null'); } catch (e) {} if (!s || s.week !== huntWeek()) s = { week: huntWeek(), found: {}, done: false }; return s; }
+function huntTargets(walk){
+  var w = walk || huntState().walk || 1, wk = huntWeek();
+  if (w === 1 && HUNT_CURATED[wk]) return HUNT_CURATED[wk].slice();
+  var sd = idSeed('hunt' + wk + (w > 1 ? '#' + w : '')), x = sd >>> 0;
+  var pick = function(arr, n){ var a = arr.slice(), out = []; while (out.length < n && a.length) { x = Math.imul(x ^ (x >>> 15), 2246822507) >>> 0; x = Math.imul(x ^ (x >>> 13), 3266489909) >>> 0; out.push(a.splice(x % a.length, 1)[0]); } return out; };
+  var c = pick(huntPool(1), 3), u = pick(huntPool(2), 1), r = pick(huntPool(3), 1);
+  return [c[0], c[1], u[0], c[2], r[0]];   // the rare one waits at the end of the trail
+}
+function huntTier(k){ return (HUNT_ITEMS[k] || [])[3] || 1; }
+function huntWalkPts(k, walk){ var p = HUNT_PTS[huntTier(k)]; return walk > 1 ? Math.round(p / 2) : p; }   // bonus walks: half points
+function huntState(){ var s = null; try { s = JSON.parse(localStorage.getItem('vp.hunt') || 'null'); } catch (e) {} if (!s || s.week !== huntWeek()) s = { week: huntWeek(), found: {}, done: false, walk: 1 }; if (!s.walk) s.walk = 1; return s; }
+// every finished walk is kept on this phone as a memory (photos as small thumbnails); Memory Lane shows them
+function huntWalks(){ try { return JSON.parse(localStorage.getItem('vp.walks') || '[]'); } catch (e) { return []; } }
+function huntKeepWalk(s){
+  var tg = huntTargets(s.walk), list = huntWalks();
+  list.push({ n: list.length + 1, day: s.week, walk: s.walk, ts: Date.now(), pts: s.pts || 0,
+    items: tg.map(function(k){ var f = s.found[k] || {}; return { k: k, t: f.t || null, lat: f.lat == null ? null : f.lat, lng: f.lng == null ? null : f.lng, img: f.img || null }; }) });
+  while (list.length > 40) list.shift();
+  try { localStorage.setItem('vp.walks', JSON.stringify(list)); } catch (e) { list.forEach(function(w){ w.items.forEach(function(i){ i.img = null; }); }); try { localStorage.setItem('vp.walks', JSON.stringify(list)); } catch (e2) {} }
+  return list.length;
+}
+function huntNextWalk(){ var s = huntState(); if (!s.done) return; s.walk = (s.walk || 1) + 1; s.found = {}; s.done = false; s.pts = 0; huntSave(s); track('fetch', { kind: 'walk', walk: s.walk }); }
+function thumbOf(blob){   // a ~120px JPEG of the find, for the walk memory
+  return new Promise(function(res){ if (!blob) return res(null); var u = URL.createObjectURL(blob), im = new Image();
+    im.onload = function(){ var s = 120 / Math.max(im.width, im.height), c = document.createElement('canvas'); c.width = Math.round(im.width * s); c.height = Math.round(im.height * s);
+      c.getContext('2d').drawImage(im, 0, 0, c.width, c.height); URL.revokeObjectURL(u); res(c.toDataURL('image/jpeg', .7)); };
+    im.onerror = function(){ res(null); }; im.src = u; }); }
 function confettiBurst(){ var cs = ['#f4b63f', '#22786a', '#d1495b', '#3b6fb6', '#a34ea8']; for (var i = 0; i < 60; i++) { var c = document.createElement('i'); c.className = 'cfx';
   c.style.left = (Math.random() * 100) + 'vw'; c.style.background = cs[i % cs.length]; c.style.animationDelay = (Math.random() * .4) + 's'; c.style.transform = 'rotate(' + (Math.random() * 360) + 'deg)';
   document.body.appendChild(c); setTimeout(function(x){ return function(){ x.remove(); }; }(c), 2600); } }
@@ -3127,23 +3192,28 @@ function huntCircles(found, fresh){   // a little winding trail: stop, stop, sto
   for (var i = 0; i < 4; i++) { var walked = found[tg[i]] && found[tg[i + 1]];
     svg += '<path d="' + seg(i) + '" class="' + (walked ? 'tw' : 'tp') + '"/>'; }
   svg += '</svg>';
-  return '<div class="hcircles trail">' + svg + tg.map(function(k, i){ var it = HUNT_ITEMS[k], on = !!found[k];
-    return '<div class="hc' + (on ? ' on' : '') + (fresh && fresh.indexOf(k) >= 0 ? ' pop' : '') + '" style="left:' + (X[i] / 5) + '%;top:' + (Y[i] - 24) + 'px">' +
-      '<span class="hcdot" style="--c:' + it[2] + '"><i class="ph-duotone ' + it[0] + '"></i>' + (on ? '<b>✓</b>' : '') + '</span><small>' + esc(it[1]) + '</small></div>'; }).join('') + '</div>'; }
-function huntCardHTML(name){ var s = huntState(), n = huntTargets().filter(function(k){ return s.found[k]; }).length;
-  return '<div class="huntcard" id="huntcard"><div class="hhead"><b>' + (n >= 5 ? '🏆 Challenge done!' : 'Today&rsquo;s sniff challenge') + '</b><span class="hclock">' + huntClockText() + '</span></div>' +
+  return '<div class="hcircles trail">' + svg + tg.map(function(k, i){ var it = HUNT_ITEMS[k] || HUNT_ITEMS.tree, on = !!found[k], tier = it[3] || 1;
+    return '<div class="hc t' + tier + (on ? ' on' : '') + (fresh && fresh.indexOf(k) >= 0 ? ' pop' : '') + '" style="left:' + (X[i] / 5) + '%;top:' + (Y[i] - 24) + 'px">' +
+      '<span class="hcdot" style="--c:' + it[2] + '"><i class="ph-duotone ' + it[0] + '"></i>' + (on ? '<b>✓</b>' : '') + (tier === 3 ? '<em>✨</em>' : '') + '</span><small>' + esc(it[1]) + '</small></div>'; }).join('') + '</div>'; }
+function huntCardHTML(name){ var s = huntState(), tg = huntTargets(s.walk), n = tg.filter(function(k){ return s.found[k]; }).length, bonus = s.walk > 1;
+  return '<div class="huntcard' + (bonus ? ' bonus' : '') + '" id="huntcard"><div class="hhead"><b>' + (n >= 5 ? '🏆 Walk complete!' : bonus ? '🐾 Bonus walk #' + (s.walk - 1) : 'Today&rsquo;s sniff walk') + '</b><span class="hclock">' + huntClockText() + '</span></div>' +
     '<div class="hprog"><div class="hbar"><i style="width:' + (n / 5 * 100) + '%;background:' + ringColor(n / 5) + '"></i></div><b>' + n + '/5</b></div>' +
     '<div class="htoggle"><span class="on" data-hv="trail">Trail</span><span data-hv="map">Map</span></div>' +
-    '<div class="hview" data-hview="trail">' + huntCircles(s.found) + '</div><div class="hview" data-hview="map" hidden><div class="hmap" id="hmap"></div><div class="hstack" id="hstack"></div></div>' + '<div class="hfoot">' + (n >= 5 ? esc(name) + ' found everything today. Legend.' : 'Each find is worth more: 10 · 20 · 30 · 40 · 50 points, +50 for all five.') + '</div></div>'; }
+    '<div class="hview" data-hview="trail">' + huntCircles(s.found) + '</div><div class="hview" data-hview="map" hidden><div class="hmap" id="hmap"></div><div class="hstack" id="hstack"></div></div>' +
+    '<div class="hfoot">' + (n >= 5
+      ? '<b>Every walk is a memory. ' + esc(name) + ' keeps it.</b><button class="btn gold hnext" id="hnext">🐾 Start another walk</button>'
+      : 'Common ' + (bonus ? 5 : 10) + ' · Uncommon ' + (bonus ? 13 : 25) + ' · <b>✨ Rare ' + (bonus ? 30 : 60) + '</b> · +' + (bonus ? 25 : 50) + ' for all five') + '</div></div>';
+}
 function huntApply(spotted, sp){   // returns the newly found targets; sp = where the photo was taken
   var s = huntState(), tg = huntTargets(), fresh = (spotted || []).filter(function(k){ return tg.indexOf(k) >= 0 && !s.found[k]; });
   fresh.forEach(function(k){ s.found[k] = { t: Date.now(), lat: sp && sp.lat, lng: sp && sp.lng }; });
   var before = tg.filter(function(k){ return s.found[k] && fresh.indexOf(k) < 0; }).length, gained = 0;
-  fresh.forEach(function(_, i){ gained += 10 * (before + i + 1); });   // compounding: 10, 20, 30, 40, 50
-  var n = before + fresh.length; var completed = n >= 5 && !s.done; if (completed) { s.done = true; gained += 50; }   // +50 for all five
+  fresh.forEach(function(k){ gained += huntWalkPts(k, s.walk); });   // common 10 · uncommon 25 · ✨ rare 60 (half on bonus walks)
+  var n = before + fresh.length; var completed = n >= 5 && !s.done; if (completed) { s.done = true; gained += s.walk > 1 ? 25 : 50; }   // bonus for all five
+  s.pts = (s.pts || 0) + gained;
   huntSave(s); if (gained) { var pts = pupPoints() + gained; try { localStorage.setItem('vp.pts', String(pts)); } catch (e) {} }
   if (fresh.length) track('fetch', { kind: 'hunt', n: n });
-  return { fresh: fresh, n: n, completed: completed, found: s.found, gained: gained };
+  return { fresh: fresh, n: n, completed: completed, found: s.found, gained: gained, walk: s.walk, state: s };
 }
 // ---------- Walk the pup: one photo -> the pup names what it sees -> tap Keep ----------
 // countdown to the next challenge (the hunt is keyed by the local date, so it changes at local midnight)
@@ -3193,9 +3263,14 @@ function walkSheet(s, file){
     track('snap', { safe: r.safe, n: (r.findings || []).length });
     var hu = huntApply(r.spotted, pendingSpot);
     if (hu.fresh.length) { var hb = document.createElement('div'); hb.className = 'huntwin';
-      hb.innerHTML = '<div class="hwtitle">' + (hu.completed ? '🏆 Challenge done! ' + esc(s.name) + ' found all 5.' : 'Found ' + hu.fresh.map(function(k){ return HUNT_ITEMS[k][1]; }).join(' + ') + '!') + ' <span class="hwpts">+' + hu.gained + '</span></div>' + huntCircles(hu.found, hu.fresh);
+      var rare = hu.fresh.some(function(k){ return huntTier(k) === 3; });
+      hb.innerHTML = '<div class="hwtitle">' + (hu.completed ? '🏆 Walk complete! Every walk is a memory. ' + esc(s.name) + ' keeps it.' : (rare ? '✨ Rare find! ' : 'Found ') + hu.fresh.map(function(k){ return HUNT_ITEMS[k][1]; }).join(' + ') + '!') + ' <span class="hwpts">+' + hu.gained + '</span></div>' + huntCircles(hu.found, hu.fresh);
       document.querySelector('.walksheet').insertBefore(hb, document.querySelector('.walksheet .walkline'));
-      if (navigator.vibrate) navigator.vibrate(hu.completed ? [60, 40, 60, 40, 120] : 50); if (hu.completed) confettiBurst(); }
+      if (hu.completed) { var nb = document.createElement('button'); nb.className = 'btn gold hnext'; nb.textContent = '🐾 Start another walk'; hb.appendChild(nb);
+        nb.onclick = function(){ huntNextWalk(); close(); var me = loadLocal(); if (me && location.pathname.indexOf('/p/') === 0) screenLedger(me.tail); }; }
+      if (rare) hb.classList.add('rare');
+      if (navigator.vibrate) navigator.vibrate(hu.completed ? [60, 40, 60, 40, 120] : rare ? [40, 30, 40, 30, 80] : 50); if (hu.completed || rare) confettiBurst();
+      thumbOf(blob).then(function(th){ var st = huntState(); hu.fresh.forEach(function(k){ if (st.found[k]) st.found[k].img = th; }); huntSave(st); if (hu.completed) huntKeepWalk(st); }); }
     var uploaded = null;
     function upload(){ if (uploaded) return uploaded; var f = new File([blob], 'walk.jpg', { type: 'image/jpeg' }); pendingFiles = [f]; uploaded = uploadPending().then(function(m){ pendingFiles = []; return m; }); return uploaded; }
     if (r.error === 'location') { var le = new Error(s.name + ' needs your location to read photos, so every photo is from a real street. Approximate is fine. Allow it, then tap Try again.'); le.loc = true; throw le; }
@@ -3596,7 +3671,7 @@ function screenPack(mode, topic0){
   }).catch(function(e){ document.getElementById('board').textContent = 'The pack is napping: ' + e.message; });
 }
 
-var APP_VERSION = "20261004053550";
+var APP_VERSION = "20261004093326";
 (function(){
   try {
     fetch('/version.json?t=' + Date.now(), { cache: 'no-store' }).then(function(r){ return r.json(); }).then(function(j){
