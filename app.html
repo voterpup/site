@@ -151,6 +151,16 @@
   .fcard img{width:100%; max-height:150px; object-fit:cover; border-radius:10px; margin-bottom:8px; display:block}
   .fbody{font-size:14.5px; font-weight:700; line-height:1.35} .fmeta{font-size:11.5px; color:#6b7387; margin-top:4px}
   .fend{text-align:center; color:#aab4c3; font-size:12.5px; margin:10px 0 20px; line-height:1.5}
+  /* compact calendar grid */
+  .froll{display:grid; grid-template-columns:1fr 1fr; gap:8px; align-content:start}
+  .froll .fmonth{grid-column:1/-1; font-size:12px; font-weight:900; letter-spacing:.09em; text-transform:uppercase; color:var(--gold); margin:10px 2px 0}
+  .froll .fmonth:first-child{margin-top:2px} .froll .fend{grid-column:1/-1}
+  .froll .fcard{border-left:0; border-top:4px solid var(--gold); padding:8px 9px 9px; border-radius:12px; display:flex; flex-direction:column; scroll-margin-top:8px}
+  .froll .fcard.fbacked{border-top-color:#b3702d}
+  .froll .fd{font-size:11px; font-weight:800; color:#8a6a1e; text-transform:uppercase; margin-bottom:5px} .froll .fd b{font-size:15px; color:#1f2733}
+  .froll .fcard img{max-height:none; aspect-ratio:4/3; height:auto; margin-bottom:6px; border-radius:8px}
+  .froll .fbody{font-size:13px; line-height:1.3; display:-webkit-box; -webkit-line-clamp:3; -webkit-box-orient:vertical; overflow:hidden}
+  .froll .fmeta{font-size:10.5px; margin-top:auto; padding-top:4px}
   .ffoot{flex:0 0 auto; padding:10px 0 calc(12px + env(safe-area-inset-bottom)); background:linear-gradient(transparent, #141a22 40%)}
   .ffoot .btn{margin:0}
   .fcalwrap{position:absolute; inset:0; z-index:5; background:#141a22; display:flex; flex-direction:column; align-items:center;
@@ -399,15 +409,15 @@
   .huntcard{background:var(--card); border:2px solid var(--line); border-radius:20px; padding:12px 12px 10px; margin:0 0 16px; cursor:pointer; box-shadow:0 4px 0 #e3d8c4; transition:transform .08s, box-shadow .08s}
   .huntcard:active{transform:translateY(4px); box-shadow:none}
   /* the sniff challenge gets its own playful palette (rest of the app unchanged) */
-  .huntcard{background:linear-gradient(135deg, #e6f3ff 0%, #f1e6ff 52%, #ffe9dc 100%); border-color:#cdb9ff; box-shadow:0 4px 0 #b9a3f0}
-  .huntcard .hhead b{color:#4b2a8c} .huntcard .hhead span{color:#7a5fb8}
-  .huntcard .hpie{background:conic-gradient(#ff5fa2 var(--p), #fff 0); box-shadow:inset 0 0 0 1.5px #ffb3d3}
-  .huntcard .hbar{background:rgba(255,255,255,.75); box-shadow:inset 0 0 0 1.5px #e2d6ff}
+  .huntcard{background:linear-gradient(135deg, #2a1b5e 0%, #4a2386 55%, #7a2c78 100%); border-color:#6a46c9; box-shadow:0 4px 0 #1c1240; color:#fff}
+  .huntcard .hhead b{color:#fff} .huntcard .hhead span{color:#d9c8ff}
+  .huntcard .hpie{background:conic-gradient(#ff5fa2 var(--p), rgba(255,255,255,.18) 0); box-shadow:inset 0 0 0 1.5px #ff9cc8}
+  .huntcard .hbar{background:rgba(255,255,255,.16); box-shadow:inset 0 0 0 1.5px rgba(255,255,255,.25)}
   .huntcard .hbar i{background:linear-gradient(90deg, #ff5fa2, #ffb347, #ffe14d, #4cd9a0, #4aa8ff, #9b6bff) !important}
-  .huntcard .hprog b{color:#4b2a8c}
-  .huntcard .htoggle{background:rgba(255,255,255,.7)} .huntcard .htoggle span{color:#7a5fb8} .huntcard .htoggle span.on{background:#7c4dff; color:#fff}
-  .huntcard .htrail .tp{stroke:#b8a3f5} .huntcard .htrail .tw{stroke:#ff5fa2}
-  .huntcard .hc small{color:#5b4a86}
+  .huntcard .hprog b{color:#fff}
+  .huntcard .htoggle{background:rgba(255,255,255,.14)} .huntcard .htoggle span{color:#d9c8ff} .huntcard .htoggle span.on{background:#ffd23f; color:#2a1b5e}
+  .huntcard .htrail .tp{stroke:rgba(255,255,255,.4)} .huntcard .htrail .tw{stroke:#ff5fa2}
+  .huntcard .hc small{color:#efe6ff} .huntcard .hfoot{color:#d9c8ff}
   .huntcard .hc:nth-child(5n+1) .hcdot, .huntcard .hc:nth-of-type(5n+1) .hcdot{--fun:#ff5fa2; --tint:#ffe3ef}
   .huntcard .hc:nth-of-type(5n+2) .hcdot{--fun:#ff9f1a; --tint:#fff0d9}
   .huntcard .hc:nth-of-type(5n+3) .hcdot{--fun:#18b87a; --tint:#ddf7ec}
@@ -1909,9 +1919,11 @@ function openFlashback(L){
   var first = byDay.length ? byDay[byDay.length - 1].d : new Date();
   var nm = esc(L.name);
   var ov = document.createElement('div'); ov.className = 'flashov';
-  function card(it, k){
+  function card(it, k, gid){
     var img = null; (it.media || []).forEach(function(m){ if (!img && m.url && m.type && m.type.indexOf('image') === 0) img = m.url; });
-    return '<div class="fcard' + (it.backed ? ' fbacked' : '') + '">' +
+    var d = new Date(it.ts);
+    return '<div class="fcard' + (it.backed ? ' fbacked' : '') + '"' + (gid ? ' id="' + gid + '"' : '') + '>' +
+      '<div class="fd"><b>' + d.getDate() + '</b> ' + d.toLocaleDateString(undefined, { month: 'short' }) + ' · ' + d.toLocaleDateString(undefined, { weekday: 'short' }) + '</div>' +
       (img ? '<img src="' + esc(img) + '" alt="">' : '') +
       '<div class="fbody">' + esc(it.body || '📷') + '</div>' +
       '<div class="fmeta">' + (it.topic ? '#' + esc(it.topic) + ' · ' : '') +
@@ -1922,10 +1934,11 @@ function openFlashback(L){
     return '<a href="#" class="fday" data-g="' + (byDay.length - 1 - i) + '"><b>' + g.d.getDate() + '</b><span>' +
       g.d.toLocaleDateString(undefined, { month: 'short' }) + '</span><i>' + g.list.length + '</i></a>';
   }).join('');
+  var lastMonth = '';
   var roll = byDay.map(function(g, gi){
-    return '<div class="fgroup" id="fg' + gi + '"><div class="fdate"><b>' + g.d.getDate() + '</b><span>' +
-      g.d.toLocaleDateString(undefined, { month: 'short' }) + '</span><small>' + g.d.toLocaleDateString(undefined, { weekday: 'short' }) + '</small></div>' +
-      '<div class="fcol">' + g.list.map(function(it){ return card(it, k++); }).join('') + '</div></div>';
+    var mo = g.d.toLocaleDateString(undefined, { month: 'long', year: 'numeric' });
+    var head = mo !== lastMonth ? '<div class="fmonth">' + mo + '</div>' : ''; lastMonth = mo;
+    return head + g.list.map(function(it, j){ return card(it, k++, j === 0 ? 'fg' + gi : ''); }).join('');
   }).join('');
   ov.innerHTML = '<div class="flashtop"><div><div class="flashtitle">' + nm + '&rsquo;s Memory Lane</div>' +
       '<div class="flashsub">' + (demo ? 'A demo of what yours will look like' :
@@ -2690,7 +2703,7 @@ function huntApply(spotted, sp){   // returns the newly found targets; sp = wher
 function huntClockText(){
   var now = new Date(), next = new Date(now); next.setHours(24, 0, 0, 0);
   var s = Math.max(0, Math.floor((next - now) / 1000)), hh = Math.floor(s / 3600), mm = Math.floor(s % 3600 / 60), ss = s % 60;
-  return (hh ? hh + 'h ' : '') + (hh ? ('0' + mm).slice(-2) : mm) + 'm<i class="hpie" style="--p:' + Math.round((60 - ss) / 60 * 360) + 'deg"></i>';   // the pie fills as the current minute runs out
+  return (hh ? hh + 'h ' : '') + (hh ? ('0' + mm).slice(-2) : mm) + 'm<i class="hpie" style="--p:' + Math.round(ss / 60 * 360) + 'deg"></i>';   // the pie empties as the current minute runs out
 }
 (function(){ var day = new Date().toDateString();
   setInterval(function(){
@@ -3095,7 +3108,7 @@ function screenPack(mode, topic0){
   }).catch(function(e){ document.getElementById('board').textContent = 'The pack is napping: ' + e.message; });
 }
 
-var APP_VERSION = "20261004000023";
+var APP_VERSION = "20261004000405";
 (function(){
   try {
     fetch('/version.json?t=' + Date.now(), { cache: 'no-store' }).then(function(r){ return r.json(); }).then(function(j){
