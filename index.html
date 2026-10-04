@@ -1127,6 +1127,11 @@
   body.inroom .tabbar .plusbtn{display:none}
   body.inroom #root{padding-bottom:140px}
   #root > #room{animation:none !important; transform:none !important}   /* a transformed parent would trap the fixed message box */
+  .adcta{display:flex; align-items:center; gap:12px; background:linear-gradient(135deg,#0f3a35,#13283a); border:1.5px solid var(--accent); border-radius:18px; padding:12px; margin:4px 0 14px; text-decoration:none; color:var(--ink)}
+  .adcta img{width:52px; height:52px; border-radius:50%; object-fit:cover; border:2px solid var(--gold); flex:0 0 auto}
+  .adcta span{flex:1; font-size:13.5px; color:var(--sub)} .adcta b{display:block; color:var(--ink); font-size:15.5px}
+  .adcta i{font-style:normal; background:var(--gold); color:var(--goldink); font-weight:900; border-radius:999px; padding:8px 12px; flex:0 0 auto}
+  .adhook{background:#0f3a35; border:1.5px solid var(--accent); color:#c9f3e6; border-radius:14px; padding:9px 12px; font-size:14px; margin:0 0 10px} .adhook b{color:#fff}
 </style>
 </head>
 <body>
@@ -1145,6 +1150,12 @@ try { sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY,
 
 var BASE = location.origin;
 var KIOSK = new URLSearchParams(location.search).get('kiosk') === '1';
+// Where each ad sends new visitors (the ad link carries ?src=yt1, yt2, ...). Change a value to move that ad's landing:
+//   'start' = the first screen (tap one issue, get your pup), no intro slides
+//   'city'  = the Your city board, with a big "make your pup" button on top
+var AD_LANDING = { yt1: 'start', yt2: 'city', yt3: 'start', yt4: 'start' };
+var AD_CITY = 'Vancouver, British Columbia, Canada';   // 'city' landing when the visitor's city isn't known yet (the ads target Metro Vancouver)
+function adSrc(){ var s = srcTag(); return /^yt\d+$/.test(s) ? s : null; }
 (function(){ var q = new URLSearchParams(location.search), s = q.get('src'), pl = q.get('place');
   if (s) try { sessionStorage.setItem('vp.src', s.slice(0, 20)); if (!localStorage.getItem('vp.src0')) localStorage.setItem('vp.src0', s.slice(0, 20)); } catch (e) {}
   if (pl && /^[A-Za-z .'’()-]+(, [A-Za-z .'’()-]+){1,3}$/.test(pl.trim())) { savePlace(pl.trim(), true); try { localStorage.setItem('vp.placeqr', '1'); } catch (e) {} } })();   // a QR's city is a guess: the first real location wins
@@ -1840,6 +1851,7 @@ function screenCapture(prefGripe, prefName){
     '<div class="hello"><img src="/pup-face.jpg" alt=""><div class="hbub"><b>Hi! I&rsquo;m <span id="pnameshow"></span> 🐾</b> <a href="#" id="pnamechg">rename</a>' +
       '<p>Tell me what ' + (getPlace() ? esc(getPlace().split(',')[0]) : 'your city') + ' should fix. I&rsquo;ll keep your list, show you who agrees, and remind you when you vote.</p></div></div>' +
     '<div class="namefield" id="pnamebox" hidden><input id="pname" maxlength="20" placeholder="Pup&rsquo;s name"></div>' +
+    (adSrc() && !saved ? '<div class="adhook">👋 From the video? <b>Tap one issue below.</b> Your pup remembers it. No sign-up.</div>' : '') +
     '<div class="askhead"><div class="askq">What would you fix first?</div><div class="askwhen">Tap one. That&rsquo;s it.</div></div>' +
     '<div class="askgrid">' + QUICK_ISSUES.map(function(q, i){ return '<button class="asktile pick" style="--c:' + ASK_COLORS[i % ASK_COLORS.length] + '" data-q="' + esc(q[1]) + '"><span>' + esc(q[1]) + '</span><i class="ph-duotone ' + q[0] + '"></i></button>'; }).join('') + '</div>' +
     '<a href="#" class="askown" id="askown">✍️ Something else? Write it</a>' +
@@ -3741,7 +3753,8 @@ function screenPack(mode, topic0){
     '<div class="packhero">' + slotMedia('pack') +
       '<div class="ft">What ' + esc(city || 'your city') + ' wants fixed<small>The agenda is set for us. Time we set it.</small></div></div>' +
     '<div id="citystrip"></div>' +
-    (loadLocal() ? '' : '<div class="newbie">\ud83d\udc4b New here? Tap <b>📸 Snap</b> to get your own pup.</div>') +
+    (loadLocal() ? '' : adSrc() ? '<a class="adcta" href="/app.html?new=1"><img src="/pup-face.jpg" alt=""><span><b>This is your city&rsquo;s list.</b>Add yours: tap one issue, get a pup that remembers it. Free, no sign-up.</span><i>Start →</i></a>'
+      : '<div class="newbie">\ud83d\udc4b New here? Tap <b>📸 Snap</b> to get your own pup.</div>') +
     '<div class="scopebar"><div class="seg">' +
       (city ? '<span class="segbtn' + (mode==='local'?' on':'') + '" id="mlocal">' + ic('round_pushpin', 'segic') + esc(city) + '</span>'
             : '<span class="segbtn" id="mfind">' + ic('round_pushpin', 'segic') + 'Near me</span>') +
@@ -4036,7 +4049,7 @@ function screenPack(mode, topic0){
   }).catch(function(e){ document.getElementById('board').textContent = 'The pack is napping: ' + e.message; });
 }
 
-var APP_VERSION = "20261004190149";
+var APP_VERSION = "20261004193802";
 (function(){
   try {
     fetch('/version.json?t=' + Date.now(), { cache: 'no-store' }).then(function(r){ return r.json(); }).then(function(j){
@@ -4543,8 +4556,12 @@ function introShow(then){
   else if (/^\/join\/[0-9]+-[a-z-]+$/i.test(location.pathname)) joinFromLink(decodeURIComponent(location.pathname.slice(6)).replace(/-/g, ' '));
   else if (/^\/list\/[0-9a-f]{10}$/.test(location.pathname)) screenPublicList(location.pathname.split('/')[2]);
   else if (/^\/packs\/[0-9a-f-]{36}$/.test(location.pathname)) screenPackRoom(location.pathname.split('/')[2]);
+  else if (!loadLocal() && !KIOSK && qs.get('new') !== '1' && qs.get('src') && AD_LANDING[qs.get('src')] === 'city') {   // this ad lands on Your city
+    if (!getPlace()) savePlace(AD_CITY, true);
+    history.replaceState(null, '', '/pack'); screenPack();
+  }
   else if (qs.get('new') === '1' || KIOSK || !loadLocal()) {   // first visit: make your pup
-    if (!loadLocal() && !KIOSK && !introSeen() && srcTag() !== 'booth' && srcTag() !== 'demo') introShow(screenCapture); else screenCapture();
+    if (!loadLocal() && !KIOSK && !introSeen() && srcTag() !== 'booth' && srcTag() !== 'demo' && !adSrc()) introShow(screenCapture); else screenCapture();
   }
   else { var lp = loadLocal(); history.replaceState(null, '', '/p/' + lp.tail); screenLedger(lp.tail); }   // returning: your pup (and today's challenge) is home
 })();
