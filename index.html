@@ -1140,6 +1140,14 @@
   @keyframes snappulse{0%,100%{box-shadow:0 0 0 0 rgba(245,184,61,.0)} 50%{box-shadow:0 0 0 10px rgba(245,184,61,.35)}}
   .walkprev{pointer-events:none}   /* a preview: the walk starts with the button */
   .walkgo{font-size:19px !important; padding:16px !important; animation:snappulse 1.4s ease-in-out infinite}
+  /* lively flipping tiles on the pup page */
+  .etile.flip{padding:0; perspective:700px; background-image:none}
+  .etile.flip .fin{position:absolute; inset:0; transform-style:preserve-3d; transition:transform 1.4s cubic-bezier(.45,.05,.25,1); border-radius:inherit}
+  .etile.flip.flipped .fin{transform:rotateY(180deg)}
+  .etile.flip .face{position:absolute; inset:0; border-radius:inherit; padding:8px; display:flex; flex-direction:column; backface-visibility:hidden; -webkit-backface-visibility:hidden; text-align:left}
+  .etile.flip .back{transform:rotateY(180deg); background-size:cover; background-position:center; justify-content:flex-end}
+  .etile.flip .front{justify-content:space-between}
+  .etile.flip::after{content:''; position:absolute; right:6px; bottom:6px; width:7px; height:7px; border-radius:50%; background:rgba(255,255,255,.7); box-shadow:0 0 0 2px rgba(0,0,0,.15)}   /* has a photo */
 </style>
 </head>
 <body>
@@ -2108,11 +2116,11 @@ function screenLedger(tail){
       else toast('Tell ' + esc(L.name) + ' one thing first, then share it with candidates.'); };
     var box = document.getElementById('entries');
     var tileOf = function(e){ var img = null; (e.media || []).forEach(function(m){ if (!img && m.url && (!m.type || m.type.indexOf('image') === 0)) img = m.url; });
-      var col = TILE_COLORS[(TOPIC_LIST.indexOf(e.topic) + 13) % TILE_COLORS.length];
-      return '<button class="etile" data-open="' + e.id + '" style="background-color:' + col + (img ? ';background-image:linear-gradient(rgba(20,26,33,.15),rgba(20,26,33,.75)),url(' + esc(img) + ')' : '') + '">' +
+      return flipTile('etile', 'data-open="' + e.id + '"', e.id || e.body, img,
         '<span class="etop">' + (e.topic ? '#' + esc(e.topic) : '') + '<i class="ph-fill ' + (e.fixed_at ? 'ph-check-circle' : e.shared ? 'ph-users-three' : 'ph-lock-simple') + '"></i></span>' +
-        '<span class="etxt">' + esc(e.body || '📷') + '</span>' +
-        '<span class="ebot">' + (e.fixed_at ? 'Fixed' : e.shared ? (e.backs ? '🐾 ' + e.backs + ' agree' : 'In Your city') : 'Private') + '</span></button>'; };
+        '<span class="etxt">' + esc(e.body || '📷') + '</span>',
+        '<span class="ebot">' + (e.fixed_at ? 'Fixed' : e.shared ? (e.backs ? '🐾 ' + e.backs + ' agree' : 'In Your city') : 'Private') + '</span>'); };
+    setTimeout(function(){ wakeFlips(document.getElementById('entries')); }, 1200);
     box.innerHTML = '<div class="etiles">' + L.entries.map(tileOf).join('') + '</div><div class="ecards" hidden>' + L.entries.map(function(e){
       var fixedTxt = e.fixed_at ? new Date(e.fixed_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) : '';
       return '<div class="card ecard' + (e.fixed_at ? ' fixedcard' : '') + '" data-card="' + e.id + '">' +
@@ -2175,10 +2183,9 @@ function screenLedger(tail){
             sameChip(e.id, e.backs || 0, true, false) + reactChips(e, (L.reacts || {})[e.id], false) + '</div>' + emoRow(e.id, false) + '</div>'; };
       var btile = function(e, i){
         var img = null; (e.media || []).forEach(function(m){ if (!img && m.url && (!m.type || m.type.indexOf('image') === 0)) img = m.url; });
-        var col = TILE_COLORS[(TOPIC_LIST.indexOf(e.topic) + 13) % TILE_COLORS.length];
-        return '<button class="etile btile" data-bi="' + i + '" style="background-color:' + col + (img ? ';background-image:linear-gradient(rgba(12,23,34,.1),rgba(12,23,34,.8)),url(' + esc(img) + ')' : '') + '">' +
+        return flipTile('etile btile', 'data-bi="' + i + '"', e.id || e.body, img,
           '<span class="etop">' + (e.topic ? '#' + esc(e.topic) : '') + '<i class="ph-fill ph-paw-print"></i></span>' +
-          '<span class="etxt">' + esc(e.body || '📷') + '</span><span class="ebot">🐾 ' + (e.backs || 1) + ' agree</span></button>'; };
+          '<span class="etxt">' + esc(e.body || '📷') + '</span>', '<span class="ebot">🐾 ' + (e.backs || 1) + ' agree</span>'); };
       bb.innerHTML = '<div class="count">🐾 ' + esc(L.name) + ' also backs ' + bk.length + ' issue' + (bk.length === 1 ? '' : 's') + ' from Your city <small>· tap one to open</small></div>' +
         '<div class="etiles btiles">' + bk.map(btile).join('') + '</div>';
       Array.prototype.forEach.call(bb.querySelectorAll('[data-bi]'), function(t){
@@ -3369,6 +3376,27 @@ document.addEventListener('click', function(ev){
   var me = loadLocal(); if (!me) return;
   rpc('vp_pack_report', { p_tail: me.tail, p_msg: a.getAttribute('data-rep') }).then(function(){ toast('Thanks. Reported 🐾'); a.textContent = 'reported'; }).catch(function(e){ toast(e.message); });
 });
+// Pup-page tiles: the words on a lively solid colour; a tile with a photo slowly flips between the words and the photo
+var FLIP_COLS = ['#1f8a70', '#2f6fd6', '#7b4fd1', '#c2410c', '#0e7490', '#b0306e', '#15803d', '#a16207', '#4338ca', '#0f766e', '#be123c', '#0369a1'];
+function tileCol(key){ var h = 0, s = String(key || ''); for (var i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) >>> 0; return FLIP_COLS[h % FLIP_COLS.length]; }
+function flipTile(cls, attrs, key, img, top, bot){
+  var col = tileCol(key);
+  if (!img) return '<button class="' + cls + '" ' + attrs + ' style="background:' + col + '">' + top + bot + '</button>';
+  return '<button class="' + cls + ' flip" ' + attrs + ' style="background:' + col + '"><span class="fin">' +
+    '<span class="face front" style="background:' + col + '">' + top + bot + '</span>' +
+    '<span class="face back" style="background-color:' + col + ';background-image:linear-gradient(rgba(12,23,34,0) 55%,rgba(12,23,34,.75)),url(' + esc(img) + ')">' + bot + '</span></span></button>';
+}
+function wakeFlips(root0){   // one tile at a time, every couple of seconds, round the grid
+  clearInterval(window._flipT);
+  if (window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  var k = 0;
+  window._flipT = setInterval(function(){
+    var tiles = (root0 && document.body.contains(root0)) ? root0.querySelectorAll('.etile.flip') : [];
+    if (!tiles.length) { if (!root0 || !document.body.contains(root0)) clearInterval(window._flipT); return; }
+    if (document.hidden) return;
+    tiles[k % tiles.length].classList.toggle('flipped'); k++;
+  }, 2600);
+}
 var METRO = { 'north vancouver': 'vancouver', 'west vancouver': 'vancouver', 'burnaby': 'vancouver', 'surrey': 'vancouver', 'richmond': 'vancouver', 'new westminster': 'vancouver',
   'coquitlam': 'vancouver', 'port coquitlam': 'vancouver', 'port moody': 'vancouver', 'delta': 'vancouver', 'langley': 'vancouver', 'maple ridge': 'vancouver', 'pitt meadows': 'vancouver',
   'white rock': 'vancouver', 'anmore': 'vancouver', 'belcarra': 'vancouver', 'lions bay': 'vancouver', 'bowen island': 'vancouver', 'tsawwassen': 'vancouver', 'district of north vancouver': 'vancouver' };
@@ -4087,7 +4115,7 @@ function screenPack(mode, topic0){
   }).catch(function(e){ document.getElementById('board').textContent = 'The pack is napping: ' + e.message; });
 }
 
-var APP_VERSION = "20261004214553";
+var APP_VERSION = "20261004214916";
 (function(){
   try {
     fetch('/version.json?t=' + Date.now(), { cache: 'no-store' }).then(function(r){ return r.json(); }).then(function(j){
