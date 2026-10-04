@@ -1016,6 +1016,14 @@
   .huntwin.rare{background:linear-gradient(135deg, #3a2e0c, #231d0d) !important; border-color:#ffd56a !important}
   .fwalk{border-top-color:#ffd56a !important} .fwthumbs{display:grid; grid-template-columns:repeat(5, 1fr); gap:3px; margin-bottom:6px}
   .fwthumbs img, .fwthumbs span{width:100%; aspect-ratio:1; object-fit:cover; border-radius:6px; display:flex; align-items:center; justify-content:center; color:#fff; font-size:12px}
+  /* colour = difficulty */
+  .huntcard .hc.t1 .hcdot{--fun:#2fd39c !important; --tint:#0f3a2c !important}
+  .huntcard .hc.t2 .hcdot{--fun:#3d9bff !important; --tint:#12304f !important}
+  .huntcard .hc.t3 .hcdot{--fun:#ffd56a !important; --tint:#3a2e0c !important}
+  .huntcard .hc.t2 small{color:#9cc6ff !important}
+  .hlegend{display:flex; gap:12px; margin:-2px 2px 8px; font-size:11px; font-weight:800; color:#a9c7e6; flex-wrap:wrap}
+  .hlegend span{display:inline-flex; align-items:center; gap:5px} .hlegend i{width:9px; height:9px; border-radius:50%; display:inline-block}
+  .hlegend .lr{color:#ffd56a} .hlegend .lr i{box-shadow:0 0 6px #ffd56a}
 </style>
 </head>
 <body>
@@ -3107,6 +3115,7 @@ var HUNT_ITEMS = {
   mountains: ['ph-mountains', 'a mountain view', '#4dabf7', 3], sunset: ['ph-sun-horizon', 'a sunset sky', '#ff8787', 3], cat: ['ph-cat', 'a cat outside', '#fab005', 3],
   heron: ['ph-bird', 'a heron', '#748ffc', 3], halloween: ['ph-ghost', 'Halloween decorations', '#fd7e14', 3] };
 var HUNT_PTS = { 1: 10, 2: 25, 3: 60 };   // a rare find is worth six commons
+var TIER_COL = { 1: '#2fd39c', 2: '#3d9bff', 3: '#ffd56a' };   // colour = difficulty: green common · blue uncommon · gold rare
 function huntPool(tier){   // seasonal: pumpkins, mushrooms and Halloween only in October
   var oct = new Date().getMonth() === 9, seasonal = { pumpkin: oct, mushroom: oct || new Date().getMonth() === 10, halloween: oct };
   return Object.keys(HUNT_ITEMS).filter(function(k){ return HUNT_ITEMS[k][3] === tier && (seasonal[k] === undefined || seasonal[k]); }); }
@@ -3176,7 +3185,7 @@ function huntMap(){   // finds on a map, joined in the order you found them; the
       if (placed.length > 1) { m.addSource('ht', { type: 'geojson', data: { type: 'Feature', geometry: { type: 'LineString', coordinates: placed.map(function(g){ return [g.lng, g.lat]; }) } } });
         m.addLayer({ id: 'ht', type: 'line', source: 'ht', paint: { 'line-color': '#22786a', 'line-width': 5, 'line-dasharray': [1, 1.6] }, layout: { 'line-cap': 'round', 'line-join': 'round' } }); }
       var b = new maplibregl.LngLatBounds();
-      placed.forEach(function(g, i){ var it = HUNT_ITEMS[g.k], d = document.createElement('div'); d.className = 'hpin'; d.style.background = it[2]; d.innerHTML = '<i class="ph-duotone ' + it[0] + '"></i><b>' + (i + 1) + '</b>';
+      placed.forEach(function(g, i){ var it = HUNT_ITEMS[g.k], d = document.createElement('div'); d.className = 'hpin'; d.style.background = TIER_COL[huntTier(g.k)]; d.innerHTML = '<i class="ph-duotone ' + it[0] + '"></i><b>' + (i + 1) + '</b>';
         new maplibregl.Marker({ element: d }).setLngLat([g.lng, g.lat]).addTo(m); b.extend([g.lng, g.lat]); });
       if (placed.length > 1) m.fitBounds(b, { padding: { top: 40, bottom: 40, left: 40, right: 70 }, maxZoom: 17, duration: 0 });
     });
@@ -3197,12 +3206,13 @@ function huntCircles(found, fresh){   // a little winding trail: stop, stop, sto
       '<span class="hcdot" style="--c:' + it[2] + '"><i class="ph-duotone ' + it[0] + '"></i>' + (on ? '<b>✓</b>' : '') + (tier === 3 ? '<em>✨</em>' : '') + '</span><small>' + esc(it[1]) + '</small></div>'; }).join('') + '</div>'; }
 function huntCardHTML(name){ var s = huntState(), tg = huntTargets(s.walk), n = tg.filter(function(k){ return s.found[k]; }).length, bonus = s.walk > 1;
   return '<div class="huntcard' + (bonus ? ' bonus' : '') + '" id="huntcard"><div class="hhead"><b>' + (n >= 5 ? '🏆 Walk complete!' : bonus ? '🐾 Bonus walk #' + (s.walk - 1) : 'Today&rsquo;s sniff walk') + '</b><span class="hclock">' + huntClockText() + '</span></div>' +
+    '<div class="hlegend"><span><i style="background:' + TIER_COL[1] + '"></i>Common ' + (bonus ? 5 : 10) + '</span><span><i style="background:' + TIER_COL[2] + '"></i>Uncommon ' + (bonus ? 13 : 25) + '</span><span class="lr"><i style="background:' + TIER_COL[3] + '"></i>✨ Rare ' + (bonus ? 30 : 60) + '</span></div>' +
     '<div class="hprog"><div class="hbar"><i style="width:' + (n / 5 * 100) + '%;background:' + ringColor(n / 5) + '"></i></div><b>' + n + '/5</b></div>' +
     '<div class="htoggle"><span class="on" data-hv="trail">Trail</span><span data-hv="map">Map</span></div>' +
     '<div class="hview" data-hview="trail">' + huntCircles(s.found) + '</div><div class="hview" data-hview="map" hidden><div class="hmap" id="hmap"></div><div class="hstack" id="hstack"></div></div>' +
     '<div class="hfoot">' + (n >= 5
       ? '<b>Every walk is a memory. ' + esc(name) + ' keeps it.</b><button class="btn gold hnext" id="hnext">🐾 Start another walk</button>'
-      : 'Common ' + (bonus ? 5 : 10) + ' · Uncommon ' + (bonus ? 13 : 25) + ' · <b>✨ Rare ' + (bonus ? 30 : 60) + '</b> · +' + (bonus ? 25 : 50) + ' for all five') + '</div></div>';
+      : 'Find all five for +' + (bonus ? 25 : 50) + ' bonus') + '</div></div>';
 }
 function huntApply(spotted, sp){   // returns the newly found targets; sp = where the photo was taken
   var s = huntState(), tg = huntTargets(), fresh = (spotted || []).filter(function(k){ return tg.indexOf(k) >= 0 && !s.found[k]; });
@@ -3671,7 +3681,7 @@ function screenPack(mode, topic0){
   }).catch(function(e){ document.getElementById('board').textContent = 'The pack is napping: ' + e.message; });
 }
 
-var APP_VERSION = "20261004093326";
+var APP_VERSION = "20261004093743";
 (function(){
   try {
     fetch('/version.json?t=' + Date.now(), { cache: 'no-store' }).then(function(r){ return r.json(); }).then(function(j){
