@@ -784,6 +784,28 @@
   .btn.compact{display:inline-block; width:auto; margin:0; padding:10px 14px; border-radius:11px; font-size:13.5px}
   [hidden]{display:none!important}
   .center{text-align:center}
+  /* ---- Your city: the same playful palette as the sniff challenge ---- */
+  .packhero{background:linear-gradient(135deg, #2a1b5e 0%, #4a2386 55%, #7a2c78 100%); border:0; color:#fff; box-shadow:0 6px 18px rgba(42,27,94,.25)}
+  .packhero .ft{color:#fff; font-size:15px; font-weight:900} .packhero .ft small{color:#d9c8ff; font-weight:700}
+  .packhero .slotmedia{border-radius:50%; box-shadow:0 0 0 3px #ffd23f}
+  .cityrep{background:linear-gradient(135deg, #e6fbf2 0%, #e7f0ff 100%); border:0; box-shadow:0 4px 14px rgba(47,140,255,.10), inset 0 0 0 1.5px #d4e6ff}
+  .cityrep .crh{color:#1d3557} .cityrep .crh b{color:#0f9d6b; font-size:15px}
+  .cityrep .crchips .chip{border:0; font-weight:800}
+  .cityrep .crchips .chip b{margin-left:3px}
+  .cityrep .crchips .chip:nth-child(5n+1){background:#ffe3ef; color:#c2185b}
+  .cityrep .crchips .chip:nth-child(5n+2){background:#fff0d9; color:#c25e00}
+  .cityrep .crchips .chip:nth-child(5n+3){background:#ddf7ec; color:#0b7d55}
+  .cityrep .crchips .chip:nth-child(5n+4){background:#e0eeff; color:#1f63c6}
+  .cityrep .crchips .chip:nth-child(5n+5){background:#eee5ff; color:#6a35d9}
+  .cityrep .crlatest summary{color:#7c4dff} .cityrep .crsrc{color:#6f7fa0}
+  .cityrep .crscroll{background:rgba(255,255,255,.7); border-radius:10px; padding:0 8px}
+  .newbie{background:linear-gradient(120deg, #ff5fa2, #ff9f45); border:0; color:#fff; font-weight:700; box-shadow:0 6px 16px rgba(255,95,162,.28)}
+  .newbie b{color:#fff}
+  .scopebar .seg{background:#efe8ff} .scopebar .segbtn{color:#6a52a8}
+  .scopebar .segbtn.on{background:#7c4dff; color:#fff; box-shadow:0 3px 10px rgba(124,77,255,.35)} .scopebar .segbtn.on .ph, .scopebar .segbtn.on i{color:#fff !important}
+  .scopebar .segedit{background:#efe8ff; color:#7c4dff; border:0}
+  .searchwrap{box-shadow:0 2px 10px rgba(75,42,140,.08), inset 0 0 0 1.5px #e4dafb !important; border-color:transparent !important} .searchwrap svg{color:#7c4dff}
+  .tilegrid .tile .tcount{background:#ff5fa2; color:#fff}
 </style>
 </head>
 <body>
@@ -3119,7 +3141,7 @@ function screenPack(mode, topic0){
   }).catch(function(e){ document.getElementById('board').textContent = 'The pack is napping: ' + e.message; });
 }
 
-var APP_VERSION = "20261004001022";
+var APP_VERSION = "20261004001351";
 (function(){
   try {
     fetch('/version.json?t=' + Date.now(), { cache: 'no-store' }).then(function(r){ return r.json(); }).then(function(j){
