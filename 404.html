@@ -152,7 +152,7 @@
   .fbody{font-size:14.5px; font-weight:700; line-height:1.35} .fmeta{font-size:11.5px; color:#6b7387; margin-top:4px}
   .fend{text-align:center; color:#aab4c3; font-size:12.5px; margin:10px 0 20px; line-height:1.5}
   /* compact calendar grid */
-  .froll{display:grid; grid-template-columns:1fr 1fr; gap:8px; align-content:start}
+  .froll{display:grid; grid-template-columns:1fr 1fr; gap:8px; align-content:start; align-items:start}
   .froll .fmonth{grid-column:1/-1; font-size:12px; font-weight:900; letter-spacing:.09em; text-transform:uppercase; color:var(--gold); margin:10px 2px 0}
   .froll .fmonth:first-child{margin-top:2px} .froll .fend{grid-column:1/-1}
   .froll .fcard{border-left:0; border-top:4px solid var(--gold); padding:8px 9px 9px; border-radius:12px; display:flex; flex-direction:column; scroll-margin-top:8px}
@@ -3108,7 +3108,7 @@ function screenPack(mode, topic0){
   }).catch(function(e){ document.getElementById('board').textContent = 'The pack is napping: ' + e.message; });
 }
 
-var APP_VERSION = "20261004000405";
+var APP_VERSION = "20261004000509";
 (function(){
   try {
     fetch('/version.json?t=' + Date.now(), { cache: 'no-store' }).then(function(r){ return r.json(); }).then(function(j){
