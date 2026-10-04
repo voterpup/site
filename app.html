@@ -1422,7 +1422,7 @@ function hashChips(e){ return (e && e.tags && e.tags.length) ? e.tags.map(functi
 function spotChip(e){
   if (!e || !e.spot) return '';
   return (e.lat != null && e.lng != null)
-    ? '<a href="#" class="chip spotlink" data-sv="' + e.lat + ',' + e.lng + '" data-svl="' + esc(e.spot) + '">📍 ' + esc(e.spot) + '</a>'
+    ? '<a href="#" class="chip spotlink" data-sv="' + e.lat + ',' + e.lng + '" data-svl="' + esc(e.spot) + '">🧭 Street View · ' + esc(e.spot) + '</a>'
     : '<span class="chip" style="cursor:default">📍 ' + esc(e.spot) + '</span>';
 }
 // ---- see a place without leaving the app: a map of the spot, and Street View ----
@@ -2145,8 +2145,8 @@ function screenLedger(tail){
         '<div class="ehead">' + (e.topic ? '<a class="topicchip" href="/pack?t=' + encodeURIComponent(e.topic) + '">#' + esc(e.topic) + '</a>' : '<span></span>') +
           (e.fixed_at ? '<span class="estat fixed">✓ Fixed ' + fixedTxt + '</span>' : e.shared ? '<span class="estat on">In Your city</span>' : '<span class="estat">Private</span>') + '</div>' +
         (e.body ? '<div class="entry-body">' + esc(e.body) + '</div>' : '') + mediaHTML(e.media) +
-        '<div class="emeta">' + (e.spot ? '<span>' + esc(e.spot) + '</span> · ' : '') + new Date(e.ts).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) +
-          (e.shared && e.rank && e.rank <= 10 ? ' · <b>#' + e.rank + (e.city ? ' in ' + esc(e.city) : '') + '</b>' : '') + '</div>' + placeChip(e.place, e.topic) +
+        '<div class="emeta">' + (e.spot && e.lat == null ? '<span>' + esc(e.spot) + '</span> · ' : '') + new Date(e.ts).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) +
+          (e.shared && e.rank && e.rank <= 10 ? ' · <b>#' + e.rank + (e.city ? ' in ' + esc(e.city) : '') + '</b>' : '') + '</div>' + '<div class="chips">' + placeChip(e.place, e.topic) + spotChip(e) + '</div>' +
         scopeSliderHTML('esc-' + e.id, e.scope || guessScope(e.body, e.topic)).replace('class="scopesl"', 'class="scopesl compact" data-eid="' + e.id + '"') +
         '<div class="efoot"><div class="eleft">' +
           (e.shared ? (e.backs ? '<span class="eagree">🐾 ' + e.backs + (e.backs === 1 ? ' agrees' : ' agree') + '</span>' : '<span class="eagree muted">No same-heres yet</span>')
@@ -4141,7 +4141,7 @@ function screenPack(mode, topic0){
   }).catch(function(e){ document.getElementById('board').textContent = 'The pack is napping: ' + e.message; });
 }
 
-var APP_VERSION = "20261004215200";
+var APP_VERSION = "20261004215700";
 (function(){
   try {
     fetch('/version.json?t=' + Date.now(), { cache: 'no-store' }).then(function(r){ return r.json(); }).then(function(j){
