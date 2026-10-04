@@ -958,6 +958,11 @@
   .mtile.green{background:linear-gradient(150deg, #13795b, #0f4f3d) !important} .mtile.blue{background:linear-gradient(150deg, #1769c2, #114b8a) !important}
   .mtile.on{outline-color:var(--gold) !important}
   .actbtn.snap small{opacity:.75; color:var(--goldink)}
+  a.btn{display:block; text-align:center; text-decoration:none}
+  .crrow[data-cr]{cursor:pointer} .crrow[data-cr]:active{background:rgba(255,255,255,.06)} .crrow[data-cr]::after{content:'›'; color:var(--sub); font-weight:900; margin-left:6px}
+  .cityrep .crchips .chip.crtopic{cursor:pointer} .cityrep .crchips .chip.crtopic.on{outline:2px solid var(--gold); outline-offset:1px}
+  .btiles .etile{aspect-ratio:1/0.95} .btiles .etxt{-webkit-line-clamp:3}
+  #backedbox .count small{color:var(--sub); font-weight:700}
 </style>
 </head>
 <body>
@@ -1915,20 +1920,36 @@ function screenLedger(tail){
     var bk = L.backed || [];
     var bb = document.getElementById('backedbox');
     if (bb && bk.length) {
-      bb.innerHTML = '<div class="count">🐾 ' + esc(L.name) + ' also backs ' + bk.length + ' issue' + (bk.length === 1 ? '' : 's') + ' from Your city</div>' +
-        '<div class="grid2">' + bk.map(function(e){
-          return '<div class="card">' +
-            (e.body ? '<div class="entry-body">' + esc(e.body) + '</div>' : '') + mediaHTML(e.media) +
-            '<div class="ts">— ' + esc(e.pup) + ' · ' + new Date(e.ts).toLocaleDateString() + '</div>' +
-            '<div class="chips">' + placeChip(e.place, e.topic) + spotChip(e) +
-              (e.topic ? '<a class="topicchip" href="/pack?t=' + encodeURIComponent(e.topic) + '">#' + esc(e.topic) + '</a>' : '') +
-              sameChip(e.id, e.backs || 0, true, false) + reactChips(e, (L.reacts || {})[e.id], false) + '</div>' + emoRow(e.id, false) + '</div>';
-        }).join('') + '</div>';
-      Array.prototype.forEach.call(bb.querySelectorAll('[data-back]'), function(c){
-        c.onclick = function(){
-          rpc('vp_back', { p_tail: tail, p_id: c.getAttribute('data-back'), p_on: false })
-            .then(function(){ screenLedger(tail); })
-            .catch(function(e){ alert(e.message); });
+      var bcard = function(e){
+        return '<div class="card">' +
+          (e.body ? '<div class="entry-body">' + esc(e.body) + '</div>' : '') + mediaHTML(e.media) +
+          '<div class="ts">— ' + esc(e.pup) + ' · ' + new Date(e.ts).toLocaleDateString() + '</div>' +
+          '<div class="chips">' + placeChip(e.place, e.topic) + spotChip(e) +
+            (e.topic ? '<a class="topicchip" href="/pack?t=' + encodeURIComponent(e.topic) + '">#' + esc(e.topic) + '</a>' : '') +
+            sameChip(e.id, e.backs || 0, true, false) + reactChips(e, (L.reacts || {})[e.id], false) + '</div>' + emoRow(e.id, false) + '</div>'; };
+      var btile = function(e, i){
+        var img = null; (e.media || []).forEach(function(m){ if (!img && m.url && (!m.type || m.type.indexOf('image') === 0)) img = m.url; });
+        var col = TILE_COLORS[(TOPIC_LIST.indexOf(e.topic) + 13) % TILE_COLORS.length];
+        return '<button class="etile btile" data-bi="' + i + '" style="background-color:' + col + (img ? ';background-image:linear-gradient(rgba(12,23,34,.1),rgba(12,23,34,.8)),url(' + esc(img) + ')' : '') + '">' +
+          '<span class="etop">' + (e.topic ? '#' + esc(e.topic) : '') + '<i class="ph-fill ph-paw-print"></i></span>' +
+          '<span class="etxt">' + esc(e.body || '📷') + '</span><span class="ebot">🐾 ' + (e.backs || 1) + ' agree</span></button>'; };
+      bb.innerHTML = '<div class="count">🐾 ' + esc(L.name) + ' also backs ' + bk.length + ' issue' + (bk.length === 1 ? '' : 's') + ' from Your city <small>· tap one to open</small></div>' +
+        '<div class="etiles btiles">' + bk.map(btile).join('') + '</div>';
+      Array.prototype.forEach.call(bb.querySelectorAll('[data-bi]'), function(t){
+        t.onclick = function(){   // expand: the full card in a sheet
+          var e = bk[+t.getAttribute('data-bi')];
+          var ov = document.createElement('div'); ov.className = 'stkover ecardsheet'; document.body.appendChild(ov);
+          var close = function(){ if (ov.parentNode) ov.parentNode.removeChild(ov); };
+          ov.onclick = function(ev){ if (ev.target === ov) close(); };
+          ov.innerHTML = '<div class="stksheet">' + bcard(e) + '<button class="btn ghost" id="bclose">Close</button></div>';
+          document.getElementById('bclose').onclick = close;
+          Array.prototype.forEach.call(ov.querySelectorAll('[data-back]'), function(c){
+            c.onclick = function(){
+              rpc('vp_back', { p_tail: tail, p_id: c.getAttribute('data-back'), p_on: false })
+                .then(function(){ close(); screenLedger(tail); })
+                .catch(function(err){ toast(err.message); });
+            };
+          });
         };
       });
     }
@@ -2691,6 +2712,32 @@ document.addEventListener('click', function(ev){
   Array.prototype.forEach.call(row.querySelectorAll('.emo[data-e]'), function(x){ x.classList.toggle('on', !on && x === b); });   // instant feedback
   emoSend(row, b.getAttribute('data-e'), on);
 }, true);
+document.addEventListener('click', function(ev){
+  var t = ev.target && ev.target.closest ? ev.target.closest('.crtopic, .crrow[data-cr]') : null;
+  if (!t) return;
+  var rep = t.closest('.cityrep'); if (!rep) return;
+  if (t.classList.contains('crtopic')) {   // filter the latest reports to one topic (tap again for all)
+    var k = t.getAttribute('data-crt'), on = !t.classList.contains('on');
+    Array.prototype.forEach.call(rep.querySelectorAll('.crtopic'), function(c){ c.classList.toggle('on', on && c === t); });
+    var det = rep.querySelector('details.crlatest'); if (det) det.open = true;
+    var shown = 0;
+    Array.prototype.forEach.call(rep.querySelectorAll('.crrow'), function(r){ var ok = !on || r.getAttribute('data-ct') === k; r.style.display = ok ? '' : 'none'; if (ok) shown++; });
+    var sm = det && det.querySelector('summary'); if (sm) sm.textContent = on ? 'Latest #' + k + ' reports (' + shown + ')' : 'Latest reports (' + shown + ')';
+    return;
+  }
+  var cp = window._cityCp, r = cp && (cp.pins || [])[+t.getAttribute('data-cr')]; if (!r) return;
+  var d = new Date(r.ts), maps = 'https://www.google.com/maps/search/?api=1&query=' + r.lat + ',' + r.lng;
+  var ov = document.createElement('div'); ov.className = 'stkover'; document.body.appendChild(ov);
+  var close = function(){ if (ov.parentNode) ov.parentNode.removeChild(ov); };
+  ov.onclick = function(e){ if (e.target === ov) close(); };
+  ov.innerHTML = '<div class="stksheet"><div class="addhead">🏛️ ' + esc(r.type.replace(/ Case$/, '')) + '</div>' +
+    '<p class="hint" style="margin:4px 0 10px">' + (r.area ? esc(r.area) + ' · ' : '') + d.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' }) + ' · ' + d.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }) + '</p>' +
+    (r.topic ? '<div class="chips" style="margin:0 0 12px"><a class="topicchip" href="/pack?t=' + encodeURIComponent(r.topic) + '">#' + esc(r.topic) + '</a></div>' : '') +
+    '<a class="btn ghost" href="' + maps + '" target="_blank" rel="noopener">📍 Open in Maps</a>' +
+    '<button class="btn gold" id="crsnap">📸 Seen it too? Snap it</button>' +
+    '<p class="hint" style="font-size:11px;margin-top:10px">Reported to the city through 3-1-1. City of ' + esc(cp.city || 'Vancouver') + ' open data · Open Government Licence – Vancouver</p></div>';
+  document.getElementById('crsnap').onclick = function(){ close(); if (loadLocal()) startWalk(); else location.href = '/app.html?new=1'; };
+});
 var METRO = { 'north vancouver': 'vancouver', 'west vancouver': 'vancouver', 'burnaby': 'vancouver', 'surrey': 'vancouver', 'richmond': 'vancouver', 'new westminster': 'vancouver',
   'coquitlam': 'vancouver', 'port coquitlam': 'vancouver', 'port moody': 'vancouver', 'delta': 'vancouver', 'langley': 'vancouver', 'maple ridge': 'vancouver', 'pitt meadows': 'vancouver',
   'white rock': 'vancouver', 'anmore': 'vancouver', 'belcarra': 'vancouver', 'lions bay': 'vancouver', 'bowen island': 'vancouver', 'tsawwassen': 'vancouver', 'district of north vancouver': 'vancouver' };
@@ -2990,11 +3037,12 @@ function screenPack(mode, topic0){
   clearInterval(window._wallT);
   function cityCard(cp, metroNote){
     var ago = function(ts){ var m = Math.round((Date.now() - new Date(ts)) / 60000); return m < 60 ? m + 'm' : m < 1440 ? Math.round(m / 60) + 'h' : Math.round(m / 1440) + 'd'; };
-    var recent = (cp.pins || []).slice(0, 60).map(function(r){ return '<div class="crrow"><span class="crdot" style="background:' + TILE_COLORS[(TOPIC_LIST.indexOf(r.topic) + 13) % TILE_COLORS.length] + '"></span>' +
+    window._cityCp = cp;
+    var recent = (cp.pins || []).slice(0, 60).map(function(r, ri){ return '<div class="crrow" data-cr="' + ri + '" data-ct="' + esc(r.topic || '') + '"><span class="crdot" style="background:' + TILE_COLORS[(TOPIC_LIST.indexOf(r.topic) + 13) % TILE_COLORS.length] + '"></span>' +
       esc(r.type.replace(/ Case$/, '')) + '<small>' + (r.area ? esc(r.area) + ' · ' : '') + ago(r.ts) + '</small></div>'; }).join('');
     return '<div class="cityrep"><div class="crh">🏛️ ' + esc(cp.city) + ' reported <b>' + cp.week_total.toLocaleString() + '</b> things to 3-1-1 this week' +
       (cp.today ? ' · ' + cp.today + ' today' : '') + (metroNote ? '<span class="crmetro">' + metroNote + '</span>' : '') + '</div><div class="crchips">' +
-      (cp.by_topic || []).filter(function(t){ return t.topic !== 'other'; }).slice(0, 8).map(function(t){ return '<span class="chip">#' + esc(t.topic) + ' <b>' + t.n + '</b></span>'; }).join('') +
+      (cp.by_topic || []).filter(function(t){ return t.topic !== 'other'; }).slice(0, 8).map(function(t){ return '<span class="chip crtopic" data-crt="' + esc(t.topic) + '">#' + esc(t.topic) + ' <b>' + t.n + '</b></span>'; }).join('') +
       '</div>' + (recent ? '<details class="crlatest"><summary>Latest reports (' + Math.min((cp.pins || []).length, 60) + ')</summary><div class="crscroll">' + recent + '</div></details>' : '') +
       '<div class="crsrc">City of ' + esc(cp.city) + ' 3-1-1 open data · Open Government Licence – Vancouver</div></div>';
   }
@@ -3293,7 +3341,7 @@ function screenPack(mode, topic0){
   }).catch(function(e){ document.getElementById('board').textContent = 'The pack is napping: ' + e.message; });
 }
 
-var APP_VERSION = "20261004002356";
+var APP_VERSION = "20261004002951";
 (function(){
   try {
     fetch('/version.json?t=' + Date.now(), { cache: 'no-store' }).then(function(r){ return r.json(); }).then(function(j){
