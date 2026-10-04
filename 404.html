@@ -1255,13 +1255,13 @@ var pendingSpot = null;
 var pendingTopic = null;   // tag the person chose while typing (null = accept the suggestion)
 var TOPIC_RULES = [
   [/\b(tents?|encampments?|homeless(ness)?|unhoused|shelters?|sleeping rough)\b/i, 'homelessness'],
-  [/\b(hospitals?|doctors?|clinics?|health|hygiene|unhygienic|mental|overdoses?|nurses?|pharmac\w*|er wait)\b/i, 'health'],
+  [/\b(hospitals?|doctors?|clinics?|health|healthcare|hygiene|unhygienic|mental|overdoses?|nurses?|pharmac\w*|er wait)\b/i, 'health'],
   [/\b(water|power|electricity|outages?|blackouts?|power cuts?|sewage|sewers?|drainage|internet|load.?shedding)\b/i, 'utilities'],
   [/\b(sidewalks?|crosswalks?|potholes?|roads?|bridges?|railings?|streetlights?|street lights?|icy|ice|snow|construction|curbs?|pavements?|signage|traffic lights?)\b/i, 'infrastructure'],
   [/\b(bus|buses|trains?|skytrain|transit|traffic|bikes?|cycling|cyclists?|parking|commute|pedestrians?|speeding|intersections?)\b/i, 'transit'],
   [/\b(rent|rents|renters?|landlords?|housing|apartments?|condos?|evict\w*|mortgages?|rezoning|density|home prices?)\b/i, 'housing'],
   [/\b(schools?|teachers?|classrooms?|universit(y|ies)|colleges?|tuition|daycare|childcare)\b/i, 'education'],
-  [/\b(crime|theft|stolen|break.?ins?|unsafe|police|assaults?|drugs?|needles?|violence|robber(y|ies))\b/i, 'safety'],
+  [/\b(crime|theft|stolen|break.?ins?|unsafe|safety|police|assaults?|drugs?|needles?|violence|robber(y|ies))\b/i, 'safety'],
   [/\b(garbage|trash|litter\w*|dirty|graffiti|smell\w*|poop|waste|recycling|filthy)\b/i, 'cleanliness'],
   [/\b(parks?|playgrounds?|bench(es)?|trees?|beach(es)?|off.?leash|gardens?|pools?|community cent\w*|rinks?|librar(y|ies))\b/i, 'parks'],
   [/\b(climate|pollution|emissions?|heat ?waves?|smoke|air quality|floods?|flooding|noise|noisy)\b/i, 'climate'],
@@ -1982,8 +1982,10 @@ function screenCapture(prefGripe, prefName){
 var ASK_COLORS = ['#13795b', '#1b62a8', '#0f7c80', '#3a4fc0', '#1769c2', '#a8740a', '#237a44', '#5b3fb8', '#0b6e8a', '#2a8a3e'];
 function dayPart(){ var d = new Date(), hr = d.getHours(), wd = d.toLocaleDateString(undefined, { weekday: 'long' });
   return wd + ' ' + (hr < 5 ? 'night' : hr < 12 ? 'morning' : hr < 17 ? 'afternoon' : hr < 21 ? 'evening' : 'night'); }
-var QUICK_ISSUES = [['ph-road-horizon', 'Potholes on my street'], ['ph-trash', 'Bins overflowing'], ['ph-bus', 'Bus too crowded'], ['ph-house-line', 'Rent too high'],
-  ['ph-lamp', 'Dark street at night'], ['ph-traffic-sign', 'Unsafe crossing'], ['ph-bicycle', 'Bike lane blocked'], ['ph-tree', 'Not enough green space'], ['ph-speaker-high', 'Too much noise at night'], ['ph-paint-brush', 'Litter and graffiti']];
+var QUICK_ISSUES = [   // broad first (what elections are about), then a few closer to home
+  ['ph-house-line', 'Housing prices'], ['ph-shopping-cart', 'Cost of living'], ['ph-briefcase', 'Jobs and wages'], ['ph-hospital', 'Healthcare wait times'],
+  ['ph-shield-check', 'Public safety'], ['ph-bus', 'Transit and traffic'], ['ph-tent', 'Homelessness'], ['ph-graduation-cap', 'Schools and childcare'],
+  ['ph-road-horizon', 'Roads and potholes'], ['ph-tree', 'Climate and green space']];
 function screenUnbox(name, gripe){
   var still = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   root.innerHTML = nav() +
@@ -4169,7 +4171,7 @@ function screenPack(mode, topic0){
   }).catch(function(e){ document.getElementById('board').textContent = 'The pack is napping: ' + e.message; });
 }
 
-var APP_VERSION = "20261004220509";
+var APP_VERSION = "20261004223355";
 (function(){
   try {
     fetch('/version.json?t=' + Date.now(), { cache: 'no-store' }).then(function(r){ return r.json(); }).then(function(j){
