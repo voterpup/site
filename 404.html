@@ -299,7 +299,8 @@
   .crrow{display:flex; align-items:center; gap:6px; padding:4px 0; border-bottom:1px solid var(--line)} .crrow small{margin-left:auto; color:var(--sub)}
   .crdot{width:8px; height:8px; border-radius:50%; flex:0 0 auto}
   body.wall .cityrep{font-size:16px} body.wall .crh{font-size:18px}
-  .citypin{width:9px; height:9px; border-radius:50%; background:#8d99ae; border:1.5px solid #fff; opacity:.85; cursor:pointer}
+  .citypin{width:20px; height:20px; border-radius:50%; background:#8d99ae; border:2px solid rgba(255,255,255,.95); box-shadow:0 1px 4px rgba(0,0,0,.35); cursor:pointer; display:flex; align-items:center; justify-content:center}
+  .citypin i{font-style:normal; font-size:11px; line-height:1; filter:saturate(1.2)}
   .maptoggle{position:absolute; left:10px; bottom:10px; z-index:5; background:rgba(255,255,255,.95); border-radius:999px; padding:5px 10px; font-size:11.5px; font-weight:700; box-shadow:0 1px 4px rgba(0,0,0,.2)}
   .maptoggle input{margin:0 4px 0 0; vertical-align:-1px}
   .playchip{background:#1f2733; color:#fff; border-color:#1f2733; text-decoration:none; font-weight:800}
@@ -2781,10 +2782,40 @@ document.addEventListener('click', function(ev){
   Array.prototype.forEach.call(document.querySelectorAll('.sortbtn'), function(x){ x.classList.toggle('on', x === b); });
   var y = window.scrollY; screenPack(window._packMode || null); setTimeout(function(){ window.scrollTo(0, y); }, 60);
 });
+function cityPinEl(c){
+  var d = document.createElement('div'); d.className = 'citypin';
+  d.style.background = TILE_COLORS[(TOPIC_LIST.indexOf(c.topic) + 13) % TILE_COLORS.length];
+  d.innerHTML = '<i>' + (TOPIC_GLYPH[c.topic] || '•') + '</i>'; return d;
+}
+function cityOnlyMap(box, cityName){   // the city's official reports on a map, for places with no VoterPup posts yet
+  box.innerHTML = '<div id="packmap" class="packmap"><div class="hint" style="padding:40px 12px">Loading map…</div></div>';
+  loadMapLib().then(function(){
+    var el = document.getElementById('packmap'); if (!el) return; el.innerHTML = '';
+    var pins = window._cityPins || [], b0 = null;
+    var m = new maplibregl.Map({ container: el, style: 'https://tiles.openfreemap.org/styles/liberty', center: pins[0] ? [pins[0].lng, pins[0].lat] : [-123.12, 49.28], zoom: 11, attributionControl: { compact: true } });
+    m.addControl(new maplibregl.NavigationControl({ showCompass: false }), 'top-right');
+    pins.forEach(function(c){
+      var pp = new maplibregl.Popup({ offset: 10, maxWidth: '240px', closeButton: false }).setHTML('<div class="mpop"><div class="entry-body" style="margin:0 0 4px">🏛️ ' + esc(c.type) + '</div>' +
+        '<div class="ts">City 3-1-1 report' + (c.area ? ' · ' + esc(c.area) : '') + ' · ' + new Date(c.ts).toLocaleDateString() + '</div>' +
+        '<a href="#" class="chip spotlink" data-sv="' + c.lat + ',' + c.lng + '" data-svl="' + esc(c.type) + '" style="margin-top:6px;display:inline-block">🧭 See the spot</a></div>');
+      new maplibregl.Marker({ element: cityPinEl(c) }).setLngLat([c.lng, c.lat]).setPopup(pp).addTo(m);
+      b0 = b0 ? b0.extend([c.lng, c.lat]) : new maplibregl.LngLatBounds([c.lng, c.lat], [c.lng, c.lat]);
+    });
+    if (b0) m.fitBounds(b0, { padding: 40, maxZoom: 14, duration: 0 });
+  }).catch(function(){ var el = document.getElementById('packmap'); if (el) el.innerHTML = '<div class="hint" style="padding:40px 12px">The map couldn&rsquo;t load. Try again in a minute.</div>'; });
+}
+var TOPIC_GLYPH = { infrastructure: '🚧', transit: '🚌', cleanliness: '🗑️', parks: '🌳', safety: '⚠️', housing: '🏠', utilities: '💧', health: '🩺', homelessness: '⛺', climate: '🔊', 'cost of living': '💲', other: '•' };
 var METRO = { 'north vancouver': 'vancouver', 'west vancouver': 'vancouver', 'burnaby': 'vancouver', 'surrey': 'vancouver', 'richmond': 'vancouver', 'new westminster': 'vancouver',
   'coquitlam': 'vancouver', 'port coquitlam': 'vancouver', 'port moody': 'vancouver', 'delta': 'vancouver', 'langley': 'vancouver', 'maple ridge': 'vancouver', 'pitt meadows': 'vancouver',
   'white rock': 'vancouver', 'anmore': 'vancouver', 'belcarra': 'vancouver', 'lions bay': 'vancouver', 'bowen island': 'vancouver', 'tsawwassen': 'vancouver', 'district of north vancouver': 'vancouver' };
-var CITY_CENTRES = { vancouver: [49.2827, -123.1207], burnaby: [49.2488, -122.9805], surrey: [49.1913, -122.849], richmond: [49.1666, -123.1336], toronto: [43.6532, -79.3832], ottawa: [45.4215, -75.6972], seattle: [47.6062, -122.3321], austin: [30.2672, -97.7431] };
+var CITY_CENTRES = { vancouver: [49.2827, -123.1207], burnaby: [49.2488, -122.9805], surrey: [49.1913, -122.849], richmond: [49.1666, -123.1336], toronto: [43.6532, -79.3832], ottawa: [45.4215, -75.6972], seattle: [47.6062, -122.3321], austin: [30.2672, -97.7431],
+  'new york': [40.7128, -74.006], chicago: [41.8781, -87.6298], 'san francisco': [37.7749, -122.4194], calgary: [51.0447, -114.0719], edmonton: [53.5461, -113.4938] };
+// where each city's official data comes from (shown under the city card)
+var CITY_DATA = { vancouver: 'City of Vancouver 3-1-1 open data · Open Government Licence – Vancouver', seattle: 'City of Seattle Open Data · Customer Service Requests',
+  'new york': 'NYC Open Data · 311 Service Requests', chicago: 'City of Chicago Data Portal · 311 Service Requests', 'san francisco': 'DataSF · 311 Cases',
+  austin: 'City of Austin Open Data · 311 Service Requests', calgary: 'City of Calgary Open Data · 311 Service Requests · Open Government Licence – City of Calgary',
+  edmonton: 'City of Edmonton Open Data · 311 Requests (locations are neighbourhood centres)' };
+var CITY_ALIAS = { 'city of new york': 'new york', 'new york city': 'new york', manhattan: 'new york', brooklyn: 'new york', queens: 'new york', bronx: 'new york', 'the bronx': 'new york', 'staten island': 'new york', sf: 'san francisco' };
 var _leaf = null;
 function loadMapLib(){
   if (window.maplibregl) return Promise.resolve();
@@ -3087,14 +3118,17 @@ function screenPack(mode, topic0){
       (cp.today ? ' · ' + cp.today + ' today' : '') + (metroNote ? '<span class="crmetro">' + metroNote + '</span>' : '') + '</div><div class="crchips">' +
       (cp.by_topic || []).filter(function(t){ return t.topic !== 'other'; }).slice(0, 8).map(function(t){ return '<span class="chip crtopic" data-crt="' + esc(t.topic) + '">#' + esc(t.topic) + ' <b>' + t.n + '</b></span>'; }).join('') +
       '</div>' + (recent ? '<details class="crlatest"><summary>Latest reports (' + Math.min((cp.pins || []).length, 60) + ')</summary><div class="crscroll">' + recent + '</div></details>' : '') +
-      '<div class="crsrc">City of ' + esc(cp.city) + ' 3-1-1 open data · Open Government Licence – Vancouver</div></div>';
+      '<div class="crsrc">' + esc(CITY_DATA[String(cp.city || '').toLowerCase()] || ('City of ' + cp.city + ' open data')) + '</div></div>';
   }
   var cityKey = place ? place.split(',')[0].toLowerCase() : null;
-  var dataCity = cityKey ? (METRO[cityKey] || cityKey) : null;   // Surrey, Burnaby… share Metro Vancouver's city data
+  var dataCity = cityKey ? (METRO[cityKey] || CITY_ALIAS[cityKey] || cityKey) : null;   // Surrey, Burnaby… share Metro Vancouver's city data
   if (mode === 'local' && dataCity) rpc('vp_city_pulse', { p_place: dataCity + ', x, x' }).then(function(cp){
-    var cs = document.getElementById('citystrip'); if (!cs || !cp || !cp.week_total) return;
+    var cs = document.getElementById('citystrip');
+    if (!cp || !cp.week_total) { rpc('vp_city_wanted', { p_place: dataCity }).catch(function(){}); return; }   // no official data yet: note the ask
+    if (!cs) return;
     window._cityPins = cp.pins || [];
-    cs.innerHTML = cityCard(cp, dataCity !== cityKey ? 'Metro Vancouver · City of Vancouver data' : '');
+    var mbx = document.getElementById('mapbtn'); if (mbx && window._cityPins.length) mbx.hidden = false;
+    cs.innerHTML = cityCard(cp, METRO[cityKey] ? 'Metro Vancouver · City of Vancouver data' : '');
   }).catch(function(){});
   else rpc('vp_city_pulse_list').then(function(list){
     var cs = document.getElementById('citystrip'); if (!cs || !list || !list.length) return;
@@ -3157,6 +3191,9 @@ function screenPack(mode, topic0){
         '<div class="ecp">Feed your pup one photo from your street, good or broken. It chews on it and tells you what it sees.</div>' +
         '<button class="btn gold" id="ecsnap">' + ic('camera_with_flash', 'btnic') + 'Feed the first one</button></div>';
       document.getElementById('ecsnap').onclick = startWalk;
+      var mb0 = document.getElementById('mapbtn');   // no posts here yet, but the city's own reports can still go on the map
+      if (mb0) mb0.onclick = function(ev){ ev.preventDefault(); if ((window._cityPins || []).length) cityOnlyMap(b, city); else toast('No city reports to map here yet.'); };
+      if (mb0 && (window._cityPins || []).length) mb0.hidden = false;
       return;
     }
     b.className = '';
@@ -3357,6 +3394,8 @@ function screenPack(mode, topic0){
           if (!cityOn) return;
           (window._cityPins || []).forEach(function(c){
             var d = document.createElement('div'); d.className = 'citypin';
+            d.style.background = TILE_COLORS[(TOPIC_LIST.indexOf(c.topic) + 13) % TILE_COLORS.length];
+            d.innerHTML = '<i>' + (TOPIC_GLYPH[c.topic] || '•') + '</i>';
             var pp = new maplibregl.Popup({ offset: 8, maxWidth: '240px', closeButton: false }).setHTML('<div class="mpop"><div class="entry-body" style="margin:0 0 4px">🏛️ ' + esc(c.type) + '</div>' +
               '<div class="ts">City 3-1-1 report' + (c.area ? ' · ' + esc(c.area) : '') + ' · ' + new Date(c.ts).toLocaleDateString() + '</div></div>');
             cityMarkers.push(new maplibregl.Marker({ element: d }).setLngLat([c.lng, c.lat]).setPopup(pp).addTo(m));
@@ -3398,7 +3437,7 @@ function screenPack(mode, topic0){
   }).catch(function(e){ document.getElementById('board').textContent = 'The pack is napping: ' + e.message; });
 }
 
-var APP_VERSION = "20261004025140";
+var APP_VERSION = "20261004031810";
 (function(){
   try {
     fetch('/version.json?t=' + Date.now(), { cache: 'no-store' }).then(function(r){ return r.json(); }).then(function(j){
