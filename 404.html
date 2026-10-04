@@ -2228,7 +2228,8 @@ function openFlashback(L){
     if (it.walk) { var w = it.walk, d0 = new Date(it.ts);
       return '<div class="fcard fwalk"' + (gid ? ' id="' + gid + '"' : '') + '><div class="fd"><b>' + d0.getDate() + '</b> ' + d0.toLocaleDateString(undefined, { month: 'short' }) + ' · ' + d0.toLocaleDateString(undefined, { weekday: 'short' }) + '</div>' +
         '<div class="fwthumbs">' + w.items.map(function(i){ var it2 = HUNT_ITEMS[i.k] || HUNT_ITEMS.tree;
-          return i.img ? '<img src="' + i.img + '" alt="">' : '<span style="background:' + it2[2] + '"><i class="ph-duotone ' + it2[0] + '"></i></span>'; }).join('') + '</div>' +
+          var tc = TIER_COL[huntTier(i.k)];
+          return i.img ? '<img src="' + i.img + '" alt="" style="box-shadow:0 0 0 2px ' + tc + '">' : '<span style="background:' + tc + '33;color:' + tc + ';box-shadow:inset 0 0 0 2px ' + tc + '"><i class="ph-duotone ' + it2[0] + '"></i></span>'; }).join('') + '</div>' +
         '<div class="fbody">🐾 Walk #' + w.n + (w.walk > 1 ? ' · bonus' : '') + '</div><div class="fmeta">' + w.items.length + ' finds' + (w.pts ? ' · +' + w.pts + ' pts' : '') +
         (w.items.some(function(i){ return huntTier(i.k) === 3; }) ? ' · ✨ ' + esc((HUNT_ITEMS[w.items.filter(function(i){ return huntTier(i.k) === 3; })[0].k] || [])[1] || '') : '') + '</div></div>'; }
     var img = null; (it.media || []).forEach(function(m){ if (!img && m.url && m.type && m.type.indexOf('image') === 0) img = m.url; });
@@ -3176,7 +3177,7 @@ function huntMap(){   // finds on a map, joined in the order you found them; the
   var s = huntState(), tg = huntTargets(), st = document.getElementById('hstack'), el = document.getElementById('hmap'); if (!el || el._m) return;
   var got = tg.filter(function(k){ return s.found[k]; }).map(function(k){ var f = s.found[k]; return { k: k, t: f.t || f, lat: f.lat, lng: f.lng }; }).sort(function(a, b){ return a.t - b.t; });
   var placed = got.filter(function(g){ return g.lat != null && g.lng != null; });
-  st.innerHTML = tg.filter(function(k){ return !s.found[k]; }).map(function(k){ var it = HUNT_ITEMS[k]; return '<span class="hcdot sm" title="' + esc(it[1]) + '"><i class="ph-duotone ' + it[0] + '"></i></span>'; }).join('') || '<span class="hdone">All found!</span>';
+  st.innerHTML = tg.filter(function(k){ return !s.found[k]; }).map(function(k){ var it = HUNT_ITEMS[k], tc = TIER_COL[huntTier(k)]; return '<span class="hcdot sm" title="' + esc(it[1]) + '" style="color:' + tc + ';border:2.5px solid ' + tc + ';background:#13283a"><i class="ph-duotone ' + it[0] + '"></i></span>'; }).join('') || '<span class="hdone">All found!</span>';
   if (!placed.length) { el.innerHTML = '<div class="hmapempty">Your finds will appear here, on the street where you found them.</div>'; return; }
   loadMapLib().then(function(){
     var m = new maplibregl.Map({ container: el, style: 'https://tiles.openfreemap.org/styles/liberty', center: [placed[0].lng, placed[0].lat], zoom: 15, attributionControl: false, interactive: true });
@@ -3274,7 +3275,7 @@ function walkSheet(s, file){
     var hu = huntApply(r.spotted, pendingSpot);
     if (hu.fresh.length) { var hb = document.createElement('div'); hb.className = 'huntwin';
       var rare = hu.fresh.some(function(k){ return huntTier(k) === 3; });
-      hb.innerHTML = '<div class="hwtitle">' + (hu.completed ? '🏆 Walk complete! Every walk is a memory. ' + esc(s.name) + ' keeps it.' : (rare ? '✨ Rare find! ' : 'Found ') + hu.fresh.map(function(k){ return HUNT_ITEMS[k][1]; }).join(' + ') + '!') + ' <span class="hwpts">+' + hu.gained + '</span></div>' + huntCircles(hu.found, hu.fresh);
+      hb.innerHTML = '<div class="hwtitle">' + (hu.completed ? '🏆 Walk complete! Every walk is a memory. ' + esc(s.name) + ' keeps it.' : (rare ? '✨ Rare find! ' : 'Found ') + hu.fresh.map(function(k){ return '<span style="color:' + TIER_COL[huntTier(k)] + '">' + esc(HUNT_ITEMS[k][1]) + '</span>'; }).join(' + ') + '!') + ' <span class="hwpts">+' + hu.gained + '</span></div>' + huntCircles(hu.found, hu.fresh);
       document.querySelector('.walksheet').insertBefore(hb, document.querySelector('.walksheet .walkline'));
       if (hu.completed) { var nb = document.createElement('button'); nb.className = 'btn gold hnext'; nb.textContent = '🐾 Start another walk'; hb.appendChild(nb);
         nb.onclick = function(){ huntNextWalk(); close(); var me = loadLocal(); if (me && location.pathname.indexOf('/p/') === 0) screenLedger(me.tail); }; }
@@ -3681,7 +3682,7 @@ function screenPack(mode, topic0){
   }).catch(function(e){ document.getElementById('board').textContent = 'The pack is napping: ' + e.message; });
 }
 
-var APP_VERSION = "20261004093743";
+var APP_VERSION = "20261004094000";
 (function(){
   try {
     fetch('/version.json?t=' + Date.now(), { cache: 'no-store' }).then(function(r){ return r.json(); }).then(function(j){
