@@ -979,6 +979,11 @@
   .cityhint{font-size:11.5px; color:var(--sub); font-weight:700; margin:0 2px 10px; text-align:right}
   .tilegrid .tile.official::before{content:'🏛️ City 3-1-1'; position:absolute; top:8px; left:8px; z-index:2; background:rgba(12,23,34,.78); color:#fff; font-size:10.5px; font-weight:800; padding:2px 8px; border-radius:999px}
   .srctag{display:inline-block; font-size:11px; font-weight:800; color:#9cc6ff; background:#13284a; border:1px solid #25467a; border-radius:999px; padding:2px 9px; margin-bottom:6px}
+  .dmap{position:relative; height:96px; border-radius:10px; overflow:hidden; margin-bottom:8px; background:#1b3043; pointer-events:none}
+  .dmap .dmapc{position:absolute; inset:0} .dmap .dmpin{z-index:2}
+  .dmattr{position:absolute; right:4px; bottom:3px; z-index:2; font-size:8px; color:#333; background:rgba(255,255,255,.75); padding:0 4px; border-radius:3px}
+  .dmpin{position:absolute; left:50%; top:50%; transform:translate(-50%, -100%); width:30px; height:30px; border-radius:50% 50% 50% 0; rotate:-45deg; border:2.5px solid #fff; box-shadow:0 3px 8px rgba(0,0,0,.45); display:flex; align-items:center; justify-content:center; font-size:14px}
+  .dmpin{rotate:0deg; border-radius:50%; transform:translate(-50%, -50%)}
 </style>
 </head>
 <body>
@@ -2615,7 +2620,7 @@ function dailyFetch(L, tail){
     var el = document.getElementById('deck'), idx = 0, backed = 0;
     function cardHTML(r){
       var img = itemImgAny(r);
-      return '<div class="dcard">' + (img ? '<img src="' + esc(img) + '" alt="">' : '') +
+      return '<div class="dcard">' + (img ? '<img src="' + esc(img) + '" alt="">' : (r.lat != null && r.lng != null ? miniMap(r.lat, r.lng, r.topic) : '')) +
         '<div class="dbody">' + esc(r.body || '📷') + '</div>' +
         '<div class="dmeta">' + (r.topic ? '#' + esc(r.topic) + ' · ' : '') + esc(r.pup || '') + (r.place ? ', ' + esc(r.place.split(',')[0]) : '') +
           (r.spot ? ' · 📍 ' + esc(r.spot) : '') + (r.backs ? ' · 🐾 ' + r.backs : '') + (r.fixedv ? ' · ✅ ' + r.fixedv : '') + '</div>' +
@@ -2629,6 +2634,7 @@ function dailyFetch(L, tail){
       }
       el.innerHTML = (deck[idx + 1] ? '<div class="dunder">' + cardHTML(deck[idx + 1]) + '</div>' : '') + cardHTML(deck[idx]);
       wire(el.lastElementChild);
+      wakeMiniMaps(el);
     }
     // dir: 'yes' (→ same here), 'no' (← skip), 'up' (↑ fixed now)
     function decide(card, dir){
@@ -2794,6 +2800,23 @@ function cityPinEl(c){
   var d = document.createElement('div'); d.className = 'citypin';
   d.style.background = TILE_COLORS[(TOPIC_LIST.indexOf(c.topic) + 13) % TILE_COLORS.length];
   d.innerHTML = '<i>' + (TOPIC_GLYPH[c.topic] || '•') + '</i>'; return d;
+}
+// a small, still street map of the spot with a pin, for issues with no photo (official 3-1-1 reports, text posts)
+function miniMap(lat, lng, topic){
+  var col = TILE_COLORS[(TOPIC_LIST.indexOf(topic) + 13) % TILE_COLORS.length];
+  return '<div class="dmap" data-ml="' + (+lat) + ',' + (+lng) + '"><span class="dmpin" style="background:' + col + '">' + (TOPIC_GLYPH[topic] || '📍') + '</span></div>';
+}
+function wakeMiniMaps(root){   // draw the maps that just appeared (OpenFreeMap, no key)
+  var els = Array.prototype.filter.call((root || document).querySelectorAll('.dmap[data-ml]'), function(e){ return !e._m; });
+  if (!els.length) return;
+  loadMapLib().then(function(){
+    els.forEach(function(el){
+      if (el._m || !el.isConnected) return;
+      var p = el.getAttribute('data-ml').split(','), box = document.createElement('div'); box.className = 'dmapc'; el.insertBefore(box, el.firstChild);
+      el._m = new maplibregl.Map({ container: box, style: 'https://tiles.openfreemap.org/styles/liberty', center: [+p[1], +p[0]], zoom: 14.8, interactive: false, attributionControl: false });
+      var at = document.createElement('small'); at.className = 'dmattr'; at.textContent = '© OpenStreetMap · OpenFreeMap'; el.appendChild(at);
+    });
+  }).catch(function(){});
 }
 function cityPopup(c){
   return new maplibregl.Popup({ offset: 10, maxWidth: '240px', closeButton: false }).setHTML('<div class="mpop"><div class="entry-body" style="margin:0 0 4px">🏛️ ' + esc(c.type) + '</div>' +
@@ -3481,7 +3504,7 @@ function screenPack(mode, topic0){
   }).catch(function(e){ document.getElementById('board').textContent = 'The pack is napping: ' + e.message; });
 }
 
-var APP_VERSION = "20261004050311";
+var APP_VERSION = "20261004052644";
 (function(){
   try {
     fetch('/version.json?t=' + Date.now(), { cache: 'no-store' }).then(function(r){ return r.json(); }).then(function(j){

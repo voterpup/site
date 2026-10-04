@@ -106,8 +106,9 @@ Deno.serve(async (req) => {
         if (r.ok && (!best || r.inside > best.inside)) best = r;
       }
       if (best) {
-        await db.from("city_sources").upsert({ city: t.city, place: t.place, kind: "socrata", ...best.src, status: "active", inside: Math.round(best.inside * 100),
+        const { error: ue } = await db.from("city_sources").upsert({ city: t.city, place: t.place, kind: "socrata", ...best.src, status: "active", inside: Math.round(best.inside * 100),
           note: `${best.domain} · ${best.name}`.slice(0, 200), checked_at: new Date().toISOString(), added_at: new Date().toISOString() });
+        if (ue) throw new Error("saving the source: " + ue.message);
         result = { ...result, active: best.domain + " · " + best.name, inside: Math.round(best.inside * 100) + "%", tried };
       } else {
         await db.from("city_sources").upsert({ city: t.city, place: t.place, status: "none", note: (cands.length ? tried.join(" | ") : "no open 3-1-1 dataset found").slice(0, 900), checked_at: new Date().toISOString() });

@@ -5,10 +5,10 @@ const UA = { "User-Agent": "VoterPupBot/0.2 (+https://voterpup.com; hi@voterpup.
 const RULES: [RegExp, string][] = [
   [/homeless|encampment|shelter/i, "homelessness"], [/rodent|pest|health|needle|unsanitary|dead animal|mold/i, "health"],
   [/water|sewer|drain|hydrant|flood/i, "utilities"], [/pothole|sidewalk|street light|streetlight|road|curb|sign|signal|lane|street condition|snow|ice/i, "infrastructure"],
-  [/tree|park|playground|beach|field|garden|weed|grass|vegetation|hedge/i, "parks"],
+  [/\btrees?\b|\bparks?\b|playground|beach|\bfields?\b|garden|weed|grass|vegetation|hedge/i, "parks"],
   [/parking|traffic|bike|transit|vehicle|towing|driveway|abandoned vehicle/i, "transit"], [/heat|hot water|building|development|rental|housing|tenant|property|permit|plumbing|paint|elevator/i, "housing"],
   [/police|safety|unsafe|fire|hazard|drug|weapon/i, "safety"], [/garbage|green bin|recycl|litter|abandoned|graffiti|dump|waste|bin|sanitation|trash|bulky/i, "cleanliness"],
-  [/tree|park|playground|beach|field|garden|weed|grass/i, "parks"], [/noise|air|smoke|climate|pollution|odou?r/i, "climate"],
+  [/\btrees?\b|\bparks?\b|playground|beach|\bfields?\b|garden|weed|grass/i, "parks"], [/noise|air|smoke|climate|pollution|odou?r/i, "climate"],
   [/tax|fee|cost|fine|bill/i, "cost of living"],
 ];
 const topicOf = (t: string) => RULES.find(([re]) => re.test(t))?.[1] ?? "other";
@@ -66,7 +66,7 @@ const VAN = "https://opendata.vancouver.ca/api/explore/v2.1/catalog/datasets/3-1
 const vq = (params: Record<string, string>) => fetch(VAN + "?" + new URLSearchParams(params), { headers: UA }).then((r) => r.json());
 async function syncVancouver() {
   const rows: any[] = [], pins: any[] = [];
-  for (let d = 0; d < 8; d++) {
+  await Promise.all(Array.from({ length: 8 }, (_, d) => d).map(async (d) => {   // the 8 days in parallel
     const day = new Date(Date.now() - d * DAY).toISOString().slice(0, 10);
     const where = d === 0 ? "service_request_open_timestamp >= now(days=-1)" : `service_request_open_timestamp >= now(days=-${d + 1}) and service_request_open_timestamp < now(days=-${d})`;
     for (let off = 0; off < 400; off += 100) {
@@ -74,7 +74,7 @@ async function syncVancouver() {
       for (const x of r.results ?? []) rows.push({ city: "vancouver", day, rtype: String(x.service_request_type).slice(0, 80), topic: topicOf(String(x.service_request_type)), n: Number(x.n) });
       if ((r.results ?? []).length < 100) break;
     }
-  }
+  }));
   for (let off = 0; off < 300; off += 100) {
     const r = await vq({ select: "service_request_type, local_area, latitude, longitude, service_request_open_timestamp", where: "geom is not null and service_request_open_timestamp >= now(days=-7)",
       order_by: "service_request_open_timestamp desc", limit: "100", offset: String(off) });
@@ -89,16 +89,24 @@ async function syncVancouver() {
   return { rows, pins };
 }
 
-Deno.serve(async () => {
+Deno.serve(async (req) => {
+  let only: string | null = null; try { only = (await req.json())?.only ?? null; } catch (_) { /* cron */ }
   const db = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
   const report: Record<string, any> = {};
   const { data: found } = await db.from("city_sources").select("*").eq("status", "active");   // switched on by discover-311
   const extra: Src[] = (found ?? []).filter((f: any) => !SOCRATA.some((s) => s.city === f.city)).map((f: any) =>
     ({ city: f.city, url: f.url, type: f.type_col, ts: f.ts_col, lat: f.lat_col ?? undefined, lng: f.lng_col ?? undefined, point: f.point_col ?? undefined, area: f.area_col ?? undefined }));
-  const jobs: [string, Promise<{ rows: any[]; pins: any[] }>][] = [["vancouver", syncVancouver()], ...[...SOCRATA, ...extra].map((s) => [s.city, syncSocrata(s)] as [string, Promise<any>])];
+  const all: [string, () => Promise<{ rows: any[]; pins: any[] }>][] = [["vancouver", syncVancouver], ...[...SOCRATA, ...extra].map((s) => [s.city, () => syncSocrata(s)] as [string, () => Promise<any>])];
+  // every job settles (never rejects): an early failure in one city must not crash the whole run
+  const settle = (c: string, f: () => Promise<{ rows: any[]; pins: any[] }>) =>
+    Promise.race([f(), new Promise<never>((_, no) => setTimeout(() => no(new Error(c + " timed out")), 70000))])
+      .then((v) => ({ v, e: null as string | null }), (e) => ({ v: null, e: String((e as Error)?.message ?? e).slice(0, 120) }));
+  const jobs = all.filter(([c]) => !only || c === only).map(([c, f]) => [c, settle(c, f)] as const);
   for (const [city, job] of jobs) {
-    try {   // one city failing never stops the others
-      const { rows, pins } = await job;
+    const r = await job;
+    if (r.e || !r.v) { report[city] = { error: r.e }; continue; }
+    try {
+      const { rows, pins } = r.v;
       for (let i = 0; i < rows.length; i += 500) await db.from("city_reports").upsert(rows.slice(i, i + 500), { onConflict: "city,day,rtype" });
       if (pins.length) await db.from("city_pins").upsert(pins, { onConflict: "id", ignoreDuplicates: true });
       report[city] = { types: rows.length, pins: pins.length };
