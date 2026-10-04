@@ -13,15 +13,16 @@
 <link rel="apple-touch-icon" href="/icon-192.png">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="VoterPup">
-<meta name="theme-color" content="#e8b84b">
+<meta name="theme-color" content="#0c1722">
 <title>VoterPup — your pup remembers</title>
 <meta name="robots" content="noindex">
 <meta name="referrer" content="no-referrer">
 <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
-  :root{ --bg:#faf6ef; --card:#ffffff; --ink:#1f2430; --sub:#5d6573;
-         --accent:#22786a; --gold:#f4b63f; --goldink:#2a2014; --goldtext:#9a5f00; --line:#ece4d6; --chip:#f4efe6; }
+  :root{ --bg:#0c1722; --card:#142433; --card2:#1b3043; --ink:#eaf2f8; --sub:#93a8ba;
+         --accent:#2fd39c; --blue:#3d9bff; --teal:#1fb5b0; --red:#ff5d73;
+         --gold:#f5b83d; --goldink:#1a1304; --goldtext:#ffcd5e; --line:#233a4e; --chip:#1a2d3d; color-scheme:dark; }
   *{box-sizing:border-box} html,body{margin:0}
   body{background:var(--bg); color:var(--ink);
        font:16px/1.5 "Nunito",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif; font-weight:600;
@@ -830,6 +831,133 @@
   .froll .fcard:nth-of-type(5n+4){border-top-color:#2f8cff} .froll .fcard:nth-of-type(5n+5){border-top-color:#8a4dff}
   .froll .fd{color:#7a4fd6}
   .fend{color:#d9c8ff}
+
+  /* ================= DARK + GOLD: the complete theme (Oct 4) =================
+     navy base, jewel greens/blues/teals for surfaces, gold for the super pup and the main action,
+     red only for counters and emphasis. This block sits last and wins over the earlier palettes. */
+  body{background:radial-gradient(1200px 600px at 50% -200px, #16314a 0%, var(--bg) 60%) fixed, var(--bg)}
+  a{color:var(--blue)}
+  .brand, .nav .logo, .logo{color:var(--gold) !important}
+  /* surfaces */
+  .card, .stksheet, .addsheet, .dcard, .mcard, .cityrep, .packhero, .hbub, .wcard, .ecard, .huntwin, .proof, .reactban, .wquip, .fetchcard, .dfetch, .nacard{background:var(--card) !important; color:var(--ink); border-color:var(--line) !important}
+  .stksheet{box-shadow:0 -10px 40px rgba(0,0,0,.5)}
+  .stkover{background:rgba(3,8,14,.62)}
+  input, textarea, select, .searchbar{background:var(--card2) !important; color:var(--ink) !important; border-color:var(--line) !important}
+  input::placeholder, textarea::placeholder{color:#6f8597}
+  .searchwrap{background:var(--card2) !important; box-shadow:inset 0 0 0 1.5px var(--line) !important} .searchwrap svg{color:var(--blue)}
+  .hint, .privacy, small, .ts, .emeta, .fmeta{color:var(--sub)}
+  /* chips */
+  .chip{background:var(--chip); border-color:var(--line); color:var(--ink)}
+  .chip.same{background:var(--chip); border-color:#2b6a52; color:#7fe0b8} .chip.same.on{background:#0f3a2c; border-color:var(--accent); color:#9ff0cd}
+  .chip.goldfill, .chip.react.on, .rankchip, .spotchip, .installchip, .navpill, .sharemain, .shbtn, .appstrip, .acct.show, .iconbtn.on{background:#2a2310 !important; border-color:var(--gold) !important; color:var(--goldtext) !important}
+  .topicchip, .fixedchip, .bkbadge{background:#0f3a2c !important; border-color:#1f6b50 !important; color:#7fe0b8 !important}
+  .chip.htag{background:#13284a; border-color:#25467a; color:#9cc6ff}
+  .chip.danger{color:var(--red); border-color:#5a2632}
+  /* buttons: gold is the main action (the super pup's cape), blue and green for the rest */
+  .btn.gold, .qbtn.gold, .plusbtn b{background:linear-gradient(135deg, #ffd56a, #f5b83d 55%, #e39a17) !important; color:var(--goldink) !important; border-color:#e39a17 !important; box-shadow:0 4px 0 #9a6608 !important}
+  .btn.ghost, .qbtn{background:var(--card2) !important; color:var(--ink) !important; border-color:var(--line) !important; box-shadow:0 4px 0 #0a131c !important}
+  .btn.green, .btn.teal{background:#13795b !important; color:#fff !important}
+  /* tab bar and nav */
+  .tabbar{background:rgba(12,23,34,.94) !important; border-top:1px solid var(--line) !important; backdrop-filter:blur(10px)}
+  .tabbar a, .tabbar span{color:var(--sub)} .tabbar a.on, .tabbar .on{color:var(--gold) !important}
+  .tabbar .ic{color:inherit !important}
+  /* first screen: the pup's hello */
+  .hbub{border:1.5px solid var(--line) !important; box-shadow:0 3px 0 #0a131c} .hbub p{color:var(--sub)} .hbub a{color:var(--blue)}
+  .hello img{border-color:var(--gold)}
+  .asktile{box-shadow:0 4px 0 rgba(0,0,0,.35) !important}
+  /* sniff challenge: deep teal-to-blue, gold trail, green-blue circles */
+  .huntcard{background:linear-gradient(135deg, #0d3b4a 0%, #13305f 60%, #1d2a6b 100%) !important; border-color:#24567a !important; box-shadow:0 4px 0 #071420 !important}
+  .huntcard .hhead b, .huntcard .hprog b{color:#fff} .huntcard .hhead span{color:#a9c7e6}
+  .huntcard .hbar{background:rgba(255,255,255,.12)} .huntcard .hbar i{background:linear-gradient(90deg, #2fd39c, #1fb5b0, #3d9bff, #ffd56a) !important}
+  .huntcard .htoggle span{color:#a9c7e6} .huntcard .htoggle span.on{background:var(--gold); color:var(--goldink)}
+  .huntcard .htrail .tw{stroke:var(--gold)} .huntcard .htrail .tp{stroke:rgba(169,199,230,.45)}
+  .huntcard .hpie{background:conic-gradient(var(--red) var(--p), rgba(255,255,255,.15) 0); box-shadow:inset 0 0 0 1.5px #ff8fa0}
+  .huntcard .hc:nth-of-type(5n+1) .hcdot{--fun:#2fd39c; --tint:#0f3a2c}
+  .huntcard .hc:nth-of-type(5n+2) .hcdot{--fun:#3d9bff; --tint:#12304f}
+  .huntcard .hc:nth-of-type(5n+3) .hcdot{--fun:#1fd0c9; --tint:#0c3a3d}
+  .huntcard .hc:nth-of-type(5n+4) .hcdot{--fun:#ffd56a; --tint:#3a2e0c}
+  .huntcard .hc:nth-of-type(5n+5) .hcdot{--fun:#8fa8ff; --tint:#1e2a5c}
+  .huntcard .hc small{color:#dbe9f6} .huntcard .hfoot{color:#a9c7e6}
+  .hmap{background:#13283a}
+  /* snap / note */
+  .actbtn.snap{background:linear-gradient(135deg, #ffd56a, #f5b83d 55%, #e39a17) !important; color:var(--goldink) !important; box-shadow:0 6px 18px rgba(245,184,61,.28) !important}
+  .actbtn.snap .acti{background:rgba(26,19,4,.14) !important; color:var(--goldink) !important}
+  .actbtn.note{background:var(--card2) !important; color:var(--ink) !important; box-shadow:inset 0 0 0 1.5px #2a4a66 !important}
+  .actbtn.note .acti{background:#12304f !important; color:var(--blue) !important}
+  /* pup page */
+  .pupname{color:var(--ink)} .puplv b{color:var(--goldtext)}
+  .ppts{background:var(--gold); color:var(--goldink)}
+  .prbg{stroke:#22384c}
+  .etile{box-shadow:0 3px 0 rgba(0,0,0,.4)}
+  .reactban{border:1.5px solid #6b5418 !important; background:#231d0d !important}
+  #flashbtn, .flashfab{background:linear-gradient(135deg, #13305f, #0d3b4a) !important; color:#fff !important; border:1.5px solid #2a5a8a !important}
+  /* Your city */
+  .packhero{background:linear-gradient(135deg, #0d3b4a 0%, #13305f 100%) !important; border:0 !important}
+  .packhero .ft{color:#fff} .packhero .ft small{color:#a9c7e6} .packhero .slotmedia{box-shadow:0 0 0 3px var(--gold)}
+  .cityrep{background:linear-gradient(135deg, #0f2d2a 0%, #112743 100%) !important; box-shadow:inset 0 0 0 1.5px #1e4560 !important}
+  .cityrep .crh{color:var(--ink)} .cityrep .crh b{color:var(--accent)}
+  .cityrep .crchips .chip:nth-child(5n+1){background:#0f3a2c; color:#7fe0b8} .cityrep .crchips .chip:nth-child(5n+2){background:#12304f; color:#9cc6ff}
+  .cityrep .crchips .chip:nth-child(5n+3){background:#0c3a3d; color:#7ee6e0} .cityrep .crchips .chip:nth-child(5n+4){background:#2a2310; color:var(--goldtext)}
+  .cityrep .crchips .chip:nth-child(5n+5){background:#1e2a5c; color:#b3c2ff}
+  .cityrep .crlatest summary{color:var(--blue)} .cityrep .crscroll{background:rgba(0,0,0,.18)} .cityrep .crsrc{color:#7f96a9}
+  .crrow{border-color:var(--line)}
+  .newbie{background:linear-gradient(135deg, #ffd56a, #f5b83d 60%, #e39a17) !important; color:var(--goldink) !important; box-shadow:0 6px 16px rgba(245,184,61,.22) !important}
+  .newbie b{color:var(--goldink) !important}
+  .scopebar .seg, .seg{background:var(--card2) !important} .scopebar .segbtn{color:var(--sub)}
+  .scopebar .segbtn.on{background:#1769c2 !important; color:#fff !important; box-shadow:0 3px 10px rgba(23,105,194,.4) !important}
+  .scopebar .segedit, .segedit{background:var(--card2) !important; color:var(--blue) !important}
+  /* tiles: the colour fills the whole tile, white words on it */
+  .tilegrid .tile{background:var(--tc, var(--card2)) !important; color:#fff !important; border:0 !important; box-shadow:0 4px 0 rgba(0,0,0,.35) !important}
+  .tilegrid .tile .tsnippet{color:#fff !important} .tilegrid .tile .tname{color:rgba(255,255,255,.85) !important}
+  .tilegrid .tile .tcount{background:var(--red) !important; color:#fff !important}
+  .tilegrid .tile.mine{outline:2px solid var(--gold); outline-offset:-2px}
+  /* cards on the board and in sheets */
+  .grid2 .card, .feedcard{background:var(--card) !important}
+  .entry-body{color:var(--ink)}
+  .emo{background:var(--card2); border-color:var(--line); color:var(--ink)} .emo b{color:var(--sub)}
+  .emo.on{background:#2a2310; border-color:var(--gold)} .emo.on b{color:var(--goldtext)} .emo.static{background:var(--chip)}
+  .emogrid button{background:var(--card2)}
+  /* photo feed sheet */
+  .wquip{background:#231d0d !important; border-color:#6b5418 !important; color:var(--goldtext) !important}
+  .wcard{border-color:var(--line) !important} .walkmsg{color:var(--sub)}
+  .huntwin{background:#0f3a2c !important; border-color:#1f6b50 !important}
+  /* settings tiles: jewel tones */
+  .mgrid .mrow{color:#fff}
+  .mgrid .mrow:nth-child(5n+1){background:linear-gradient(160deg, #13795b, #0f4f3d) !important}
+  .mgrid .mrow:nth-child(5n+2){background:linear-gradient(160deg, #1b62a8, #123f6e) !important}
+  .mgrid .mrow:nth-child(5n+3){background:linear-gradient(160deg, #0f7c80, #0a4d50) !important}
+  .mgrid .mrow:nth-child(5n+4){background:linear-gradient(160deg, #3a4fc0, #26337c) !important}
+  .mgrid .mrow:nth-child(5n+5){background:linear-gradient(160deg, #8a6410, #5a400a) !important}
+  .mgrid .mrow .mh{color:#fff !important} .mgrid .mrow .mp{color:rgba(255,255,255,.8)}
+  .mgrid .mact .btn.gold, .mgrid .mact .mbtn.gold{background:linear-gradient(135deg, #ffd56a, #f5b83d 55%, #e39a17) !important; color:var(--goldink) !important; box-shadow:0 3px 0 #9a6608 !important}
+  .mgrid .mact .btn.ghost, .mgrid .mact .mbtn{background:rgba(255,255,255,.12) !important; color:#fff !important; border-color:rgba(255,255,255,.25) !important; box-shadow:none !important}
+  .mthumb, .mkeythumb, .mthumb video.fit{background:rgba(255,255,255,.1) !important}
+  /* Memory Lane: deep navy with jewel cards */
+  .flashov{background:linear-gradient(170deg, #071019 0%, #0e2235 50%, #112a46 100%) !important}
+  .ffoot{background:linear-gradient(transparent, #112a46 40%) !important}
+  .fday{background:rgba(255,255,255,.07) !important} .fday span{color:#a9c7e6} .fday i{background:var(--red) !important; color:#fff !important}
+  .flashsub, .fend{color:#a9c7e6} .froll .fmonth{color:var(--gold)}
+  .froll .fcard{background:var(--card2) !important; color:var(--ink) !important}
+  .froll .fd{color:#7fa8cf} .froll .fd b{color:#fff}
+  .froll .fcard:nth-of-type(5n+1){border-top-color:#2fd39c} .froll .fcard:nth-of-type(5n+2){border-top-color:#3d9bff} .froll .fcard:nth-of-type(5n+3){border-top-color:#1fd0c9}
+  .froll .fcard:nth-of-type(5n+4){border-top-color:#ffd56a} .froll .fcard:nth-of-type(5n+5){border-top-color:#8fa8ff}
+  .slotwin{background:#13283a} .slotrow{color:var(--ink)}
+  /* misc */
+  .toast{background:#e8f1f8; color:#0c1722}
+  .tourtip{background:var(--card2); color:var(--ink); border:1px solid var(--line)}
+  .maplibregl-popup-content{background:var(--card) !important; color:var(--ink)} .maplibregl-popup-tip{border-top-color:var(--card) !important; border-bottom-color:var(--card) !important}
+  .maptoggle{background:rgba(20,36,51,.95) !important; color:var(--ink)}
+  .qrwrap img, .mthumb #invthumb, .stkthumb{background:#fff !important}
+  .addthumb, .slotmedia, .whymedia, .fetchcard video, .gbar{background:var(--card2) !important}
+  .dstamp.up{background:var(--card) !important}
+  .hcdot{background:var(--card2); border-color:#3a556d; color:#7f96a9}
+  .htoggle{background:var(--card2)} .htoggle span.on{background:var(--gold); color:var(--goldink)}
+  .ischip{background:var(--card2) !important; border:1.5px solid var(--gold) !important; color:var(--goldtext) !important; box-shadow:0 4px 14px rgba(0,0,0,.3) !important}
+  .ischip .ic, .ischip i{color:var(--gold) !important}
+  .mtile.red{background:linear-gradient(150deg, #3a4fc0, #26337c) !important} .mtile.est{background:repeating-linear-gradient(135deg, #3a4fc0 0 10px, #33459f 10px 20px) !important}
+  .mtile.green{background:linear-gradient(150deg, #13795b, #0f4f3d) !important} .mtile.blue{background:linear-gradient(150deg, #1769c2, #114b8a) !important}
+  .mtile.on{outline-color:var(--gold) !important}
+  .actbtn.snap small{opacity:.75; color:var(--goldink)}
 </style>
 </head>
 <body>
@@ -1559,7 +1687,7 @@ function screenCapture(prefGripe, prefName){
   if (saved && !KIOSK) document.getElementById('resume').onclick = function(){ location.href = pupURL(saved.tail); };
 }
 
-var ASK_COLORS = ['#22786a', '#3b6fb6', '#c26a1b', '#a34ea8', '#2f5d8a', '#d1495b', '#2f7d5f', '#9a5f00', '#5d4fb3', '#b0573a'];
+var ASK_COLORS = ['#13795b', '#1b62a8', '#0f7c80', '#3a4fc0', '#1769c2', '#a8740a', '#237a44', '#5b3fb8', '#0b6e8a', '#2a8a3e'];
 function dayPart(){ var d = new Date(), hr = d.getHours(), wd = d.toLocaleDateString(undefined, { weekday: 'long' });
   return wd + ' ' + (hr < 5 ? 'night' : hr < 12 ? 'morning' : hr < 17 ? 'afternoon' : hr < 21 ? 'evening' : 'night'); }
 var QUICK_ISSUES = [['ph-road-horizon', 'Potholes on my street'], ['ph-trash', 'Bins overflowing'], ['ph-bus', 'Bus too crowded'], ['ph-house-line', 'Rent too high'],
@@ -2853,7 +2981,7 @@ function walkSheet(s, file){
   }
 }
 
-var TILE_COLORS = ['#18a874','#ff7a2e','#5b6cff','#ef4f7f','#00a3a3','#5fae2e','#8a4dff','#3d7fe0','#e39b00','#d0459c','#2f8cff','#ff6f61','#7a4fd6'];   // the playful palette
+var TILE_COLORS = ['#13795b','#1b62a8','#0f7c80','#3a4fc0','#2a8a3e','#1769c2','#5b3fb8','#0b6e8a','#a8740a','#237a44','#1a5596','#0a7d6a','#3446a8'];   // dark jewel tones: greens and blues first
 
 function screenPack(mode, topic0){
   var place = getPlace();
@@ -3027,7 +3155,7 @@ function screenPack(mode, topic0){
     var GRAD = 'linear-gradient(rgba(0,0,0,0), rgba(0,0,0,0))';   // the words sit under the photo now, so no darkening
     var reduceMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-    var SOOTHE = ['#5f7f9f','#6b8e7f','#8a7f9f','#9f8a6b','#6f8fa8','#7f9a86','#9a8a7f','#7a7f9a','#6e8c94','#8c7f6e'];
+    var SOOTHE = ['rgba(255,255,255,.10)','rgba(0,0,0,.18)','rgba(255,255,255,.06)'];   // no photo: a soft shade of the tile's own colour
     function itemImg(r){ var u = null; (r.media || []).forEach(function(m){ if (!u && m.url && m.type && m.type.indexOf('image') === 0) u = m.url; }); return u; }
     var landIds = window._wallLand || {}; window._wallLand = null;
     function tilesView(){
@@ -3050,7 +3178,7 @@ function screenPack(mode, topic0){
       b.innerHTML = '<div class="tilegrid">' + tiles.map(function(t, i){
         var k0 = 0; t.list.forEach(function(r, k){ if (landIds[r.id]) k0 = k; });
         t._k = k0;
-        return '<div class="tile' + (t.mine ? ' mine' : '') + (landIds[t.list[k0].id] ? ' land' : '') + '" data-i="' + i + '" style="background:' + t.color + '">' +
+        return '<div class="tile' + (t.mine ? ' mine' : '') + (landIds[t.list[k0].id] ? ' land' : '') + '" data-i="' + i + '" style="--tc:' + t.color + ';background:' + t.color + '">' +
           '<div class="tbg" id="tbg' + i + '"></div>' +
           '<div class="tcount">' + t.list.length + '</div>' +
           '<div class="tsnippet" id="tsnip' + i + '"></div>' +
@@ -3165,7 +3293,7 @@ function screenPack(mode, topic0){
   }).catch(function(e){ document.getElementById('board').textContent = 'The pack is napping: ' + e.message; });
 }
 
-var APP_VERSION = "20261004001728";
+var APP_VERSION = "20261004002356";
 (function(){
   try {
     fetch('/version.json?t=' + Date.now(), { cache: 'no-store' }).then(function(r){ return r.json(); }).then(function(j){
