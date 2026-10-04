@@ -1067,6 +1067,52 @@
   .pbrow{position:relative; padding-right:44px} .pbrow .pbbadge{position:absolute; right:0; top:10px} .pbrow .pbbadge.ask{top:auto; bottom:2px}
   .pkbtns{display:flex; gap:8px; margin:12px 0 4px} .pkbtns .btn{flex:1; margin:0; font-size:14.5px; padding:12px 8px}
   .packshome .pbhead span{display:none}
+  /* pack room v2: topics live in the chat */
+  .roommem{align-items:center} .roommem .roomleave{margin:0 0 0 auto; font-size:11.5px}
+  .roomcode{padding:8px 10px; text-align:left} .rcline{display:flex; align-items:center; gap:8px} .rcline span{flex:1} .rcline small{display:block; color:var(--sub); font-weight:800; font-size:11px}
+  .rcline b{font-size:17px; color:var(--goldtext)}
+  .roomwait{display:flex; gap:12px; align-items:center; background:var(--card2); border-radius:16px; padding:12px; margin:10px 0} .roomwait img{width:56px; height:56px; border-radius:50%; object-fit:cover}
+  .tbar{display:flex; align-items:center; gap:8px; width:100%; background:linear-gradient(90deg,#1b3043,#22344a); border:1.5px solid rgba(245,184,61,.45); border-radius:14px; padding:9px 12px; color:var(--ink); font:inherit; font-weight:900; cursor:pointer; margin:6px 0}
+  .tbar .tbl{flex:1; text-align:left} .tbar .tbgo{color:var(--goldtext); font-size:13px}
+  .tbadge{font-style:normal; min-width:26px; height:26px; border-radius:13px; background:var(--gold); color:var(--goldink); font-weight:900; font-size:14px; display:inline-flex; align-items:center; justify-content:center; padding:0 7px;
+    box-shadow:0 0 0 3px rgba(245,184,61,.25), 0 0 14px rgba(245,184,61,.6); animation:tbounce 1.6s ease-in-out infinite}
+  @keyframes tbounce{0%,100%{transform:translateY(0) scale(1)} 30%{transform:translateY(-4px) scale(1.08)} 55%{transform:translateY(0) scale(.97)}}
+  .msg.topic{align-self:stretch; max-width:none; background:linear-gradient(135deg,#1d3550,#16293d); border:1.5px solid rgba(245,184,61,.5); border-radius:16px; padding:10px 12px}
+  .msg.topic small{color:var(--goldtext); font-weight:800; font-size:11.5px; opacity:1; margin:0} .msg.topic .tbody{font-weight:900; font-size:16px; margin:3px 0 8px}
+  .tvote{display:inline-flex; align-items:center; gap:6px; border:1.5px solid var(--gold); background:transparent; color:var(--goldtext); border-radius:999px; padding:5px 12px; font:inherit; font-weight:900; cursor:pointer}
+  .tvote.on{background:var(--gold); color:var(--goldink)}
+  .composerx #mtopic{display:flex; flex-direction:column; align-items:center; font-size:16px; line-height:1; gap:1px} .composerx #mtopic small{font-size:9.5px; font-weight:900; color:var(--sub)}
+  .composerx #mtopic.on{background:var(--gold); border-color:var(--gold)} .composerx #mtopic.on small{color:var(--goldink)}
+  .composerx.topicmode textarea{border-color:var(--gold); box-shadow:0 0 0 3px rgba(245,184,61,.2)}
+  .tshead{display:flex; justify-content:space-between; align-items:center; gap:8px} .tshead b{font-size:17px}
+  #tsheet .plist{max-height:55vh; overflow-y:auto} #tsheet .plist li.todo{border-color:rgba(245,184,61,.7); box-shadow:inset 3px 0 0 var(--gold)}
+  .joinban{background:linear-gradient(135deg,#2a2208,#1b3043); border:1.5px solid var(--gold); border-radius:16px; padding:10px 12px; margin:6px 0 10px} .joinban b{display:block; color:var(--goldtext)} .joinban span{font-size:13px; color:var(--sub)}
+  #room .msgs{height:calc(100vh - 430px)}
+  /* pack room: WhatsApp-familiar, soothing blue/green; gold = needs your vote, red = counters */
+  #room{--wa:#00a884; --wamine:#005c4b; --waother:#1f2c34; --wablue:#53bdeb}
+  #room .roomcode{background:transparent; border:0; padding:0; margin:6px 0}
+  .rcline{display:flex; align-items:center; gap:12px; padding:8px 4px; border-radius:12px; cursor:pointer} .rcline:active{background:rgba(255,255,255,.05)}
+  .rcic{width:40px; height:40px; border-radius:50%; background:var(--wa); color:#fff; display:inline-flex; align-items:center; justify-content:center; font-size:20px; flex:0 0 auto}
+  .rcline span{flex:1; min-width:0} .rcline b{display:block; font-size:15px; color:var(--ink)} .rcline small{display:block; font-size:12px; color:var(--sub); font-weight:700}
+  .rcnew{background:transparent; border:0; color:var(--sub); font-size:18px; padding:6px; cursor:pointer}
+  #room .msg{background:var(--waother); border-radius:10px 10px 10px 3px; box-shadow:0 1px 1px rgba(0,0,0,.25)}
+  #room .msg.mine{background:var(--wamine); border-radius:10px 10px 3px 10px}
+  #room .msg b{color:var(--wablue)} #room .msg small{text-align:right; opacity:.6}
+  #room .msg.topic{background:#13324a; border:1px solid #23597a; border-radius:12px}
+  #room .msg.topic small{color:var(--wablue); text-align:left; opacity:1}
+  #room .tvote{border-color:var(--wa); color:#7fe0c8} #room .tvote.on{background:var(--wa); border-color:var(--wa); color:#fff}
+  #room .tbar{background:#13283a; border:1px solid #23597a}  #room .tbar .tbgo{color:var(--wablue)}
+  #room .roomask{background:#13283a; border-color:#23597a}
+  #room .rmpup.me{border-color:var(--wa)}
+  #room .composerx textarea{border-radius:22px; background:var(--waother); border:0}
+  .msend{flex:0 0 auto; width:44px; height:44px; border-radius:50%; border:0; background:var(--wa); color:#fff; font-size:19px; display:inline-flex; align-items:center; justify-content:center; cursor:pointer}
+  .msend:disabled{opacity:.5}
+  #room .composerx #mtopic.on{background:var(--wa); border-color:var(--wa)} #room .composerx #mtopic.on small{color:#fff}
+  #room .composerx.topicmode textarea{box-shadow:0 0 0 2px var(--wa)}
+  #tsheet .plvote.on{background:var(--wa); border-color:var(--wa); color:#fff}
+  #tsheet .plist li{border-color:#23597a} #tsheet .plist li.todo{border-color:rgba(245,184,61,.6)}
+  .joinban{background:linear-gradient(135deg,#0f3a35,#13283a); border-color:var(--accent)} .joinban b{color:#7fe0c8}
+  #room .tvote b{color:inherit}
 </style>
 </head>
 <body>
@@ -1880,7 +1926,7 @@ function screenUnbox(name, gripe){
       document.getElementById('newpup').onclick = function(){ location.href = location.pathname + '?kiosk=1'; };
     } else {
       try { sessionStorage.setItem('vp.first', l.first || ''); sessionStorage.setItem('vp.firstbody', gripe || ''); sessionStorage.setItem('vp.tour', '1'); } catch (e) {}
-      location.href = url;
+      afterFirstPup(l).then(function(dest){ location.href = dest || url; });
       return;
     }
     r.className = 'reveal show';
@@ -3070,127 +3116,182 @@ function packJoinSheet(tail){
   var i = document.getElementById('pkcode'); i.focus();
   document.getElementById('pkgo').onclick = function(){ var b = this; b.disabled = true;
     rpc('vp_pack_join', { p_tail: tail, p_code: i.value }).then(function(p){ s.close(); track('pack', { act: 'join' });
-      if (p.status === 'active') location.href = '/packs/' + p.id;
-      else { toast('Asked to join ' + esc(p.name) + ' 🐾 The owner will let you in.'); renderPacksBox(tail); } })
+      if (p.status === 'pending') packPost({ tail: tail }, p.id, { action: 'joined' }).catch(function(){});
+      location.href = '/packs/' + p.id; })
       .catch(function(e){ b.disabled = false; toast(e.message); }); };
 }
+function packPost(me, pid, body){
+  return fetch(SUPABASE_URL + '/functions/v1/pack-chat', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(Object.assign({ tail: me.tail, pack: pid }, body)) }).then(function(r){ return r.json(); });
+}
+function codeSlug(c){ return c.replace(/\s+/g, '-'); }
 function screenPackRoom(pid){
   var me = loadLocal(); if (!me) { location.href = '/app.html?new=1'; return; }
   clearInterval(window._roomT); try { sessionStorage.removeItem('vp.pkb'); } catch (e) {}
   root.innerHTML = nav() + '<div id="room"><p class="hint">Loading your pack…</p></div>' + tabbar('packs'); wireTabs();
-  var seen = {}, pack = null;
+  var seen = {}, pack = null, topicMode = false, items = [];
   function head(){
     var act = pack.members.filter(function(m){ return m.status === 'active'; }), pend = pack.members.filter(function(m){ return m.status === 'pending' && !m.me; });
     return '<a href="/packs" class="roomback">‹ Packs</a><div class="roomh"><b>🐾 ' + esc(pack.name) + '</b><span>' + act.length + ' pup' + (act.length === 1 ? '' : 's') + '</span></div>' +
       '<div class="roommem">' + act.map(function(m){ return '<span class="rmpup' + (m.me ? ' me' : '') + '">' + esc(m.name) + (m.role === 'owner' ? ' 👑' : '') +
-        (pack.owner && !m.me ? ' <a href="#" data-rm="' + esc(m.tail) + '" title="remove">×</a>' : '') + '</span>'; }).join('') + '</div>' +
+        (pack.owner && !m.me ? ' <a href="#" data-rm="' + esc(m.tail) + '" title="remove">×</a>' : '') + '</span>'; }).join('') +
+        '<a href="#" class="roomleave" id="roomleave">' + (pack.owner ? 'Close pack' : 'Leave') + '</a></div>' +
       (pack.owner && pend.length ? '<div class="roomask">' + pend.map(function(m){ return '<div><b>' + esc(m.name) + '</b> wants to join <button class="chip goldfill" data-ok="' + esc(m.tail) + '">Let in</button> <button class="chip" data-no="' + esc(m.tail) + '">No</button></div>'; }).join('') + '</div>' : '') +
-      (pack.status === 'pending' ? '<div class="roomask">Waiting for the owner to let you in 🐾</div>' : '') +
-      (pack.owner ? '<div class="roomcode" id="roomcode"></div>' : '') +
-      '<a href="#" class="roomleave" id="roomleave">' + (pack.owner ? 'Close this pack' : 'Leave pack') + '</a>';
+      (pack.status === 'pending' ? '<div class="roomwait"><img src="/pup-face.jpg" alt=""><div><b>Knock knock 🐾</b><br>The pack owner will let you in. This page opens by itself when they do.</div></div>' : '') +
+      (pack.owner ? '<div class="roomcode" id="roomcode"></div>' : '');
   }
   function codeBox(){
     var el = document.getElementById('roomcode'); if (!el) return;
     rpc('vp_pack_code', { p_tail: me.tail, p_pack: pid }).then(function(c){
-      var mins = Math.max(1, Math.round((new Date(c.expires_at) - Date.now()) / 60000));
-      el.innerHTML = '<small>Invite code · works for ' + mins + ' more min</small><div class="rccode">' + esc(c.code) + '</div>' +
-        '<div class="rcact"><button class="chip" id="rccopy">Copy</button><button class="chip" id="rcshare">Share</button><button class="chip" id="rcnew">New code</button></div>';
-      var txt = 'Join my VoterPup pack "' + pack.name + '" 🐾 Open voterpup.com, tap Join with a code, and type: ' + c.code + ' (works for an hour)';
-      document.getElementById('rccopy').onclick = function(){ navigator.clipboard.writeText(c.code); toast('Copied: ' + c.code); };
-      document.getElementById('rcshare').onclick = function(){ if (navigator.share) navigator.share({ text: txt }).catch(function(){}); else { navigator.clipboard.writeText(txt); toast('Invite copied'); } };
-      document.getElementById('rcnew').onclick = function(){ rpc('vp_pack_new_code_now', { p_tail: me.tail, p_pack: pid }).then(function(){ codeBox(); toast('New code. Everyone already in stays in.'); }); };
+      var mins = Math.max(1, Math.round((new Date(c.expires_at) - Date.now()) / 60000)), link = location.origin + '/join/' + codeSlug(c.code);
+      el.innerHTML = '<div class="rcline" id="rcshare" role="button"><i class="rcic ph-fill ph-link"></i><span><b>Invite via link</b><small>' + esc(c.code) + ' · ' + mins + ' min</small></span>' +
+        '<button class="rcnew" id="rcnew" title="new code" aria-label="new code"><i class="ph-fill ph-arrows-clockwise"></i></button></div>';
+      var txt = 'Join my VoterPup pack "' + pack.name + '" 🐾 ' + link + '\n(or type the code ' + c.code + ' · works for an hour)';
+      document.getElementById('rcshare').onclick = function(){ track('pack', { act: 'invite' }); if (navigator.share) navigator.share({ text: txt }).catch(function(){}); else { navigator.clipboard.writeText(txt); toast('Invite link copied'); } };
+      document.getElementById('rcnew').onclick = function(ev){ ev.stopPropagation(); rpc('vp_pack_new_code_now', { p_tail: me.tail, p_pack: pid }).then(function(){ codeBox(); toast('New code. Everyone already in stays in.'); }); };
     }).catch(function(){});
+  }
+  function topicCard(m){
+    var t = m.topic;
+    return '<div class="msg topic" data-mid="' + m.id + '" data-item="' + t.id + '"><small>📌 ' + (m.mine ? 'You' : esc(m.who)) + ' started a topic</small>' +
+      '<div class="tbody">' + (TOPIC_GLYPH[t.topic] ? TOPIC_GLYPH[t.topic] + ' ' : '') + esc(t.body) + '</div>' +
+      '<button class="tvote' + (t.voted ? ' on' : '') + '" data-tv="' + t.id + '"><i class="ph-fill ph-paw-print"></i> <b>' + t.votes + '</b> <span>' + (t.voted ? 'Voted' : 'Vote') + '</span></button></div>';
   }
   function msgHTML(m){
     if (m.hidden) return '<div class="msg hidden">A message was hidden after reports.</div>';
+    if (m.topic) return topicCard(m);
     return '<div class="msg' + (m.mine ? ' mine' : '') + '" data-mid="' + m.id + '">' + (m.mine ? '' : '<b>' + esc(m.who) + '</b>') +
       (m.body ? '<div class="mb">' + esc(m.body) + '</div>' : '') +
-      (m.media || []).map(function(x){ return x.type.indexOf('video') === 0 ? '<video src="' + esc(x.url) + '" controls playsinline preload="metadata"></video>' : '<img src="' + esc(x.url) + '" alt="" data-full="' + esc(x.url) + '">'; }).join('') +
+      (m.media || []).map(function(x){ return x.type.indexOf('video') === 0 ? '<video src="' + esc(x.url) + '" controls playsinline preload="metadata"></video>' : '<img src="' + esc(x.url) + '" alt="">'; }).join('') +
       '<small>' + new Date(m.ts).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }) + (m.mine ? '' : ' · <a href="#" data-rep="' + m.id + '">report</a>') + '</small></div>';
   }
   function load(first){
-    return fetch(SUPABASE_URL + '/functions/v1/pack-chat', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ tail: me.tail, pack: pid, action: 'read' }) })
-      .then(function(r){ return r.json(); }).then(function(list){
-        var box = document.getElementById('msgs'); if (!box || !Array.isArray(list)) return;
-        var fresh = list.filter(function(m){ return !seen[m.id]; }); if (!fresh.length && !first) return;
-        var atEnd = box.scrollHeight - box.scrollTop - box.clientHeight < 80;
-        fresh.forEach(function(m){ seen[m.id] = 1; box.insertAdjacentHTML('beforeend', msgHTML(m)); });
-        if (first && !list.length) box.innerHTML = '<p class="hint" id="nomsg">Say hi 🐾 Share a find, a photo, or what bugs you today.</p>';
-        else { var nm = document.getElementById('nomsg'); if (nm) nm.remove(); }
-        if (first || atEnd) box.scrollTop = box.scrollHeight;
-      }).catch(function(){});
+    return packPost(me, pid, { action: 'read' }).then(function(list){
+      var box = document.getElementById('msgs'); if (!box || !Array.isArray(list)) return;
+      var fresh = list.filter(function(m){ return !seen[m.id]; }); if (!fresh.length && !first) return;
+      var atEnd = box.scrollHeight - box.scrollTop - box.clientHeight < 80;
+      fresh.forEach(function(m){ seen[m.id] = 1; box.insertAdjacentHTML('beforeend', msgHTML(m)); });
+      if (first && !list.length) box.innerHTML = '<p class="hint" id="nomsg">Say hi 🐾 or tap <b>📌 Topic</b> to start something for the pack to vote on.</p>';
+      else { var nm = document.getElementById('nomsg'); if (nm) nm.remove(); }
+      if (first || atEnd) box.scrollTop = box.scrollHeight;
+    }).catch(function(){});
+  }
+  // topics: one source of truth for the gold badge, the chat cards and the voting sheet
+  function topics(){
+    return rpc('vp_pack_items', { p_tail: me.tail, p_pack: pid }).then(function(list){
+      items = list || [];
+      var todo = items.filter(function(i){ return !i.voted; }).length, b = document.getElementById('tbadge');
+      if (b) { b.textContent = todo; b.hidden = !todo; }
+      var tl = document.getElementById('tlabel'); if (tl) tl.textContent = items.length ? items.length + ' topic' + (items.length === 1 ? '' : 's') : 'Topics';
+      items.forEach(function(i){ document.querySelectorAll('[data-tv="' + i.id + '"]').forEach(function(v){
+        v.classList.toggle('on', !!i.voted); v.querySelector('b').textContent = i.votes; v.querySelector('span').textContent = i.voted ? 'Voted' : 'Vote'; }); });
+      var sh = document.getElementById('tsheet'); if (sh) paintSheet(sh);
+    }).catch(function(){});
+  }
+  function vote(id, btn){ if (btn) btn.classList.toggle('on'); rpc('vp_pack_vote', { p_tail: me.tail, p_item: id }).then(topics); }
+  function paintSheet(el){
+    var todo = items.filter(function(i){ return !i.voted; });
+    el.innerHTML = '<div class="tshead"><b>🗳️ ' + esc(poss(pack.name)) + ' topics</b><button class="chip goldfill" id="plshare"><i class="ph-fill ph-share-network"></i> Share list</button></div>' +
+      '<p class="hint">' + (todo.length ? todo.length + ' waiting for your paw. Vote on as many as you like.' : 'You’ve voted on everything 🐾 Ranked by paws.') + '</p>' +
+      (items.length ? '<ol class="plist">' + items.slice().sort(function(a, b){ return (a.voted - b.voted) || (b.votes - a.votes); }).map(function(i, n){
+        return '<li class="' + (!i.voted ? 'todo' : '') + '"><span class="plbody">' + (TOPIC_GLYPH[i.topic] ? TOPIC_GLYPH[i.topic] + ' ' : '') + esc(i.body) +
+          '<small>by ' + esc(i.who) + (i.mine ? ' (you own it)' : '') + ((i.mine || pack.owner) ? ' · <a href="#" data-plrm="' + i.id + '">remove</a>' : '') + '</small></span>' +
+          '<button class="plvote' + (i.voted ? ' on' : '') + '" data-plv="' + i.id + '"><i class="ph-fill ph-paw-print"></i><b>' + i.votes + '</b></button></li>'; }).join('') + '</ol>'
+        : '<p class="hint">No topics yet. Start one from the chat with <b>📌 Topic</b>.</p>') +
+      '<button class="btn ghost" id="tnew">📌 Start a topic</button>';
+    el.querySelectorAll('[data-plv]').forEach(function(v){ v.onclick = function(){ vote(v.getAttribute('data-plv'), v); }; });
+    el.querySelectorAll('[data-plrm]').forEach(function(a){ a.onclick = function(ev){ ev.preventDefault(); rpc('vp_pack_item_remove', { p_tail: me.tail, p_item: a.getAttribute('data-plrm') }).then(function(){
+      var card = document.querySelector('.msg.topic[data-item="' + a.getAttribute('data-plrm') + '"]'); if (card) card.remove(); topics(); }); }; });
+    document.getElementById('tnew').onclick = function(){ var o = document.querySelector('.stkover.tsheetov'); if (o) o.remove(); setTopicMode(true); };
+    document.getElementById('plshare').onclick = function(){
+      rpc('vp_pack_share', { p_tail: me.tail, p_pack: pid }).then(function(s){
+        var url = location.origin + '/list/' + s, top = items.slice().sort(function(a, b){ return b.votes - a.votes; }).slice(0, 3).map(function(i, n){ return (n + 1) + '. ' + i.body; }).join('\n');
+        var txt = poss(pack.name) + ' list 🐾\n' + (top ? top + '\n' : '') + 'Running for office? Start with our list: ' + url;
+        track('pack', { act: 'share_list' });
+        if (navigator.share) navigator.share({ title: poss(pack.name) + ' list', text: txt }).catch(function(){}); else { navigator.clipboard.writeText(txt); toast('List link copied'); } }); };
+  }
+  function openSheet(){
+    var s = sheet('<div id="tsheet"></div>'); s.ov.classList.add('tsheetov');
+    paintSheet(document.getElementById('tsheet')); topics();
+  }
+  function setTopicMode(on){
+    topicMode = on; var t = document.getElementById('mtext'), b = document.getElementById('mtopic'), c = document.querySelector('.composerx');
+    if (!t) return;
+    b.classList.toggle('on', on); c.classList.toggle('topicmode', on);
+    t.placeholder = on ? 'New topic for the pack to vote on' : 'Message your pack'; t.maxLength = on ? 140 : 500;
+    document.getElementById('mattach').hidden = on; document.getElementById('msend').innerHTML = on ? '<i class="ph-fill ph-push-pin"></i>' : '<i class="ph-fill ph-paper-plane-right"></i>';
+    if (on) t.focus();
   }
   function render(){
-    document.getElementById('room').innerHTML = head() + (pack.status === 'active' ? '<div class="htoggle roomtabs"><span data-rt="list"' + (window._roomTab === 'list' ? ' class="on"' : '') + '>📋 Our list</span><span data-rt="chat"' + (window._roomTab !== 'list' ? ' class="on"' : '') + '>💬 Chat</span></div>' +
-      '<div id="tablist"' + (window._roomTab === 'list' ? '' : ' hidden') + '></div><div id="tabchat"' + (window._roomTab === 'list' ? ' hidden' : '') + '><div class="msgs" id="msgs"></div>' +
-      '<div class="composerx"><button class="iconbtn" id="mattach" title="photo or short video"><i class="ph-duotone ph-image"></i></button>' +
-      '<input id="mpick" type="file" accept="image/*,video/*" hidden><textarea id="mtext" rows="1" maxlength="500" placeholder="Message your pack"></textarea><button class="btn gold compact" id="msend">Send</button></div><div id="mthumbs" class="attach"></div></div>' : '');
+    document.getElementById('room').innerHTML = head() + (pack.status === 'active' ?
+      '<button class="tbar" id="tbar"><span class="tbl">🗳️ <span id="tlabel">Topics</span></span><i class="tbadge" id="tbadge" hidden>0</i><span class="tbgo">vote ›</span></button>' +
+      '<div class="msgs" id="msgs"></div>' +
+      '<div class="composerx"><button class="iconbtn" id="mtopic" title="start a topic to vote on">📌<small>Topic</small></button><button class="iconbtn" id="mattach" title="photo or short video"><i class="ph-duotone ph-image"></i></button>' +
+      '<input id="mpick" type="file" accept="image/*,video/*" hidden><textarea id="mtext" rows="1" maxlength="500" placeholder="Message your pack"></textarea><button class="msend" id="msend" aria-label="send"><i class="ph-fill ph-paper-plane-right"></i></button></div><div id="mthumbs" class="attach"></div>' : '');
     codeBox();
     Array.prototype.forEach.call(document.querySelectorAll('[data-ok],[data-no],[data-rm]'), function(b){ b.onclick = function(ev){ ev.preventDefault();
       var who = b.getAttribute('data-ok') || b.getAttribute('data-no') || b.getAttribute('data-rm'), ok = b.hasAttribute('data-ok');
       rpc('vp_pack_decide', { p_tail: me.tail, p_pack: pid, p_member: who, p_ok: ok }).then(refresh).catch(function(e){ toast(e.message); }); }; });
     document.getElementById('roomleave').onclick = function(ev){ ev.preventDefault();
       if (!confirm(pack.owner ? 'Close this pack for everyone?' : 'Leave this pack?')) return;
-      rpc('vp_pack_leave', { p_tail: me.tail, p_pack: pid }).then(function(){ location.href = pupURL(me.tail); }); };
-    if (pack.status !== 'active') return;
-    Array.prototype.forEach.call(document.querySelectorAll('[data-rt]'), function(t){ t.onclick = function(){
-      window._roomTab = t.getAttribute('data-rt');
-      document.querySelectorAll('[data-rt]').forEach(function(x){ x.classList.toggle('on', x === t); });
-      document.getElementById('tablist').hidden = window._roomTab !== 'list'; document.getElementById('tabchat').hidden = window._roomTab === 'list';
-      if (window._roomTab === 'list') packList(me, pid, pack); else { var bx = document.getElementById('msgs'); bx.scrollTop = bx.scrollHeight; } }; });
-    if (window._roomTab === 'list') packList(me, pid, pack);
-    load(true); window._roomT = setInterval(function(){ if (document.visibilityState === 'visible' && document.getElementById('msgs')) load(false); else if (!document.getElementById('msgs')) clearInterval(window._roomT); }, 6000);
+      rpc('vp_pack_leave', { p_tail: me.tail, p_pack: pid }).then(function(){ location.href = '/packs'; }); };
+    clearInterval(window._roomT);
+    if (pack.status !== 'active') {   // waiting at the door: check every few seconds and walk in when let in
+      window._roomT = setInterval(function(){ if (!document.getElementById('room')) return clearInterval(window._roomT);
+        rpc('vp_my_packs', { p_tail: me.tail }).then(function(list){ var p = (list || []).filter(function(x){ return x.id === pid; })[0];
+          if (!p) { clearInterval(window._roomT); document.getElementById('room').innerHTML = '<p class="hint">The owner didn’t let this pup in. Ask them for a new invite.</p>'; }
+          else if (p.status === 'active') { clearInterval(window._roomT); toast('You’re in! 🐾'); pack = p; render(); } }); }, 5000);
+      return;
+    }
+    document.getElementById('tbar').onclick = openSheet;
+    document.getElementById('msgs').addEventListener('click', function(ev){ var v = ev.target.closest('[data-tv]'); if (v) vote(v.getAttribute('data-tv'), v); });
+    load(true).then(topics);
+    window._roomT = setInterval(function(){ if (!document.getElementById('msgs')) return clearInterval(window._roomT); if (document.visibilityState === 'visible') { load(false); topics(); } }, 6000);
     var files = [];
+    document.getElementById('mtopic').onclick = function(){ setTopicMode(!topicMode); };
     document.getElementById('mattach').onclick = function(){ document.getElementById('mpick').click(); };
     document.getElementById('mpick').onchange = function(){ var f = this.files && this.files[0]; this.value = ''; if (!f) return;
       if (f.type.indexOf('video') === 0 && f.size > 15e6) { toast('Videos up to about 15 MB (a short clip).'); return; }
       files = [f]; document.getElementById('mthumbs').innerHTML = '<span class="chip">' + (f.type.indexOf('video') === 0 ? '🎥' : '📷') + ' ready to send · <a href="#" id="mclr">remove</a></span>';
       document.getElementById('mclr').onclick = function(ev){ ev.preventDefault(); files = []; document.getElementById('mthumbs').innerHTML = ''; }; };
-    document.getElementById('msend').onclick = function(){ var b = this, t = document.getElementById('mtext'); if (!t.value.trim() && !files.length) return; b.disabled = true;
+    document.getElementById('msend').onclick = function(){ var b = this, t = document.getElementById('mtext'), txt = t.value.trim();
+      if (topicMode) {
+        if (txt.length < 2) return; b.disabled = true;
+        packPost(me, pid, { action: 'add_item', body: txt, topic: guessTopic(txt) }).then(function(r){ b.disabled = false;
+          if (r.error) { toast(r.error); return; } t.value = ''; setTopicMode(false); track('pack', { act: 'topic' }); load(false).then(topics); })
+          .catch(function(e){ b.disabled = false; toast(e.message); });
+        return;
+      }
+      if (!txt && !files.length) return; b.disabled = true;
       pendingFiles = files.slice();
-      (files.length ? uploadPending() : Promise.resolve([])).then(function(media){
-        return fetch(SUPABASE_URL + '/functions/v1/pack-chat', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ tail: me.tail, pack: pid, action: 'send', body: t.value, media: media }) }).then(function(r){ return r.json(); });
-      }).then(function(r){ b.disabled = false; pendingFiles = [];
-        if (r.error) { toast(r.error); return; }
-        t.value = ''; files = []; document.getElementById('mthumbs').innerHTML = ''; track('pack', { act: 'msg' }); load(false); })
+      (files.length ? uploadPending() : Promise.resolve([])).then(function(media){ return packPost(me, pid, { action: 'send', body: t.value, media: media }); })
+        .then(function(r){ b.disabled = false; pendingFiles = [];
+          if (r.error) { toast(r.error); return; }
+          t.value = ''; files = []; document.getElementById('mthumbs').innerHTML = ''; track('pack', { act: 'msg' }); load(false); })
         .catch(function(e){ b.disabled = false; toast('Not sent: ' + e.message); }); };
   }
   function refresh(){ return rpc('vp_my_packs', { p_tail: me.tail }).then(function(list){ pack = (list || []).filter(function(p){ return p.id === pid; })[0];
     if (!pack) { document.getElementById('room').innerHTML = '<p class="hint">This pack isn&rsquo;t yours, or it was closed.</p>'; return; } render(); }); }
   refresh();
 }
-// the pack's own list: add issues, one vote each, share it read-only
 function poss(n){ return n + (/s$/i.test(n) ? '’' : '’s'); }   // Neighbours’ list, Biscuit’s list
-function packList(me, pid, pack){
-  var el = document.getElementById('tablist'); if (!el) return;
-  Promise.all([rpc('vp_pack_items', { p_tail: me.tail, p_pack: pid }), readLedger(me.tail).catch(function(){ return null; })]).then(function(res){
-    var items = res[0] || [], mine = ((res[1] && res[1].entries) || []).filter(function(e){ return e.body; });
-    var onList = {}; items.forEach(function(i){ onList[i.body.toLowerCase()] = 1; });
-    var picks = mine.filter(function(e){ return !onList[e.body.trim().toLowerCase()]; }).slice(0, 6);
-    el.innerHTML = '<div class="plhead"><span>What should <b>' + esc(pack.name) + '</b> push for? Add issues, everyone votes.</span><button class="chip goldfill" id="plshare"><i class="ph-fill ph-share-network"></i> Share list</button></div>' +
-      '<div class="pladd"><input id="pltext" maxlength="140" placeholder="Add an issue, e.g. Dark street at night"><button class="btn gold compact" id="plgo">Add</button></div>' +
-      (picks.length ? '<div class="plpicks"><small>From ' + esc(me.name) + '’s memory:</small>' + picks.map(function(e){ return '<button class="chip" data-pick="' + esc(e.id || '') + '" data-body="' + esc(e.body) + '" data-topic="' + esc(e.topic || '') + '">＋ ' + esc(e.body.length > 34 ? e.body.slice(0, 33) + '…' : e.body) + '</button>'; }).join('') + '</div>' : '') +
-      (items.length ? '<ol class="plist">' + items.map(function(i, n){
-        return '<li class="' + (n < 3 ? 'top' : '') + '"><span class="plrank">' + (n + 1) + '</span><span class="plbody">' + (TOPIC_GLYPH[i.topic] ? TOPIC_GLYPH[i.topic] + ' ' : '') + esc(i.body) +
-          '<small>added by ' + esc(i.who) + ((i.mine || pack.owner) ? ' · <a href="#" data-plrm="' + i.id + '">remove</a>' : '') + '</small></span>' +
-          '<button class="plvote' + (i.voted ? ' on' : '') + '" data-plv="' + i.id + '"><i class="ph-fill ph-paw-print"></i><b>' + i.votes + '</b></button></li>'; }).join('') + '</ol>'
-        : '<p class="hint">Nothing on the list yet. Add the first issue 🐾</p>');
-    function add(body, topic, entry){ var b = document.getElementById('plgo'); b.disabled = true;
-      fetch(SUPABASE_URL + '/functions/v1/pack-chat', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ tail: me.tail, pack: pid, action: 'add_item', body: body, topic: topic || guessTopic(body), entry: entry || null }) })
-        .then(function(r){ return r.json(); }).then(function(r){ b.disabled = false; if (r.error) { toast(r.error); return; } track('pack', { act: 'item' }); packList(me, pid, pack); })
-        .catch(function(e){ b.disabled = false; toast(e.message); }); }
-    document.getElementById('plgo').onclick = function(){ var t = document.getElementById('pltext').value.trim(); if (t) add(t); };
-    document.getElementById('pltext').onkeydown = function(ev){ if (ev.key === 'Enter') { ev.preventDefault(); document.getElementById('plgo').click(); } };
-    el.querySelectorAll('[data-pick]').forEach(function(c){ c.onclick = function(){ add(c.getAttribute('data-body'), c.getAttribute('data-topic'), c.getAttribute('data-pick')); }; });
-    el.querySelectorAll('[data-plv]').forEach(function(v){ v.onclick = function(){ v.classList.toggle('on'); rpc('vp_pack_vote', { p_tail: me.tail, p_item: v.getAttribute('data-plv') }).then(function(){ packList(me, pid, pack); }); }; });
-    el.querySelectorAll('[data-plrm]').forEach(function(a){ a.onclick = function(ev){ ev.preventDefault(); rpc('vp_pack_item_remove', { p_tail: me.tail, p_item: a.getAttribute('data-plrm') }).then(function(){ packList(me, pid, pack); }); }; });
-    document.getElementById('plshare').onclick = function(){
-      rpc('vp_pack_share', { p_tail: me.tail, p_pack: pid }).then(function(s){
-        var url = location.origin + '/list/' + s, top = items.slice(0, 3).map(function(i, n){ return (n + 1) + '. ' + i.body; }).join('\n');
-        var txt = poss(pack.name) + ' list 🐾\n' + (top ? top + '\n' : '') + 'Running for office? Start with our list: ' + url;
-        track('pack', { act: 'share_list' });
-        if (navigator.share) navigator.share({ title: poss(pack.name) + ' list', text: txt }).catch(function(){}); else { navigator.clipboard.writeText(txt); toast('List link copied'); } }); };
-  });
+// invite links: voterpup.com/join/9-muddy-puddles. Existing pups knock straight away; new visitors make a pup first.
+function joinFromLink(code){
+  var me = loadLocal();
+  if (me) { rpc('vp_pack_join', { p_tail: me.tail, p_code: code }).then(function(p){ if (p.status === 'pending') packPost(me, p.id, { action: 'joined' }).catch(function(){}); location.replace('/packs/' + p.id); })
+    .catch(function(e){ toast(e.message); location.replace('/packs'); }); return; }
+  try { localStorage.setItem('vp.joincode', code); } catch (e) {}
+  screenCapture();
+  rpc('vp_pack_peek', { p_code: code }).then(function(p){
+    if (!p) { try { localStorage.removeItem('vp.joincode'); } catch (e) {} toast('That invite has expired. Ask for a fresh link 🐾'); return; }
+    var n = document.querySelector('.hello'); if (n) n.insertAdjacentHTML('beforebegin', '<div class="joinban"><b>🐾 ' + esc(p.owner) + ' invited you to “' + esc(p.name) + '”</b><span>Tap one issue below to make your pup and join the pack.</span></div>');
+  }).catch(function(){});
+}
+function afterFirstPup(l){   // called once the new pup exists: an invite waiting? go straight to the pack
+  var code = null; try { code = localStorage.getItem('vp.joincode'); localStorage.removeItem('vp.joincode'); } catch (e) {}
+  if (!code) return Promise.resolve(null);
+  return rpc('vp_pack_join', { p_tail: l.tail, p_code: code }).then(function(p){
+    if (p.status === 'pending') packPost(l, p.id, { action: 'joined' }).catch(function(){});
+    track('pack', { act: 'join_link' }); return '/packs/' + p.id; }).catch(function(){ return null; });
 }
 function screenPublicList(sid){
   root.innerHTML = nav() + '<div id="plpub"><p class="hint">Loading…</p></div>';
@@ -3920,7 +4021,7 @@ function screenPack(mode, topic0){
   }).catch(function(e){ document.getElementById('board').textContent = 'The pack is napping: ' + e.message; });
 }
 
-var APP_VERSION = "20261004174057";
+var APP_VERSION = "20261004180535";
 (function(){
   try {
     fetch('/version.json?t=' + Date.now(), { cache: 'no-store' }).then(function(r){ return r.json(); }).then(function(j){
@@ -4424,6 +4525,7 @@ function introShow(then){
   else if (location.pathname === '/manage') screenManage();
   else if (location.pathname === '/play') screenPlay();
   else if (location.pathname === '/packs') screenPacksHome();
+  else if (/^\/join\/[0-9]+-[a-z-]+$/i.test(location.pathname)) joinFromLink(decodeURIComponent(location.pathname.slice(6)).replace(/-/g, ' '));
   else if (/^\/list\/[0-9a-f]{10}$/.test(location.pathname)) screenPublicList(location.pathname.split('/')[2]);
   else if (/^\/packs\/[0-9a-f-]{36}$/.test(location.pathname)) screenPackRoom(location.pathname.split('/')[2]);
   else if (qs.get('new') === '1' || KIOSK || !loadLocal()) {   // first visit: make your pup
