@@ -1059,6 +1059,14 @@
   .plvote{display:flex; flex-direction:column; align-items:center; min-width:46px; padding:5px 6px; border-radius:12px; border:1.5px solid var(--line); background:var(--chip); color:var(--sub); font:inherit; cursor:pointer}
   .plvote.on{background:var(--gold); border-color:var(--gold); color:var(--goldink)} .plvote b{font-size:13px} .plvote.ro{cursor:default}
   .plpubh{margin:8px 2px 4px} .plpubh small{color:var(--goldtext); font-weight:900; letter-spacing:.06em; text-transform:uppercase; font-size:11px} .plpubh h1{margin:4px 0 6px; font-size:26px} .plpubh p{color:var(--sub); margin:0}
+  .tabbar a.tabwide{flex:2}   /* Your city + Packs | Snap | Feathers: Snap stays in the middle */
+  .tabbar a{position:relative} .tabbadge{position:absolute; top:4px; left:calc(50% + 8px); font-style:normal; background:var(--red); color:#fff; font-size:10px; font-weight:900; border-radius:999px; padding:1px 5px; line-height:1.3}
+  .packshome h1{margin:6px 2px 4px; font-size:26px} .packshome .packsbox{margin-top:10px}
+  #room .composerx{position:sticky; bottom:calc(70px + env(safe-area-inset-bottom)); background:var(--bg); padding:6px 0} #room .msgs{height:calc(100vh - 470px)}
+  #room{padding-bottom:90px}
+  .pbrow{position:relative; padding-right:44px} .pbrow .pbbadge{position:absolute; right:0; top:10px} .pbrow .pbbadge.ask{top:auto; bottom:2px}
+  .pkbtns{display:flex; gap:8px; margin:12px 0 4px} .pkbtns .btn{flex:1; margin:0; font-size:14.5px; padding:12px 8px}
+  .packshome .pbhead span{display:none}
 </style>
 </head>
 <body>
@@ -1963,7 +1971,7 @@ function screenLedger(tail){
         '<div class="pupsub">' + (n ? 'remembers ' + n + ' thing' + (n === 1 ? '' : 's') : 'tap 📸 to feed ' + esc(L.name) + ' a photo') + '</div></div>' +
         '</div>' +
       (KIOSK ? '' : huntCardHTML(L.name) + '<div class="actrow"><button class="actbtn snap" id="qwalk"><span class="acti"><i class="ph-fill ph-camera"></i></span><span class="actt"><b>Snap</b><small>a photo</small></span></button>' +
-        '<button class="actbtn note" id="qnote"><span class="acti"><i class="ph-fill ph-note-pencil"></i></span><span class="actt"><b>Note</b><small>a few words</small></span></button></div><div id="packsbox"></div>') +
+        '<button class="actbtn note" id="qnote"><span class="acti"><i class="ph-fill ph-note-pencil"></i></span><span class="actt"><b>Note</b><small>a few words</small></span></button></div>') +
       '<div id="fetchslot"></div>' +
       '<div class="momwrap" id="votestrip"></div>' +
       '<div id="entries" class="elist"></div>' + '<div id="backedbox"></div>' +
@@ -1974,7 +1982,6 @@ function screenLedger(tail){
       document.querySelectorAll('[data-hv]').forEach(function(x){ x.classList.toggle('on', x === b); });
       document.querySelectorAll('[data-hview]').forEach(function(x){ x.hidden = x.getAttribute('data-hview') !== v; });
       if (v === 'map') huntMap(); }; }); animateRing(); showNewReacts(tail);
-    renderPacksBox(tail, L.name);
     var qw = document.getElementById('qwalk'); if (qw) qw.onclick = startWalk; var qn = document.getElementById('qnote'); if (qn) qn.onclick = function(){ openAdd(); };
     var fb = document.getElementById('flashbtn'); if (fb) fb.onclick = function(ev){ ev.preventDefault(); openFlashback(L); };
     renderIsland(tail, L.name);
@@ -2210,7 +2217,7 @@ function startWalk(){
   else if (navigator.permissions && navigator.permissions.query) navigator.permissions.query({ name: 'geolocation' }).then(function(st){ if (st.state === 'granted') grabSpot(function(sp){ pendingSpot = sp; }, function(){}); }).catch(function(){});
   openCamera(s);   // never wait on anything before this: phones only open the camera straight from a tap
 }
-var PH = { camera_with_flash: ['ph-fill ph-camera', 'inherit'], cityscape: ['ph-duotone ph-buildings', '#22786a'], writing_hand: ['ph-duotone ph-pencil-simple-line', '#3b6fb6'],
+var PH = { camera_with_flash: ['ph-fill ph-camera', 'inherit'], packs: ['ph-duotone ph-users-three', '#1fb5b0'], cityscape: ['ph-duotone ph-buildings', '#22786a'], writing_hand: ['ph-duotone ph-pencil-simple-line', '#3b6fb6'],
   bullseye: ['ph-duotone ph-game-controller', '#d1495b'], high_voltage: ['ph-fill ph-lightning', '#f4b63f'], world_map: ['ph-duotone ph-map-trifold', '#22786a'],
   round_pushpin: ['ph-fill ph-map-pin', '#d1495b'], globe_showing_americas: ['ph-duotone ph-globe-hemisphere-west', '#3b6fb6'], paw_prints: ['ph-duotone ph-paw-print', '#9a5f00'], memory: ['ph-duotone ph-clock-counter-clockwise', '#f4b63f'], dog: ['ph-duotone ph-dog', '#9a5f00'] };
 function ic(n, cls){
@@ -2221,8 +2228,9 @@ function tabName(){ var s = loadLocal(); return s && s.name ? (s.name.length > 1
 function tabbar(active){
   return '<div class="tabbar">' +
     '<a href="/pack" id="tab-city" class="' + (active==='pack'?'on':'') + '">' + ic('cityscape', 'tabic') + '<span>Your city</span></a>' +
+    '<a href="/packs" id="tab-packs" class="' + (active==='packs'?'on':'') + '">' + ic('packs', 'tabic') + '<span>Packs</span><i class="tabbadge" id="tabbadge" hidden></i></a>' +
     '<a href="#" class="plusbtn" id="tab-plus" aria-label="Snap a photo for your pup"><b>' + ic('camera_with_flash', 'feedic') + '</b><span class="walklbl">Snap</span></a>' +
-    '<a href="#" id="tab-pup" class="' + (active==='pup'||active==='manage'?'on':'') + '">' + ic('dog', 'tabic') + '<span>' + esc(tabName()) + '</span></a>' +
+    '<a href="#" id="tab-pup" class="tabwide ' + (active==='pup'||active==='manage'?'on':'') + '">' + ic('dog', 'tabic') + '<span>' + esc(tabName()) + '</span></a>' +
   '</div>';
 }
 function wireTabs(){
@@ -2231,6 +2239,26 @@ function wireTabs(){
     var s = loadLocal(); location.href = s ? pupURL(s.tail) : '/app.html?new=1'; };
   var pl = document.getElementById('tab-plus');
   if (pl) pl.onclick = function(ev){ ev.preventDefault(); startWalk(); };
+  var pk = document.getElementById('tab-packs'), me = loadLocal();
+  if (pk && !me) pk.onclick = function(ev){ ev.preventDefault(); location.href = '/app.html?new=1'; };
+  if (pk && me) packBadge(me.tail);
+}
+function packBadge(tail){   // unread messages + people waiting to be let in, refreshed at most once a minute
+  var show = function(n){ var b = document.getElementById('tabbadge'); if (b) { b.hidden = !n; b.textContent = n > 9 ? '9+' : n; } };
+  try { var c = JSON.parse(sessionStorage.getItem('vp.pkb') || 'null'); if (c && Date.now() - c.t < 60000) { show(c.n); return; } } catch (e) {}
+  rpc('vp_my_packs', { p_tail: tail }).then(function(list){
+    var n = 0; (list || []).forEach(function(p){ n += p.unread || 0; if (p.owner) n += (p.members || []).filter(function(m){ return m.status === 'pending' && !m.me; }).length; });
+    try { sessionStorage.setItem('vp.pkb', JSON.stringify({ t: Date.now(), n: n })); } catch (e) {}
+    show(n);
+  }).catch(function(){});
+}
+function screenPacksHome(){
+  var me = loadLocal(); if (!me) { location.href = '/app.html?new=1'; return; }
+  try { sessionStorage.removeItem('vp.pkb'); } catch (e) {}
+  root.innerHTML = nav() + '<div class="packshome"><h1>🐾 Packs</h1><p class="hint">Walk with friends. Make a list together, vote on what matters most, and share it with anyone running for office.</p><div class="pkbtns"><button class="btn gold" id="pkh-new"><i class="ph-fill ph-plus"></i> Start a pack</button><button class="btn ghost" id="pkh-join"><i class="ph-fill ph-key"></i> Join with a code</button></div><div id="packsbox"></div></div>' + tabbar('packs');
+  wireTabs(); renderPacksBox(me.tail, me.name);
+  document.getElementById('pkh-new').onclick = function(){ packCreateSheet(me.tail); };
+  document.getElementById('pkh-join').onclick = function(){ packJoinSheet(me.tail); };
 }
 // Flashback: every issue this pup remembers (its own + the ones it backs), rolled out by date.
 var FLASH_DEMO = [
@@ -3048,12 +3076,12 @@ function packJoinSheet(tail){
 }
 function screenPackRoom(pid){
   var me = loadLocal(); if (!me) { location.href = '/app.html?new=1'; return; }
-  clearInterval(window._roomT);
-  root.innerHTML = nav() + '<div id="room"><p class="hint">Loading your pack…</p></div>';   // a focused screen: no tab bar over the message box
+  clearInterval(window._roomT); try { sessionStorage.removeItem('vp.pkb'); } catch (e) {}
+  root.innerHTML = nav() + '<div id="room"><p class="hint">Loading your pack…</p></div>' + tabbar('packs'); wireTabs();
   var seen = {}, pack = null;
   function head(){
     var act = pack.members.filter(function(m){ return m.status === 'active'; }), pend = pack.members.filter(function(m){ return m.status === 'pending' && !m.me; });
-    return '<a href="' + pupURL(me.tail) + '" class="roomback">‹ ' + esc(me.name) + '</a><div class="roomh"><b>🐾 ' + esc(pack.name) + '</b><span>' + act.length + ' pup' + (act.length === 1 ? '' : 's') + '</span></div>' +
+    return '<a href="/packs" class="roomback">‹ Packs</a><div class="roomh"><b>🐾 ' + esc(pack.name) + '</b><span>' + act.length + ' pup' + (act.length === 1 ? '' : 's') + '</span></div>' +
       '<div class="roommem">' + act.map(function(m){ return '<span class="rmpup' + (m.me ? ' me' : '') + '">' + esc(m.name) + (m.role === 'owner' ? ' 👑' : '') +
         (pack.owner && !m.me ? ' <a href="#" data-rm="' + esc(m.tail) + '" title="remove">×</a>' : '') + '</span>'; }).join('') + '</div>' +
       (pack.owner && pend.length ? '<div class="roomask">' + pend.map(function(m){ return '<div><b>' + esc(m.name) + '</b> wants to join <button class="chip goldfill" data-ok="' + esc(m.tail) + '">Let in</button> <button class="chip" data-no="' + esc(m.tail) + '">No</button></div>'; }).join('') + '</div>' : '') +
@@ -3892,7 +3920,7 @@ function screenPack(mode, topic0){
   }).catch(function(e){ document.getElementById('board').textContent = 'The pack is napping: ' + e.message; });
 }
 
-var APP_VERSION = "20261004173624";
+var APP_VERSION = "20261004174057";
 (function(){
   try {
     fetch('/version.json?t=' + Date.now(), { cache: 'no-store' }).then(function(r){ return r.json(); }).then(function(j){
@@ -4395,6 +4423,7 @@ function introShow(then){
     var q0 = qs.get('q'); if (q0) setTimeout(function(){ var sb0 = document.getElementById('packsearch'); if (sb0) { sb0.value = q0; sb0.dispatchEvent(new Event('input')); } }, 1500); }
   else if (location.pathname === '/manage') screenManage();
   else if (location.pathname === '/play') screenPlay();
+  else if (location.pathname === '/packs') screenPacksHome();
   else if (/^\/list\/[0-9a-f]{10}$/.test(location.pathname)) screenPublicList(location.pathname.split('/')[2]);
   else if (/^\/packs\/[0-9a-f-]{36}$/.test(location.pathname)) screenPackRoom(location.pathname.split('/')[2]);
   else if (qs.get('new') === '1' || KIOSK || !loadLocal()) {   // first visit: make your pup
