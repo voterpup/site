@@ -1113,6 +1113,20 @@
   #tsheet .plist li{border-color:#23597a} #tsheet .plist li.todo{border-color:rgba(245,184,61,.6)}
   .joinban{background:linear-gradient(135deg,#0f3a35,#13283a); border-color:var(--accent)} .joinban b{color:#7fe0c8}
   #room .tvote b{color:inherit}
+  /* bottom bar v3: my pup · Groups (gold Snap floats above it) · Your city */
+  .tabbar a.tabwide{flex:1}
+  .tabbar .plusbtn{position:absolute !important; left:50%; top:-66px; transform:translateX(-50%); width:62px; height:62px; flex:none !important; padding:0 !important; z-index:2}
+  .tabbar .plusbtn b{top:0 !important; width:62px !important; height:62px !important; line-height:62px !important; font-size:27px !important; box-shadow:0 4px 0 #9a6608, 0 8px 22px rgba(0,0,0,.45) !important}
+  .tabbar .plusbtn .walklbl{display:none}
+  .tabbar .plusbtn:active b{transform:translateX(-50%) translateY(3px)}
+  #root{padding-bottom:150px}
+  /* group chat: the message box stays put above the bar; only messages scroll */
+  #room .composerx{position:fixed; left:0; right:0; bottom:calc(62px + env(safe-area-inset-bottom)); max-width:560px; margin:0 auto; padding:8px 16px 10px; background:var(--bg); z-index:8; border-top:1px solid var(--line)}
+  #room #mthumbs{position:fixed; left:0; right:0; bottom:calc(122px + env(safe-area-inset-bottom)); max-width:560px; margin:0 auto; padding:0 16px; z-index:8}
+  #room .msgs{height:auto; min-height:0; max-height:none; overflow:visible; padding-bottom:8px}
+  body.inroom .tabbar .plusbtn{display:none}
+  body.inroom #root{padding-bottom:140px}
+  #root > #room{animation:none !important; transform:none !important}   /* a transformed parent would trap the fixed message box */
 </style>
 </head>
 <body>
@@ -2273,10 +2287,10 @@ function ic(n, cls){
 function tabName(){ var s = loadLocal(); return s && s.name ? (s.name.length > 12 ? s.name.slice(0, 11) + '…' : s.name) : 'My pup'; }
 function tabbar(active){
   return '<div class="tabbar">' +
+    '<a href="#" id="tab-pup" class="' + (active==='pup'||active==='manage'?'on':'') + '">' + ic('dog', 'tabic') + '<span>' + esc(tabName()) + '</span></a>' +
+    '<a href="/groups" id="tab-packs" class="tabmid ' + (active==='packs'?'on':'') + '">' + ic('packs', 'tabic') + '<span>Groups</span><i class="tabbadge" id="tabbadge" hidden></i></a>' +
     '<a href="/pack" id="tab-city" class="' + (active==='pack'?'on':'') + '">' + ic('cityscape', 'tabic') + '<span>Your city</span></a>' +
-    '<a href="/packs" id="tab-packs" class="' + (active==='packs'?'on':'') + '">' + ic('packs', 'tabic') + '<span>Packs</span><i class="tabbadge" id="tabbadge" hidden></i></a>' +
     '<a href="#" class="plusbtn" id="tab-plus" aria-label="Snap a photo for your pup"><b>' + ic('camera_with_flash', 'feedic') + '</b><span class="walklbl">Snap</span></a>' +
-    '<a href="#" id="tab-pup" class="tabwide ' + (active==='pup'||active==='manage'?'on':'') + '">' + ic('dog', 'tabic') + '<span>' + esc(tabName()) + '</span></a>' +
   '</div>';
 }
 function wireTabs(){
@@ -2301,7 +2315,7 @@ function packBadge(tail){   // unread messages + people waiting to be let in, re
 function screenPacksHome(){
   var me = loadLocal(); if (!me) { location.href = '/app.html?new=1'; return; }
   try { sessionStorage.removeItem('vp.pkb'); } catch (e) {}
-  root.innerHTML = nav() + '<div class="packshome"><h1>🐾 Packs</h1><p class="hint">Walk with friends. Make a list together, vote on what matters most, and share it with anyone running for office.</p><div class="pkbtns"><button class="btn gold" id="pkh-new"><i class="ph-fill ph-plus"></i> Start a pack</button><button class="btn ghost" id="pkh-join"><i class="ph-fill ph-key"></i> Join with a code</button></div><div id="packsbox"></div></div>' + tabbar('packs');
+  root.innerHTML = nav() + '<div class="packshome"><h1>🐾 Groups</h1><p class="hint">Walk with friends. Make a list together, vote on what matters most, and share it with anyone running for office.</p><div class="pkbtns"><button class="btn gold" id="pkh-new"><i class="ph-fill ph-plus"></i> Start a group</button><button class="btn ghost" id="pkh-join"><i class="ph-fill ph-key"></i> Join with a code</button></div><div id="packsbox"></div></div>' + tabbar('packs');
   wireTabs(); renderPacksBox(me.tail, me.name);
   document.getElementById('pkh-new').onclick = function(){ packCreateSheet(me.tail); };
   document.getElementById('pkh-join').onclick = function(){ packJoinSheet(me.tail); };
@@ -3089,13 +3103,13 @@ function renderPacksBox(tail, name){
   var box = document.getElementById('packsbox'); if (!box || KIOSK) return;
   rpc('vp_my_packs', { p_tail: tail }).then(function(list){
     list = list || [];
-    box.innerHTML = '<div class="packsbox"><div class="pbhead"><b>🐾 Your packs</b><span><a href="#" id="pbnew">＋ Start</a> · <a href="#" id="pbjoin">Join with a code</a></span></div>' +
+    box.innerHTML = '<div class="packsbox"><div class="pbhead"><b>🐾 Your groups</b><span><a href="#" id="pbnew">＋ Start</a> · <a href="#" id="pbjoin">Join with a code</a></span></div>' +
       (list.length ? list.map(function(p){
         var act = (p.members || []).filter(function(m){ return m.status === 'active'; }).length, pend = (p.members || []).filter(function(m){ return m.status === 'pending' && !m.me; }).length;
         return '<a class="pbrow" href="/packs/' + p.id + '"><span class="pbname">' + esc(p.name) + '</span><span class="pbmeta">' +
           (p.status === 'pending' ? 'waiting for the owner to let you in' : act + ' pup' + (act === 1 ? '' : 's') + (p.last ? ' · ' + esc(p.last.who) + ': ' + esc(p.last.body || '📷') : '')) + '</span>' +
           (p.unread ? '<i class="pbbadge">' + p.unread + '</i>' : '') + (p.owner && pend ? '<i class="pbbadge ask">' + pend + ' to let in</i>' : '') + '</a>'; }).join('')
-        : '<div class="pbempty">Walk with friends: start a pack, share the code, and see each other&rsquo;s finds and issues.</div>') + '</div>';
+        : '<div class="pbempty">Walk with friends: start a group, share the link, and see each other&rsquo;s finds and issues.</div>') + '</div>';
     document.getElementById('pbnew').onclick = function(ev){ ev.preventDefault(); packCreateSheet(tail); };
     document.getElementById('pbjoin').onclick = function(ev){ ev.preventDefault(); packJoinSheet(tail); };
   }).catch(function(){});
@@ -3103,15 +3117,15 @@ function renderPacksBox(tail, name){
 function sheet(html){ var ov = document.createElement('div'); ov.className = 'stkover'; ov.innerHTML = '<div class="stksheet">' + html + '</div>'; document.body.appendChild(ov);
   var close = function(){ if (ov.parentNode) ov.parentNode.removeChild(ov); }; ov.onclick = function(ev){ if (ev.target === ov) close(); }; return { ov: ov, close: close }; }
 function packCreateSheet(tail){
-  var s = sheet('<div class="addhead">🐾 Start a pack</div><p class="hint">Name it, then share the code with friends. Codes last one hour; you let each person in.</p>' +
-    '<input id="pkname" maxlength="40" placeholder="e.g. Main St Neighbours"><button class="btn gold" id="pkgo">Create pack</button>');
+  var s = sheet('<div class="addhead">🐾 Start a group</div><p class="hint">Name it, then share the code with friends. Codes last one hour; you let each person in.</p>' +
+    '<input id="pkname" maxlength="40" placeholder="e.g. Main St Neighbours"><button class="btn gold" id="pkgo">Create group</button>');
   var i = document.getElementById('pkname'); i.focus();
   document.getElementById('pkgo').onclick = function(){ var b = this; b.disabled = true;
     rpc('vp_pack_create', { p_tail: tail, p_name: i.value }).then(function(p){ s.close(); track('pack', { act: 'create' }); location.href = '/packs/' + p.id; })
       .catch(function(e){ b.disabled = false; toast(e.message); }); };
 }
 function packJoinSheet(tail){
-  var s = sheet('<div class="addhead">🐾 Join a pack</div><p class="hint">Type the code your friend gave you, like <b>8 squeaky bones</b>.</p>' +
+  var s = sheet('<div class="addhead">🐾 Join a group</div><p class="hint">Type the code your friend gave you, like <b>8 squeaky bones</b>.</p>' +
     '<input id="pkcode" maxlength="40" placeholder="number + two words" autocapitalize="off"><button class="btn gold" id="pkgo">Join</button>');
   var i = document.getElementById('pkcode'); i.focus();
   document.getElementById('pkgo').onclick = function(){ var b = this; b.disabled = true;
@@ -3127,16 +3141,17 @@ function codeSlug(c){ return c.replace(/\s+/g, '-'); }
 function screenPackRoom(pid){
   var me = loadLocal(); if (!me) { location.href = '/app.html?new=1'; return; }
   clearInterval(window._roomT); try { sessionStorage.removeItem('vp.pkb'); } catch (e) {}
-  root.innerHTML = nav() + '<div id="room"><p class="hint">Loading your pack…</p></div>' + tabbar('packs'); wireTabs();
+  root.innerHTML = nav() + '<div id="room"><p class="hint">Loading your group…</p></div>' + tabbar('packs'); wireTabs();
+  document.body.classList.add('inroom');
   var seen = {}, pack = null, topicMode = false, items = [];
   function head(){
     var act = pack.members.filter(function(m){ return m.status === 'active'; }), pend = pack.members.filter(function(m){ return m.status === 'pending' && !m.me; });
-    return '<a href="/packs" class="roomback">‹ Packs</a><div class="roomh"><b>🐾 ' + esc(pack.name) + '</b><span>' + act.length + ' pup' + (act.length === 1 ? '' : 's') + '</span></div>' +
+    return '<a href="/groups" class="roomback">‹ Groups</a><div class="roomh"><b>🐾 ' + esc(pack.name) + '</b><span>' + act.length + ' pup' + (act.length === 1 ? '' : 's') + '</span></div>' +
       '<div class="roommem">' + act.map(function(m){ return '<span class="rmpup' + (m.me ? ' me' : '') + '">' + esc(m.name) + (m.role === 'owner' ? ' 👑' : '') +
         (pack.owner && !m.me ? ' <a href="#" data-rm="' + esc(m.tail) + '" title="remove">×</a>' : '') + '</span>'; }).join('') +
-        '<a href="#" class="roomleave" id="roomleave">' + (pack.owner ? 'Close pack' : 'Leave') + '</a></div>' +
+        '<a href="#" class="roomleave" id="roomleave">' + (pack.owner ? 'Close group' : 'Leave') + '</a></div>' +
       (pack.owner && pend.length ? '<div class="roomask">' + pend.map(function(m){ return '<div><b>' + esc(m.name) + '</b> wants to join <button class="chip goldfill" data-ok="' + esc(m.tail) + '">Let in</button> <button class="chip" data-no="' + esc(m.tail) + '">No</button></div>'; }).join('') + '</div>' : '') +
-      (pack.status === 'pending' ? '<div class="roomwait"><img src="/pup-face.jpg" alt=""><div><b>Knock knock 🐾</b><br>The pack owner will let you in. This page opens by itself when they do.</div></div>' : '') +
+      (pack.status === 'pending' ? '<div class="roomwait"><img src="/pup-face.jpg" alt=""><div><b>Knock knock 🐾</b><br>The group owner will let you in. This page opens by itself when they do.</div></div>' : '') +
       (pack.owner ? '<div class="roomcode" id="roomcode"></div>' : '');
   }
   function codeBox(){
@@ -3145,7 +3160,7 @@ function screenPackRoom(pid){
       var mins = Math.max(1, Math.round((new Date(c.expires_at) - Date.now()) / 60000)), link = location.origin + '/join/' + codeSlug(c.code);
       el.innerHTML = '<div class="rcline" id="rcshare" role="button"><i class="rcic ph-fill ph-link"></i><span><b>Invite via link</b><small>' + esc(c.code) + ' · ' + mins + ' min</small></span>' +
         '<button class="rcnew" id="rcnew" title="new code" aria-label="new code"><i class="ph-fill ph-arrows-clockwise"></i></button></div>';
-      var txt = 'Join my VoterPup pack "' + pack.name + '" 🐾 ' + link + '\n(or type the code ' + c.code + ' · works for an hour)';
+      var txt = 'Join my VoterPup group "' + pack.name + '" 🐾 ' + link + '\n(or type the code ' + c.code + ' · works for an hour)';
       document.getElementById('rcshare').onclick = function(){ track('pack', { act: 'invite' }); if (navigator.share) navigator.share({ text: txt }).catch(function(){}); else { navigator.clipboard.writeText(txt); toast('Invite link copied'); } };
       document.getElementById('rcnew').onclick = function(ev){ ev.stopPropagation(); rpc('vp_pack_new_code_now', { p_tail: me.tail, p_pack: pid }).then(function(){ codeBox(); toast('New code. Everyone already in stays in.'); }); };
     }).catch(function(){});
@@ -3168,11 +3183,11 @@ function screenPackRoom(pid){
     return packPost(me, pid, { action: 'read' }).then(function(list){
       var box = document.getElementById('msgs'); if (!box || !Array.isArray(list)) return;
       var fresh = list.filter(function(m){ return !seen[m.id]; }); if (!fresh.length && !first) return;
-      var atEnd = box.scrollHeight - box.scrollTop - box.clientHeight < 80;
+      var se = document.scrollingElement || document.documentElement, atEnd = se.scrollHeight - se.scrollTop - window.innerHeight < 160;
       fresh.forEach(function(m){ seen[m.id] = 1; box.insertAdjacentHTML('beforeend', msgHTML(m)); });
-      if (first && !list.length) box.innerHTML = '<p class="hint" id="nomsg">Say hi 🐾 or tap <b>📌 Topic</b> to start something for the pack to vote on.</p>';
+      if (first && !list.length) box.innerHTML = '<p class="hint" id="nomsg">Say hi 🐾 or tap <b>📌 Topic</b> to start something for the group to vote on.</p>';
       else { var nm = document.getElementById('nomsg'); if (nm) nm.remove(); }
-      if (first || atEnd) box.scrollTop = box.scrollHeight;
+      if (first || atEnd) window.scrollTo(0, se.scrollHeight);
     }).catch(function(){});
   }
   // topics: one source of truth for the gold badge, the chat cards and the voting sheet
@@ -3217,7 +3232,7 @@ function screenPackRoom(pid){
     topicMode = on; var t = document.getElementById('mtext'), b = document.getElementById('mtopic'), c = document.querySelector('.composerx');
     if (!t) return;
     b.classList.toggle('on', on); c.classList.toggle('topicmode', on);
-    t.placeholder = on ? 'New topic for the pack to vote on' : 'Message your pack'; t.maxLength = on ? 140 : 500;
+    t.placeholder = on ? 'New topic for the group to vote on' : 'Message your group'; t.maxLength = on ? 140 : 500;
     document.getElementById('mattach').hidden = on; document.getElementById('msend').innerHTML = on ? '<i class="ph-fill ph-push-pin"></i>' : '<i class="ph-fill ph-paper-plane-right"></i>';
     if (on) t.focus();
   }
@@ -3226,14 +3241,14 @@ function screenPackRoom(pid){
       '<button class="tbar" id="tbar"><span class="tbl">🗳️ <span id="tlabel">Topics</span></span><i class="tbadge" id="tbadge" hidden>0</i><span class="tbgo">vote ›</span></button>' +
       '<div class="msgs" id="msgs"></div>' +
       '<div class="composerx"><button class="iconbtn" id="mtopic" title="start a topic to vote on">📌<small>Topic</small></button><button class="iconbtn" id="mattach" title="photo or short video"><i class="ph-duotone ph-image"></i></button>' +
-      '<input id="mpick" type="file" accept="image/*,video/*" hidden><textarea id="mtext" rows="1" maxlength="500" placeholder="Message your pack"></textarea><button class="msend" id="msend" aria-label="send"><i class="ph-fill ph-paper-plane-right"></i></button></div><div id="mthumbs" class="attach"></div>' : '');
+      '<input id="mpick" type="file" accept="image/*,video/*" hidden><textarea id="mtext" rows="1" maxlength="500" placeholder="Message your group"></textarea><button class="msend" id="msend" aria-label="send"><i class="ph-fill ph-paper-plane-right"></i></button></div><div id="mthumbs" class="attach"></div>' : '');
     codeBox();
     Array.prototype.forEach.call(document.querySelectorAll('[data-ok],[data-no],[data-rm]'), function(b){ b.onclick = function(ev){ ev.preventDefault();
       var who = b.getAttribute('data-ok') || b.getAttribute('data-no') || b.getAttribute('data-rm'), ok = b.hasAttribute('data-ok');
       rpc('vp_pack_decide', { p_tail: me.tail, p_pack: pid, p_member: who, p_ok: ok }).then(refresh).catch(function(e){ toast(e.message); }); }; });
     document.getElementById('roomleave').onclick = function(ev){ ev.preventDefault();
-      if (!confirm(pack.owner ? 'Close this pack for everyone?' : 'Leave this pack?')) return;
-      rpc('vp_pack_leave', { p_tail: me.tail, p_pack: pid }).then(function(){ location.href = '/packs'; }); };
+      if (!confirm(pack.owner ? 'Close this group for everyone?' : 'Leave this group?')) return;
+      rpc('vp_pack_leave', { p_tail: me.tail, p_pack: pid }).then(function(){ location.href = '/groups'; }); };
     clearInterval(window._roomT);
     if (pack.status !== 'active') {   // waiting at the door: check every few seconds and walk in when let in
       window._roomT = setInterval(function(){ if (!document.getElementById('room')) return clearInterval(window._roomT);
@@ -3270,7 +3285,7 @@ function screenPackRoom(pid){
         .catch(function(e){ b.disabled = false; toast('Not sent: ' + e.message); }); };
   }
   function refresh(){ return rpc('vp_my_packs', { p_tail: me.tail }).then(function(list){ pack = (list || []).filter(function(p){ return p.id === pid; })[0];
-    if (!pack) { document.getElementById('room').innerHTML = '<p class="hint">This pack isn&rsquo;t yours, or it was closed.</p>'; return; } render(); }); }
+    if (!pack) { document.getElementById('room').innerHTML = '<p class="hint">This group isn&rsquo;t yours, or it was closed.</p>'; return; } render(); }); }
   refresh();
 }
 function poss(n){ return n + (/s$/i.test(n) ? '’' : '’s'); }   // Neighbours’ list, Biscuit’s list
@@ -3283,7 +3298,7 @@ function joinFromLink(code){
   screenCapture();
   rpc('vp_pack_peek', { p_code: code }).then(function(p){
     if (!p) { try { localStorage.removeItem('vp.joincode'); } catch (e) {} toast('That invite has expired. Ask for a fresh link 🐾'); return; }
-    var n = document.querySelector('.hello'); if (n) n.insertAdjacentHTML('beforebegin', '<div class="joinban"><b>🐾 ' + esc(p.owner) + ' invited you to “' + esc(p.name) + '”</b><span>Tap one issue below to make your pup and join the pack.</span></div>');
+    var n = document.querySelector('.hello'); if (n) n.insertAdjacentHTML('beforebegin', '<div class="joinban"><b>🐾 ' + esc(p.owner) + ' invited you to “' + esc(p.name) + '”</b><span>Tap one issue below to make your pup and join the group.</span></div>');
   }).catch(function(){});
 }
 function afterFirstPup(l){   // called once the new pup exists: an invite waiting? go straight to the pack
@@ -3299,7 +3314,7 @@ function screenPublicList(sid){
     var el = document.getElementById('plpub');
     if (!L) { el.innerHTML = '<p class="hint">This list isn’t shared any more.</p>'; return; }
     var items = L.items || [];
-    el.innerHTML = '<div class="plpubh"><small>A VoterPup pack · ' + L.members + ' pup' + (L.members === 1 ? '' : 's') + '</small><h1>' + esc(poss(L.name)) + ' list</h1><p>Neighbours added these and voted on them. Want our vote? Start here.</p></div>' +
+    el.innerHTML = '<div class="plpubh"><small>A VoterPup group · ' + L.members + ' pup' + (L.members === 1 ? '' : 's') + '</small><h1>' + esc(poss(L.name)) + ' list</h1><p>Neighbours added these and voted on them. Want our vote? Start here.</p></div>' +
       (items.length ? '<ol class="plist pub">' + items.map(function(i, n){ return '<li class="' + (n < 3 ? 'top' : '') + '"><span class="plrank">' + (n + 1) + '</span><span class="plbody">' + (TOPIC_GLYPH[i.topic] ? TOPIC_GLYPH[i.topic] + ' ' : '') + esc(i.body) + '</span><span class="plvote ro"><i class="ph-fill ph-paw-print"></i><b>' + i.votes + '</b></span></li>'; }).join('') + '</ol>' : '<p class="hint">The list is empty for now.</p>') +
       '<a class="btn gold" href="/app.html?new=1&src=list">Make your own pup · free, no account</a><p class="hint" style="text-align:center">No names, no parties. Just the issues.</p>';
   }).catch(function(){ document.getElementById('plpub').innerHTML = '<p class="hint">Couldn’t load the list. Try again.</p>'; });
@@ -4021,7 +4036,7 @@ function screenPack(mode, topic0){
   }).catch(function(e){ document.getElementById('board').textContent = 'The pack is napping: ' + e.message; });
 }
 
-var APP_VERSION = "20261004180535";
+var APP_VERSION = "20261004184640";
 (function(){
   try {
     fetch('/version.json?t=' + Date.now(), { cache: 'no-store' }).then(function(r){ return r.json(); }).then(function(j){
@@ -4524,7 +4539,7 @@ function introShow(then){
     var q0 = qs.get('q'); if (q0) setTimeout(function(){ var sb0 = document.getElementById('packsearch'); if (sb0) { sb0.value = q0; sb0.dispatchEvent(new Event('input')); } }, 1500); }
   else if (location.pathname === '/manage') screenManage();
   else if (location.pathname === '/play') screenPlay();
-  else if (location.pathname === '/packs') screenPacksHome();
+  else if (location.pathname === '/packs' || location.pathname === '/groups') screenPacksHome();
   else if (/^\/join\/[0-9]+-[a-z-]+$/i.test(location.pathname)) joinFromLink(decodeURIComponent(location.pathname.slice(6)).replace(/-/g, ' '));
   else if (/^\/list\/[0-9a-f]{10}$/.test(location.pathname)) screenPublicList(location.pathname.split('/')[2]);
   else if (/^\/packs\/[0-9a-f-]{36}$/.test(location.pathname)) screenPackRoom(location.pathname.split('/')[2]);

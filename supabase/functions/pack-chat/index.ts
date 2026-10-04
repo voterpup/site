@@ -34,7 +34,7 @@ async function nudge(db: any, pack: string, from: string, line: string, onlyTo?:
     if (!subs?.length) continue;
     await db.from("pack_members").update({ last_push: new Date().toISOString() }).eq("pack_id", pack).eq("tail", o.tail);
     for (const s of subs) webpush.sendNotification({ endpoint: s.endpoint, keys: { p256dh: s.p256dh, auth: s.auth } },
-      JSON.stringify({ title: "🐾 " + (pk?.name ?? "Your pack"), body: line, url: "/packs/" + pack }), { TTL: 6 * 3600 }).catch(() => {});
+      JSON.stringify({ title: "🐾 " + (pk?.name ?? "Your group"), body: line, url: "/packs/" + pack }), { TTL: 6 * 3600 }).catch(() => {});
   }
 }
 
@@ -51,7 +51,7 @@ Deno.serve(async (req) => {
     if (pk) await nudge(db, pack, tail, (me?.name ?? "A pup") + " wants to join. Tap to let them in.", pk.owner_tail);
     return json({ ok: true });
   }
-  if (!mem || mem.status !== "active") return json({ error: "Not in this pack yet." }, 403);
+  if (!mem || mem.status !== "active") return json({ error: "Not in this group yet." }, 403);
 
   if (b.action === "read") {
     let q = db.from("pack_messages").select("id, tail, body, media, mod, created_at, item_id").eq("pack_id", pack).order("created_at", { ascending: false }).limit(60);
