@@ -1089,7 +1089,7 @@
   .joinban{background:linear-gradient(135deg,#2a2208,#1b3043); border:1.5px solid var(--gold); border-radius:16px; padding:10px 12px; margin:6px 0 10px} .joinban b{display:block; color:var(--goldtext)} .joinban span{font-size:13px; color:var(--sub)}
   #room .msgs{height:calc(100vh - 430px)}
   /* pack room: WhatsApp-familiar, soothing blue/green; gold = needs your vote, red = counters */
-  #room{--wa:#00a884; --wamine:#005c4b; --waother:#1f2c34; --wablue:#53bdeb}
+  :root{--wa:#00a884; --wamine:#005c4b; --waother:#1f2c34; --wablue:#53bdeb}   /* also used by the topics sheet, which sits outside #room */
   #room .roomcode{background:transparent; border:0; padding:0; margin:6px 0}
   .rcline{display:flex; align-items:center; gap:12px; padding:8px 4px; border-radius:12px; cursor:pointer} .rcline:active{background:rgba(255,255,255,.05)}
   .rcic{width:40px; height:40px; border-radius:50%; background:var(--wa); color:#fff; display:inline-flex; align-items:center; justify-content:center; font-size:20px; flex:0 0 auto}
@@ -4036,7 +4036,7 @@ function screenPack(mode, topic0){
   }).catch(function(e){ document.getElementById('board').textContent = 'The pack is napping: ' + e.message; });
 }
 
-var APP_VERSION = "20261004190004";
+var APP_VERSION = "20261004190149";
 (function(){
   try {
     fetch('/version.json?t=' + Date.now(), { cache: 'no-store' }).then(function(r){ return r.json(); }).then(function(j){
