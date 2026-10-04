@@ -3467,21 +3467,26 @@ var HUNT_ITEMS = {
   bin: ['ph-trash', 'a bin', '#5f7d8c', 1], light: ['ph-lamp', 'a street light', '#e8a200', 1], crosswalk: ['ph-traffic-sign', 'a crosswalk', '#1c7ed6', 1],
   puddle: ['ph-drop', 'a puddle', '#1fa2d6', 1], flowers: ['ph-flower-tulip', 'flowers', '#e64980', 1], bus: ['ph-bus', 'a bus stop', '#12b886', 1],
   sign: ['ph-signpost', 'a street sign', '#b8860b', 1], cone: ['ph-traffic-cone', 'a traffic cone', '#f76707', 1], shop: ['ph-storefront', 'a shop front', '#7048e8', 1],
-  leaves: ['ph-leaf', 'fallen leaves', '#e8590c', 1], mailbox: ['ph-mailbox', 'a mailbox', '#e03131', 1], hydrant: ['ph-fire-extinguisher', 'a fire hydrant', '#e03131', 1],
+  leaves: ['ph-leaf', 'fallen leaves', '#e8590c', 1], mailbox: ['ph-mailbox', 'a mailbox or post box', '#e03131', 1], motorbike: ['ph-motorcycle', 'a scooter or motorbike', '#e03131', 1],
   manhole: ['ph-circle-dashed', 'a manhole cover', '#868e96', 1], bird: ['ph-bird', 'a bird', '#228be6', 1], park: ['ph-park', 'a park', '#2f9e44', 1],
-  art: ['ph-paint-brush', 'street art', '#ae3ec9', 2], door: ['ph-door', 'a colourful door', '#f59f00', 2], squirrel: ['ph-acorn', 'a squirrel', '#a0522d', 2],
-  library: ['ph-books', 'a little free library', '#5c7cfa', 2], garden: ['ph-plant', 'a community garden', '#2b8a3e', 2], chalk: ['ph-scribble-loop', 'a chalk drawing', '#f783ac', 2],
+  art: ['ph-paint-brush', 'street art', '#ae3ec9', 2], door: ['ph-door', 'a colourful door', '#f59f00', 2], dog: ['ph-dog', 'a dog out for a walk', '#a0522d', 2],
+  balcony: ['ph-potted-plant', 'plants on a balcony', '#2b8a3e', 2], umbrella: ['ph-umbrella', 'a colourful umbrella', '#5c7cfa', 2], chalk: ['ph-scribble-loop', 'a chalk drawing or rangoli', '#f783ac', 2],
   plaque: ['ph-seal', 'a heritage plaque', '#c08a00', 2], reflection: ['ph-sparkle', 'a reflection', '#15aabf', 2], sprout: ['ph-plant', 'a plant growing from a crack', '#40c057', 2],
   fountain: ['ph-drop-half', 'a fountain', '#1c7ed6', 2], bridge: ['ph-bridge', 'a bridge', '#495057', 2], crack: ['ph-road-horizon', 'a crack or pothole', '#868e96', 2],
-  pumpkin: ['ph-orange', 'a pumpkin', '#fd7e14', 2], mushroom: ['ph-flower', 'a mushroom', '#a0522d', 2],
-  tinydoor: ['ph-door-open', 'a tiny door', '#f5b83d', 3], ghostsign: ['ph-image-square', 'a ghost sign', '#c9a227', 3], heart: ['ph-heart', 'a heart in the wild', '#ff5d73', 3],
-  rock: ['ph-paint-bucket', 'a painted rock', '#ff922b', 3], glove: ['ph-hand', 'a lost glove', '#845ef7', 3], rainbow: ['ph-rainbow', 'a rainbow', '#f5b83d', 3],
-  mountains: ['ph-mountains', 'a mountain view', '#4dabf7', 3], sunset: ['ph-sun-horizon', 'a sunset sky', '#ff8787', 3], cat: ['ph-cat', 'a cat outside', '#fab005', 3],
-  heron: ['ph-bird', 'a heron', '#748ffc', 3], halloween: ['ph-ghost', 'Halloween decorations', '#fd7e14', 3] };
+  clock: ['ph-clock', 'a street clock', '#495057', 2], mushroom: ['ph-flower', 'a mushroom', '#a0522d', 2],
+  butterfly: ['ph-butterfly', 'a butterfly', '#f5b83d', 3], ghostsign: ['ph-image-square', 'a ghost sign', '#c9a227', 3], heart: ['ph-heart', 'a heart in the wild', '#ff5d73', 3],
+  rainbow: ['ph-rainbow', 'a rainbow', '#f5b83d', 3],
+  sunset: ['ph-sun-horizon', 'a sunset sky', '#ff8787', 3], cat: ['ph-cat', 'a cat outside', '#fab005', 3],
+  heron: ['ph-bird', 'a heron or egret', '#748ffc', 3],
+  // retired (tier 0, never picked): things that aren't common in all of Canada, the US and India. Kept so old walks still show their icons.
+  hydrant: ['ph-fire-extinguisher', 'a fire hydrant', '#e03131', 0], squirrel: ['ph-acorn', 'a squirrel', '#a0522d', 0], library: ['ph-books', 'a little free library', '#5c7cfa', 0],
+  garden: ['ph-plant', 'a community garden', '#2b8a3e', 0], pumpkin: ['ph-orange', 'a pumpkin', '#fd7e14', 0], tinydoor: ['ph-door-open', 'a tiny door', '#f5b83d', 0],
+  rock: ['ph-paint-bucket', 'a painted rock', '#ff922b', 0], glove: ['ph-hand', 'a lost glove', '#845ef7', 0], mountains: ['ph-mountains', 'a mountain view', '#4dabf7', 0],
+  halloween: ['ph-ghost', 'Halloween decorations', '#fd7e14', 0] };   // every item: common in Canada, the US and India
 var HUNT_PTS = { 1: 10, 2: 25, 3: 60 };   // a rare find is worth six commons
 var TIER_COL = { 1: '#2fd39c', 2: '#3d9bff', 3: '#ffd56a' };   // colour = difficulty: green common · blue uncommon · gold rare
-function huntPool(tier){   // seasonal: pumpkins, mushrooms and Halloween only in October
-  var oct = new Date().getMonth() === 9, seasonal = { pumpkin: oct, mushroom: oct || new Date().getMonth() === 10, halloween: oct };
+function huntPool(tier){   // seasonal: mushrooms in autumn
+  var m = new Date().getMonth(), seasonal = { mushroom: m === 8 || m === 9 || m === 10 };
   return Object.keys(HUNT_ITEMS).filter(function(k){ return HUNT_ITEMS[k][3] === tier && (seasonal[k] === undefined || seasonal[k]); }); }
 function huntWeek(){ var d = new Date(); return d.getFullYear() + '-' + (d.getMonth() + 1) + '-' + d.getDate(); }   // today (local): a new daily walk every day
 var HUNT_CURATED = { '2026-10-2': ['tree', 'sign', 'light', 'bin', 'shop'], '2026-10-3': ['tree', 'crosswalk', 'sign', 'leaves', 'bench'], '2026-10-4': ['light', 'shop', 'bin', 'leaves', 'bike'] };   // hand-picked easy days (booth weekend)
@@ -4049,7 +4054,7 @@ function screenPack(mode, topic0){
   }).catch(function(e){ document.getElementById('board').textContent = 'The pack is napping: ' + e.message; });
 }
 
-var APP_VERSION = "20261004193802";
+var APP_VERSION = "20261004201951";
 (function(){
   try {
     fetch('/version.json?t=' + Date.now(), { cache: 'no-store' }).then(function(r){ return r.json(); }).then(function(j){
