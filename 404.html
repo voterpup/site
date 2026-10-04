@@ -1148,6 +1148,24 @@
   .etile.flip .back{transform:rotateY(180deg); background-size:cover; background-position:center; justify-content:flex-end}
   .etile.flip .front{justify-content:space-between}
   .etile.flip::after{content:''; position:absolute; right:6px; bottom:6px; width:7px; height:7px; border-radius:50%; background:rgba(255,255,255,.7); box-shadow:0 0 0 2px rgba(0,0,0,.15)}   /* has a photo */
+  /* Your city tiles v2: smaller, pinch to resize, words on colour <-> photo with a slow flip */
+  .tilegrid.ctiles{grid-template-columns:repeat(var(--cols, 3), 1fr); gap:8px; touch-action:pan-y}
+  .tilegrid .tile.ctile{padding:0; aspect-ratio:1/1.12; min-height:0; background:transparent !important; box-shadow:none !important; perspective:800px; overflow:visible}
+  .ctile .fin{position:absolute; inset:0; transform-style:preserve-3d; transition:transform 1.4s cubic-bezier(.45,.05,.25,1); border-radius:14px}
+  .ctile.turned .fin{transform:rotateY(180deg)}
+  .ctile .side{position:absolute; inset:0; border-radius:14px; overflow:hidden; backface-visibility:hidden; -webkit-backface-visibility:hidden; box-shadow:0 3px 0 rgba(0,0,0,.35)}
+  .ctile .side.b{transform:rotateY(180deg)}
+  .ctile .cface{position:absolute; inset:0; display:flex; flex-direction:column; justify-content:flex-end; padding:8px; color:#fff; background-size:cover; background-position:center}
+  .ctile .cface.words{justify-content:space-between}
+  .ctile .csnip{font-weight:900; font-size:calc(17px - var(--cols, 3) * 1.6px); line-height:1.22; display:-webkit-box; -webkit-box-orient:vertical; -webkit-line-clamp:5; overflow:hidden; text-shadow:0 1px 3px rgba(0,0,0,.35)}
+  .ctile .cface.words .csnip{margin-top:18px}
+  .ctile .cface.photo .csnip{-webkit-line-clamp:2; font-size:calc(15px - var(--cols, 3) * 1.4px)}
+  .ctile .cname{font-weight:800; font-size:calc(12.5px - var(--cols, 3) * .7px); opacity:.85; margin-top:3px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+  .tilegrid .tile.ctile .tcount{z-index:3; font-size:calc(14px - var(--cols, 3) * .8px)}
+  .tilegrid .tile.ctile.official::before{z-index:3; font-size:9.5px; padding:1px 6px; top:6px; left:6px}
+  .tilegrid.ctiles[data-cols="4"] .tile.ctile.official::before{content:'🏛️'} .tilegrid.ctiles[data-cols="4"] .csnip{-webkit-line-clamp:4}
+  .tilegrid .tile.ctile.mine .side{outline:2px solid var(--gold); outline-offset:-2px}
+  .pinchhint{text-align:center; color:var(--sub); font-size:11.5px; margin:8px 0 0}
 </style>
 </head>
 <body>
@@ -3973,49 +3991,57 @@ function screenPack(mode, topic0){
     var landIds = window._wallLand || {}; window._wallLand = null;
     function tilesView(){
       clearInterval(window._packT);
-      tiles.forEach(function(t){ t.list.forEach(function(r){ var u = itemImg(r); if (u) { var im = new Image(); im.src = u; } }); });
-      // a tile shows ONE issue at a time: its own photo if it has one, otherwise a calm colour
-      function paint(i, k, first){
-        var t = tiles[i], r = t.list[k], bg = document.getElementById('tbg' + i), sn = document.getElementById('tsnip' + i);
-        if (!bg || !sn) return;
-        var u = itemImg(r);
-        var apply = function(){
-          sn.textContent = (r.body || '📷').slice(0, 90); sn.style.opacity = 1;
-          if (bg.parentNode) bg.parentNode.classList.toggle('official', r.source === 'city311');   // small "City 3-1-1" tag
-          if (!u) { bg.classList.remove('loading'); bg.style.backgroundImage = 'none'; bg.style.backgroundColor = SOOTHE[Math.floor(Math.random() * SOOTHE.length)]; bg.style.opacity = 1; return; }
-          bg.style.backgroundColor = 'transparent';
-          var im = new Image(), done = false;
-          var show = function(){ if (done) return; done = true; bg.classList.remove('loading'); bg.style.opacity = 0; bg.style.backgroundImage = GRAD + ', url(' + u + ')';
-            requestAnimationFrame(function(){ requestAnimationFrame(function(){ bg.style.opacity = 1; }); }); };
-          if (!bg.style.backgroundImage || bg.style.backgroundImage === 'none') { bg.style.backgroundImage = 'none'; bg.classList.add('loading'); bg.style.opacity = 1; }
-          im.onload = show; im.onerror = function(){ done = true; bg.classList.remove('loading'); }; im.src = u;
-          if (im.complete && im.naturalWidth) show();
-        };
-        if (first) { apply(); return; }
-        bg.style.opacity = .35; sn.style.opacity = 0; setTimeout(apply, 450);
+      // each topic tile is a little deck of cards: an issue's words on a lively colour, then its photo if it has one.
+      // One tile turns at a time, round the grid, with the same slow flip as the pup page. Pinch the grid to resize it.
+      tiles.forEach(function(t){
+        t.cards = [];
+        t.list.forEach(function(r){ t.cards.push({ r: r, img: null }); var u = itemImg(r); if (u) t.cards.push({ r: r, img: u }); });
+        t._c = 0; t.list.forEach(function(r, k){ if (landIds[r.id]) t._c = t.cards.findIndex(function(c){ return c.r === r; }); });
+        t._face = 0;
+      });
+      function faceHTML(t, c){
+        var r = c.r, col = t.mine ? null : tileCol(r.id || r.body);
+        if (c.img) return '<span class="cface photo" style="background-image:linear-gradient(rgba(12,23,34,0) 45%,rgba(12,23,34,.82)),url(' + esc(c.img) + ')"><span class="csnip">' + esc((r.body || '📷').slice(0, 70)) + '</span><span class="cname">' + esc(t.name) + '</span></span>';
+        return '<span class="cface words" style="background:' + (col || t.color) + '"><span class="csnip">' + esc((r.body || '📷').slice(0, 110)) + '</span><span class="cname">' + esc(t.name) + '</span></span>';
       }
-      b.innerHTML = '<div class="tilegrid">' + tiles.map(function(t, i){
-        var k0 = 0; t.list.forEach(function(r, k){ if (landIds[r.id]) k0 = k; });
-        t._k = k0;
-        return '<div class="tile' + (t.mine ? ' mine' : '') + (landIds[t.list[k0].id] ? ' land' : '') + '" data-i="' + i + '" style="--tc:' + t.color + ';background:' + t.color + '">' +
-          '<div class="tbg" id="tbg' + i + '"></div>' +
+      function setFace(i, which, c){ var el = document.getElementById('cf' + i + '_' + which); if (!el) return; el.innerHTML = faceHTML(tiles[i], c);
+        var tl = el.closest('.tile'); if (tl) tl.classList.toggle('official', c.r.source === 'city311'); }
+      var cols = 3; try { cols = Math.max(2, Math.min(4, +(localStorage.getItem('vp.cols') || 3))); } catch (e) {}
+      if (wall) cols = 3;
+      b.innerHTML = '<div class="tilegrid ctiles" id="ctiles" data-cols="' + cols + '" style="--cols:' + cols + '">' + tiles.map(function(t, i){
+        var c0 = t.cards[t._c] || t.cards[0];
+        return '<div class="tile ctile' + (t.mine ? ' mine' : '') + (landIds[c0.r.id] ? ' land' : '') + (c0.r.source === 'city311' ? ' official' : '') + '" data-i="' + i + '" style="--tc:' + t.color + '">' +
+          '<span class="fin"><span class="side a" id="cf' + i + '_0">' + faceHTML(t, c0) + '</span><span class="side b" id="cf' + i + '_1"></span></span>' +
           '<div class="tcount">' + t.list.length + '</div>' +
-          '<div class="tsnippet" id="tsnip' + i + '"></div>' +
-          '<div class="tname">' + esc(t.name) + '</div>' +
-          (landIds[t.list[k0].id] ? '<div class="tnew">🐾 just in</div>' : '') + '</div>';
-      }).join('') + '</div>';
-      tiles.forEach(function(t, i){ paint(i, t._k, true); });
+          (landIds[c0.r.id] ? '<div class="tnew">🐾 just in</div>' : '') + '</div>';
+      }).join('') + '</div>' + (wall ? '' : '<p class="pinchhint">Pinch the tiles to see more or fewer 🐾</p>');
       landIds = {};
       Array.prototype.forEach.call(b.querySelectorAll('.tile'), function(el){
         el.onclick = function(){ feedView(tiles[+el.getAttribute('data-i')]); };
       });
+      // pinch to resize: 2 to 4 tiles across (one step per pinch), remembered on this phone
+      var grid = document.getElementById('ctiles'), d0 = 0, c0 = cols;
+      var dist = function(ev){ var a = ev.touches[0], z = ev.touches[1]; return Math.hypot(a.clientX - z.clientX, a.clientY - z.clientY); };
+      var setCols = function(n){ n = Math.max(2, Math.min(4, n)); if (n === cols) return; cols = n; grid.style.setProperty('--cols', n); grid.setAttribute('data-cols', n); try { localStorage.setItem('vp.cols', n); } catch (e) {} };
+      grid.addEventListener('touchstart', function(ev){ if (ev.touches.length === 2) { d0 = dist(ev); c0 = cols; } }, { passive: true });
+      grid.addEventListener('touchmove', function(ev){ if (ev.touches.length !== 2 || !d0) return; ev.preventDefault();
+        var r = dist(ev) / d0; setCols(c0 + (r > 1.2 ? -1 : r < .83 ? 1 : 0)); }, { passive: false });
+      grid.addEventListener('touchend', function(){ d0 = 0; });
+      grid.addEventListener('wheel', function(ev){ if (!ev.ctrlKey) return; ev.preventDefault(); setCols(cols + (ev.deltaY > 0 ? 1 : -1)); }, { passive: false });   // desktop: ctrl + scroll
       if (reduceMotion) return;
+      var turn = 0;
       window._packT = setInterval(function(){
-        tiles.forEach(function(t, i){
-          if (t.list.length < 2) return;
-          t._k = (t._k + 1) % t.list.length; paint(i, t._k, false);
-        });
-      }, 3500);
+        if (document.hidden || !document.body.contains(grid)) { if (!document.body.contains(grid)) clearInterval(window._packT); return; }
+        var live = tiles.map(function(t, i){ return i; }).filter(function(i){ return tiles[i].cards.length > 1; });
+        if (!live.length) return;
+        var i = live[turn++ % live.length], t = tiles[i], el = grid.querySelector('.tile[data-i="' + i + '"]');
+        if (!el) return;
+        t._c = (t._c + 1) % t.cards.length; var nextSide = t._face ? 0 : 1;
+        setFace(i, nextSide, t.cards[t._c]);
+        var im = t.cards[t._c].img ? new Image() : null;
+        var go = function(){ el.classList.toggle('turned', nextSide === 1); t._face = nextSide; };
+        if (im) { im.onload = go; im.onerror = go; im.src = t.cards[t._c].img; if (im.complete) go(); } else go();
+      }, 1500);
     }
 
     function feedView(t){
@@ -4115,7 +4141,7 @@ function screenPack(mode, topic0){
   }).catch(function(e){ document.getElementById('board').textContent = 'The pack is napping: ' + e.message; });
 }
 
-var APP_VERSION = "20261004214916";
+var APP_VERSION = "20261004215200";
 (function(){
   try {
     fetch('/version.json?t=' + Date.now(), { cache: 'no-store' }).then(function(r){ return r.json(); }).then(function(j){
