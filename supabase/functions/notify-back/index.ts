@@ -8,11 +8,12 @@ Deno.serve(async (req) => {
   let body: { entry_id?: string } = {};
   try { body = await req.json(); } catch (_) { /* empty */ }
   if (!body.entry_id || !/^[0-9a-f-]{36}$/.test(body.entry_id)) return new Response("bad request", { status: 400 });
-  const { data: e } = await db.from("entries").select("tail, body, ledgers(name)").eq("id", body.entry_id).maybeSingle();
-  if (!e) return new Response("no entry", { status: 404 });
+  const { data: e, error: ee } = await db.from("entries").select("tail, body").eq("id", body.entry_id).maybeSingle();
+  if (!e) return new Response("no entry " + (ee?.message ?? ""), { status: 404 });
+  const { data: led } = await db.from("ledgers").select("name").eq("tail", e.tail).maybeSingle();
   const { count } = await db.from("backs").select("entry_id", { count: "exact", head: true }).eq("entry_id", body.entry_id);
   const { data: subs } = await db.from("push_subs").select("endpoint, p256dh, auth").eq("tail", e.tail);
-  const name = (e as any).ledgers?.name ?? "Your pup";
+  const name = led?.name ?? "Your pup";
   const n = count ?? 1;
   const text = (n === 1 ? "Someone feels the same" : n + " people feel the same") + " about “" + String(e.body || "your photo").slice(0, 60) + "”";
   let sent = 0;
