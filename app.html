@@ -3150,7 +3150,7 @@ function screenPack(mode, topic0){
   var dataCity = cityKey ? (METRO[cityKey] || CITY_ALIAS[cityKey] || cityKey) : null;   // Surrey, Burnaby… share Metro Vancouver's city data
   if (mode === 'local' && dataCity) rpc('vp_city_pulse', { p_place: dataCity + ', x, x' }).then(function(cp){
     var cs = document.getElementById('citystrip');
-    if (!cp || !cp.week_total) { rpc('vp_city_wanted', { p_place: dataCity }).catch(function(){}); return; }   // no official data yet: note the ask
+    if (!cp || !cp.week_total) { rpc('vp_city_wanted', { p_place: (METRO[cityKey] || CITY_ALIAS[cityKey]) ? dataCity : (place || dataCity) }).catch(function(){}); return; }   // full place, so the search can find the right city   // no official data yet: note the ask
     if (!cs) return;
     window._cityPins = cp.pins || [];
     var mbx = document.getElementById('mapbtn'); if (mbx && window._cityPins.length) mbx.hidden = false;
@@ -3481,7 +3481,7 @@ function screenPack(mode, topic0){
   }).catch(function(e){ document.getElementById('board').textContent = 'The pack is napping: ' + e.message; });
 }
 
-var APP_VERSION = "20261004040538";
+var APP_VERSION = "20261004050311";
 (function(){
   try {
     fetch('/version.json?t=' + Date.now(), { cache: 'no-store' }).then(function(r){ return r.json(); }).then(function(j){

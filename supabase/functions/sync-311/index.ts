@@ -15,7 +15,15 @@ const topicOf = (t: string) => RULES.find(([re]) => re.test(t))?.[1] ?? "other";
 const DAY = 864e5;
 
 // Socrata open-data portals: dataset, and which columns hold the type, the time, the location and the area.
-type Src = { city: string; url: string; type: string; ts: string; lat?: string; lng?: string; area?: string; approx?: boolean };
+type Src = { city: string; url: string; type: string; ts: string; lat?: string; lng?: string; point?: string; area?: string; approx?: boolean };
+function parsePt(v: any): { la: number; lo: number } {   // GeoJSON point, Socrata location, or "(lat, lng)" text
+  if (v && typeof v === "object") {
+    if (Array.isArray(v.coordinates)) return { la: Number(v.coordinates[1]), lo: Number(v.coordinates[0]) };
+    if (v.latitude != null) return { la: Number(v.latitude), lo: Number(v.longitude) };
+  }
+  const m = String(v ?? "").match(/(-?\d+(?:\.\d+)?)\s*,\s*(-?\d+(?:\.\d+)?)/);
+  return m ? { la: Number(m[1]), lo: Number(m[2]) } : { la: NaN, lo: NaN };
+}
 const SOCRATA: Src[] = [
   { city: "seattle", url: "https://data.seattle.gov/resource/5ngg-rpne.json", type: "webintakeservicerequests", ts: "createddate", lat: "latitude", lng: "longitude", area: "community_reporting_area" },
   { city: "new york", url: "https://data.cityofnewyork.us/resource/erm2-nwe9.json", type: "complaint_type", ts: "created_date", lat: "latitude", lng: "longitude", area: "borough" },
@@ -37,11 +45,13 @@ async function syncSocrata(s: Src) {
     const r = await soql(s, { $select: `${s.type} as t, count(*) as n`, $where: `${s.ts} >= '${lo}' and ${s.ts} < '${hi}'`, $group: s.type, $limit: "500" });
     for (const x of r ?? []) if (x.t) rows.push({ city: s.city, day, rtype: String(x.t).slice(0, 80), topic: topicOf(String(x.t)), n: Number(x.n) });
   }));
-  if (s.lat && s.lng) {
-    const r = await soql(s, { $select: `${s.type} as t, ${s.ts} as ts, ${s.lat} as la, ${s.lng} as lo${s.area ? `, ${s.area} as ar` : ""}`,
-      $where: `${s.lat} is not null and ${s.ts} >= '${iso(Date.now() - 7 * DAY)}'`, $order: `${s.ts} DESC`, $limit: "300" });
+  if ((s.lat && s.lng) || s.point) {
+    const loc = s.lat && s.lng ? `${s.lat} as la, ${s.lng} as lo` : `${s.point} as pt`;
+    const r = await soql(s, { $select: `${s.type} as t, ${s.ts} as ts, ${loc}${s.area ? `, ${s.area} as ar` : ""}`,
+      $where: `${s.lat || s.point} is not null and ${s.ts} >= '${iso(Date.now() - 7 * DAY)}'`, $order: `${s.ts} DESC`, $limit: "300" });
     for (const x of r ?? []) {
-      let la = Number(x.la), lo = Number(x.lo); if (!isFinite(la) || !isFinite(lo) || !la || !lo) continue;
+      const pp = x.pt !== undefined ? parsePt(x.pt) : { la: Number(x.la), lo: Number(x.lo) };
+      let la = pp.la, lo = pp.lo; if (!isFinite(la) || !isFinite(lo) || !la || !lo) continue;
       if (s.approx) { la += (Math.random() - .5) * .004; lo += (Math.random() - .5) * .006; }   // neighbourhood centre only: spread the dots a little
       pins.push({ id: s.city + ":" + x.ts + ":" + Math.round(la * 1e4) + ":" + Math.round(lo * 1e4) + ":" + String(x.t).slice(0, 20), city: s.city,
         rtype: String(x.t).slice(0, 80), topic: topicOf(String(x.t)), lat: Math.round(la * 1e4) / 1e4, lng: Math.round(lo * 1e4) / 1e4,
@@ -82,7 +92,10 @@ async function syncVancouver() {
 Deno.serve(async () => {
   const db = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
   const report: Record<string, any> = {};
-  const jobs: [string, Promise<{ rows: any[]; pins: any[] }>][] = [["vancouver", syncVancouver()], ...SOCRATA.map((s) => [s.city, syncSocrata(s)] as [string, Promise<any>])];
+  const { data: found } = await db.from("city_sources").select("*").eq("status", "active");   // switched on by discover-311
+  const extra: Src[] = (found ?? []).filter((f: any) => !SOCRATA.some((s) => s.city === f.city)).map((f: any) =>
+    ({ city: f.city, url: f.url, type: f.type_col, ts: f.ts_col, lat: f.lat_col ?? undefined, lng: f.lng_col ?? undefined, point: f.point_col ?? undefined, area: f.area_col ?? undefined }));
+  const jobs: [string, Promise<{ rows: any[]; pins: any[] }>][] = [["vancouver", syncVancouver()], ...[...SOCRATA, ...extra].map((s) => [s.city, syncSocrata(s)] as [string, Promise<any>])];
   for (const [city, job] of jobs) {
     try {   // one city failing never stops the others
       const { rows, pins } = await job;
