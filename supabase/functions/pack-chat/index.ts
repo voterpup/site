@@ -14,7 +14,7 @@ async function textOk(body: string): Promise<{ ok: boolean; why?: string }> {
   if (!body.trim()) return { ok: true };
   try {
     const r = await anthropic.messages.create({ model: MODEL, max_tokens: 60,
-      system: "You moderate a friendly group chat between friends in a neighbourhood app. Block ONLY: hate or slurs, threats or incitement to violence, sexual content, harassment aimed at someone, scams or suspicious links, selling drugs or weapons. Swearing in a friendly way, jokes, politics talk and local complaints are fine. Reply with JSON only: {\"ok\":true} or {\"ok\":false,\"why\":\"<4 words>\"}.",
+      system: "You moderate a friendly group chat between friends in a neighbourhood app. Block ONLY: hate or slurs, dehumanising or demeaning words about any group of people (e.g. calling people scum, vermin, animals, or saying a group should be kicked out), threats or incitement to violence, sexual content, harassment aimed at someone, scams or suspicious links, selling drugs or weapons. Swearing in a friendly way, jokes, politics talk, criticism of policies or officials, and local complaints about places, services or behaviour (litter, noise, speeding) are fine. Reply with JSON only: {\"ok\":true} or {\"ok\":false,\"why\":\"<4 words>\"}.",
       messages: [{ role: "user", content: body.slice(0, 500) }] });
     const t = (r.content[0] as any)?.text ?? "";
     const m = t.match(/\{[\s\S]*\}/); const v = m ? JSON.parse(m[0]) : { ok: true };
@@ -72,6 +72,21 @@ Deno.serve(async (req) => {
         JSON.stringify({ title: "🐾 " + (pk?.name ?? "Your pack"), body: (me?.name ?? "A pup") + ": " + (body ? body.slice(0, 80) : "📷 sent a photo"), url: "/packs/" + pack }), { TTL: 6 * 3600 }).catch(() => {});
     }
     return json({ ok: true, id: msg.id, ts: msg.created_at });
+  }
+  if (b.action === "add_item") {   // the pack's list can be shared publicly, so items are checked like messages
+    const body = String(b.body || "").replace(/\s+/g, " ").trim().slice(0, 140);
+    if (body.length < 2) return json({ error: "Write the issue in a few words." }, 400);
+    const { count } = await db.from("pack_items").select("id", { count: "exact", head: true }).eq("pack_id", pack);
+    if ((count ?? 0) >= 50) return json({ error: "This list is full (50). Remove a few first." }, 400);
+    const { data: dup } = await db.from("pack_items").select("id").eq("pack_id", pack).ilike("body", body).maybeSingle();
+    if (dup) return json({ error: "That's already on the list. Vote for it instead 🐾" }, 409);
+    const chk = await textOk(body);
+    if (!chk.ok) return json({ error: "That wasn't added" + (chk.why ? " (" + chk.why + ")" : "") + ". Keep it friendly 🐾" }, 422);
+    const entry = /^[0-9a-f-]{36}$/.test(String(b.entry || "")) ? b.entry : null;
+    const { data: it, error } = await db.from("pack_items").insert({ pack_id: pack, tail, body, topic: b.topic ? String(b.topic).slice(0, 30) : null, entry_id: entry }).select("id").single();
+    if (error) return json({ error: error.message }, 500);
+    await db.from("pack_votes").insert({ item_id: it.id, tail });   // adding it counts as your vote
+    return json({ ok: true, id: it.id });
   }
   return json({ error: "bad action" }, 400);
 });

@@ -1047,6 +1047,18 @@
   .msg small a{color:inherit} .msg.hidden{font-style:italic; color:var(--sub); background:transparent}
   .composerx{display:flex; gap:6px; align-items:flex-end; margin-top:8px} .composerx textarea{flex:1; min-height:42px; max-height:110px; margin:0; border-radius:14px; padding:10px}
   .composerx .iconbtn{flex:0 0 auto} .composerx .btn{margin:0}
+  /* pack list */
+  .roomtabs{margin:10px 0 6px} .roomtabs span{flex:1; text-align:center}
+  .plhead{display:flex; gap:8px; align-items:center; justify-content:space-between; font-size:13px; color:var(--sub); margin:6px 2px} .plhead .chip{flex:0 0 auto}
+  .pladd{display:flex; gap:6px; margin:6px 0} .pladd input{flex:1; margin:0} .pladd .btn{margin:0}
+  .plpicks{display:flex; flex-wrap:wrap; gap:6px; margin:4px 0 10px} .plpicks small{width:100%; color:var(--sub); font-weight:800}
+  .plist{list-style:none; padding:0; margin:8px 0 14px; display:flex; flex-direction:column; gap:8px}
+  .plist li{display:flex; align-items:center; gap:10px; background:var(--card); border:1.5px solid var(--line); border-radius:16px; padding:10px 12px}
+  .plist li.top{border-color:rgba(245,184,61,.55)} .plrank{font-weight:900; font-size:18px; color:var(--sub); width:20px; text-align:center} .plist li.top .plrank{color:var(--goldtext)}
+  .plbody{flex:1; font-weight:800; font-size:14.5px} .plbody small{display:block; font-weight:700; font-size:11px; color:var(--sub); margin-top:2px} .plbody small a{color:inherit}
+  .plvote{display:flex; flex-direction:column; align-items:center; min-width:46px; padding:5px 6px; border-radius:12px; border:1.5px solid var(--line); background:var(--chip); color:var(--sub); font:inherit; cursor:pointer}
+  .plvote.on{background:var(--gold); border-color:var(--gold); color:var(--goldink)} .plvote b{font-size:13px} .plvote.ro{cursor:default}
+  .plpubh{margin:8px 2px 4px} .plpubh small{color:var(--goldtext); font-weight:900; letter-spacing:.06em; text-transform:uppercase; font-size:11px} .plpubh h1{margin:4px 0 6px; font-size:26px} .plpubh p{color:var(--sub); margin:0}
 </style>
 </head>
 <body>
@@ -3081,9 +3093,10 @@ function screenPackRoom(pid){
       }).catch(function(){});
   }
   function render(){
-    document.getElementById('room').innerHTML = head() + (pack.status === 'active' ? '<div class="msgs" id="msgs"></div>' +
+    document.getElementById('room').innerHTML = head() + (pack.status === 'active' ? '<div class="htoggle roomtabs"><span data-rt="list"' + (window._roomTab === 'list' ? ' class="on"' : '') + '>📋 Our list</span><span data-rt="chat"' + (window._roomTab !== 'list' ? ' class="on"' : '') + '>💬 Chat</span></div>' +
+      '<div id="tablist"' + (window._roomTab === 'list' ? '' : ' hidden') + '></div><div id="tabchat"' + (window._roomTab === 'list' ? ' hidden' : '') + '><div class="msgs" id="msgs"></div>' +
       '<div class="composerx"><button class="iconbtn" id="mattach" title="photo or short video"><i class="ph-duotone ph-image"></i></button>' +
-      '<input id="mpick" type="file" accept="image/*,video/*" hidden><textarea id="mtext" rows="1" maxlength="500" placeholder="Message your pack"></textarea><button class="btn gold compact" id="msend">Send</button></div><div id="mthumbs" class="attach"></div>' : '');
+      '<input id="mpick" type="file" accept="image/*,video/*" hidden><textarea id="mtext" rows="1" maxlength="500" placeholder="Message your pack"></textarea><button class="btn gold compact" id="msend">Send</button></div><div id="mthumbs" class="attach"></div></div>' : '');
     codeBox();
     Array.prototype.forEach.call(document.querySelectorAll('[data-ok],[data-no],[data-rm]'), function(b){ b.onclick = function(ev){ ev.preventDefault();
       var who = b.getAttribute('data-ok') || b.getAttribute('data-no') || b.getAttribute('data-rm'), ok = b.hasAttribute('data-ok');
@@ -3092,6 +3105,12 @@ function screenPackRoom(pid){
       if (!confirm(pack.owner ? 'Close this pack for everyone?' : 'Leave this pack?')) return;
       rpc('vp_pack_leave', { p_tail: me.tail, p_pack: pid }).then(function(){ location.href = pupURL(me.tail); }); };
     if (pack.status !== 'active') return;
+    Array.prototype.forEach.call(document.querySelectorAll('[data-rt]'), function(t){ t.onclick = function(){
+      window._roomTab = t.getAttribute('data-rt');
+      document.querySelectorAll('[data-rt]').forEach(function(x){ x.classList.toggle('on', x === t); });
+      document.getElementById('tablist').hidden = window._roomTab !== 'list'; document.getElementById('tabchat').hidden = window._roomTab === 'list';
+      if (window._roomTab === 'list') packList(me, pid, pack); else { var bx = document.getElementById('msgs'); bx.scrollTop = bx.scrollHeight; } }; });
+    if (window._roomTab === 'list') packList(me, pid, pack);
     load(true); window._roomT = setInterval(function(){ if (document.visibilityState === 'visible' && document.getElementById('msgs')) load(false); else if (!document.getElementById('msgs')) clearInterval(window._roomT); }, 6000);
     var files = [];
     document.getElementById('mattach').onclick = function(){ document.getElementById('mpick').click(); };
@@ -3111,6 +3130,49 @@ function screenPackRoom(pid){
   function refresh(){ return rpc('vp_my_packs', { p_tail: me.tail }).then(function(list){ pack = (list || []).filter(function(p){ return p.id === pid; })[0];
     if (!pack) { document.getElementById('room').innerHTML = '<p class="hint">This pack isn&rsquo;t yours, or it was closed.</p>'; return; } render(); }); }
   refresh();
+}
+// the pack's own list: add issues, one vote each, share it read-only
+function packList(me, pid, pack){
+  var el = document.getElementById('tablist'); if (!el) return;
+  Promise.all([rpc('vp_pack_items', { p_tail: me.tail, p_pack: pid }), readLedger(me.tail).catch(function(){ return null; })]).then(function(res){
+    var items = res[0] || [], mine = ((res[1] && res[1].entries) || []).filter(function(e){ return e.body; });
+    var onList = {}; items.forEach(function(i){ onList[i.body.toLowerCase()] = 1; });
+    var picks = mine.filter(function(e){ return !onList[e.body.trim().toLowerCase()]; }).slice(0, 6);
+    el.innerHTML = '<div class="plhead"><span>What should <b>' + esc(pack.name) + '</b> push for? Add issues, everyone votes.</span><button class="chip goldfill" id="plshare"><i class="ph-fill ph-share-network"></i> Share list</button></div>' +
+      '<div class="pladd"><input id="pltext" maxlength="140" placeholder="Add an issue, e.g. Dark street at night"><button class="btn gold compact" id="plgo">Add</button></div>' +
+      (picks.length ? '<div class="plpicks"><small>From ' + esc(me.name) + '’s memory:</small>' + picks.map(function(e){ return '<button class="chip" data-pick="' + esc(e.id || '') + '" data-body="' + esc(e.body) + '" data-topic="' + esc(e.topic || '') + '">＋ ' + esc(e.body.length > 34 ? e.body.slice(0, 33) + '…' : e.body) + '</button>'; }).join('') + '</div>' : '') +
+      (items.length ? '<ol class="plist">' + items.map(function(i, n){
+        return '<li class="' + (n < 3 ? 'top' : '') + '"><span class="plrank">' + (n + 1) + '</span><span class="plbody">' + (TOPIC_GLYPH[i.topic] ? TOPIC_GLYPH[i.topic] + ' ' : '') + esc(i.body) +
+          '<small>added by ' + esc(i.who) + ((i.mine || pack.owner) ? ' · <a href="#" data-plrm="' + i.id + '">remove</a>' : '') + '</small></span>' +
+          '<button class="plvote' + (i.voted ? ' on' : '') + '" data-plv="' + i.id + '"><i class="ph-fill ph-paw-print"></i><b>' + i.votes + '</b></button></li>'; }).join('') + '</ol>'
+        : '<p class="hint">Nothing on the list yet. Add the first issue 🐾</p>');
+    function add(body, topic, entry){ var b = document.getElementById('plgo'); b.disabled = true;
+      fetch(SUPABASE_URL + '/functions/v1/pack-chat', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ tail: me.tail, pack: pid, action: 'add_item', body: body, topic: topic || guessTopic(body), entry: entry || null }) })
+        .then(function(r){ return r.json(); }).then(function(r){ b.disabled = false; if (r.error) { toast(r.error); return; } track('pack', { act: 'item' }); packList(me, pid, pack); })
+        .catch(function(e){ b.disabled = false; toast(e.message); }); }
+    document.getElementById('plgo').onclick = function(){ var t = document.getElementById('pltext').value.trim(); if (t) add(t); };
+    document.getElementById('pltext').onkeydown = function(ev){ if (ev.key === 'Enter') { ev.preventDefault(); document.getElementById('plgo').click(); } };
+    el.querySelectorAll('[data-pick]').forEach(function(c){ c.onclick = function(){ add(c.getAttribute('data-body'), c.getAttribute('data-topic'), c.getAttribute('data-pick')); }; });
+    el.querySelectorAll('[data-plv]').forEach(function(v){ v.onclick = function(){ v.classList.toggle('on'); rpc('vp_pack_vote', { p_tail: me.tail, p_item: v.getAttribute('data-plv') }).then(function(){ packList(me, pid, pack); }); }; });
+    el.querySelectorAll('[data-plrm]').forEach(function(a){ a.onclick = function(ev){ ev.preventDefault(); rpc('vp_pack_item_remove', { p_tail: me.tail, p_item: a.getAttribute('data-plrm') }).then(function(){ packList(me, pid, pack); }); }; });
+    document.getElementById('plshare').onclick = function(){
+      rpc('vp_pack_share', { p_tail: me.tail, p_pack: pid }).then(function(s){
+        var url = location.origin + '/list/' + s, top = items.slice(0, 3).map(function(i, n){ return (n + 1) + '. ' + i.body; }).join('\n');
+        var txt = pack.name + '’s list 🐾\n' + (top ? top + '\n' : '') + 'Running for office? Start with our list: ' + url;
+        track('pack', { act: 'share_list' });
+        if (navigator.share) navigator.share({ title: pack.name + '’s list', text: txt }).catch(function(){}); else { navigator.clipboard.writeText(txt); toast('List link copied'); } }); };
+  });
+}
+function screenPublicList(sid){
+  root.innerHTML = nav() + '<div id="plpub"><p class="hint">Loading…</p></div>';
+  rpc('vp_pack_public_list', { p_share: sid }).then(function(L){
+    var el = document.getElementById('plpub');
+    if (!L) { el.innerHTML = '<p class="hint">This list isn’t shared any more.</p>'; return; }
+    var items = L.items || [];
+    el.innerHTML = '<div class="plpubh"><small>A VoterPup pack · ' + L.members + ' pup' + (L.members === 1 ? '' : 's') + '</small><h1>' + esc(L.name) + '’s list</h1><p>Neighbours added these and voted on them. Want our vote? Start here.</p></div>' +
+      (items.length ? '<ol class="plist pub">' + items.map(function(i, n){ return '<li class="' + (n < 3 ? 'top' : '') + '"><span class="plrank">' + (n + 1) + '</span><span class="plbody">' + (TOPIC_GLYPH[i.topic] ? TOPIC_GLYPH[i.topic] + ' ' : '') + esc(i.body) + '</span><span class="plvote ro"><i class="ph-fill ph-paw-print"></i><b>' + i.votes + '</b></span></li>'; }).join('') + '</ol>' : '<p class="hint">The list is empty for now.</p>') +
+      '<a class="btn gold" href="/app.html?new=1&src=list">Make your own pup · free, no account</a><p class="hint" style="text-align:center">No names, no parties. Just the issues.</p>';
+  }).catch(function(){ document.getElementById('plpub').innerHTML = '<p class="hint">Couldn’t load the list. Try again.</p>'; });
 }
 document.addEventListener('click', function(ev){
   var a = ev.target && ev.target.closest ? ev.target.closest('[data-rep]') : null; if (!a) return; ev.preventDefault();
@@ -3829,7 +3891,7 @@ function screenPack(mode, topic0){
   }).catch(function(e){ document.getElementById('board').textContent = 'The pack is napping: ' + e.message; });
 }
 
-var APP_VERSION = "20261004172851";
+var APP_VERSION = "20261004173602";
 (function(){
   try {
     fetch('/version.json?t=' + Date.now(), { cache: 'no-store' }).then(function(r){ return r.json(); }).then(function(j){
@@ -4332,6 +4394,7 @@ function introShow(then){
     var q0 = qs.get('q'); if (q0) setTimeout(function(){ var sb0 = document.getElementById('packsearch'); if (sb0) { sb0.value = q0; sb0.dispatchEvent(new Event('input')); } }, 1500); }
   else if (location.pathname === '/manage') screenManage();
   else if (location.pathname === '/play') screenPlay();
+  else if (/^\/list\/[0-9a-f]{10}$/.test(location.pathname)) screenPublicList(location.pathname.split('/')[2]);
   else if (/^\/packs\/[0-9a-f-]{36}$/.test(location.pathname)) screenPackRoom(location.pathname.split('/')[2]);
   else if (qs.get('new') === '1' || KIOSK || !loadLocal()) {   // first visit: make your pup
     if (!loadLocal() && !KIOSK && !introSeen() && srcTag() !== 'booth' && srcTag() !== 'demo') introShow(screenCapture); else screenCapture();
