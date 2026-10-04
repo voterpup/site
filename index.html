@@ -963,6 +963,10 @@
   .cityrep .crchips .chip.crtopic{cursor:pointer} .cityrep .crchips .chip.crtopic.on{outline:2px solid var(--gold); outline-offset:1px}
   .btiles .etile{aspect-ratio:1/0.95} .btiles .etxt{-webkit-line-clamp:3}
   #backedbox .count small{color:var(--sub); font-weight:700}
+  .svsheet{max-width:560px} .svframe{position:relative; height:46vh; min-height:260px; border-radius:14px; overflow:hidden; margin:8px 0 10px; background:var(--card2)}
+  .svframe iframe{position:absolute; inset:0; width:100%; height:100%; border:0}
+  .svtabs{display:inline-flex; background:var(--card2); border-radius:999px; padding:3px; gap:2px}
+  .svtabs span{padding:6px 14px; border-radius:999px; font-size:13px; font-weight:800; color:var(--sub); cursor:pointer} .svtabs span.on{background:#1769c2; color:#fff}
 </style>
 </head>
 <body>
@@ -1194,9 +1198,37 @@ document.addEventListener('click', function(ev){
 function hashChips(e){ return (e && e.tags && e.tags.length) ? e.tags.map(function(t){ return '<a class="chip htag" href="/pack?q=%23' + encodeURIComponent(t) + '">#' + esc(t) + '</a>'; }).join('') : ''; }
 function spotChip(e){
   if (!e || !e.spot) return '';
-  var href = (e.lat != null && e.lng != null) ? 'https://www.openstreetmap.org/?mlat=' + e.lat + '&mlon=' + e.lng + '#map=18/' + e.lat + '/' + e.lng : null;
-  return href ? '<a class="chip spotlink" href="' + href + '" target="_blank" rel="noopener">📍 ' + esc(e.spot) + '</a>' : '<span class="chip" style="cursor:default">📍 ' + esc(e.spot) + '</span>';
+  return (e.lat != null && e.lng != null)
+    ? '<a href="#" class="chip spotlink" data-sv="' + e.lat + ',' + e.lng + '" data-svl="' + esc(e.spot) + '">📍 ' + esc(e.spot) + '</a>'
+    : '<span class="chip" style="cursor:default">📍 ' + esc(e.spot) + '</span>';
 }
+// ---- see a place without leaving the app: a map of the spot, and Street View ----
+// Street View plays inside the app once a Google Maps Embed API key is set (free; restrict it to voterpup.com).
+// Until then the Street View button opens Google's Street View at that spot.
+var GMAPS_EMBED_KEY = '';
+function streetSheet(lat, lng, label){
+  lat = +lat; lng = +lng; if (!isFinite(lat) || !isFinite(lng)) return;
+  track('map', { sv: 1 });
+  var ov = document.createElement('div'); ov.className = 'stkover svover'; document.body.appendChild(ov);
+  var close = function(){ if (ov.parentNode) ov.parentNode.removeChild(ov); };
+  ov.onclick = function(ev){ if (ev.target === ov) close(); };
+  var d = .0025, osm = 'https://www.openstreetmap.org/export/embed.html?bbox=' + (lng - d) + ',' + (lat - d * .7) + ',' + (lng + d) + ',' + (lat + d * .7) + '&layer=mapnik&marker=' + lat + ',' + lng;
+  var svIn = GMAPS_EMBED_KEY ? 'https://www.google.com/maps/embed/v1/streetview?key=' + GMAPS_EMBED_KEY + '&location=' + lat + ',' + lng + '&fov=90' : null;
+  var svOut = 'https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=' + lat + ',' + lng;
+  ov.innerHTML = '<div class="stksheet svsheet"><div class="addhead">📍 ' + esc(label || 'This spot') + '</div>' +
+    '<div class="svtabs"><span class="on" data-v="map">Map</span><span data-v="sv">🧭 Street View</span></div>' +
+    '<div class="svframe"><iframe id="svif" src="' + osm + '" loading="lazy" referrerpolicy="no-referrer-when-downgrade" allowfullscreen></iframe></div>' +
+    '<button class="btn ghost" id="svclose">Close</button></div>';
+  document.getElementById('svclose').onclick = close;
+  Array.prototype.forEach.call(ov.querySelectorAll('.svtabs span'), function(s){ s.onclick = function(){
+    if (s.getAttribute('data-v') === 'sv' && !svIn) { window.open(svOut, '_blank', 'noopener'); return; }
+    Array.prototype.forEach.call(ov.querySelectorAll('.svtabs span'), function(x){ x.classList.toggle('on', x === s); });
+    document.getElementById('svif').src = s.getAttribute('data-v') === 'sv' ? svIn : osm; }; });
+}
+document.addEventListener('click', function(ev){
+  var a = ev.target && ev.target.closest ? ev.target.closest('[data-sv]') : null; if (!a) return;
+  ev.preventDefault(); ev.stopPropagation(); var p = a.getAttribute('data-sv').split(','); streetSheet(p[0], p[1], a.getAttribute('data-svl'));
+}, true);
 function attachRow_unused(){
   return '<div class="attach"><button class="chip" id="addmedia" type="button">📷 add photos / video</button>' +
          '<input id="fpick" type="file" accept="image/*,video/*" multiple hidden><div id="thumbs" style="display:flex;gap:8px;flex-wrap:wrap"></div></div>';
@@ -2733,7 +2765,7 @@ document.addEventListener('click', function(ev){
   ov.innerHTML = '<div class="stksheet"><div class="addhead">🏛️ ' + esc(r.type.replace(/ Case$/, '')) + '</div>' +
     '<p class="hint" style="margin:4px 0 10px">' + (r.area ? esc(r.area) + ' · ' : '') + d.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' }) + ' · ' + d.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }) + '</p>' +
     (r.topic ? '<div class="chips" style="margin:0 0 12px"><a class="topicchip" href="/pack?t=' + encodeURIComponent(r.topic) + '">#' + esc(r.topic) + '</a></div>' : '') +
-    '<a class="btn ghost" href="' + maps + '" target="_blank" rel="noopener">📍 Open in Maps</a>' +
+    '<a class="btn ghost" href="#" data-sv="' + r.lat + ',' + r.lng + '" data-svl="' + esc((r.area ? r.area + ' · ' : '') + r.type.replace(/ Case$/, '')) + '">🧭 See the spot · Street View</a>' +
     '<button class="btn gold" id="crsnap">📸 Seen it too? Snap it</button>' +
     '<p class="hint" style="font-size:11px;margin-top:10px">Reported to the city through 3-1-1. City of ' + esc(cp.city || 'Vancouver') + ' open data · Open Government Licence – Vancouver</p></div>';
   document.getElementById('crsnap').onclick = function(){ close(); if (loadLocal()) startWalk(); else location.href = '/app.html?new=1'; };
@@ -3341,7 +3373,7 @@ function screenPack(mode, topic0){
   }).catch(function(e){ document.getElementById('board').textContent = 'The pack is napping: ' + e.message; });
 }
 
-var APP_VERSION = "20261004011028";
+var APP_VERSION = "20261004011337";
 (function(){
   try {
     fetch('/version.json?t=' + Date.now(), { cache: 'no-store' }).then(function(r){ return r.json(); }).then(function(j){
