@@ -2967,12 +2967,12 @@ function walkSheet(s, file){
     if (pendingSpot) return res(pendingSpot);
     var done = false, fin = function(sp){ if (!done) { done = true; if (sp) pendingSpot = sp; res(pendingSpot); } };
     grabSpot(fin, function(){ fin(null); });
-    setTimeout(function(){ fin(pendingSpot); }, 25000); });
+    setTimeout(function(){ fin(pendingSpot); }, 7000); });   // don't hold the photo hostage to the location prompt
   shrinkPhoto(file).then(function(b){ blob = b; document.getElementById('walkimg').src = URL.createObjectURL(b);
     return new Promise(function(res){ var r = new FileReader(); r.onload = function(){ res(r.result.split(',')[1]); }; r.readAsDataURL(b); });
   }).then(function(b64){ return spotReady.then(function(sp){
-      if (!sp) return { error: 'location' };
-      return fetch(SUPABASE_URL + '/functions/v1/snap-look', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ image: b64, type: 'image/jpeg', lat: sp.lat, lng: sp.lng, dev: devId() }) }).then(function(r){ return r.json(); }); });
+      // location is optional for now: send it when we have it
+      return fetch(SUPABASE_URL + '/functions/v1/snap-look', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ image: b64, type: 'image/jpeg', lat: sp ? sp.lat : null, lng: sp ? sp.lng : null, dev: devId() }) }).then(function(r){ return r.json(); }); });
   }).then(function(r){
     var out = document.getElementById('walkout'); document.querySelector('.walkpic .shine').remove(); var sp = document.querySelector('.walkpic .scanpup'); if (sp) { sp.classList.add('bye'); setTimeout(function(){ sp.remove(); }, 400); }
     track('snap', { safe: r.safe, n: (r.findings || []).length });
@@ -3341,7 +3341,7 @@ function screenPack(mode, topic0){
   }).catch(function(e){ document.getElementById('board').textContent = 'The pack is napping: ' + e.message; });
 }
 
-var APP_VERSION = "20261004002951";
+var APP_VERSION = "20261004011028";
 (function(){
   try {
     fetch('/version.json?t=' + Date.now(), { cache: 'no-store' }).then(function(r){ return r.json(); }).then(function(j){
