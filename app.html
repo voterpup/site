@@ -971,6 +971,12 @@
   .sortrow{display:flex; gap:6px; margin:-2px 0 12px; overflow-x:auto; scrollbar-width:none} .sortrow::-webkit-scrollbar{display:none}
   .sortbtn{flex:0 0 auto; display:inline-flex; align-items:center; gap:5px; border:1.5px solid var(--line); background:var(--card2); color:var(--sub); border-radius:999px; padding:6px 10px; font:inherit; font-size:12.5px; font-weight:800; cursor:pointer; flex:1 1 auto; justify-content:center}
   .sortbtn.on{background:#13795b; border-color:#2fd39c; color:#fff; box-shadow:0 3px 10px rgba(47,211,156,.25)}
+  .tilegrid .tile .tbg.loading{background-image:linear-gradient(110deg, transparent 25%, rgba(255,255,255,.16) 50%, transparent 75%) !important; background-size:220% 100% !important; animation:tshim 1.3s linear infinite}
+  @keyframes tshim{from{background-position:120% 0} to{background-position:-120% 0}}
+  .tilegrid .tile .tbg{transition:opacity .5s ease}
+  .cityrow{display:flex; gap:10px; overflow-x:auto; scroll-snap-type:x mandatory; margin:0 -16px 4px; padding:0 16px 6px; scrollbar-width:none} .cityrow::-webkit-scrollbar{display:none}
+  .cityslot{flex:0 0 88%; width:88%; min-width:0; scroll-snap-align:center} .cityslot .cityrep{margin:0; height:100%; min-width:0; max-width:100%; overflow:hidden} .cityslot .crh{white-space:normal}
+  .cityhint{font-size:11.5px; color:var(--sub); font-weight:700; margin:0 2px 10px; text-align:right}
 </style>
 </head>
 <body>
@@ -2787,6 +2793,29 @@ function cityPinEl(c){
   d.style.background = TILE_COLORS[(TOPIC_LIST.indexOf(c.topic) + 13) % TILE_COLORS.length];
   d.innerHTML = '<i>' + (TOPIC_GLYPH[c.topic] || '•') + '</i>'; return d;
 }
+function cityPopup(c){
+  return new maplibregl.Popup({ offset: 10, maxWidth: '240px', closeButton: false }).setHTML('<div class="mpop"><div class="entry-body" style="margin:0 0 4px">🏛️ ' + esc(c.type) + '</div>' +
+    '<div class="ts">City 3-1-1 report' + (c.area ? ' · ' + esc(c.area) : '') + ' · ' + new Date(c.ts).toLocaleDateString() + '</div>' +
+    '<a href="#" class="chip spotlink" data-sv="' + c.lat + ',' + c.lng + '" data-svl="' + esc(c.type) + '" style="margin-top:6px;display:inline-block">🧭 See the spot</a></div>');
+}
+// Official reports for the part of the world the map is showing: refetched when you pan or zoom (any city we have).
+function attachAreaPins(m, isOn){
+  var shown = {}, t = null, seq = 0;
+  function clear(){ Object.keys(shown).forEach(function(k){ shown[k].remove(); }); shown = {}; }
+  function load(){
+    if (!isOn()) { clear(); return; }
+    var b = m.getBounds(), my = ++seq;
+    rpc('vp_city_pins_in', { p_s: b.getSouth(), p_w: b.getWest(), p_n: b.getNorth(), p_e: b.getEast(), p_limit: m.getZoom() < 9 ? 150 : 300 }).then(function(list){
+      if (my !== seq || !isOn()) return;
+      var keep = {};
+      (list || []).forEach(function(c){ keep[c.id] = 1; if (shown[c.id]) return;
+        shown[c.id] = new maplibregl.Marker({ element: cityPinEl(c) }).setLngLat([c.lng, c.lat]).setPopup(cityPopup(c)).addTo(m); });
+      Object.keys(shown).forEach(function(k){ if (!keep[k]) { shown[k].remove(); delete shown[k]; } });
+    }).catch(function(){});
+  }
+  m.on('moveend', function(){ clearTimeout(t); t = setTimeout(load, 250); });
+  return { refresh: load };
+}
 function cityOnlyMap(box, cityName){   // the city's official reports on a map, for places with no VoterPup posts yet
   box.innerHTML = '<div id="packmap" class="packmap"><div class="hint" style="padding:40px 12px">Loading map…</div></div>';
   loadMapLib().then(function(){
@@ -2794,14 +2823,9 @@ function cityOnlyMap(box, cityName){   // the city's official reports on a map, 
     var pins = window._cityPins || [], b0 = null;
     var m = new maplibregl.Map({ container: el, style: 'https://tiles.openfreemap.org/styles/liberty', center: pins[0] ? [pins[0].lng, pins[0].lat] : [-123.12, 49.28], zoom: 11, attributionControl: { compact: true } });
     m.addControl(new maplibregl.NavigationControl({ showCompass: false }), 'top-right');
-    pins.forEach(function(c){
-      var pp = new maplibregl.Popup({ offset: 10, maxWidth: '240px', closeButton: false }).setHTML('<div class="mpop"><div class="entry-body" style="margin:0 0 4px">🏛️ ' + esc(c.type) + '</div>' +
-        '<div class="ts">City 3-1-1 report' + (c.area ? ' · ' + esc(c.area) : '') + ' · ' + new Date(c.ts).toLocaleDateString() + '</div>' +
-        '<a href="#" class="chip spotlink" data-sv="' + c.lat + ',' + c.lng + '" data-svl="' + esc(c.type) + '" style="margin-top:6px;display:inline-block">🧭 See the spot</a></div>');
-      new maplibregl.Marker({ element: cityPinEl(c) }).setLngLat([c.lng, c.lat]).setPopup(pp).addTo(m);
-      b0 = b0 ? b0.extend([c.lng, c.lat]) : new maplibregl.LngLatBounds([c.lng, c.lat], [c.lng, c.lat]);
-    });
+    pins.forEach(function(c){ b0 = b0 ? b0.extend([c.lng, c.lat]) : new maplibregl.LngLatBounds([c.lng, c.lat], [c.lng, c.lat]); });
     if (b0) m.fitBounds(b0, { padding: 40, maxZoom: 14, duration: 0 });
+    attachAreaPins(m, function(){ return true; }).refresh();
   }).catch(function(){ var el = document.getElementById('packmap'); if (el) el.innerHTML = '<div class="hint" style="padding:40px 12px">The map couldn&rsquo;t load. Try again in a minute.</div>'; });
 }
 var TOPIC_GLYPH = { infrastructure: '🚧', transit: '🚌', cleanliness: '🗑️', parks: '🌳', safety: '⚠️', housing: '🏠', utilities: '💧', health: '🩺', homelessness: '⛺', climate: '🔊', 'cost of living': '💲', other: '•' };
@@ -3135,10 +3159,20 @@ function screenPack(mode, topic0){
     var me = cityKey ? (CITY_CENTRES[cityKey] || CITY_CENTRES[METRO[cityKey] || ''] || null) : null;
     var dist = function(c){ return (me && c.lat != null) ? Math.hypot((c.lat - me[0]) * 111, (c.lng - me[1]) * 111 * Math.cos(me[0] * Math.PI / 180)) : 1e9; };
     list.sort(function(a, b){ return dist(a) - dist(b); });
-    Promise.all(list.slice(0, 5).map(function(c){ return rpc('vp_city_pulse', { p_place: c.city + ', x, x' }).catch(function(){ return null; }); })).then(function(cards){
-      cs.innerHTML = cards.filter(Boolean).map(function(cp, i){ var d = dist(list[i]); return cityCard(cp, d < 1e8 && me && d >= 5 ? Math.round(d) + ' km away' : ''); }).join('');
-      if (cards[0]) window._cityPins = cards[0].pins || [];
-    });
+    cs.innerHTML = '<div class="cityrow" id="cityrow"></div><div class="cityhint">' + list.length + ' cities with official data · swipe for more ›</div>';
+    var row = document.getElementById('cityrow'), next = 0, busy = false;
+    var more = function(n){
+      if (busy || next >= list.length) return; busy = true;
+      var batch = list.slice(next, next + n); next += n;
+      Promise.all(batch.map(function(c){ return rpc('vp_city_pulse', { p_place: c.city + ', x, x', p_pins: 60 }).catch(function(){ return null; }); })).then(function(cards){
+        cards.forEach(function(cp, i){ if (!cp || !cp.week_total) return; var d = dist(batch[i]);
+          var w = document.createElement('div'); w.className = 'cityslot'; w.innerHTML = cityCard(cp, d < 1e8 && me && d >= 5 ? Math.round(d) + ' km away' : ''); row.appendChild(w); });
+        busy = false;
+        if (row.scrollWidth - row.scrollLeft - row.clientWidth < 400) more(2);
+      });
+    };
+    more(2);
+    row.addEventListener('scroll', function(){ if (row.scrollWidth - row.scrollLeft - row.clientWidth < 500) more(2); }, { passive: true });
   }).catch(function(){});
   if (wall && place) rpc('vp_place_stats', { p_place: place }).then(function(st){
     var el = document.getElementById('wallstat');
@@ -3309,10 +3343,15 @@ function screenPack(mode, topic0){
         if (!bg || !sn) return;
         var u = itemImg(r);
         var apply = function(){
-          bg.style.backgroundImage = u ? GRAD + ', url(' + u + ')' : 'none';
-          bg.style.backgroundColor = u ? 'transparent' : SOOTHE[Math.floor(Math.random() * SOOTHE.length)];
-          sn.textContent = (r.body || '📷').slice(0, 90);
-          bg.style.opacity = 1; sn.style.opacity = 1;
+          sn.textContent = (r.body || '📷').slice(0, 90); sn.style.opacity = 1;
+          if (!u) { bg.classList.remove('loading'); bg.style.backgroundImage = 'none'; bg.style.backgroundColor = SOOTHE[Math.floor(Math.random() * SOOTHE.length)]; bg.style.opacity = 1; return; }
+          bg.style.backgroundColor = 'transparent';
+          var im = new Image(), done = false;
+          var show = function(){ if (done) return; done = true; bg.classList.remove('loading'); bg.style.opacity = 0; bg.style.backgroundImage = GRAD + ', url(' + u + ')';
+            requestAnimationFrame(function(){ requestAnimationFrame(function(){ bg.style.opacity = 1; }); }); };
+          if (!bg.style.backgroundImage || bg.style.backgroundImage === 'none') { bg.style.backgroundImage = 'none'; bg.classList.add('loading'); bg.style.opacity = 1; }
+          im.onload = show; im.onerror = function(){ done = true; bg.classList.remove('loading'); }; im.src = u;
+          if (im.complete && im.naturalWidth) show();
         };
         if (first) { apply(); return; }
         bg.style.opacity = .35; sn.style.opacity = 0; setTimeout(apply, 450);
@@ -3387,11 +3426,12 @@ function screenPack(mode, topic0){
           });
           b0 = b0 ? b0.extend([r.lng, r.lat]) : new maplibregl.LngLatBounds([r.lng, r.lat], [r.lng, r.lat]);
         });
-        // city 3-1-1 reports as small grey dots, switchable
-        var cityOn = false, cityMarkers = [];
+        // city 3-1-1 reports, coloured by topic, loaded for the area on screen
+        var cityOn = false, cityMarkers = [], areaPins = attachAreaPins(m, function(){ return cityOn; });
         function drawCity(){
           cityMarkers.forEach(function(x){ x.remove(); }); cityMarkers = [];
-          if (!cityOn) return;
+          areaPins.refresh();
+          return;
           (window._cityPins || []).forEach(function(c){
             var d = document.createElement('div'); d.className = 'citypin';
             d.style.background = TILE_COLORS[(TOPIC_LIST.indexOf(c.topic) + 13) % TILE_COLORS.length];
@@ -3401,10 +3441,10 @@ function screenPack(mode, topic0){
             cityMarkers.push(new maplibregl.Marker({ element: d }).setLngLat([c.lng, c.lat]).setPopup(pp).addTo(m));
           });
         }
-        var tg = document.createElement('div'); tg.className = 'maptoggle'; tg.innerHTML = '<label><input type="checkbox" id="citytg"> 🏛️ City 3-1-1 reports (' + ((window._cityPins || []).length) + ')</label>';
+        var tg = document.createElement('div'); tg.className = 'maptoggle'; tg.innerHTML = '<label><input type="checkbox" id="citytg"> 🏛️ Official city reports</label>';
         el0.appendChild(tg); document.getElementById('citytg').onchange = function(){ cityOn = this.checked; drawCity(); };
         if (b0) m.fitBounds(b0, { padding: 40, maxZoom: 14, duration: 0 });
-        if ((window._cityPins || []).length) { cityOn = true; document.getElementById('citytg').checked = true; drawCity(); }   // on by default; untick to hide
+        cityOn = true; document.getElementById('citytg').checked = true; drawCity();   // on by default; untick to hide
       }).catch(function(){ var el0 = document.getElementById('packmap'); if (el0) el0.innerHTML = '<div class="hint" style="padding:40px 12px">The map couldn&rsquo;t load. Try again in a minute.</div>'; });
     }
     function tilesOff(){ mapOn = false; mb.innerHTML = '🗺️<span>Map</span>'; try { sessionStorage.removeItem('vp.packmap'); } catch (e) {} tilesView(); }
@@ -3437,7 +3477,7 @@ function screenPack(mode, topic0){
   }).catch(function(e){ document.getElementById('board').textContent = 'The pack is napping: ' + e.message; });
 }
 
-var APP_VERSION = "20261004031810";
+var APP_VERSION = "20261004032616";
 (function(){
   try {
     fetch('/version.json?t=' + Date.now(), { cache: 'no-store' }).then(function(r){ return r.json(); }).then(function(j){
