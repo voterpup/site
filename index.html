@@ -1138,6 +1138,8 @@
   .walkhello img{width:54px; height:54px; border-radius:50%; border:2px solid var(--gold); flex:0 0 auto} .walkhello b{color:#fff} .walkhello b:first-child{display:block; font-size:16px}
   .actbtn.pulse{animation:snappulse 1.4s ease-in-out 5}
   @keyframes snappulse{0%,100%{box-shadow:0 0 0 0 rgba(245,184,61,.0)} 50%{box-shadow:0 0 0 10px rgba(245,184,61,.35)}}
+  .walkprev{pointer-events:none}   /* a preview: the walk starts with the button */
+  .walkgo{font-size:19px !important; padding:16px !important; animation:snappulse 1.4s ease-in-out infinite}
 </style>
 </head>
 <body>
@@ -1163,14 +1165,21 @@ var KIOSK = new URLSearchParams(location.search).get('kiosk') === '1';
 var AD_LANDING = { yt1: 'start', yt2: 'city', yt3: 'start', yt4: 'start', yt5: 'walk' };
 var AD_CITY = 'Vancouver, British Columbia, Canada';   // 'city' landing when the visitor's city isn't known yet (the ads target Metro Vancouver)
 // the sniff-walk ad: make the pup now (no issue needed) and open today's walk
+// Today's walk shows straight away; the pup is only made when the visitor taps Start (robots that check ad links never tap)
 function walkFirstPup(){
   var names = ['Maple','Scout','Biscuit','Oreo','Juno','Pepper','Milo','Hazel','Kobe','Nala','Toffee','Ziggy'], name = names[Math.floor(Math.random() * names.length)];
-  root.innerHTML = '<div class="walkload"><img src="/pup-face.jpg" alt=""><b>Fetching your pup…</b><span>Today&rsquo;s sniff walk is almost ready 🐾</span></div>';
+  root.innerHTML = nav() + '<div class="walkhello"><img src="/pup-face.jpg" alt=""><div><b>Hi! I&rsquo;m ' + esc(name) + ' 🐾</b>Let&rsquo;s go for a walk! Find these 5 things outside. ✨ Rare ones are worth the most.</div></div>' +
+    '<div class="walkprev">' + huntCardHTML(name) + '</div>' +
+    '<button class="btn gold walkgo" id="walkgo">🐾 Start my walk</button>' +
+    '<p class="privacy">Free · no account · no name or email · no ads</p>';
+  document.getElementById('walkgo').onclick = function(){ this.disabled = true; this.textContent = 'Fetching ' + name + '…'; makeWalkPup(name); };
+}
+function makeWalkPup(name){
   rpc('vp_create_ledger', { p_name: name }).then(function(l){
     saveLocal(l.tail, l.name); track('pup_created', { via: 'walk' });
     try { sessionStorage.setItem('vp.walkhello', '1'); localStorage.setItem('vp.intro', '1'); } catch (e) {}
     location.replace(pupURL(l.tail));
-  }).catch(function(){ screenCapture(); });
+  }).catch(function(e){ toast('The pup stumbled: ' + e.message); var b = document.getElementById('walkgo'); if (b) { b.disabled = false; b.textContent = '🐾 Start my walk'; } });
 }
 function adSrc(){ var s = srcTag(); return /^yt\d+$/.test(s) ? s : null; }
 (function(){ var q = new URLSearchParams(location.search), s = q.get('src'), pl = q.get('place');
@@ -4078,7 +4087,7 @@ function screenPack(mode, topic0){
   }).catch(function(e){ document.getElementById('board').textContent = 'The pack is napping: ' + e.message; });
 }
 
-var APP_VERSION = "20261004213425";
+var APP_VERSION = "20261004214553";
 (function(){
   try {
     fetch('/version.json?t=' + Date.now(), { cache: 'no-store' }).then(function(r){ return r.json(); }).then(function(j){
