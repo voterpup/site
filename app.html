@@ -806,6 +806,30 @@
   .scopebar .segedit{background:#efe8ff; color:#7c4dff; border:0}
   .searchwrap{box-shadow:0 2px 10px rgba(75,42,140,.08), inset 0 0 0 1.5px #e4dafb !important; border-color:transparent !important} .searchwrap svg{color:#7c4dff}
   .tilegrid .tile .tcount{background:#ff5fa2; color:#fff}
+  /* ---- my issues: a smaller three-across grid ---- */
+  .etiles{grid-template-columns:repeat(3, 1fr); gap:8px}
+  .etile{border-radius:14px; padding:8px; aspect-ratio:1/1.12; box-shadow:0 3px 0 rgba(0,0,0,.14)}
+  .etop{font-size:9.5px} .etop i{font-size:13px} .etxt{font-size:12px; line-height:1.22; -webkit-line-clamp:4} .ebot{font-size:10px}
+  /* ---- settings: the same playful palette ---- */
+  .mgrid .mrow{border:0; box-shadow:0 4px 14px rgba(75,42,140,.10)}
+  .mgrid .mrow:nth-child(5n+1){background:linear-gradient(160deg, #ffe3ef, #fff)} .mgrid .mrow:nth-child(5n+1) .mh{color:#c2185b}
+  .mgrid .mrow:nth-child(5n+2){background:linear-gradient(160deg, #fff0d9, #fff)} .mgrid .mrow:nth-child(5n+2) .mh{color:#c25e00}
+  .mgrid .mrow:nth-child(5n+3){background:linear-gradient(160deg, #ddf7ec, #fff)} .mgrid .mrow:nth-child(5n+3) .mh{color:#0b7d55}
+  .mgrid .mrow:nth-child(5n+4){background:linear-gradient(160deg, #e0eeff, #fff)} .mgrid .mrow:nth-child(5n+4) .mh{color:#1f63c6}
+  .mgrid .mrow:nth-child(5n+5){background:linear-gradient(160deg, #eee5ff, #fff)} .mgrid .mrow:nth-child(5n+5) .mh{color:#6a35d9}
+  .mgrid .mact .btn.gold, .mgrid .mact .mbtn.gold{background:linear-gradient(120deg, #ff5fa2, #ff9f45); border:0; color:#fff; box-shadow:0 3px 10px rgba(255,95,162,.3)}
+  .mgrid .mact .btn.ghost, .mgrid .mact .mbtn{border-color:#e4dafb; color:#4b2a8c; background:#fff}
+  .mgrid .mthumb{border-radius:12px}
+  /* ---- Memory Lane: indigo night instead of grey ---- */
+  .flashov{background:linear-gradient(170deg, #1d1446 0%, #2e1a5e 45%, #4a1f5c 100%)}
+  .ffoot{background:linear-gradient(transparent, #3e1d5d 40%)}
+  .fday{background:rgba(255,255,255,.10); box-shadow:inset 0 0 0 1.5px rgba(255,255,255,.12)} .fday span{color:#d9c8ff} .fday i{background:#ff5fa2; color:#fff}
+  .flashsub{color:#d9c8ff}
+  .froll .fmonth{color:#ffd23f}
+  .froll .fcard:nth-of-type(5n+1){border-top-color:#ff5fa2} .froll .fcard:nth-of-type(5n+2){border-top-color:#ff9f45} .froll .fcard:nth-of-type(5n+3){border-top-color:#18b87a}
+  .froll .fcard:nth-of-type(5n+4){border-top-color:#2f8cff} .froll .fcard:nth-of-type(5n+5){border-top-color:#8a4dff}
+  .froll .fd{color:#7a4fd6}
+  .fend{color:#d9c8ff}
 </style>
 </head>
 <body>
@@ -1914,7 +1938,7 @@ function tabName(){ var s = loadLocal(); return s && s.name ? (s.name.length > 1
 function tabbar(active){
   return '<div class="tabbar">' +
     '<a href="/pack" id="tab-city" class="' + (active==='pack'?'on':'') + '">' + ic('cityscape', 'tabic') + '<span>Your city</span></a>' +
-    '<a href="#" class="plusbtn" id="tab-plus" aria-label="Feed your pup a photo"><b>' + ic('camera_with_flash', 'feedic') + '</b><span class="walklbl">Feed</span></a>' +
+    '<a href="#" class="plusbtn" id="tab-plus" aria-label="Snap a photo for your pup"><b>' + ic('camera_with_flash', 'feedic') + '</b><span class="walklbl">Snap</span></a>' +
     '<a href="#" id="tab-pup" class="' + (active==='pup'||active==='manage'?'on':'') + '">' + ic('dog', 'tabic') + '<span>' + esc(tabName()) + '</span></a>' +
   '</div>';
 }
@@ -2829,7 +2853,7 @@ function walkSheet(s, file){
   }
 }
 
-var TILE_COLORS = ['#2f7d5f','#b3702d','#5f6caf','#a94b4b','#3d8f8f','#6b8e23','#8a5fae','#556270','#996633','#2c6e8f','#8f5a2c','#6a4c93','#3f7f5f'];
+var TILE_COLORS = ['#18a874','#ff7a2e','#5b6cff','#ef4f7f','#00a3a3','#5fae2e','#8a4dff','#3d7fe0','#e39b00','#d0459c','#2f8cff','#ff6f61','#7a4fd6'];   // the playful palette
 
 function screenPack(mode, topic0){
   var place = getPlace();
@@ -2874,7 +2898,7 @@ function screenPack(mode, topic0){
     '<div class="packhero">' + slotMedia('pack') +
       '<div class="ft">What ' + esc(city || 'your city') + ' wants fixed<small>The agenda is set for us. Time we set it.</small></div></div>' +
     '<div id="citystrip"></div>' +
-    (loadLocal() ? '' : '<div class="newbie">\ud83d\udc4b New here? Tap <b>📸 Feed</b> to get your own pup.</div>') +
+    (loadLocal() ? '' : '<div class="newbie">\ud83d\udc4b New here? Tap <b>📸 Snap</b> to get your own pup.</div>') +
     '<div class="scopebar"><div class="seg">' +
       (city ? '<span class="segbtn' + (mode==='local'?' on':'') + '" id="mlocal">' + ic('round_pushpin', 'segic') + esc(city) + '</span>'
             : '<span class="segbtn" id="mfind">' + ic('round_pushpin', 'segic') + 'Near me</span>') +
@@ -2976,7 +3000,7 @@ function screenPack(mode, topic0){
 
     var tiles = [];
     if (mine.length) tiles.push({ key: '__mine', name: '\u2b50 My shared', list: mine, color: 'var(--gold)', mine: true });
-    if (backedList.length) tiles.push({ key: '__backed', name: '\ud83d\udc3e I back', list: backedList, color: '#b3702d', mine: true });
+    if (backedList.length) tiles.push({ key: '__backed', name: '\ud83d\udc3e I back', list: backedList, color: '#8a4dff', mine: true });
     topics.forEach(function(t, i){
       tiles.push({ key: t, name: '#' + t, list: byTopic[t], color: TILE_COLORS[i % TILE_COLORS.length] });
     });
@@ -3141,7 +3165,7 @@ function screenPack(mode, topic0){
   }).catch(function(e){ document.getElementById('board').textContent = 'The pack is napping: ' + e.message; });
 }
 
-var APP_VERSION = "20261004001351";
+var APP_VERSION = "20261004001728";
 (function(){
   try {
     fetch('/version.json?t=' + Date.now(), { cache: 'no-store' }).then(function(r){ return r.json(); }).then(function(j){
