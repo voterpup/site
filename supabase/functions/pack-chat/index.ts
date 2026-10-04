@@ -66,9 +66,22 @@ Deno.serve(async (req) => {
     const itemIds = (rows ?? []).map((r: any) => r.item_id).filter(Boolean);
     const topics = new Map<string, any>();
     if (itemIds.length) {
-      const { data: its } = await db.from("pack_items").select("id, body, topic").in("id", itemIds);
+      const { data: its } = await db.from("pack_items").select("id, body, topic, entry_id").in("id", itemIds);
       const { data: vs } = await db.from("pack_votes").select("item_id, tail").in("item_id", itemIds);
-      for (const it of its ?? []) topics.set(it.id, { id: it.id, body: it.body, topic: it.topic, votes: (vs ?? []).filter((v: any) => v.item_id === it.id).length, voted: (vs ?? []).some((v: any) => v.item_id === it.id && v.tail === tail) });
+      const eids = (its ?? []).map((i: any) => i.entry_id).filter(Boolean);
+      const ents = new Map<string, any>();
+      if (eids.length) {   // a shared issue shows as an issue tile: its photo (signed link), topic and spot
+        const { data: es } = await db.from("entries").select("id, media, topic, spot, lat, lng").in("id", eids);
+        const ps: string[] = [];
+        for (const e of es ?? []) { const m = (e.media ?? []).find((x: any) => !x.type || String(x.type).startsWith("image")); const pth = m ? (m.path ?? (m.url ? String(m.url).replace(/^.*\/storage\/v1\/object\/(public\/)?media\//, "") : null)) : null;
+          e._p = pth && PATH_OK.test(pth) ? pth : null; if (e._p) ps.push(e._p); ents.set(e.id, e); }
+        const sg = new Map<string, string>();
+        if (ps.length) { const { data: s2 } = await db.storage.from("media").createSignedUrls(ps, 3600); for (const x of s2 ?? []) if (x.signedUrl && x.path) sg.set(x.path, x.signedUrl); }
+        for (const e of ents.values()) e._img = e._p ? sg.get(e._p) ?? null : null;
+      }
+      for (const it of its ?? []) { const e = it.entry_id ? ents.get(it.entry_id) : null;
+        topics.set(it.id, { id: it.id, body: it.body, topic: it.topic || e?.topic || null, votes: (vs ?? []).filter((v: any) => v.item_id === it.id).length, voted: (vs ?? []).some((v: any) => v.item_id === it.id && v.tail === tail),
+          issue: e ? { img: e._img, spot: e.spot, lat: e.lat, lng: e.lng } : null }); }
     }
     await db.from("pack_members").update({ last_read: new Date().toISOString() }).eq("pack_id", pack).eq("tail", tail);
     return json((rows ?? []).reverse().filter((r: any) => !r.item_id || topics.has(r.item_id)).map((r: any) => ({ id: r.id, mine: r.tail === tail, who: nameOf.get(r.tail) ?? "a pup", ts: r.created_at,
@@ -91,7 +104,15 @@ Deno.serve(async (req) => {
     return json({ ok: true, id: msg.id, ts: msg.created_at });
   }
   if (b.action === "add_item") {   // the pack's list can be shared publicly, so items are checked like messages
-    const body = String(b.body || "").replace(/\s+/g, " ").trim().slice(0, 140);
+    let entry: string | null = null, etopic: string | null = null, ebody = "";
+    if (/^[0-9a-f-]{36}$/.test(String(b.entry || ""))) {   // sharing one of your own issues into the group
+      const { data: e } = await db.from("entries").select("id, tail, body, topic").eq("id", b.entry).maybeSingle();
+      if (!e || e.tail !== tail) return json({ error: "You can only share your own issues." }, 403);
+      entry = e.id; etopic = e.topic; ebody = String(e.body || "📷 an issue").slice(0, 140);
+      const { data: again } = await db.from("pack_items").select("id").eq("pack_id", pack).eq("entry_id", entry).maybeSingle();
+      if (again) return json({ error: "That issue is already in this group. Vote for it there 🐾" }, 409);
+    }
+    const body = (ebody || String(b.body || "")).replace(/\s+/g, " ").trim().slice(0, 140);
     if (body.length < 2) return json({ error: "Write the issue in a few words." }, 400);
     const { count } = await db.from("pack_items").select("id", { count: "exact", head: true }).eq("pack_id", pack);
     if ((count ?? 0) >= 50) return json({ error: "This list is full (50). Remove a few first." }, 400);
@@ -99,12 +120,11 @@ Deno.serve(async (req) => {
     if (dup) return json({ error: "That's already on the list. Vote for it instead 🐾" }, 409);
     const chk = await textOk(body);
     if (!chk.ok) return json({ error: "That wasn't added" + (chk.why ? " (" + chk.why + ")" : "") + ". Keep it friendly 🐾" }, 422);
-    const entry = /^[0-9a-f-]{36}$/.test(String(b.entry || "")) ? b.entry : null;
-    const { data: it, error } = await db.from("pack_items").insert({ pack_id: pack, tail, body, topic: b.topic ? String(b.topic).slice(0, 30) : null, entry_id: entry }).select("id").single();
+    const { data: it, error } = await db.from("pack_items").insert({ pack_id: pack, tail, body, topic: etopic || (b.topic ? String(b.topic).slice(0, 30) : null), entry_id: entry }).select("id").single();
     if (error) return json({ error: error.message }, 500);
     await db.from("pack_votes").insert({ item_id: it.id, tail });   // adding it counts as your vote
     await db.from("pack_messages").insert({ pack_id: pack, tail, item_id: it.id });   // and it shows up in the chat as a topic card
-    await nudge(db, pack, tail, "📌 " + (me?.name ?? "A pup") + " started a topic: " + body.slice(0, 80) + ". Vote?");
+    await nudge(db, pack, tail, (entry ? "🐾 " + (me?.name ?? "A pup") + " shared an issue: " : "📌 " + (me?.name ?? "A pup") + " started a topic: ") + body.slice(0, 80) + ". Vote?");
     return json({ ok: true, id: it.id });
   }
   return json({ error: "bad action" }, 400);

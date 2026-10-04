@@ -1168,6 +1168,14 @@
   .pinchhint{text-align:center; color:var(--sub); font-size:11.5px; margin:8px 0 0}
   .addspotchip{cursor:pointer; border:1.5px dashed var(--accent) !important; color:#7fe0c8 !important}
   .lochelp{margin:4px 0 12px 18px; padding:0; font-size:13.5px; color:var(--ink); line-height:1.5} .lochelp li{margin:4px 0}
+  /* sharing issues into groups */
+  .groupchip{cursor:pointer; border:1.5px solid var(--wa) !important; color:#7fe0c8 !important}
+  .gpickrow{display:flex; align-items:center; gap:10px; width:100%; background:var(--card2); border:1.5px solid var(--line); border-radius:14px; padding:12px; margin:6px 0; color:var(--ink); font:inherit; cursor:pointer; text-align:left}
+  .gpickrow b{flex:1} .gpickrow span{color:var(--sub); font-size:12.5px} .gpickrow i{color:var(--wa); font-size:18px}
+  #room .msg.issuecard{padding:10px}
+  .ictile{border-radius:12px; min-height:150px; padding:10px; display:flex; flex-direction:column; justify-content:space-between; background-size:cover; background-position:center; margin:6px 0 8px; color:#fff}
+  .ictop{font-size:11.5px; font-weight:900; opacity:.9} .icbody{font-weight:900; font-size:17px; line-height:1.25; text-shadow:0 1px 3px rgba(0,0,0,.4)}
+  .icfoot{display:flex; align-items:center; justify-content:space-between; gap:8px; flex-wrap:wrap}
 </style>
 </head>
 <body>
@@ -2176,7 +2184,7 @@ function screenLedger(tail){
           (e.fixed_at ? '<span class="estat fixed">✓ Fixed ' + fixedTxt + '</span>' : e.shared ? '<span class="estat on">In Your city</span>' : '<span class="estat">Private</span>') + '</div>' +
         (e.body ? '<div class="entry-body">' + esc(e.body) + '</div>' : '') + mediaHTML(e.media) +
         '<div class="emeta">' + (e.spot && e.lat == null ? '<span>' + esc(e.spot) + '</span> · ' : '') + new Date(e.ts).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) +
-          (e.shared && e.rank && e.rank <= 10 ? ' · <b>#' + e.rank + (e.city ? ' in ' + esc(e.city) : '') + '</b>' : '') + '</div>' + '<div class="chips">' + placeChip(e.place, e.topic) + (e.spot ? spotChip(e) : '<span class="chip addspotchip" data-addspot="' + e.id + '">📍 Add the spot</span>') + '</div>' +
+          (e.shared && e.rank && e.rank <= 10 ? ' · <b>#' + e.rank + (e.city ? ' in ' + esc(e.city) : '') + '</b>' : '') + '</div>' + '<div class="chips">' + placeChip(e.place, e.topic) + (e.spot ? spotChip(e) : '<span class="chip addspotchip" data-addspot="' + e.id + '">📍 Add the spot</span>') + groupChip(e.id) + '</div>' +
         scopeSliderHTML('esc-' + e.id, e.scope || guessScope(e.body, e.topic)).replace('class="scopesl"', 'class="scopesl compact" data-eid="' + e.id + '"') +
         '<div class="efoot"><div class="eleft">' +
           (e.shared ? (e.backs ? '<span class="eagree">🐾 ' + e.backs + (e.backs === 1 ? ' agrees' : ' agree') + '</span>' : '<span class="eagree muted">No same-heres yet</span>')
@@ -3267,6 +3275,14 @@ function screenPackRoom(pid){
   }
   function topicCard(m){
     var t = m.topic;
+    if (t.issue) {
+      var iss = t.issue, col = tileCol(t.id);
+      return '<div class="msg topic issuecard" data-mid="' + m.id + '" data-item="' + t.id + '"><small>🐾 ' + (m.mine ? 'You' : esc(m.who)) + ' shared an issue</small>' +
+        '<div class="ictile" style="background:' + col + (iss.img ? ';background-image:linear-gradient(rgba(12,23,34,0) 40%,rgba(12,23,34,.85)),url(' + esc(iss.img) + ')' : '') + '">' +
+          '<span class="ictop">' + (t.topic ? '#' + esc(t.topic) : '') + '</span><span class="icbody">' + esc(t.body) + '</span></div>' +
+        '<div class="icfoot">' + (iss.spot && iss.lat != null ? spotChip({ spot: iss.spot, lat: iss.lat, lng: iss.lng }) : '') +
+        '<button class="tvote' + (t.voted ? ' on' : '') + '" data-tv="' + t.id + '"><i class="ph-fill ph-paw-print"></i> <b>' + t.votes + '</b> <span>' + (t.voted ? 'Voted' : 'Vote') + '</span></button></div></div>';
+    }
     return '<div class="msg topic" data-mid="' + m.id + '" data-item="' + t.id + '"><small>📌 ' + (m.mine ? 'You' : esc(m.who)) + ' started a topic</small>' +
       '<div class="tbody">' + (TOPIC_GLYPH[t.topic] ? TOPIC_GLYPH[t.topic] + ' ' : '') + esc(t.body) + '</div>' +
       '<button class="tvote' + (t.voted ? ' on' : '') + '" data-tv="' + t.id + '"><i class="ph-fill ph-paw-print"></i> <b>' + t.votes + '</b> <span>' + (t.voted ? 'Voted' : 'Vote') + '</span></button></div>';
@@ -3445,6 +3461,29 @@ function wakeFlips(root0){   // one tile at a time, every couple of seconds, rou
     tiles[k % tiles.length].classList.toggle('flipped'); k++;
   }, 2600);
 }
+// Share one of your own issues into a group: it becomes something the group votes on, shown as an issue tile
+function groupChip(id){ return id ? '<span class="chip groupchip" data-togroup="' + id + '">🐾 To a group</span>' : ''; }
+function groupPickSheet(entryId){
+  var me = loadLocal(); if (!me) return;
+  var s = sheet('<div class="addhead">🐾 Share this issue with a group</div><p class="hint">Your group gets it as an issue to vote on. Only group members see it.</p><div id="gpick"><p class="hint">Loading your groups…</p></div>');
+  rpc('vp_my_packs', { p_tail: me.tail }).then(function(list){
+    var act = (list || []).filter(function(p){ return p.status === 'active'; }), el = document.getElementById('gpick');
+    if (!act.length) { el.innerHTML = '<p class="hint">You&rsquo;re not in a group yet.</p><button class="btn gold" id="gnew">＋ Start a group</button>';
+      document.getElementById('gnew').onclick = function(){ s.close(); packCreateSheet(me.tail); }; return; }
+    el.innerHTML = act.map(function(p){ var n = (p.members || []).filter(function(m){ return m.status === 'active'; }).length;
+      return '<button class="gpickrow" data-gp="' + p.id + '"><b>' + esc(p.name) + '</b><span>' + n + ' pup' + (n === 1 ? '' : 's') + '</span><i class="ph-fill ph-paper-plane-right"></i></button>'; }).join('');
+    el.querySelectorAll('[data-gp]').forEach(function(b){ b.onclick = function(){ b.disabled = true; var pid = b.getAttribute('data-gp');
+      packPost(me, pid, { action: 'add_item', entry: entryId }).then(function(r){
+        if (r.error) { b.disabled = false; toast(r.error); return; }
+        s.close(); track('pack', { act: 'share_issue' }); toast('Shared 🐾 Your group can vote on it now.');
+        setTimeout(function(){ location.href = '/packs/' + pid; }, 900);
+      }).catch(function(e){ b.disabled = false; toast(e.message); }); }; });
+  }).catch(function(){ document.getElementById('gpick').innerHTML = '<p class="hint">Couldn&rsquo;t load your groups. Try again.</p>'; });
+}
+document.addEventListener('click', function(ev){
+  var a = ev.target && ev.target.closest ? ev.target.closest('[data-togroup]') : null; if (!a) return;
+  ev.preventDefault(); ev.stopPropagation(); groupPickSheet(a.getAttribute('data-togroup'));
+});
 var METRO = { 'north vancouver': 'vancouver', 'west vancouver': 'vancouver', 'burnaby': 'vancouver', 'surrey': 'vancouver', 'richmond': 'vancouver', 'new westminster': 'vancouver',
   'coquitlam': 'vancouver', 'port coquitlam': 'vancouver', 'port moody': 'vancouver', 'delta': 'vancouver', 'langley': 'vancouver', 'maple ridge': 'vancouver', 'pitt meadows': 'vancouver',
   'white rock': 'vancouver', 'anmore': 'vancouver', 'belcarra': 'vancouver', 'lions bay': 'vancouver', 'bowen island': 'vancouver', 'tsawwassen': 'vancouver', 'district of north vancouver': 'vancouver' };
@@ -3924,7 +3963,7 @@ function screenPack(mode, topic0){
           (r.place ? '<span class="chip" style="cursor:default">\ud83d\udccd ' + esc(r.place.split(',')[0]) + '</span>' : '') + '</div>' : '') +
         (r.body ? '<div class="entry-body">' + esc(r.body) + '</div>' : '') + mediaHTML(r.media) +
         '<div class="ts">\u2014 ' + esc(r.pup) + ' \u00b7 ' + new Date(r.ts).toLocaleDateString() + '</div>' +
-        (r.id ? '<div class="chips" style="margin-top:6px">' + scopeChip(r.scope) + spotChip(r) + hashChips(r) + sameChip(r.id, r.backs || 0, !!backed[r.id], !!myIds[r.id]) + shareChip(Object.assign({}, r, { shared: true })) +
+        (r.id ? '<div class="chips" style="margin-top:6px">' + scopeChip(r.scope) + spotChip(r) + hashChips(r) + sameChip(r.id, r.backs || 0, !!backed[r.id], !!myIds[r.id]) + shareChip(Object.assign({}, r, { shared: true })) + (myIds[r.id] ? groupChip(r.id) : '') +
           (myIds[r.id] ? reactChips(r, null, true) : reactChips(r, myReacts[r.id], false)) + '</div>' + emoRow(r.id, !!myIds[r.id]) : '') +
         '</div>';
     }
@@ -4171,7 +4210,7 @@ function screenPack(mode, topic0){
   }).catch(function(e){ document.getElementById('board').textContent = 'The pack is napping: ' + e.message; });
 }
 
-var APP_VERSION = "20261004223355";
+var APP_VERSION = "20261004235044";
 (function(){
   try {
     fetch('/version.json?t=' + Date.now(), { cache: 'no-store' }).then(function(r){ return r.json(); }).then(function(j){
