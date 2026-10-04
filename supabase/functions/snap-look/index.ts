@@ -19,8 +19,8 @@ Each finding: kind "issue" (something a city or its contractors could fix or imp
 
 Hard rules:
 - Describe things, never people. No faces, clothing, bodies, plates, licence numbers, house numbers, shop names, or text that names anyone. Ignore political signs, posters and flags entirely.
+- Animals are NOT people. A photo mainly of an animal outside (a dog, cat, bird, butterfly), even up close: safe "ok", no findings (an animal is not a city issue), but DO list it in "spotted" (dog, cat, bird, flight, butterfly). Never describe the animal's owner.
 - If the photo is mainly of a person, people, a selfie, an indoor scene, a document, a screen, or food: set safe to "people" (for people/selfies) or "skip" (for the rest) and return no findings.
-- If the photo is mainly of an animal outdoors (a dog, cat, bird, butterfly): safe "ok", no findings (an animal is not a city issue), but DO list it in "spotted". Never describe the animal's owner.
 - If the photo contains nudity, gore, hate symbols, or a child as its subject: safe "block", no findings.
 - Prefer the fixable over the aesthetic: "litter around the bins" yes, "ugly building" no. Private property neglect is not a finding unless it affects the public way.
 - Say WHAT, not who should: never "the city should". Never guess an address or a place name.

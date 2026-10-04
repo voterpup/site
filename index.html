@@ -1132,6 +1132,12 @@
   .adcta span{flex:1; font-size:13.5px; color:var(--sub)} .adcta b{display:block; color:var(--ink); font-size:15.5px}
   .adcta i{font-style:normal; background:var(--gold); color:var(--goldink); font-weight:900; border-radius:999px; padding:8px 12px; flex:0 0 auto}
   .adhook{background:#0f3a35; border:1.5px solid var(--accent); color:#c9f3e6; border-radius:14px; padding:9px 12px; font-size:14px; margin:0 0 10px} .adhook b{color:#fff}
+  .walkload{min-height:80vh; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:8px; text-align:center}
+  .walkload img{width:110px; height:110px; border-radius:50%; border:4px solid var(--gold); animation:tbounce 1.2s ease-in-out infinite} .walkload b{font-size:20px} .walkload span{color:var(--sub)}
+  .walkhello{display:flex; gap:12px; align-items:center; background:linear-gradient(135deg,#0f3a35,#13283a); border:1.5px solid var(--accent); border-radius:18px; padding:12px; margin:0 0 12px; font-size:14px; color:#c9f3e6}
+  .walkhello img{width:54px; height:54px; border-radius:50%; border:2px solid var(--gold); flex:0 0 auto} .walkhello b{color:#fff} .walkhello b:first-child{display:block; font-size:16px}
+  .actbtn.pulse{animation:snappulse 1.4s ease-in-out 5}
+  @keyframes snappulse{0%,100%{box-shadow:0 0 0 0 rgba(245,184,61,.0)} 50%{box-shadow:0 0 0 10px rgba(245,184,61,.35)}}
 </style>
 </head>
 <body>
@@ -1153,8 +1159,19 @@ var KIOSK = new URLSearchParams(location.search).get('kiosk') === '1';
 // Where each ad sends new visitors (the ad link carries ?src=yt1, yt2, ...). Change a value to move that ad's landing:
 //   'start' = the first screen (tap one issue, get your pup), no intro slides
 //   'city'  = the Your city board, with a big "make your pup" button on top
-var AD_LANDING = { yt1: 'start', yt2: 'city', yt3: 'start', yt4: 'start' };
+//   'walk'  = a pup is made for them straight away (no issue needed) and they land on today's sniff walk
+var AD_LANDING = { yt1: 'start', yt2: 'city', yt3: 'start', yt4: 'start', yt5: 'walk' };
 var AD_CITY = 'Vancouver, British Columbia, Canada';   // 'city' landing when the visitor's city isn't known yet (the ads target Metro Vancouver)
+// the sniff-walk ad: make the pup now (no issue needed) and open today's walk
+function walkFirstPup(){
+  var names = ['Maple','Scout','Biscuit','Oreo','Juno','Pepper','Milo','Hazel','Kobe','Nala','Toffee','Ziggy'], name = names[Math.floor(Math.random() * names.length)];
+  root.innerHTML = '<div class="walkload"><img src="/pup-face.jpg" alt=""><b>Fetching your pup…</b><span>Today&rsquo;s sniff walk is almost ready 🐾</span></div>';
+  rpc('vp_create_ledger', { p_name: name }).then(function(l){
+    saveLocal(l.tail, l.name); track('pup_created', { via: 'walk' });
+    try { sessionStorage.setItem('vp.walkhello', '1'); localStorage.setItem('vp.intro', '1'); } catch (e) {}
+    location.replace(pupURL(l.tail));
+  }).catch(function(){ screenCapture(); });
+}
 function adSrc(){ var s = srcTag(); return /^yt\d+$/.test(s) ? s : null; }
 (function(){ var q = new URLSearchParams(location.search), s = q.get('src'), pl = q.get('place');
   if (s) try { sessionStorage.setItem('vp.src', s.slice(0, 20)); if (!localStorage.getItem('vp.src0')) localStorage.setItem('vp.src0', s.slice(0, 20)); } catch (e) {}
@@ -2062,6 +2079,13 @@ function screenLedger(tail){
     if (q0.get('add') === 'walk' && !KIOSK) { history.replaceState(null, '', location.pathname); track('notif_open', { kind: 'walk' }); setTimeout(function(){ openAdd(); toast('🐾 Tap 📸 Feed to give ' + esc(L.name) + ' a photo'); }, 400); }
     if (q0.get('add') === '1' && !KIOSK) { history.replaceState(null, '', location.pathname); track('notif_open', { kind: 'reminder' }); setTimeout(openAdd, 250); }   // from a reminder
     if (q0.get('flash') === '1') { history.replaceState(null, '', location.pathname); track('notif_open', { kind: 'vote' }); setTimeout(function(){ openFlashback(L); }, 400); }   // vote morning
+    var hello = false; try { hello = sessionStorage.getItem('vp.walkhello') === '1'; sessionStorage.removeItem('vp.walkhello'); } catch (e) {}
+    if (hello && !KIOSK) {   // arrived from the sniff-walk ad: say hi, point at today's walk and the Snap button
+      var hc = document.getElementById('huntcard');
+      if (hc) { hc.insertAdjacentHTML('beforebegin', '<div class="walkhello"><img src="/pup-face.jpg" alt=""><div><b>Hi! I&rsquo;m ' + esc(L.name) + ' 🐾</b>Let&rsquo;s go for a walk. Find these 5 things outside and tap <b>Snap</b> when you spot one. ✨ Rare ones are worth the most!</div></div>');
+        setTimeout(function(){ hc.scrollIntoView({ behavior: 'smooth', block: 'center' }); }, 300); }
+      var sb2 = document.getElementById('qwalk'); if (sb2) sb2.classList.add('pulse');
+    }
     var wantTour = false; try { wantTour = sessionStorage.getItem('vp.tour') === '1'; sessionStorage.removeItem('vp.tour'); } catch (e) {}
     if (wantTour && !KIOSK) setTimeout(function(){ startTour(L.name); }, 700);
     if (!window._vpVisWired) { window._vpVisWired = true;
@@ -4054,7 +4078,7 @@ function screenPack(mode, topic0){
   }).catch(function(e){ document.getElementById('board').textContent = 'The pack is napping: ' + e.message; });
 }
 
-var APP_VERSION = "20261004203242";
+var APP_VERSION = "20261004210143";
 (function(){
   try {
     fetch('/version.json?t=' + Date.now(), { cache: 'no-store' }).then(function(r){ return r.json(); }).then(function(j){
@@ -4561,6 +4585,7 @@ function introShow(then){
   else if (/^\/join\/[0-9]+-[a-z-]+$/i.test(location.pathname)) joinFromLink(decodeURIComponent(location.pathname.slice(6)).replace(/-/g, ' '));
   else if (/^\/list\/[0-9a-f]{10}$/.test(location.pathname)) screenPublicList(location.pathname.split('/')[2]);
   else if (/^\/packs\/[0-9a-f-]{36}$/.test(location.pathname)) screenPackRoom(location.pathname.split('/')[2]);
+  else if (!loadLocal() && !KIOSK && qs.get('new') !== '1' && qs.get('src') && AD_LANDING[qs.get('src')] === 'walk') walkFirstPup();
   else if (!loadLocal() && !KIOSK && qs.get('new') !== '1' && qs.get('src') && AD_LANDING[qs.get('src')] === 'city') {   // this ad lands on Your city
     if (!getPlace()) savePlace(AD_CITY, true);
     history.replaceState(null, '', '/pack'); screenPack();
