@@ -967,6 +967,9 @@
   .svframe iframe{position:absolute; inset:0; width:100%; height:100%; border:0}
   .svtabs{display:inline-flex; background:var(--card2); border-radius:999px; padding:3px; gap:2px}
   .svtabs span{padding:6px 14px; border-radius:999px; font-size:13px; font-weight:800; color:var(--sub); cursor:pointer} .svtabs span.on{background:#1769c2; color:#fff}
+  .sortrow{display:flex; gap:6px; margin:-2px 0 12px; overflow-x:auto; scrollbar-width:none} .sortrow::-webkit-scrollbar{display:none}
+  .sortbtn{flex:0 0 auto; display:inline-flex; align-items:center; gap:5px; border:1.5px solid var(--line); background:var(--card2); color:var(--sub); border-radius:999px; padding:6px 10px; font:inherit; font-size:12.5px; font-weight:800; cursor:pointer; flex:1 1 auto; justify-content:center}
+  .sortbtn.on{background:#13795b; border-color:#2fd39c; color:#fff; box-shadow:0 3px 10px rgba(47,211,156,.25)}
 </style>
 </head>
 <body>
@@ -2770,6 +2773,14 @@ document.addEventListener('click', function(ev){
     '<p class="hint" style="font-size:11px;margin-top:10px">Reported to the city through 3-1-1. City of ' + esc(cp.city || 'Vancouver') + ' open data · Open Government Licence – Vancouver</p></div>';
   document.getElementById('crsnap').onclick = function(){ close(); if (loadLocal()) startWalk(); else location.href = '/app.html?new=1'; };
 });
+function packSort(){ try { return localStorage.getItem('vp.packsort') || 'similar'; } catch (e) { return 'similar'; } }
+document.addEventListener('click', function(ev){
+  var b = ev.target && ev.target.closest ? ev.target.closest('.sortbtn[data-sort]') : null; if (!b) return;
+  try { localStorage.setItem('vp.packsort', b.getAttribute('data-sort')); } catch (e) {}
+  track('pack', { sort: b.getAttribute('data-sort') });
+  Array.prototype.forEach.call(document.querySelectorAll('.sortbtn'), function(x){ x.classList.toggle('on', x === b); });
+  var y = window.scrollY; screenPack(window._packMode || null); setTimeout(function(){ window.scrollTo(0, y); }, 60);
+});
 var METRO = { 'north vancouver': 'vancouver', 'west vancouver': 'vancouver', 'burnaby': 'vancouver', 'surrey': 'vancouver', 'richmond': 'vancouver', 'new westminster': 'vancouver',
   'coquitlam': 'vancouver', 'port coquitlam': 'vancouver', 'port moody': 'vancouver', 'delta': 'vancouver', 'langley': 'vancouver', 'maple ridge': 'vancouver', 'pitt meadows': 'vancouver',
   'white rock': 'vancouver', 'anmore': 'vancouver', 'belcarra': 'vancouver', 'lions bay': 'vancouver', 'bowen island': 'vancouver', 'tsawwassen': 'vancouver', 'district of north vancouver': 'vancouver' };
@@ -3100,6 +3111,7 @@ function screenPack(mode, topic0){
     if (el && st && st.issues_week) el.textContent = st.issues_week + ' issues from ' + st.pups_week + ' people this week · scan the sticker, name a pup, add yours';
   }).catch(function(){});
   if (!mode) mode = (wall && place) ? 'local' : 'all';
+  window._packMode = mode;   // the sort buttons re-render in the same scope
   var city = place ? place.split(',')[0] : null;
   root.innerHTML = nav() +
     (wall ? '<div class="wallhead">🐾 What ' + esc(city || 'the Pack') + ' wants fixed<em>The agenda is set for us. Time we set it.</em><small id="wallstat">voterpup.com · scan the sticker, name a pup, add yours</small></div>' : '') +
@@ -3114,6 +3126,8 @@ function screenPack(mode, topic0){
       (city ? '<button class="segedit chgloc" title="change place" aria-label="change place">✎</button>' : '') + '</div>' +
     '<label class="searchwrap"><svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><circle cx="11" cy="11" r="7" fill="none" stroke="currentColor" stroke-width="2.2"/><path d="M20 20l-3.5-3.5" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>' +
       '<input class="searchbar" id="packsearch" placeholder="' + (mode === 'local' && city ? 'Search ' + esc(city) : 'Search everywhere') + '" enterkeyhint="search"></label>' +
+    (wall ? '' : '<div class="sortrow">' + [['similar', '✨', 'Similar to me'], ['voted', '🐾', 'Most voted'], ['trending', '🔥', 'Trending']].map(function(s){
+      return '<button class="sortbtn' + (packSort() === s[0] ? ' on' : '') + '" data-sort="' + s[0] + '"><span>' + s[1] + '</span>' + s[2] + '</button>'; }).join('') + '</div>') +
     '<div id="board" class="hint">fetching the pack...</div>' +
     (wall ? '' : '<a href="#" class="mapbtn" id="mapbtn" hidden>' + ic('world_map', 'btnic') + '<span>Map</span></a>') +
     '<footer>Only what people chose to share. \ud83c\udf31 \u00b7 <a href="mailto:hi@voterpup.com">hi@voterpup.com</a></footer>' +
@@ -3193,9 +3207,20 @@ function screenPack(mode, topic0){
     var aff = {};
     ((res[1] && res[1].entries) || []).forEach(function(e){ if (e.topic) aff[e.topic] = (aff[e.topic] || 0) + 2; });
     backedList.forEach(function(e){ if (e.topic) aff[e.topic] = (aff[e.topic] || 0) + 1; });
-    var topics = Object.keys(byTopic).sort(function(a,b){
-      return ((aff[b] || 0) - (aff[a] || 0)) || (byTopic[b].length - byTopic[a].length);
-    });
+    // Sort: similar to me (default) / most voted / trending. All computed on the device; nothing is sent.
+    var SORT = packSort(), now = Date.now();
+    var myWords = {};
+    ((res[1] && res[1].entries) || []).concat(backedList).forEach(function(e){
+      String(e.body || '').toLowerCase().split(/[^a-z0-9]+/).forEach(function(w){ if (w.length > 3) myWords[w] = 1; }); });
+    function sim(r){ var s = (aff[r.topic] || 0) * 2; String(r.body || '').toLowerCase().split(/[^a-z0-9]+/).forEach(function(w){ if (w.length > 3 && myWords[w]) s += 3; }); return s + Math.min(r.backs || 0, 5) * .2; }
+    function hot(r){ var hrs = Math.max(0, (now - new Date(r.ts).getTime()) / 36e5); return ((r.backs || 0) + 1) / Math.pow(hrs + 2, 1.5); }
+    var score = SORT === 'voted' ? function(r){ return (r.backs || 0) + new Date(r.ts).getTime() / 1e15; } : SORT === 'trending' ? hot : sim;
+    Object.keys(byTopic).forEach(function(t){ byTopic[t].sort(function(a, b){ return score(b) - score(a); }); });
+    var tscore = function(t){ var l = byTopic[t];
+      return SORT === 'voted' ? l.reduce(function(s, r){ return s + (r.backs || 0); }, 0) * 100 + l.length
+           : SORT === 'trending' ? hot(l[0]) * 100 + l.length * .01
+           : (aff[t] || 0) * 100 + score(l[0]) + l.length * .01; };
+    var topics = Object.keys(byTopic).sort(function(a, b){ return tscore(b) - tscore(a); });
 
     function firstImg(list){
       for (var i = 0; i < list.length; i++) {
@@ -3373,7 +3398,7 @@ function screenPack(mode, topic0){
   }).catch(function(e){ document.getElementById('board').textContent = 'The pack is napping: ' + e.message; });
 }
 
-var APP_VERSION = "20261004011337";
+var APP_VERSION = "20261004025140";
 (function(){
   try {
     fetch('/version.json?t=' + Date.now(), { cache: 'no-store' }).then(function(r){ return r.json(); }).then(function(j){
