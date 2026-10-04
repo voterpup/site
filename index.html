@@ -1048,7 +1048,7 @@
   .composerx{display:flex; gap:6px; align-items:flex-end; margin-top:8px} .composerx textarea{flex:1; min-height:42px; max-height:110px; margin:0; border-radius:14px; padding:10px}
   .composerx .iconbtn{flex:0 0 auto} .composerx .btn{margin:0}
   /* pack list */
-  .roomtabs{margin:10px 0 6px} .roomtabs span{flex:1; text-align:center}
+  .roomtabs{display:flex !important; width:100%; margin:10px 0 6px} .roomtabs span{flex:1; text-align:center; white-space:nowrap}
   .plhead{display:flex; gap:8px; align-items:center; justify-content:space-between; font-size:13px; color:var(--sub); margin:6px 2px} .plhead .chip{flex:0 0 auto}
   .pladd{display:flex; gap:6px; margin:6px 0} .pladd input{flex:1; margin:0} .pladd .btn{margin:0}
   .plpicks{display:flex; flex-wrap:wrap; gap:6px; margin:4px 0 10px} .plpicks small{width:100%; color:var(--sub); font-weight:800}
@@ -3132,6 +3132,7 @@ function screenPackRoom(pid){
   refresh();
 }
 // the pack's own list: add issues, one vote each, share it read-only
+function poss(n){ return n + (/s$/i.test(n) ? '’' : '’s'); }   // Neighbours’ list, Biscuit’s list
 function packList(me, pid, pack){
   var el = document.getElementById('tablist'); if (!el) return;
   Promise.all([rpc('vp_pack_items', { p_tail: me.tail, p_pack: pid }), readLedger(me.tail).catch(function(){ return null; })]).then(function(res){
@@ -3158,9 +3159,9 @@ function packList(me, pid, pack){
     document.getElementById('plshare').onclick = function(){
       rpc('vp_pack_share', { p_tail: me.tail, p_pack: pid }).then(function(s){
         var url = location.origin + '/list/' + s, top = items.slice(0, 3).map(function(i, n){ return (n + 1) + '. ' + i.body; }).join('\n');
-        var txt = pack.name + '’s list 🐾\n' + (top ? top + '\n' : '') + 'Running for office? Start with our list: ' + url;
+        var txt = poss(pack.name) + ' list 🐾\n' + (top ? top + '\n' : '') + 'Running for office? Start with our list: ' + url;
         track('pack', { act: 'share_list' });
-        if (navigator.share) navigator.share({ title: pack.name + '’s list', text: txt }).catch(function(){}); else { navigator.clipboard.writeText(txt); toast('List link copied'); } }); };
+        if (navigator.share) navigator.share({ title: poss(pack.name) + ' list', text: txt }).catch(function(){}); else { navigator.clipboard.writeText(txt); toast('List link copied'); } }); };
   });
 }
 function screenPublicList(sid){
@@ -3169,7 +3170,7 @@ function screenPublicList(sid){
     var el = document.getElementById('plpub');
     if (!L) { el.innerHTML = '<p class="hint">This list isn’t shared any more.</p>'; return; }
     var items = L.items || [];
-    el.innerHTML = '<div class="plpubh"><small>A VoterPup pack · ' + L.members + ' pup' + (L.members === 1 ? '' : 's') + '</small><h1>' + esc(L.name) + '’s list</h1><p>Neighbours added these and voted on them. Want our vote? Start here.</p></div>' +
+    el.innerHTML = '<div class="plpubh"><small>A VoterPup pack · ' + L.members + ' pup' + (L.members === 1 ? '' : 's') + '</small><h1>' + esc(poss(L.name)) + ' list</h1><p>Neighbours added these and voted on them. Want our vote? Start here.</p></div>' +
       (items.length ? '<ol class="plist pub">' + items.map(function(i, n){ return '<li class="' + (n < 3 ? 'top' : '') + '"><span class="plrank">' + (n + 1) + '</span><span class="plbody">' + (TOPIC_GLYPH[i.topic] ? TOPIC_GLYPH[i.topic] + ' ' : '') + esc(i.body) + '</span><span class="plvote ro"><i class="ph-fill ph-paw-print"></i><b>' + i.votes + '</b></span></li>'; }).join('') + '</ol>' : '<p class="hint">The list is empty for now.</p>') +
       '<a class="btn gold" href="/app.html?new=1&src=list">Make your own pup · free, no account</a><p class="hint" style="text-align:center">No names, no parties. Just the issues.</p>';
   }).catch(function(){ document.getElementById('plpub').innerHTML = '<p class="hint">Couldn’t load the list. Try again.</p>'; });
@@ -3891,7 +3892,7 @@ function screenPack(mode, topic0){
   }).catch(function(e){ document.getElementById('board').textContent = 'The pack is napping: ' + e.message; });
 }
 
-var APP_VERSION = "20261004173611";
+var APP_VERSION = "20261004173624";
 (function(){
   try {
     fetch('/version.json?t=' + Date.now(), { cache: 'no-store' }).then(function(r){ return r.json(); }).then(function(j){
