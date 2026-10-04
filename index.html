@@ -3477,12 +3477,12 @@ var HUNT_ITEMS = {
   butterfly: ['ph-butterfly', 'a butterfly', '#f5b83d', 3], ghostsign: ['ph-image-square', 'a ghost sign', '#c9a227', 3], heart: ['ph-heart', 'a heart in the wild', '#ff5d73', 3],
   rainbow: ['ph-rainbow', 'a rainbow', '#f5b83d', 3],
   sunset: ['ph-sun-horizon', 'a sunset sky', '#ff8787', 3], cat: ['ph-cat', 'a cat outside', '#fab005', 3],
-  heron: ['ph-bird', 'a heron or egret', '#748ffc', 3],
+  flight: ['ph-bird', 'a bird in flight', '#748ffc', 3],   // any bird, wings open: hard to catch, possible anywhere
   // retired (tier 0, never picked): things that aren't common in all of Canada, the US and India. Kept so old walks still show their icons.
   hydrant: ['ph-fire-extinguisher', 'a fire hydrant', '#e03131', 0], squirrel: ['ph-acorn', 'a squirrel', '#a0522d', 0], library: ['ph-books', 'a little free library', '#5c7cfa', 0],
   garden: ['ph-plant', 'a community garden', '#2b8a3e', 0], pumpkin: ['ph-orange', 'a pumpkin', '#fd7e14', 0], tinydoor: ['ph-door-open', 'a tiny door', '#f5b83d', 0],
   rock: ['ph-paint-bucket', 'a painted rock', '#ff922b', 0], glove: ['ph-hand', 'a lost glove', '#845ef7', 0], mountains: ['ph-mountains', 'a mountain view', '#4dabf7', 0],
-  halloween: ['ph-ghost', 'Halloween decorations', '#fd7e14', 0] };   // every item: common in Canada, the US and India
+  halloween: ['ph-ghost', 'Halloween decorations', '#fd7e14', 0], heron: ['ph-bird', 'a heron or egret', '#748ffc', 0] };   // every item: common in Canada, the US and India
 var HUNT_PTS = { 1: 10, 2: 25, 3: 60 };   // a rare find is worth six commons
 var TIER_COL = { 1: '#2fd39c', 2: '#3d9bff', 3: '#ffd56a' };   // colour = difficulty: green common · blue uncommon · gold rare
 function huntPool(tier){   // seasonal: mushrooms in autumn
@@ -3655,7 +3655,7 @@ function walkSheet(s, file){
     if (r.error === 'location') { var le = new Error(s.name + ' needs your location to read photos, so every photo is from a real street. Approximate is fine. Allow it, then tap Try again.'); le.loc = true; throw le; }
     if (r.error === 'slow') throw new Error(s.name + ' is full! Too many photos for now. Try again in a few minutes.');
     if (r.error) throw new Error(r.error);
-    if (r.safe === 'people') { out.innerHTML = '<div class="walkmsg">🐾 ' + nm + ' only reports places. Step back from people and pets and snap the street.</div><button class="btn ghost" id="wagain">Snap again</button>'; }
+    if (r.safe === 'people') { out.innerHTML = '<div class="walkmsg">🐾 ' + nm + ' only reports places. Step back from people and snap the street.</div><button class="btn ghost" id="wagain">Snap again</button>'; }
     else if (r.safe === 'block' || r.safe === 'skip') { out.innerHTML = '<div class="walkmsg">🐾 ' + nm + ' couldn&rsquo;t read this one. Try the street, a park, a stop.</div><button class="btn ghost" id="wagain">Snap again</button>'; }
     else if (!r.findings.length) { out.innerHTML = quipLine(r.quip, s.name) + '<div class="walkmsg">🐾 Nothing to fix here that ' + nm + ' can see. ' + (r.scene ? esc(r.scene) + '. ' : '') + 'Add your own?</div>' + ownLine(); }
     else {
@@ -4054,7 +4054,7 @@ function screenPack(mode, topic0){
   }).catch(function(e){ document.getElementById('board').textContent = 'The pack is napping: ' + e.message; });
 }
 
-var APP_VERSION = "20261004201951";
+var APP_VERSION = "20261004203242";
 (function(){
   try {
     fetch('/version.json?t=' + Date.now(), { cache: 'no-store' }).then(function(r){ return r.json(); }).then(function(j){
