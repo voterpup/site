@@ -5,6 +5,7 @@ const UA = { "User-Agent": "VoterPupBot/0.2 (+https://voterpup.com; hi@voterpup.
 const RULES: [RegExp, string][] = [
   [/homeless|encampment|shelter/i, "homelessness"], [/rodent|pest|health|needle|unsanitary|dead animal|mold/i, "health"],
   [/water|sewer|drain|hydrant|flood/i, "utilities"], [/pothole|sidewalk|street light|streetlight|road|curb|sign|signal|lane|street condition|snow|ice/i, "infrastructure"],
+  [/tree|park|playground|beach|field|garden|weed|grass|vegetation|hedge/i, "parks"],
   [/parking|traffic|bike|transit|vehicle|towing|driveway|abandoned vehicle/i, "transit"], [/heat|hot water|building|development|rental|housing|tenant|property|permit|plumbing|paint|elevator/i, "housing"],
   [/police|safety|unsafe|fire|hazard|drug|weapon/i, "safety"], [/garbage|green bin|recycl|litter|abandoned|graffiti|dump|waste|bin|sanitation|trash|bulky/i, "cleanliness"],
   [/tree|park|playground|beach|field|garden|weed|grass/i, "parks"], [/noise|air|smoke|climate|pollution|odou?r/i, "climate"],
@@ -91,5 +92,7 @@ Deno.serve(async () => {
     } catch (e) { report[city] = { error: String((e as Error).message).slice(0, 120) }; }
   }
   await db.from("city_pins").delete().lt("ts", new Date(Date.now() - 14 * DAY).toISOString());
+  const { data: bf, error: be } = await db.rpc("vp_official_backfill", { p_per_city: 40 });   // official reports onto the board as shared issues
+  report.board = be ? { error: be.message } : bf;
   return new Response(JSON.stringify(report));
 });
