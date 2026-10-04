@@ -988,6 +988,23 @@
   .dsheetimg{width:100%; max-height:260px; object-fit:cover; border-radius:12px; margin-bottom:10px; display:block}
   .dsheetact{display:flex; gap:8px; margin-top:10px} .dsheetact .btn{margin:0; flex:1; padding:12px 4px; font-size:13px; white-space:nowrap} .dsheetact .btn.gold{flex:1.3}
   .deck .dcard{cursor:pointer}
+  /* who should fix it? a smooth three-stop slider */
+  .scopesl{--p:0; margin:10px 0 6px; user-select:none; -webkit-user-select:none}
+  .scopesl .sclbl{font-size:12.5px; font-weight:800; color:var(--sub); margin:0 2px 6px}
+  .sctrack{position:relative; height:28px; border-radius:999px; cursor:pointer; touch-action:none;
+    background:linear-gradient(90deg, rgba(47,211,156,.25), rgba(61,155,255,.25) 50%, rgba(245,184,61,.25)); box-shadow:inset 0 0 0 1.5px var(--line)}
+  .scfill{position:absolute; left:3px; right:3px; top:3px; bottom:3px; border-radius:999px; background:linear-gradient(90deg, #13b07f, #1f8fff 50%, #f5b83d);
+    clip-path:inset(0 calc((1 - var(--p)) * (100% - 22px)) 0 0 round 999px); transition:clip-path .35s cubic-bezier(.3,1.4,.5,1)}
+  .scthumb{position:absolute; top:50%; left:calc(14px + (100% - 28px) * var(--p)); width:34px; height:34px; margin:-17px 0 0 -17px; border-radius:50%;
+    background:#fff; display:flex; align-items:center; justify-content:center; font-size:17px; box-shadow:0 3px 10px rgba(0,0,0,.35), 0 0 0 3px rgba(255,255,255,.15);
+    transition:left .35s cubic-bezier(.3,1.4,.5,1)}
+  .scopesl.dragging .scfill, .scopesl.dragging .scthumb{transition:none}
+  .scstops{display:flex; justify-content:space-between; margin:6px 2px 0}
+  .scstops span{font-size:12px; font-weight:800; color:var(--sub); cursor:pointer; transition:color .25s} .scstops span.on{color:var(--ink)}
+  .scopesl.compact{margin:8px 0 4px} .scopesl.compact .sctrack{height:22px} .scopesl.compact .scthumb{width:28px; height:28px; margin:-14px 0 0 -14px; font-size:14px}
+  .scopesl.compact .sclbl{font-size:11.5px; margin-bottom:4px}
+  .chip.scopechip{font-weight:800; cursor:default} .chip.s-local{background:#0f3a2c; color:#7fe0b8; border-color:#1f6b50}
+  .chip.s-state{background:#13284a; color:#9cc6ff; border-color:#25467a} .chip.s-national{background:#2a2310; color:var(--goldtext); border-color:#6b5418}
 </style>
 </head>
 <body>
@@ -1704,7 +1721,7 @@ function screenCapture(prefGripe, prefName){
     '<div class="askhead"><div class="askq">What would you fix first?</div><div class="askwhen">Tap one. That&rsquo;s it.</div></div>' +
     '<div class="askgrid">' + QUICK_ISSUES.map(function(q, i){ return '<button class="asktile pick" style="--c:' + ASK_COLORS[i % ASK_COLORS.length] + '" data-q="' + esc(q[1]) + '"><span>' + esc(q[1]) + '</span><i class="ph-duotone ' + q[0] + '"></i></button>'; }).join('') + '</div>' +
     '<a href="#" class="askown" id="askown">✍️ Something else? Write it</a>' +
-    '<div class="composer" id="askcomposer" hidden>' +
+    '<div class="composer" id="askcomposer" hidden>' + scopeSliderHTML('askscope', 'local') +
       '<textarea id="gripe" placeholder="…or write your own. Five words is plenty."></textarea>' +
       '<div id="thumbs" class="attach"></div>' + tagRowHTML() + spotLineHTML() +
       '<div class="cfoot">' +
@@ -1741,6 +1758,9 @@ function screenCapture(prefGripe, prefName){
   document.getElementById('fpick').addEventListener('change', function(){ setTimeout(upd, 60); });
   document.getElementById('fcam').addEventListener('change', function(){ setTimeout(upd, 60); });
   upd();
+  var askSc = document.getElementById('askscope'); wireScopeSlider(askSc);
+  ta.addEventListener('input', function(){ if (askSc && !askSc._touched) askSc._set(guessScope(ta.value, pendingTopic)); });
+  document.getElementById('open').addEventListener('click', function(){ var c = document.getElementById('askcomposer'); window._askScope = (c && !c.hidden) ? scopeOf('askscope') : null; }, true);
   document.getElementById('open').onclick = function(){ screenUnbox(inp.value.trim() || show.textContent, ta.value.trim()); };
   if (saved && !KIOSK) document.getElementById('resume').onclick = function(){ location.href = pupURL(saved.tail); };
 }
@@ -1774,7 +1794,9 @@ function screenUnbox(name, gripe){
     return rpc('vp_create_ledger', { p_name: name }).then(function(l){
       saveLocal(l.tail, l.name); track('pup_created', {}); track('issue', { shared: false, first: true });
       return rpc('vp_add_entry', Object.assign({ p_tail: l.tail, p_body: gripe, p_shared: false, p_media: media, p_place: getPlace() }, spotArgs(), firstTags))
-             .then(function(r){ pendingFiles = []; pendingSpot = null; l.first = r && r.id; return applyChosenTopic(l.tail, r && r.id, r && r.topic).then(function(){ pendingTopic = null; return l; }); });
+             .then(function(r){ pendingFiles = []; pendingSpot = null; l.first = r && r.id;
+               var sc = window._askScope; if (r && r.id && sc) rpc('vp_set_scope', { p_tail: l.tail, p_id: r.id, p_scope: sc }).catch(function(){});
+               return applyChosenTopic(l.tail, r && r.id, r && r.topic).then(function(){ pendingTopic = null; return l; }); });
     });
   });
   Promise.all([mint, animDone]).then(function(vals){
@@ -1932,6 +1954,7 @@ function screenLedger(tail){
         (e.body ? '<div class="entry-body">' + esc(e.body) + '</div>' : '') + mediaHTML(e.media) +
         '<div class="emeta">' + (e.spot ? '<span>' + esc(e.spot) + '</span> · ' : '') + new Date(e.ts).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) +
           (e.shared && e.rank && e.rank <= 10 ? ' · <b>#' + e.rank + (e.city ? ' in ' + esc(e.city) : '') + '</b>' : '') + '</div>' + placeChip(e.place, e.topic) +
+        scopeSliderHTML('esc-' + e.id, e.scope || guessScope(e.body, e.topic)).replace('class="scopesl"', 'class="scopesl compact" data-eid="' + e.id + '"') +
         '<div class="efoot"><div class="eleft">' +
           (e.shared ? (e.backs ? '<span class="eagree">🐾 ' + e.backs + (e.backs === 1 ? ' agrees' : ' agree') + '</span>' : '<span class="eagree muted">No same-heres yet</span>')
                     : '<button class="chip goldfill" data-a="share" data-id="' + e.id + '">🌱 Add to Your city</button>') +
@@ -1953,6 +1976,9 @@ function screenLedger(tail){
       var close = function(){ if (card.parentNode !== home) home.appendChild(card); if (ov.parentNode) ov.parentNode.removeChild(ov); };
       ov.onclick = function(ev){ if (ev.target === ov) close(); };
     }; });
+    Array.prototype.forEach.call(box.querySelectorAll('.scopesl[data-eid]'), function(el){   // change who should fix it, any time
+      wireScopeSlider(el, function(s){ var L = scopeLabels()[s];
+        rpc('vp_set_scope', { p_tail: tail, p_id: el.getAttribute('data-eid'), p_scope: s }).then(function(){ toast(L[0] + ' Saved: a ' + L[1].toLowerCase() + ' issue'); }).catch(function(e){ toast(e.message); }); }); });
     Array.prototype.forEach.call(box.querySelectorAll('[data-del]'), function(d){ d.onclick = function(){
       if (!confirm('Delete this post and its photos? This can’t be undone.')) return;
       d.textContent = 'Deleting…';
@@ -2681,7 +2707,7 @@ function dailyFetch(L, tail){
         (img ? '<img class="dsheetimg" src="' + esc(img) + '" alt="">' : (r.lat != null && r.lng != null ? miniMap(r.lat, r.lng, r.topic).replace('class="dmap"', 'class="dmap big"') : '')) +
         '<div class="entry-body" style="font-size:17px">' + esc(r.body || '📷') + '</div>' +
         '<div class="ts">— ' + esc(r.pup || '') + (r.place ? ', ' + esc(r.place.split(',')[0]) : '') + ' · ' + new Date(r.ts).toLocaleDateString() + '</div>' +
-        '<div class="chips">' + (r.topic ? '<a class="topicchip" href="/pack?t=' + encodeURIComponent(r.topic) + '">#' + esc(r.topic) + '</a>' : '') + spotChip(r) + shareChip(Object.assign({}, r, { shared: true })) + '</div>' +
+        '<div class="chips">' + (r.topic ? '<a class="topicchip" href="/pack?t=' + encodeURIComponent(r.topic) + '">#' + esc(r.topic) + '</a>' : '') + scopeChip(r.scope) + spotChip(r) + shareChip(Object.assign({}, r, { shared: true })) + '</div>' +
         emoRow(r.id, false) + '</div>' +
         '<div class="dsheetact"><button class="btn ghost" data-dd="no">Skip</button><button class="btn ghost" data-dd="up">✅ Fixed now</button><button class="btn gold" data-dd="yes">🐾 Same here</button></div></div>';
       wakeMiniMaps(ov);
@@ -2877,6 +2903,45 @@ function cityOnlyMap(box, cityName){   // the city's official reports on a map, 
   }).catch(function(){ var el = document.getElementById('packmap'); if (el) el.innerHTML = '<div class="hint" style="padding:40px 12px">The map couldn&rsquo;t load. Try again in a minute.</div>'; });
 }
 var TOPIC_GLYPH = { infrastructure: '🚧', transit: '🚌', cleanliness: '🗑️', parks: '🌳', safety: '⚠️', housing: '🏠', utilities: '💧', health: '🩺', homelessness: '⛺', climate: '🔊', 'cost of living': '💲', other: '•' };
+// ---------- who should fix it? local / state-province / national ----------
+var SCOPES = ['local', 'state', 'national'];
+function scopeLabels(){
+  var pl = String(getPlace() || ''), ca = /canada/i.test(pl), us = /united states|usa/i.test(pl);
+  return { local: ['🏙️', 'City'], state: ['🏛️', ca ? 'Province' : us ? 'State' : /india/i.test(pl) ? 'State' : 'Province / State'], national: ['🗺️', 'Country'] };
+}
+function guessScope(text, topic){
+  var t = String(text || '');
+  if (/(inflation|immigra|federal|interest rate|mortgage rate|gas price|grocery price|carbon tax|income tax|\bgst\b|pension|\bcpp\b|\bei\b|tariff|border|military|defen[cs]e|foreign|economy|recession|national|parliament|congress|prime minister|president)/i.test(t)) return 'national';
+  if (/(hospital|health ?care|wait time|doctor|\ber\b|emergency room|nurse|school|teacher|class size|education|tuition|universit|college|highway|ferr(y|ies)|skytrain|rent control|tenan|landlord|minimum wage|icbc|car insurance|overdose|mental health|daycare|child ?care|provinc|legislat)/i.test(t)) return 'state';
+  if (/(\brent\b|rents|housing cost|cost of housing|afford)/i.test(t)) return 'state';
+  if (topic === 'health' || topic === 'education') return 'state';
+  if (topic === 'cost of living') return 'national';
+  return 'local';
+}
+function scopeChip(s){ if (!s) return ''; var L = scopeLabels()[s]; return L ? '<span class="chip scopechip s-' + s + '">' + L[0] + ' ' + L[1] + '</span>' : ''; }
+// a smooth three-stop slider; drag or tap; the colour blends from green (city) through blue to gold (country)
+function scopeSliderHTML(id, val){
+  var L = scopeLabels(), i = Math.max(0, SCOPES.indexOf(val || 'local'));
+  return '<div class="scopesl" id="' + id + '" data-v="' + SCOPES[i] + '" style="--p:' + (i / 2) + '"><div class="sclbl">Who should fix it?</div>' +
+    '<div class="sctrack"><div class="scfill"></div><div class="scthumb">' + L[SCOPES[i]][0] + '</div></div>' +
+    '<div class="scstops">' + SCOPES.map(function(s){ return '<span data-s="' + s + '"' + (s === SCOPES[i] ? ' class="on"' : '') + '>' + L[s][1] + '</span>'; }).join('') + '</div></div>';
+}
+function wireScopeSlider(el, onchange){
+  if (!el) return; var tr = el.querySelector('.sctrack'), th = el.querySelector('.scthumb'), L = scopeLabels();
+  var set = function(s, user){ var i = SCOPES.indexOf(s); if (i < 0) return;
+    el.setAttribute('data-v', s); el.style.setProperty('--p', i / 2); th.textContent = L[s][0];
+    Array.prototype.forEach.call(el.querySelectorAll('.scstops span'), function(x){ x.classList.toggle('on', x.getAttribute('data-s') === s); });
+    if (user) { el._touched = true; if (onchange) onchange(s); } };
+  var at = function(clientX){ var r = tr.getBoundingClientRect(); return Math.max(0, Math.min(1, (clientX - r.left - 14) / (r.width - 28))); };
+  var drag = false;
+  tr.addEventListener('pointerdown', function(e){ drag = true; tr.setPointerCapture(e.pointerId); el.classList.add('dragging'); el.style.setProperty('--p', at(e.clientX)); });
+  tr.addEventListener('pointermove', function(e){ if (drag) el.style.setProperty('--p', at(e.clientX)); });
+  var end = function(e){ if (!drag) return; drag = false; el.classList.remove('dragging'); set(SCOPES[Math.round(at(e.clientX) * 2)], true); };
+  tr.addEventListener('pointerup', end); tr.addEventListener('pointercancel', end);
+  Array.prototype.forEach.call(el.querySelectorAll('.scstops span'), function(x){ x.onclick = function(){ set(x.getAttribute('data-s'), true); }; });
+  el._set = set;
+}
+function scopeOf(id){ var el = document.getElementById(id); return el ? el.getAttribute('data-v') : null; }
 var METRO = { 'north vancouver': 'vancouver', 'west vancouver': 'vancouver', 'burnaby': 'vancouver', 'surrey': 'vancouver', 'richmond': 'vancouver', 'new westminster': 'vancouver',
   'coquitlam': 'vancouver', 'port coquitlam': 'vancouver', 'port moody': 'vancouver', 'delta': 'vancouver', 'langley': 'vancouver', 'maple ridge': 'vancouver', 'pitt meadows': 'vancouver',
   'white rock': 'vancouver', 'anmore': 'vancouver', 'belcarra': 'vancouver', 'lions bay': 'vancouver', 'bowen island': 'vancouver', 'tsawwassen': 'vancouver', 'district of north vancouver': 'vancouver' };
@@ -2952,6 +3017,7 @@ function openAdd(){
     '<button class="walkbtn" id="walkbtn"><span class="wpaw">' + ic('camera_with_flash', 'btnic') + '</span>Feed ' + nm + ' a photo<small>anything on your street · it names what it sees</small></button>' +
     '<input id="fwalk" type="file" accept="image/*" capture="environment" hidden>' +
     '<textarea id="gripe" placeholder="Or type it: what should be fixed? Five words is plenty."></textarea>' +
+    scopeSliderHTML('addscope', 'local') +
     '<div id="thumbs" class="attach"></div>' + tagRowHTML() + spotLineHTML() +
     '<div class="addfoot"><div class="iconbtn" id="addmedia" title="take a photo"><i class="ph-duotone ph-camera" style="color:#9a5f00"></i></div><div class="iconbtn" id="addgallery" title="choose from your photos"><i class="ph-duotone ph-image" style="color:#3b6fb6"></i></div>' + spotButtonHTML() +
       '<input id="fcam" type="file" accept="image/*" capture="environment" hidden>' +
@@ -2960,8 +3026,10 @@ function openAdd(){
       '<button class="btn gold compact" id="share" disabled>🌱 Be counted</button></div></div>';
   wireAttach(); pendingSpot = null; wireSpot();
   var ta = document.getElementById('gripe'); ta.focus(); wireTags(ta);
+  var scEl = document.getElementById('addscope'); wireScopeSlider(scEl);
   function upd(){ var ok = !!(ta.value.trim() || pendingFiles.length);
-    document.getElementById('priv').disabled = !ok; document.getElementById('share').disabled = !ok; }
+    document.getElementById('priv').disabled = !ok; document.getElementById('share').disabled = !ok;
+    if (scEl && !scEl._touched) scEl._set(guessScope(ta.value, pendingTopic)); }   // follows the words until you move it
   ta.oninput = upd;
   document.getElementById('fpick').addEventListener('change', function(){ setTimeout(upd, 50); });
   document.getElementById('fcam').addEventListener('change', function(){ setTimeout(upd, 50); });
@@ -2970,6 +3038,7 @@ function openAdd(){
     ensurePlace().then(function(){ return uploadPending(); }).then(function(media){
       return rpc('vp_add_entry', Object.assign({ p_tail: s.tail, p_body: ta.value.trim(), p_shared: shared, p_media: media, p_place: getPlace() }, spotArgs(), tagArgs(ta)));
     }).then(function(r){ return applyChosenTopic(s.tail, r && r.id, r && r.topic).then(function(){ return r; }); }).then(function(r){
+      if (r && r.id && scopeOf('addscope')) rpc('vp_set_scope', { p_tail: s.tail, p_id: r.id, p_scope: scopeOf('addscope') }).catch(function(){});
       var tag = pendingTopic || (r && r.topic); pendingTopic = null;
       track('issue', { shared: !!shared, first: false, spot: !!pendingSpot });
       close();
@@ -3288,7 +3357,7 @@ function screenPack(mode, topic0){
           (r.place ? '<span class="chip" style="cursor:default">\ud83d\udccd ' + esc(r.place.split(',')[0]) + '</span>' : '') + '</div>' : '') +
         (r.body ? '<div class="entry-body">' + esc(r.body) + '</div>' : '') + mediaHTML(r.media) +
         '<div class="ts">\u2014 ' + esc(r.pup) + ' \u00b7 ' + new Date(r.ts).toLocaleDateString() + '</div>' +
-        (r.id ? '<div class="chips" style="margin-top:6px">' + spotChip(r) + hashChips(r) + sameChip(r.id, r.backs || 0, !!backed[r.id], !!myIds[r.id]) + shareChip(Object.assign({}, r, { shared: true })) +
+        (r.id ? '<div class="chips" style="margin-top:6px">' + scopeChip(r.scope) + spotChip(r) + hashChips(r) + sameChip(r.id, r.backs || 0, !!backed[r.id], !!myIds[r.id]) + shareChip(Object.assign({}, r, { shared: true })) +
           (myIds[r.id] ? reactChips(r, null, true) : reactChips(r, myReacts[r.id], false)) + '</div>' + emoRow(r.id, !!myIds[r.id]) : '') +
         '</div>';
     }
@@ -3527,7 +3596,7 @@ function screenPack(mode, topic0){
   }).catch(function(e){ document.getElementById('board').textContent = 'The pack is napping: ' + e.message; });
 }
 
-var APP_VERSION = "20261004052922";
+var APP_VERSION = "20261004053550";
 (function(){
   try {
     fetch('/version.json?t=' + Date.now(), { cache: 'no-store' }).then(function(r){ return r.json(); }).then(function(j){
