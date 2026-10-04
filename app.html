@@ -2323,9 +2323,9 @@ function ic(n, cls){
 function tabName(){ var s = loadLocal(); return s && s.name ? (s.name.length > 12 ? s.name.slice(0, 11) + '…' : s.name) : 'My pup'; }
 function tabbar(active){
   return '<div class="tabbar">' +
-    '<a href="#" id="tab-pup" class="' + (active==='pup'||active==='manage'?'on':'') + '">' + ic('dog', 'tabic') + '<span>' + esc(tabName()) + '</span></a>' +
-    '<a href="/groups" id="tab-packs" class="tabmid ' + (active==='packs'?'on':'') + '">' + ic('packs', 'tabic') + '<span>Groups</span><i class="tabbadge" id="tabbadge" hidden></i></a>' +
     '<a href="/pack" id="tab-city" class="' + (active==='pack'?'on':'') + '">' + ic('cityscape', 'tabic') + '<span>Your city</span></a>' +
+    '<a href="/groups" id="tab-packs" class="tabmid ' + (active==='packs'?'on':'') + '">' + ic('packs', 'tabic') + '<span>Groups</span><i class="tabbadge" id="tabbadge" hidden></i></a>' +
+    '<a href="#" id="tab-pup" class="' + (active==='pup'||active==='manage'?'on':'') + '">' + ic('dog', 'tabic') + '<span>' + esc(tabName()) + '</span></a>' +
     '<a href="#" class="plusbtn" id="tab-plus" aria-label="Snap a photo for your pup"><b>' + ic('camera_with_flash', 'feedic') + '</b><span class="walklbl">Snap</span></a>' +
   '</div>';
 }
@@ -4078,7 +4078,7 @@ function screenPack(mode, topic0){
   }).catch(function(e){ document.getElementById('board').textContent = 'The pack is napping: ' + e.message; });
 }
 
-var APP_VERSION = "20261004210143";
+var APP_VERSION = "20261004213425";
 (function(){
   try {
     fetch('/version.json?t=' + Date.now(), { cache: 'no-store' }).then(function(r){ return r.json(); }).then(function(j){
