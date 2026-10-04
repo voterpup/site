@@ -1166,6 +1166,8 @@
   .tilegrid.ctiles[data-cols="4"] .tile.ctile.official::before{content:'🏛️'} .tilegrid.ctiles[data-cols="4"] .csnip{-webkit-line-clamp:4}
   .tilegrid .tile.ctile.mine .side{outline:2px solid var(--gold); outline-offset:-2px}
   .pinchhint{text-align:center; color:var(--sub); font-size:11.5px; margin:8px 0 0}
+  .addspotchip{cursor:pointer; border:1.5px dashed var(--accent) !important; color:#7fe0c8 !important}
+  .lochelp{margin:4px 0 12px 18px; padding:0; font-size:13.5px; color:var(--ink); line-height:1.5} .lochelp li{margin:4px 0}
 </style>
 </head>
 <body>
@@ -1345,6 +1347,32 @@ grabSpot._got = function(pos, done){
         var sp = { lat: la, lng: lo, spot: label.slice(0, 80) }; window._lastSpot = { spot: sp, ts: Date.now() }; done(sp);
       }).catch(function(){ done({ lat: la, lng: lo, spot: la + ', ' + lo }); });
 };
+// "📍 Add the spot" on an issue made without location: explain first, ask the phone, and if location is blocked, show how to turn it on for VoterPup
+function locHelp(){
+  var ua = navigator.userAgent, ios = /iPhone|iPad|iPod/.test(ua), app = window.matchMedia && matchMedia('(display-mode: standalone)').matches;
+  if (ios) return '<ol class="lochelp"><li>Open <b>Settings</b> → <b>Privacy &amp; Security</b> → <b>Location Services</b>: make sure it&rsquo;s <b>On</b>.</li><li>Scroll to <b>' + (app ? 'Safari Websites' : 'Safari Websites') + '</b> → choose <b>While Using the App</b>.</li><li>Back in VoterPup, tap <b>aA</b> (or ⋯) next to voterpup.com → <b>Website Settings</b> → <b>Location: Allow</b>.</li></ol>';
+  return '<ol class="lochelp"><li>Tap the <b>🔒</b> (or ⋯ → <b>ⓘ</b>) next to <b>voterpup.com</b> at the top.</li><li><b>Permissions</b> → <b>Location</b> → <b>Allow</b>.</li><li>Still blocked? Phone <b>Settings</b> → <b>Apps</b> → <b>' + (/SamsungBrowser/.test(ua) ? 'Samsung Internet' : 'Chrome') + '</b> → <b>Permissions</b> → <b>Location</b> → <b>Allow only while using the app</b>.</li></ol>';
+}
+function addSpotSheet(id, tail){
+  var s = sheet('<div class="addhead">📍 Turn on location for VoterPup</div>' +
+    '<p class="hint">Your pup can pin this issue to its spot so you (and anyone you share it with) can open it on <b>Street View</b>. Stand near the spot if you can.</p>' +
+    '<p class="hint">When your phone asks, tap <b>Allow</b> (or <b>Allow while using the app</b>). Then every snap gets its spot by itself.</p>' +
+    '<div id="spothelp"></div><button class="btn gold" id="spotgo">📍 Allow location &amp; add the spot</button><button class="btn ghost" id="spotno">Not now</button>');
+  var go = document.getElementById('spotgo'), help = document.getElementById('spothelp');
+  document.getElementById('spotno').onclick = s.close;
+  var blocked = function(){ help.innerHTML = '<p class="hint" style="color:var(--goldtext)"><b>Location is turned off for VoterPup.</b> To turn it on:</p>' + locHelp(); go.disabled = false; go.textContent = 'I turned it on, try again'; };
+  if (navigator.permissions && navigator.permissions.query) navigator.permissions.query({ name: 'geolocation' }).then(function(st){ if (st.state === 'denied') blocked(); }).catch(function(){});
+  go.onclick = function(){ go.disabled = true; go.textContent = 'Finding the spot…'; window._lastSpot = null;
+    grabSpot(function(sp){
+      rpc('vp_set_spot', { p_tail: tail, p_id: id, p_lat: sp.lat, p_lng: sp.lng, p_spot: sp.spot }).then(function(r){ s.close(); toast('📍 Spot added: ' + esc(r.spot) + '. Tap 🧭 Street View to see it.'); screenLedger(tail); })
+        .catch(function(e){ go.disabled = false; go.textContent = '📍 Allow location & add the spot'; toast(e.message); });
+    }, function(why){ if (why === 'denied') blocked(); else { go.disabled = false; go.textContent = '📍 Try again'; help.innerHTML = '<p class="hint">Couldn&rsquo;t get a location' + (why === 'nogeo' ? ' (this browser can&rsquo;t share one)' : '') + '. Step outside or turn on Wi-Fi and try again.</p>'; } });
+  };
+}
+document.addEventListener('click', function(ev){
+  var a = ev.target && ev.target.closest ? ev.target.closest('[data-addspot]') : null; if (!a) return;
+  ev.preventDefault(); ev.stopPropagation(); var me = loadLocal(); if (me) addSpotSheet(a.getAttribute('data-addspot'), me.tail);
+});
 // Location is on by default: opening the box asks the phone (permission popup if needed) and fills the chip. ✕ removes it.
 function autoSpot(){
   var b = document.getElementById('addspot'); if (!b || pendingSpot) return;
@@ -2146,7 +2174,7 @@ function screenLedger(tail){
           (e.fixed_at ? '<span class="estat fixed">✓ Fixed ' + fixedTxt + '</span>' : e.shared ? '<span class="estat on">In Your city</span>' : '<span class="estat">Private</span>') + '</div>' +
         (e.body ? '<div class="entry-body">' + esc(e.body) + '</div>' : '') + mediaHTML(e.media) +
         '<div class="emeta">' + (e.spot && e.lat == null ? '<span>' + esc(e.spot) + '</span> · ' : '') + new Date(e.ts).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) +
-          (e.shared && e.rank && e.rank <= 10 ? ' · <b>#' + e.rank + (e.city ? ' in ' + esc(e.city) : '') + '</b>' : '') + '</div>' + '<div class="chips">' + placeChip(e.place, e.topic) + spotChip(e) + '</div>' +
+          (e.shared && e.rank && e.rank <= 10 ? ' · <b>#' + e.rank + (e.city ? ' in ' + esc(e.city) : '') + '</b>' : '') + '</div>' + '<div class="chips">' + placeChip(e.place, e.topic) + (e.spot ? spotChip(e) : '<span class="chip addspotchip" data-addspot="' + e.id + '">📍 Add the spot</span>') + '</div>' +
         scopeSliderHTML('esc-' + e.id, e.scope || guessScope(e.body, e.topic)).replace('class="scopesl"', 'class="scopesl compact" data-eid="' + e.id + '"') +
         '<div class="efoot"><div class="eleft">' +
           (e.shared ? (e.backs ? '<span class="eagree">🐾 ' + e.backs + (e.backs === 1 ? ' agrees' : ' agree') + '</span>' : '<span class="eagree muted">No same-heres yet</span>')
@@ -4141,7 +4169,7 @@ function screenPack(mode, topic0){
   }).catch(function(e){ document.getElementById('board').textContent = 'The pack is napping: ' + e.message; });
 }
 
-var APP_VERSION = "20261004215700";
+var APP_VERSION = "20261004220509";
 (function(){
   try {
     fetch('/version.json?t=' + Date.now(), { cache: 'no-store' }).then(function(r){ return r.json(); }).then(function(j){
