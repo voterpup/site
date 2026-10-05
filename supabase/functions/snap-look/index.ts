@@ -3,6 +3,10 @@
 // Nothing is stored here; the client keeps the photo only when the person keeps a finding.
 import Anthropic from "npm:@anthropic-ai/sdk";
 import { createClient } from "npm:@supabase/supabase-js@2";
+
+async function logFail(svc: string, msg: unknown) {   // founder-alerts mails these
+  try { const db = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!); await db.from("svc_errors").insert({ svc, msg: String((msg as any)?.message ?? msg).slice(0, 400) }); } catch (_) { /* never let logging fail the call */ }
+}
 const CORS = { "Access-Control-Allow-Origin": "*", "Access-Control-Allow-Headers": "content-type", "Access-Control-Allow-Methods": "POST, OPTIONS" };
 const anthropic = new Anthropic({ apiKey: Deno.env.get("ANTHROPIC_API_KEY")! });
 const MODEL = "claude-haiku-4-5-20251001", PRICE_IN = 1e-6, PRICE_OUT = 5e-6;
@@ -98,5 +102,5 @@ Deno.serve(async (req) => {
     let quip = ""; if (safe === "ok") for (const k of order) { quip = clean(qs[k]); if (quip) break; }
     const spotted = safe === "ok" && Array.isArray(inp.spotted) ? [...new Set(inp.spotted.filter((x: string) => SPOTS.includes(x)))] : [];
     return json({ safe, scene: String(inp.scene || "").slice(0, 60), findings, quip, spotted, cost: Math.round(cost * 1e5) / 1e5 });
-  } catch (e) { return json({ error: String((e as Error).message).slice(0, 200) }, 502); }
+  } catch (e) { await logFail("snap-look", e); return json({ error: String((e as Error).message).slice(0, 200) }, 502); }
 });

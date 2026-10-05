@@ -3,6 +3,10 @@
 import Anthropic from "npm:@anthropic-ai/sdk";
 import { createClient } from "npm:@supabase/supabase-js@2";
 
+async function logFail(svc: string, msg: unknown) {   // founder-alerts mails these
+  try { const db = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!); await db.from("svc_errors").insert({ svc, msg: String((msg as any)?.message ?? msg).slice(0, 400) }); } catch (_) { /* never let logging fail the call */ }
+}
+
 const CORS = { "Access-Control-Allow-Origin": "*", "Access-Control-Allow-Headers": "content-type", "Access-Control-Allow-Methods": "POST, OPTIONS" };
 const TOPICS = ["housing", "homelessness", "transit", "infrastructure", "utilities", "safety", "cost of living", "health", "education", "climate", "cleanliness", "parks", "other"];
 const DAILY_CALLS = 4000;
@@ -39,6 +43,7 @@ Deno.serve(async (req) => {
     }
     return new Response(JSON.stringify({ topic, hashtag }), { headers: { ...CORS, "content-type": "application/json" } });
   } catch (e) {
+    await logFail("suggest-tag", e);
     return new Response(JSON.stringify({ topic: "other", hashtag: "", error: String((e as Error).message).slice(0, 100) }), { headers: CORS });
   }
 });

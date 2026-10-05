@@ -3,6 +3,10 @@
 // ~1 req/sec, new/stale slugs only, loud failure if the list parse looks broken.
 import { createClient } from "npm:@supabase/supabase-js@2";
 
+async function logFail(svc: string, msg: unknown) {   // founder-alerts mails these
+  try { const db = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!); await db.from("svc_errors").insert({ svc, msg: String((msg as any)?.message ?? msg).slice(0, 400) }); } catch (_) { /* never let logging fail the call */ }
+}
+
 const UA = "VoterPupBot/0.1 (+https://voterpup.com; hi@voterpup.com)";
 const BASE = "https://www.shapeyourcity.ca";
 const TOPICS = ["housing","homelessness","transit","infrastructure","utilities","safety","cost of living","health","education","climate","cleanliness","parks","other"];
@@ -132,7 +136,7 @@ Deno.serve(async () => {
       const out = await res.json();
       const parsed = JSON.parse(out.content[0].text.replace(/```json|```/g, "").trim());
       for (const k of Object.keys(parsed)) if (TOPICS.includes(parsed[k])) topicOf[k] = parsed[k];
-    } catch (_) { /* fall back to rules */ }
+    } catch (e) { await logFail("sync-voice", e); /* fall back to rules */ }
   }
 
   for (const slug of Object.keys(topicOf)) {

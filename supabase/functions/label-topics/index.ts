@@ -3,6 +3,10 @@
 // SUPABASE_URL + SUPABASE_SERVICE_ROLE_KEY are auto-injected by Supabase.
 import { createClient } from "npm:@supabase/supabase-js@2";
 
+async function logFail(svc: string, msg: unknown) {   // founder-alerts mails these
+  try { const db = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!); await db.from("svc_errors").insert({ svc, msg: String((msg as any)?.message ?? msg).slice(0, 400) }); } catch (_) { /* never let logging fail the call */ }
+}
+
 const TOPICS = ["housing","homelessness","transit","infrastructure","utilities","safety","cost of living","health","education","climate","cleanliness","parks","other"];
 
 Deno.serve(async () => {
@@ -35,12 +39,13 @@ Deno.serve(async () => {
       }],
     }),
   });
-  if (!res.ok) return new Response("anthropic error: " + (await res.text()), { status: 502 });
+  if (!res.ok) { const t = await res.text(); await logFail("label-topics", res.status + " " + t); return new Response("anthropic error: " + t, { status: 502 }); }
   const out = await res.json();
   let labels: { id: string; topic: string }[] = [];
   try {
     labels = JSON.parse(out.content[0].text.replace(/```json|```/g, "").trim());
   } catch {
+    await logFail("label-topics", "parse error");
     return new Response("parse error", { status: 500 });
   }
   let n = 0;

@@ -3,6 +3,10 @@
 import Anthropic from "npm:@anthropic-ai/sdk";
 import { createClient } from "npm:@supabase/supabase-js@2";
 
+async function logFail(svc: string, msg: unknown) {   // founder-alerts mails these
+  try { const db = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!); await db.from("svc_errors").insert({ svc, msg: String((msg as any)?.message ?? msg).slice(0, 400) }); } catch (_) { /* never let logging fail the call */ }
+}
+
 const anthropic = new Anthropic({ apiKey: Deno.env.get("ANTHROPIC_API_KEY")! });
 const MAX_IMAGES_PER_RUN = 8;
 const DAILY_BUDGET_USD = 2;   // past it, photos simply stay "under review" until tomorrow (Haiku: ~1,000 photos)
@@ -93,6 +97,7 @@ Deno.serve(async () => {
       } catch (e: any) {
         failed++;
         const msg = String(e?.message ?? e);
+        await logFail("moderate-media", msg);
         // Only an error about THIS image counts against it; anything else (auth, rate limit, outage,
         // a bad request shape) stops the run and leaves every image untouched for the next sweep.
         if (e?.status === 400 && /image|media|download|fetch|url/i.test(msg)) {

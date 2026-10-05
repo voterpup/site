@@ -2,6 +2,10 @@
 // never shown until a human approves. The model never writes URLs.
 import { createClient } from "npm:@supabase/supabase-js@2";
 
+async function logFail(svc: string, msg: unknown) {   // founder-alerts mails these
+  try { const db = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!); await db.from("svc_errors").insert({ svc, msg: String((msg as any)?.message ?? msg).slice(0, 400) }); } catch (_) { /* never let logging fail the call */ }
+}
+
 const RULES = `You write "what you can do" steps for a strictly non-partisan civic app.
 Rules:
 - 2 or 3 short steps, plain text, one per line, each starting with "• ".
@@ -28,7 +32,7 @@ Deno.serve(async () => {
         messages: [{ role: "user", content: JSON.stringify({ name: r.name, kind: r.kind, level: r.level, date: r.vote_date, link_labels: labels }) }],
       }),
     });
-    if (!res.ok) continue;
+    if (!res.ok) { await logFail("explain-moments", res.status + " " + (await res.text()).slice(0, 200)); continue; }
     const out = await res.json();
     let how: string = out.content?.[0]?.text?.trim() ?? "";
     if (/https?:\/\/|www\./i.test(how)) continue; // hard guard: reject any URL

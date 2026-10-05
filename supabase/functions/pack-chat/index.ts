@@ -3,6 +3,10 @@
 import Anthropic from "npm:@anthropic-ai/sdk";
 import webpush from "npm:web-push@3";
 import { createClient } from "npm:@supabase/supabase-js@2";
+
+async function logFail(svc: string, msg: unknown) {   // founder-alerts mails these
+  try { const db = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!); await db.from("svc_errors").insert({ svc, msg: String((msg as any)?.message ?? msg).slice(0, 400) }); } catch (_) { /* never let logging fail the call */ }
+}
 const CORS = { "Access-Control-Allow-Origin": "*", "Access-Control-Allow-Headers": "content-type", "Access-Control-Allow-Methods": "POST, OPTIONS" };
 const anthropic = new Anthropic({ apiKey: Deno.env.get("ANTHROPIC_API_KEY")! });
 webpush.setVapidDetails("mailto:hi@voterpup.com", Deno.env.get("VAPID_PUBLIC")!, Deno.env.get("VAPID_PRIVATE")!);
@@ -19,7 +23,7 @@ async function textOk(body: string): Promise<{ ok: boolean; why?: string }> {
     const t = (r.content[0] as any)?.text ?? "";
     const m = t.match(/\{[\s\S]*\}/); const v = m ? JSON.parse(m[0]) : { ok: true };
     return { ok: v.ok !== false, why: v.why };
-  } catch (_) { return { ok: true }; }   // the checker being down never blocks friends; reports still work
+  } catch (e) { await logFail("pack-chat moderation", e); return { ok: true }; }   // the checker being down never blocks friends; reports still work
 }
 
 async function nudge(db: any, pack: string, from: string, line: string, onlyTo?: string) {   // at most once every 30 minutes per member
