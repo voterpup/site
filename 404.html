@@ -1203,6 +1203,7 @@
   /* pup page: the right-hand column (bell · My issues · gear) is as wide as the rotating pill under it, so the two line up */
   .nav.compact .navr{width:min(62vw, 250px); flex:0 0 auto; justify-content:flex-end}
   .nav.compact .navpill{flex:1 1 auto; justify-content:center; min-width:0; padding:0 8px}
+  .kmchip{cursor:default; font-weight:900; color:var(--goldtext) !important; border-color:rgba(245,184,61,.5) !important} .sortbtn.busy{opacity:.6}
 </style>
 </head>
 <body>
@@ -1379,7 +1380,7 @@ grabSpot._got = function(pos, done){
           .filter(Boolean).join(', ') || (la + ', ' + lo);
         var qrGuess = false; try { qrGuess = localStorage.getItem('vp.placeqr') === '1'; } catch (e) {}
         if (a.city && (!getPlace() || qrGuess)) { savePlace(osmLabel(a), false); try { localStorage.removeItem('vp.placeqr'); } catch (e) {} }
-        var sp = { lat: la, lng: lo, spot: label.slice(0, 80) }; window._lastSpot = { spot: sp, ts: Date.now() }; done(sp);
+        var sp = { lat: la, lng: lo, spot: label.slice(0, 80) }; window._lastSpot = { spot: sp, ts: Date.now() }; savePos(la, lo); done(sp);
       }).catch(function(){ done({ lat: la, lng: lo, spot: la + ', ' + lo }); });
 };
 // "📍 Add the spot" on an issue made without location: explain first, ask the phone, and if location is blocked, show how to turn it on for VoterPup
@@ -2089,7 +2090,7 @@ var TOUR_STEPS = [
   { at: 'pup', sel: '#flashbtn', title: 'Memory Lane', text: 'Everything I remember, walked back to you. On voting morning it’s ready before you leave the house.' },
   { at: 'pup', sel: '#bell', title: 'Your notifications', text: 'Same-heres, reactions, group votes and what’s new near you all land here.' },
   { at: 'pack', sel: '#ctiles', title: 'Your city', text: 'What everyone near you wants fixed, including official 3-1-1 reports. Tap a tile, then tap “Same here” on the ones you feel too.' },
-  { at: 'pack', sel: '.sortrow', title: 'Sort it your way', text: '✨ Similar to me · 🐾 Most voted · 🔥 Trending.' },
+  { at: 'pack', sel: '.sortrow', title: 'Sort it your way', text: '📍 Nearest · ✨ Similar to me · 🐾 Most voted · 🔥 Trending.' },
   { at: 'pack', sel: '#mapbtn', title: 'See it on the map', text: 'Every issue as a pin, coloured by topic. Pins open in Street View.' },
   { at: 'packs', sel: '#pkh-new', title: 'Groups', text: 'Start a group with friends: the invite link lasts an hour and you let people in. Post topics or share your issues, and everyone votes with a 🐾.' },
   { at: 'packs', sel: '#pkh-join', title: 'Want our vote? Start with our list.', text: 'Share your group’s ranked list with anyone running for office. No names, just the issues.', last: true }
@@ -3193,9 +3194,20 @@ document.addEventListener('click', function(ev){
     '<p class="hint" style="font-size:11px;margin-top:10px">Reported to the city through 3-1-1. City of ' + esc(cp.city || 'Vancouver') + ' open data · Open Government Licence – Vancouver</p></div>';
   document.getElementById('crsnap').onclick = function(){ close(); if (loadLocal()) startWalk(); else location.href = '/app.html?new=1'; };
 });
-function packSort(){ try { return localStorage.getItem('vp.packsort') || 'similar'; } catch (e) { return 'similar'; } }
+function savePos(la, lo){ try { localStorage.setItem('vp.pos', JSON.stringify({ lat: la, lng: lo, ts: Date.now() })); } catch (e) {} }
+function myPos(){ try { var p = JSON.parse(localStorage.getItem('vp.pos') || 'null'); return p && Date.now() - p.ts < 30 * 864e5 ? p : null; } catch (e) { return null; } }   // stays on this phone
+function kmBetween(a, b){ var r = Math.PI / 180, x = (b.lng - a.lng) * r * Math.cos((a.lat + b.lat) / 2 * r), y = (b.lat - a.lat) * r; return Math.sqrt(x * x + y * y) * 6371; }
+function kmText(k){ return k < 1 ? Math.max(50, Math.round(k * 20) * 50) + ' m' : k < 10 ? k.toFixed(1) + ' km' : Math.round(k) + ' km'; }
+function packSort(){ try { return localStorage.getItem('vp.packsort') || (myPos() ? 'near' : 'similar'); } catch (e) { return 'similar'; } }   // nearest first once we know where you are
 document.addEventListener('click', function(ev){
   var b = ev.target && ev.target.closest ? ev.target.closest('.sortbtn[data-sort]') : null; if (!b) return;
+  if (b.getAttribute('data-sort') === 'near' && !myPos()) {   // nearest needs your position once: ask, then sort
+    b.classList.add('busy'); toast('📍 Finding where you are…');
+    if (!navigator.geolocation) { b.classList.remove('busy'); toast('This browser can’t share a location.'); return; }
+    navigator.geolocation.getCurrentPosition(function(pos){ savePos(Math.round(pos.coords.latitude * 1e3) / 1e3, Math.round(pos.coords.longitude * 1e3) / 1e3); b.classList.remove('busy'); b.click(); },
+      function(){ b.classList.remove('busy'); toast('Location is off for VoterPup. Turn it on to see what’s closest.'); }, { enableHighAccuracy: false, timeout: 12000, maximumAge: 600000 });
+    return;
+  }
   try { localStorage.setItem('vp.packsort', b.getAttribute('data-sort')); } catch (e) {}
   track('pack', { sort: b.getAttribute('data-sort') });
   Array.prototype.forEach.call(document.querySelectorAll('.sortbtn'), function(x){ x.classList.toggle('on', x === b); });
@@ -4012,7 +4024,7 @@ function screenPack(mode, topic0){
       (city ? '<button class="segedit chgloc" title="change place" aria-label="change place">✎</button>' : '') + '</div>' +
     '<label class="searchwrap"><svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><circle cx="11" cy="11" r="7" fill="none" stroke="currentColor" stroke-width="2.2"/><path d="M20 20l-3.5-3.5" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>' +
       '<input class="searchbar" id="packsearch" placeholder="' + (mode === 'local' && city ? 'Search ' + esc(city) : 'Search everywhere') + '" enterkeyhint="search"></label>' +
-    (wall ? '' : '<div class="sortrow">' + [['similar', '✨', 'Similar to me'], ['voted', '🐾', 'Most voted'], ['trending', '🔥', 'Trending']].map(function(s){
+    (wall ? '' : '<div class="sortrow">' + [['near', '📍', 'Nearest'], ['similar', '✨', 'Similar to me'], ['voted', '🐾', 'Most voted'], ['trending', '🔥', 'Trending']].map(function(s){
       return '<button class="sortbtn' + (packSort() === s[0] ? ' on' : '') + '" data-sort="' + s[0] + '"><span>' + s[1] + '</span>' + s[2] + '</button>'; }).join('') + '</div>') +
     '<div id="board" class="hint">fetching the pack...</div>' +
     (wall ? '' : '<a href="#" class="mapbtn" id="mapbtn" hidden>' + ic('world_map', 'btnic') + '<span>Map</span></a>') +
@@ -4060,7 +4072,7 @@ function screenPack(mode, topic0){
           (r.place ? '<span class="chip" style="cursor:default">\ud83d\udccd ' + esc(r.place.split(',')[0]) + '</span>' : '') + '</div>' : '') +
         (r.body ? '<div class="entry-body">' + esc(r.body) + '</div>' : '') + mediaHTML(r.media) +
         '<div class="ts">\u2014 ' + esc(r.pup) + ' \u00b7 ' + new Date(r.ts).toLocaleDateString() + '</div>' +
-        (r.id ? '<div class="chips" style="margin-top:6px">' + scopeChip(r.scope) + spotChip(r) + hashChips(r) + sameChip(r.id, r.backs || 0, !!backed[r.id], !!myIds[r.id]) + shareChip(Object.assign({}, r, { shared: true })) + (myIds[r.id] ? groupChip(r.id) : '') +
+        (r.id ? '<div class="chips" style="margin-top:6px">' + (window._kmOf && window._kmOf(r) != null ? '<span class="chip kmchip">📍 ' + kmText(window._kmOf(r)) + '</span>' : '') + scopeChip(r.scope) + spotChip(r) + hashChips(r) + sameChip(r.id, r.backs || 0, !!backed[r.id], !!myIds[r.id]) + shareChip(Object.assign({}, r, { shared: true })) + (myIds[r.id] ? groupChip(r.id) : '') +
           (myIds[r.id] ? reactChips(r, null, true) : reactChips(r, myReacts[r.id], false)) + '</div>' + emoRow(r.id, !!myIds[r.id]) : '') +
         '</div>';
     }
@@ -4106,10 +4118,15 @@ function screenPack(mode, topic0){
       String(e.body || '').toLowerCase().split(/[^a-z0-9]+/).forEach(function(w){ if (w.length > 3) myWords[w] = 1; }); });
     function sim(r){ var s = (aff[r.topic] || 0) * 2; String(r.body || '').toLowerCase().split(/[^a-z0-9]+/).forEach(function(w){ if (w.length > 3 && myWords[w]) s += 3; }); return s + Math.min(r.backs || 0, 5) * .2; }
     function hot(r){ var hrs = Math.max(0, (now - new Date(r.ts).getTime()) / 36e5); return ((r.backs || 0) + 1) / Math.pow(hrs + 2, 1.5); }
-    var score = SORT === 'voted' ? function(r){ return (r.backs || 0) + new Date(r.ts).getTime() / 1e15; } : SORT === 'trending' ? hot : sim;
+    var ME = myPos(); if (SORT === 'near' && !ME) SORT = 'similar';
+    function km(r){ return ME && r.lat != null && r.lng != null ? kmBetween(ME, { lat: +r.lat, lng: +r.lng }) : null; }
+    function near(r){ var k = km(r); return k == null ? -1e6 + sim(r) : -k; }   // closest first; issues with no spot go last
+    window._kmOf = SORT === 'near' ? km : null;
+    var score = SORT === 'voted' ? function(r){ return (r.backs || 0) + new Date(r.ts).getTime() / 1e15; } : SORT === 'trending' ? hot : SORT === 'near' ? near : sim;
     Object.keys(byTopic).forEach(function(t){ byTopic[t].sort(function(a, b){ return score(b) - score(a); }); });
     var tscore = function(t){ var l = byTopic[t];
-      return SORT === 'voted' ? l.reduce(function(s, r){ return s + (r.backs || 0); }, 0) * 100 + l.length
+      return SORT === 'near' ? near(l[0])
+           : SORT === 'voted' ? l.reduce(function(s, r){ return s + (r.backs || 0); }, 0) * 100 + l.length
            : SORT === 'trending' ? hot(l[0]) * 100 + l.length * .01
            : (aff[t] || 0) * 100 + score(l[0]) + l.length * .01; };
     var topics = Object.keys(byTopic).sort(function(a, b){ return tscore(b) - tscore(a); });
@@ -4307,7 +4324,7 @@ function screenPack(mode, topic0){
   }).catch(function(e){ document.getElementById('board').textContent = 'The pack is napping: ' + e.message; });
 }
 
-var APP_VERSION = "20261005051506";
+var APP_VERSION = "20261005235305";
 (function(){
   try {
     fetch('/version.json?t=' + Date.now(), { cache: 'no-store' }).then(function(r){ return r.json(); }).then(function(j){
