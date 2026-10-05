@@ -1200,6 +1200,9 @@
   .tourtip.center .tourrow{justify-content:center} .tourtip.center .tourdots{margin-right:0; width:100%; justify-content:center; margin-bottom:6px}
   .tourdots{display:flex; gap:4px; margin-right:auto; align-items:center} .tourdots i{width:6px; height:6px; border-radius:50%; background:var(--line); display:inline-block} .tourdots i.done{background:rgba(245,184,61,.5)} .tourdots i.on{background:var(--gold); width:16px; border-radius:3px}
   .tourend{text-align:center} .tourend img{width:80px; height:80px; border-radius:50%; border:3px solid var(--gold)} .tourend .btn{margin-top:8px}
+  /* pup page: the right-hand column (bell · My issues · gear) is as wide as the rotating pill under it, so the two line up */
+  .nav.compact .navr{width:min(62vw, 250px); flex:0 0 auto; justify-content:flex-end}
+  .nav.compact .navpill{flex:1 1 auto; justify-content:center; min-width:0; padding:0 8px}
 </style>
 </head>
 <body>
@@ -2250,7 +2253,7 @@ function screenLedger(tail){
       var sb2 = document.getElementById('qwalk'); if (sb2) sb2.classList.add('pulse');
     }
     var wantTour = false; try { wantTour = sessionStorage.getItem('vp.tour') === '1'; sessionStorage.removeItem('vp.tour'); } catch (e) {}
-    if (wantTour && !KIOSK) setTimeout(function(){ tourStart(0); }, 700); else tourResume();
+    tourResume();   // the tour is never forced: the chip under the logo invites it
     if (!window._vpVisWired) { window._vpVisWired = true;
       document.addEventListener('visibilitychange', function(){
         if (!document.hidden) refreshPlaceIfStale();
@@ -4304,7 +4307,7 @@ function screenPack(mode, topic0){
   }).catch(function(e){ document.getElementById('board').textContent = 'The pack is napping: ' + e.message; });
 }
 
-var APP_VERSION = "20261005022413";
+var APP_VERSION = "20261005034519";
 (function(){
   try {
     fetch('/version.json?t=' + Date.now(), { cache: 'no-store' }).then(function(r){ return r.json(); }).then(function(j){
