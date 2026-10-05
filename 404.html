@@ -1176,6 +1176,30 @@
   .ictile{border-radius:12px; min-height:150px; padding:10px; display:flex; flex-direction:column; justify-content:space-between; background-size:cover; background-position:center; margin:6px 0 8px; color:#fff}
   .ictop{font-size:11.5px; font-weight:900; opacity:.9} .icbody{font-weight:900; font-size:17px; line-height:1.25; text-shadow:0 1px 3px rgba(0,0,0,.4)}
   .icfoot{display:flex; align-items:center; justify-content:space-between; gap:8px; flex-wrap:wrap}
+  /* nav: tour chip under the logo, bell on the right */
+  .brandcol{display:flex; flex-direction:column; align-items:flex-start; gap:5px}
+  .tourchip{display:inline-flex; align-items:center; gap:5px; font-size:12px !important; font-weight:900; color:var(--goldink) !important; background:var(--gold); border-radius:999px; padding:4px 11px; text-decoration:none; position:relative; overflow:hidden}
+  .tourchip.shine::after{content:''; position:absolute; top:-60%; bottom:-60%; left:-70%; width:45%; background:linear-gradient(100deg, transparent, rgba(255,255,255,.8), transparent); transform:skewX(-20deg); animation:sheen 2.6s ease-in-out infinite}
+  @keyframes sheen{0%{left:-70%} 55%{left:140%} 100%{left:140%}}
+  .tourchip.shine{animation:chipglow 2.6s ease-in-out infinite}
+  @keyframes chipglow{0%,100%{box-shadow:0 0 0 0 rgba(245,184,61,0)} 50%{box-shadow:0 0 0 6px rgba(245,184,61,.28)}}
+  .bell{position:relative; width:38px; height:38px; border-radius:50%; background:var(--chip); border:1px solid var(--line); display:inline-flex; align-items:center; justify-content:center; font-size:19px; color:var(--sub) !important; text-decoration:none}
+  .bell.has{color:var(--goldtext) !important; border-color:rgba(245,184,61,.5)} .bell.has .ph-bell{animation:bellring 1.2s ease-in-out 2; transform-origin:top center}
+  @keyframes bellring{0%,100%{transform:rotate(0)} 20%{transform:rotate(14deg)} 40%{transform:rotate(-12deg)} 60%{transform:rotate(8deg)} 80%{transform:rotate(-4deg)}}
+  .bellbadge{position:absolute; top:-5px; right:-5px; background:var(--red); color:#fff; font-size:10.5px; font-weight:900; border-radius:999px; padding:1px 5px; line-height:1.3}
+  .inboxh{font-size:11px; font-weight:900; letter-spacing:.06em; text-transform:uppercase; color:var(--goldtext); margin:10px 0 2px}
+  .nrow{display:flex; gap:10px; align-items:flex-start; padding:10px 6px; border-top:1px solid var(--line); text-decoration:none; color:var(--ink); border-radius:10px}
+  .nrow.new{background:rgba(245,184,61,.08)} .nrow > div{flex:1; min-width:0} .nrow b{display:block; font-size:14px} .nrow span{font-size:12.5px; color:var(--sub); display:block}
+  .nrow small{font-size:11px; color:var(--sub); white-space:nowrap} .ndot{width:8px; height:8px; border-radius:50%; background:var(--line); margin-top:7px; flex:0 0 auto} .nrow.new .ndot{background:var(--gold)}
+  .inboxempty{text-align:center; padding:16px 8px} .inboxempty img{width:64px; height:64px; border-radius:50%; border:3px solid var(--gold)} .inboxempty b{display:block; margin:8px 0 4px} .inboxempty span{color:var(--sub); font-size:13px}
+  /* the tour */
+  .tourdim, .tourhole{pointer-events:none} .tourdim.dark{background:rgba(16,22,29,.62)} .tourhole[hidden]{display:none}
+  .tourhole{animation:holepulse 1.6s ease-in-out infinite} @keyframes holepulse{0%,100%{outline-offset:0; outline-color:var(--gold)} 50%{outline-offset:5px; outline-color:rgba(245,184,61,.55)}}
+  .tourtip{pointer-events:auto} .tourtip.center{top:50% !important; transform:translateY(-50%); text-align:center}
+  .tourtitle{font-size:17px; font-weight:900; margin-bottom:4px; color:var(--ink)} .tourtip img{width:66px; height:66px; border-radius:50%; border:3px solid var(--gold); display:block; margin:0 auto 8px}
+  .tourtip.center .tourrow{justify-content:center} .tourtip.center .tourdots{margin-right:0; width:100%; justify-content:center; margin-bottom:6px}
+  .tourdots{display:flex; gap:4px; margin-right:auto; align-items:center} .tourdots i{width:6px; height:6px; border-radius:50%; background:var(--line); display:inline-block} .tourdots i.done{background:rgba(245,184,61,.5)} .tourdots i.on{background:var(--gold); width:16px; border-radius:3px}
+  .tourend{text-align:center} .tourend img{width:80px; height:80px; border-radius:50%; border:3px solid var(--gold)} .tourend .btn{margin-top:8px}
 </style>
 </head>
 <body>
@@ -2052,57 +2076,123 @@ function screenUnbox(name, gripe){
   });
 }
 
-// Interactive first-run tour: spotlights the real controls on the pup page, one at a time.
-// The spotlighted control stays tappable; everything else is dimmed. Replay from Manage pup.
-function startTour(name, k0){
-  var nm = esc(name);
-  var steps = [
-    { sel: '#huntcard', text: '<b>Today&rsquo;s sniff challenge.</b> Find these 5 things and feed ' + nm + ' a photo of each. Every find is worth more points.' },
-    { sel: '#tab-city', text: '<b>Your city.</b> What everyone near you wants fixed, ranked by how many agree. Tap &ldquo;same here&rdquo; on yours.' },
-    { sel: '#flashbtn', text: '<b>Memory Lane.</b> Everything ' + nm + ' remembers, walked back to you, and ready on the morning you vote.', last: true }
-  ].filter(function(s){ return document.querySelector(s.sel); });
-  if (!steps.length) return;
-  var k = Math.min(k0 || 0, steps.length - 1);
-  window._tourEnd = function(){ end(true); };
-  var dim = document.createElement('div'); dim.className = 'tourdim';
-  var hole = document.createElement('div'); hole.className = 'tourhole';
-  var tip = document.createElement('div'); tip.className = 'tourtip';
-  document.body.appendChild(dim); document.body.appendChild(hole); document.body.appendChild(tip);
-  function end(quiet){
-    [dim, hole, tip].forEach(function(x){ if (x.parentNode) x.parentNode.removeChild(x); });
-    window.removeEventListener('resize', place); window.removeEventListener('scroll', place, true); window._tourEnd = null;
-    try { localStorage.setItem('vp.toured', '1'); } catch (e) {}
-    if (quiet) return;
-    var s0 = loadLocal(); var asked = false; try { asked = !!localStorage.getItem('vp.remasked'); } catch (e) {}
-    if (s0 && !KIOSK) setTimeout(function(){ permsSheet(s0.tail, s0.name); }, 300);
-  }
-  function place(){
-    var s = steps[k], el = document.querySelector(s.sel);
-    if (!el) { end(); return; }
-    var r = el.getBoundingClientRect(), pad = 6;
-    hole.style.cssText = 'top:' + (r.top - pad) + 'px;left:' + (r.left - pad) + 'px;width:' + (r.width + 2 * pad) + 'px;height:' + (r.height + 2 * pad) + 'px';
-    var th = tip.offsetHeight, vh = window.innerHeight;
-    var below = r.bottom + 12 + th < vh - 8 && (r.top + r.height / 2 < vh / 2 || r.top - 12 - th < 8);
-    var top = below ? r.bottom + 12 : r.top - 12 - th;
-    tip.style.top = Math.max(8, Math.min(top, vh - th - 8)) + 'px';
-  }
-  function show(){
-    var s = steps[k], el = document.querySelector(s.sel);
-    tip.innerHTML = '<div class="tourtxt">' + s.text + '</div><div class="tourrow"><span>' + (k + 1) + ' / ' + steps.length + '</span>' +
-      '<a href="#" id="tskip">Skip</a>' + (k ? '<button class="tbtn ghost" id="tback">Back</button>' : '') +
-      '<button class="tbtn" id="tnext">' + (s.last ? 'Got it' : 'Next') + '</button>' + '</div>';
-    if (!el.closest('.tabbar')) el.scrollIntoView({ block: 'center', behavior: 'instant' });
-    requestAnimationFrame(function(){ requestAnimationFrame(place); });
-    document.getElementById('tskip').onclick = function(ev){ ev.preventDefault(); end(); };
-    document.getElementById('tnext').onclick = function(){ if (s.last) end(); else { k++; show(); } };
-    var b = document.getElementById('tback'); if (b) b.onclick = function(){ k--; show(); };
-    var m = document.getElementById('tman'); if (m) m.onclick = function(){ end(); location.href = '/manage'; };
-  }
-  // tapping the spotlighted control itself ends the tour and lets it do its job
-  hole.onclick = function(){ var el = document.querySelector(steps[k].sel); end(); if (el) (el.querySelector('textarea') || el).click(); };
-  window.addEventListener('resize', place); window.addEventListener('scroll', place, true);
-  show();
+// ---------- The tour: one real control at a time, across the three tabs; it resumes after each tab change ----------
+var TOUR_STEPS = [
+  { at: 'pup', welcome: true, title: 'Hi, I’m NAME 🐾', text: 'I remember what you want fixed, show you who agrees, and bring your list back when you vote. Quick tour? About a minute, and you can tap anything along the way.' },
+  { at: 'pup', sel: '#qwalk', title: 'Snap what bugs you', text: 'See something broken, or something great? Snap it. I read the photo, name the issue and keep it. No name, no sign-up.' },
+  { at: 'pup', sel: '#qnote', title: 'Or just say it', text: 'No photo? A few words is plenty: housing prices, the bus, a dark street.' },
+  { at: 'pup', sel: '#huntcard', title: 'Today’s sniff walk', text: 'Every day: find 5 things outside and snap them. 🟢 Common 10 · 🔵 Uncommon 25 · ✨ Rare 60. Every walk becomes a memory.' },
+  { at: 'pup', sel: '#entries', need: '.etile', title: 'Your issues', text: 'They live here as tiles. Tap one to add its spot, share it with Your city, or send it to a group.' },
+  { at: 'pup', sel: '#flashbtn', title: 'Memory Lane', text: 'Everything I remember, walked back to you. On voting morning it’s ready before you leave the house.' },
+  { at: 'pup', sel: '#bell', title: 'Your notifications', text: 'Same-heres, reactions, group votes and what’s new near you all land here.' },
+  { at: 'pack', sel: '#ctiles', title: 'Your city', text: 'What everyone near you wants fixed, including official 3-1-1 reports. Tap a tile, then tap “Same here” on the ones you feel too.' },
+  { at: 'pack', sel: '.sortrow', title: 'Sort it your way', text: '✨ Similar to me · 🐾 Most voted · 🔥 Trending.' },
+  { at: 'pack', sel: '#mapbtn', title: 'See it on the map', text: 'Every issue as a pin, coloured by topic. Pins open in Street View.' },
+  { at: 'packs', sel: '#pkh-new', title: 'Groups', text: 'Start a group with friends: the invite link lasts an hour and you let people in. Post topics or share your issues, and everyone votes with a 🐾.' },
+  { at: 'packs', sel: '#pkh-join', title: 'Want our vote? Start with our list.', text: 'Share your group’s ranked list with anyone running for office. No names, just the issues.', last: true }
+];
+function isWall(){ return new URLSearchParams(location.search).get('wall') === '1'; }
+function tourVisits(){ try { if (!sessionStorage.getItem('vp.v')) { sessionStorage.setItem('vp.v', '1'); localStorage.setItem('vp.visits', String((+localStorage.getItem('vp.visits') || 0) + 1)); } return +localStorage.getItem('vp.visits') || 0; } catch (e) { return 99; } }
+function tourDone(){ try { return localStorage.getItem('vp.toured') === '1'; } catch (e) { return true; } }
+function tourScreen(){ var p = location.pathname; return p.indexOf('/p/') === 0 ? 'pup' : p === '/pack' ? 'pack' : (p === '/groups' || p === '/packs') ? 'packs' : null; }
+function tourState(){ try { return JSON.parse(localStorage.getItem('vp.tour') || 'null'); } catch (e) { return null; } }
+function tourSave(st){ try { if (st) localStorage.setItem('vp.tour', JSON.stringify(st)); else localStorage.removeItem('vp.tour'); } catch (e) {} }
+function tourUrl(at){ var me = loadLocal(); return at === 'pup' ? pupURL(me.tail) : at === 'pack' ? '/pack' : '/groups'; }
+function tourVisible(st){ if (!st.sel) return true; var el = document.querySelector(st.sel); if (!el || el.hidden) return false; if (st.need && !el.querySelector(st.need)) return false; var cs = getComputedStyle(el); return cs.display !== 'none' && cs.visibility !== 'hidden'; }
+function tourStart(i){ var me = loadLocal(); if (!me || KIOSK) return; tourSave({ i: i || 0 }); track('tour_done', { act: 'start' }); if (tourScreen() === 'pup') tourGo(); else { tourClear(); location.href = tourUrl('pup'); } }
+function tourResume(){   // called by each screen once it has rendered
+  var st = tourState(); if (!st || KIOSK || isWall()) return; var scr = tourScreen(); if (!scr) return;
+  var cur = TOUR_STEPS[st.i]; if (!cur) { tourSave(null); return; }
+  if (cur.at !== scr) { var k = TOUR_STEPS.findIndex(function(s){ return s.at === scr; }); if (k < 0) return; st.i = k; tourSave(st); }   // landed on another tab: pick up that tab's chapter
+  setTimeout(tourGo, 450);
 }
+function tourGo(){
+  var st = tourState(); if (!st) return; var scr = tourScreen();
+  while (TOUR_STEPS[st.i] && TOUR_STEPS[st.i].at === scr && !tourVisible(TOUR_STEPS[st.i])) st.i++;   // nothing to point at: skip it
+  var step = TOUR_STEPS[st.i];
+  if (!step) { tourFinish(); return; }
+  tourSave(st);
+  if (step.at !== scr) { tourClear(); location.href = tourUrl(step.at); return; }
+  tourShow(st.i);
+}
+function tourClear(){ var E = window._tourEls; if (E) { ['dim', 'hole', 'tip'].forEach(function(k){ if (E[k].parentNode) E[k].parentNode.removeChild(E[k]); }); window.removeEventListener('resize', E.place); window.removeEventListener('scroll', E.place, true); } window._tourEls = null; window._tourEnd = null; }
+function tourShow(i){
+  var step = TOUR_STEPS[i], me = loadLocal(), nm = esc(me ? me.name : 'your pup');
+  if (!window._tourEls) {
+    var dim = document.createElement('div'); dim.className = 'tourdim'; var hole = document.createElement('div'); hole.className = 'tourhole'; var tip = document.createElement('div'); tip.className = 'tourtip';
+    document.body.appendChild(dim); document.body.appendChild(hole); document.body.appendChild(tip);
+    window._tourEls = { dim: dim, hole: hole, tip: tip, i: i, place: function(){ tourPlace(); } };
+    window.addEventListener('resize', window._tourEls.place); window.addEventListener('scroll', window._tourEls.place, true);
+    window._tourEnd = function(){ tourSave(null); tourClear(); };
+  }
+  var E = window._tourEls; E.i = i; var el = step.sel ? document.querySelector(step.sel) : null;
+  E.tip.className = 'tourtip' + (el ? '' : ' center'); E.hole.hidden = !el; E.dim.classList.toggle('dark', !el);
+  E.tip.innerHTML = (el ? '' : '<img src="/pup-face.jpg" alt="">') + '<div class="tourtitle">' + step.title.replace(/NAME/g, nm) + '</div><div class="tourtxt">' + step.text.replace(/NAME/g, nm) + '</div>' +
+    '<div class="tourrow"><div class="tourdots">' + TOUR_STEPS.map(function(_, k){ return '<i class="' + (k === i ? 'on' : k < i ? 'done' : '') + '"></i>'; }).join('') + '</div>' +
+    '<a href="#" id="tskip">Skip</a>' + (i ? '<button class="tbtn ghost" id="tback">Back</button>' : '') +
+    '<button class="tbtn" id="tnext">' + (step.welcome ? 'Show me' : step.last ? 'Done' : 'Next') + '</button></div>';
+  if (el && !el.closest('.tabbar') && !el.closest('.nav')) el.scrollIntoView({ block: 'center', behavior: 'smooth' });
+  requestAnimationFrame(function(){ requestAnimationFrame(tourPlace); }); setTimeout(tourPlace, 500);
+  document.getElementById('tskip').onclick = function(ev){ ev.preventDefault(); track('tour_done', { act: 'skip', step: i }); tourSave(null); tourClear(); };
+  var tb = document.getElementById('tback'); if (tb) tb.onclick = tourBack;
+  document.getElementById('tnext').onclick = function(){ if (step.last) tourFinish(); else { tourSave({ i: i + 1 }); tourGo(); } };
+}
+function tourPlace(){
+  var E = window._tourEls; if (!E) return; var step = TOUR_STEPS[E.i], el = step.sel ? document.querySelector(step.sel) : null, tip = E.tip, vh = window.innerHeight;
+  if (!el) { tip.style.top = ''; return; }
+  var r = el.getBoundingClientRect(), pad = 6;
+  E.hole.style.cssText = 'top:' + (r.top - pad) + 'px;left:' + (r.left - pad) + 'px;width:' + (r.width + 2 * pad) + 'px;height:' + (r.height + 2 * pad) + 'px';
+  var th = tip.offsetHeight, below = r.bottom + 12 + th < vh - 8 && (r.top + r.height / 2 < vh / 2 || r.top - 12 - th < 8);
+  var top = below ? r.bottom + 12 : r.top - 12 - th; tip.style.top = Math.max(8, Math.min(top, vh - th - 8)) + 'px';
+}
+function tourBack(){
+  var st = tourState(); if (!st) return; var scr = tourScreen(); st.i = Math.max(0, st.i - 1);
+  while (st.i > 0 && TOUR_STEPS[st.i].at === scr && !tourVisible(TOUR_STEPS[st.i])) st.i--;
+  tourSave(st); if (TOUR_STEPS[st.i].at !== scr) { tourClear(); location.href = tourUrl(TOUR_STEPS[st.i].at); return; } tourShow(st.i);
+}
+function tourFinish(){
+  tourSave(null); tourClear(); try { localStorage.setItem('vp.toured', '1'); } catch (e) {} track('tour_done', { act: 'done' }); confettiBurst();
+  var me = loadLocal(), rp0 = remPref(), rem = rp0 && !rp0.off;
+  var s = sheet('<div class="tourend"><img src="/pup-face.jpg" alt=""><div class="addhead">You&rsquo;re all set 🐾</div><p class="hint">Snap what bugs you, walk ' + esc(me ? me.name : 'your pup') + ', and bring friends into a group.' + (rem ? '' : ' Want a nudge when neighbours agree, and on voting morning?') + '</p>' +
+    (rem ? '' : '<button class="btn gold" id="tendrem">🔔 Turn on reminders</button>') + '<button class="btn ghost" id="tenddone">Done</button></div>');
+  var r = document.getElementById('tendrem'); if (r) r.onclick = function(){ s.close(); if (me) permsSheet(me.tail, me.name); };
+  document.getElementById('tenddone').onclick = s.close;
+}
+function startTour(name, k0){ tourStart(k0 || 0); }
+
+// ---------- The notifications bell: same-heres, reactions, group chat and topics, knocks, new near you, voting day ----------
+function agoShort(ts){ var m = Math.round((Date.now() - new Date(ts)) / 60000); if (m < 1) return 'now'; if (m < 60) return m + 'm'; var hh = Math.round(m / 60); if (hh < 24) return hh + 'h'; var d = Math.round(hh / 24); return d < 7 ? d + 'd' : new Date(ts).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }); }
+function inboxSeen(){ var s = loadLocal(); try { return localStorage.getItem('vp.inboxSeen.' + (s ? s.tail : '')); } catch (e) { return null; } }
+function inboxCut(){ var seen = inboxSeen(); return seen ? new Date(seen) : new Date(Date.now() - 3 * 864e5); }   // first time: the last 3 days count as new
+function inboxLoad(force){
+  var me = loadLocal(); if (!me) return Promise.resolve([]);
+  if (!force && window._inbox && Date.now() - (window._inboxAt || 0) < 60000) return Promise.resolve(window._inbox);
+  return rpc('vp_inbox', { p_tail: me.tail }).then(function(l){ window._inbox = l || []; window._inboxAt = Date.now(); return window._inbox; });
+}
+function bellWake(){
+  var b = document.getElementById('bell'); if (!b || b._done) return; b._done = true;
+  inboxLoad().then(function(list){ var cut = inboxCut(), n = list.filter(function(x){ return new Date(x.ts) > cut; }).length, bd = document.getElementById('bellbadge');
+    if (bd) { bd.hidden = !n; bd.textContent = n > 9 ? '9+' : n; } b.classList.toggle('has', !!n); }).catch(function(){});
+}
+function openInbox(){
+  var me = loadLocal(); if (!me) return;
+  var s = sheet('<div class="addhead">🔔 Notifications</div><div id="inbox"><p class="hint">Fetching…</p></div>');
+  inboxLoad(true).then(function(list){
+    var cut = inboxCut(), fresh = list.filter(function(x){ return new Date(x.ts) > cut; }), older = list.filter(function(x){ return new Date(x.ts) <= cut; });
+    var row = function(x, isNew){ return '<a class="nrow' + (isNew ? ' new' : '') + '" href="' + esc(x.url) + '"><i class="ndot"></i><div><b>' + esc(x.title) + '</b><span>' + esc(x.body) + '</span></div><small>' + agoShort(x.ts) + '</small></a>'; };
+    var el = document.getElementById('inbox');
+    el.innerHTML = !list.length ? '<div class="inboxempty"><img src="/pup-face.jpg" alt=""><b>Nothing yet 🐾</b><span>When neighbours say “same here”, react to your issues, or your group votes, it lands here.</span></div>'
+      : (fresh.length ? '<div class="inboxh">New</div>' + fresh.map(function(x){ return row(x, true); }).join('') : '') + (older.length ? '<div class="inboxh">Earlier</div>' + older.map(function(x){ return row(x, false); }).join('') : '');
+    try { localStorage.setItem('vp.inboxSeen.' + me.tail, new Date().toISOString()); } catch (e) {}
+    var bd = document.getElementById('bellbadge'); if (bd) bd.hidden = true; var b = document.getElementById('bell'); if (b) b.classList.remove('has');
+    track('notif_open', { kind: 'bell', n: fresh.length });
+  }).catch(function(){ var el = document.getElementById('inbox'); if (el) el.innerHTML = '<p class="hint">Couldn&rsquo;t fetch. Try again.</p>'; });
+}
+document.addEventListener('click', function(ev){
+  var t = ev.target; if (!t || !t.closest) return;
+  if (t.closest('#bell')) { ev.preventDefault(); openInbox(); return; }
+  if (t.closest('.tourchip') || t.closest('#mtour')) { ev.preventDefault(); tourStart(0); }
+});
 
 function prefetchDeck(){
   var place = getPlace() || null, now = Date.now();
@@ -2143,7 +2233,7 @@ function screenLedger(tail){
     Array.prototype.forEach.call(document.querySelectorAll('[data-hv]'), function(b){ b.onclick = function(ev){ ev.stopPropagation(); var v = b.getAttribute('data-hv');
       document.querySelectorAll('[data-hv]').forEach(function(x){ x.classList.toggle('on', x === b); });
       document.querySelectorAll('[data-hview]').forEach(function(x){ x.hidden = x.getAttribute('data-hview') !== v; });
-      if (v === 'map') huntMap(); }; }); animateRing(); showNewReacts(tail);
+      if (v === 'map') huntMap(); }; }); animateRing();
     var qw = document.getElementById('qwalk'); if (qw) qw.onclick = startWalk; var qn = document.getElementById('qnote'); if (qn) qn.onclick = function(){ openAdd(); };
     var fb = document.getElementById('flashbtn'); if (fb) fb.onclick = function(ev){ ev.preventDefault(); openFlashback(L); };
     renderIsland(tail, L.name);
@@ -2160,7 +2250,7 @@ function screenLedger(tail){
       var sb2 = document.getElementById('qwalk'); if (sb2) sb2.classList.add('pulse');
     }
     var wantTour = false; try { wantTour = sessionStorage.getItem('vp.tour') === '1'; sessionStorage.removeItem('vp.tour'); } catch (e) {}
-    if (wantTour && !KIOSK) setTimeout(function(){ startTour(L.name); }, 700);
+    if (wantTour && !KIOSK) setTimeout(function(){ tourStart(0); }, 700); else tourResume();
     if (!window._vpVisWired) { window._vpVisWired = true;
       document.addEventListener('visibilitychange', function(){
         if (!document.hidden) refreshPlaceIfStale();
@@ -2365,8 +2455,12 @@ function showSticker(canvas, name, url){
   });
 }
 
-function nav(extra){ return '<div class="nav"><div class="brand">Voter<b>Pup</b> 🐾</div><div class="navr">' +
-  (canOfferInstall() ? '<a href="#" class="installchip"><i class="ph-duotone ph-device-mobile"></i><span> Get the app</span></a>' : '') + (extra || '') + '</div></div>'; }
+function nav(extra){
+  var me = loadLocal(), plain = KIOSK || isWall() || !me, chip = !plain && tourVisits() <= 15;   // the tour chip shines for the first 15 visits
+  return '<div class="nav"><div class="brandcol"><div class="brand">Voter<b>Pup</b> 🐾</div>' +
+    (chip ? '<a href="#" class="tourchip' + (tourDone() ? '' : ' shine') + '"><i class="ph-fill ph-sparkle"></i> ' + (tourDone() ? 'Tour again' : 'Take the tour') + '</a>' : '') + '</div><div class="navr">' +
+    (plain ? '' : '<a href="#" class="bell" id="bell" aria-label="Notifications"><i class="ph-fill ph-bell"></i><b class="bellbadge" id="bellbadge" hidden></b></a>') +
+    (canOfferInstall() ? '<a href="#" class="installchip"><i class="ph-duotone ph-device-mobile"></i><span> Get the app</span></a>' : '') + (extra || '') + '</div></div>'; }
 function say(text, small, name){
   return '<div class="say"><img class="avatar" src="/pup-face.jpg" alt="">' +
     '<div class="balloon">' + text + (small ? '<small>' + small + '</small>' : '') + '</div></div>';
@@ -2424,7 +2518,7 @@ function screenPacksHome(){
   var me = loadLocal(); if (!me) { location.href = '/app.html?new=1'; return; }
   try { sessionStorage.removeItem('vp.pkb'); } catch (e) {}
   root.innerHTML = nav() + '<div class="packshome"><h1>🐾 Groups</h1><p class="hint">Walk with friends. Make a list together, vote on what matters most, and share it with anyone running for office.</p><div class="pkbtns"><button class="btn gold" id="pkh-new"><i class="ph-fill ph-plus"></i> Start a group</button><button class="btn ghost" id="pkh-join"><i class="ph-fill ph-key"></i> Join with a code</button></div><div id="packsbox"></div></div>' + tabbar('packs');
-  wireTabs(); renderPacksBox(me.tail, me.name);
+  wireTabs(); renderPacksBox(me.tail, me.name); tourResume();
   document.getElementById('pkh-new').onclick = function(){ packCreateSheet(me.tail); };
   document.getElementById('pkh-join').onclick = function(){ packJoinSheet(me.tail); };
 }
@@ -3059,7 +3153,7 @@ function emoFill(){
     rows.forEach(function(r){ var v = m && m[r.getAttribute('data-emo')]; if (v) emoPaint(r, v); });
   }).catch(function(){});
 }
-new MutationObserver(function(){ clearTimeout(_emoT); _emoT = setTimeout(emoFill, 120); }).observe(document.documentElement, { childList: true, subtree: true });
+new MutationObserver(function(){ clearTimeout(_emoT); _emoT = setTimeout(function(){ emoFill(); bellWake(); }, 120); }).observe(document.documentElement, { childList: true, subtree: true });
 document.addEventListener('click', function(ev){
   var b = ev.target && ev.target.closest ? ev.target.closest('.emorow .emo[data-e], .emorow .emo[data-eadd]') : null;
   if (!b) return;
@@ -4084,7 +4178,7 @@ function screenPack(mode, topic0){
           '<div class="tcount">' + t.list.length + '</div>' +
           (landIds[c0.r.id] ? '<div class="tnew">🐾 just in</div>' : '') + '</div>';
       }).join('') + '</div>' + (wall ? '' : '<p class="pinchhint">Pinch the tiles to see more or fewer 🐾</p>');
-      landIds = {};
+      landIds = {}; tourResume();
       Array.prototype.forEach.call(b.querySelectorAll('.tile'), function(el){
         el.onclick = function(){ feedView(tiles[+el.getAttribute('data-i')]); };
       });
@@ -4210,7 +4304,7 @@ function screenPack(mode, topic0){
   }).catch(function(e){ document.getElementById('board').textContent = 'The pack is napping: ' + e.message; });
 }
 
-var APP_VERSION = "20261005005509";
+var APP_VERSION = "20261005022413";
 (function(){
   try {
     fetch('/version.json?t=' + Date.now(), { cache: 'no-store' }).then(function(r){ return r.json(); }).then(function(j){
@@ -4455,7 +4549,7 @@ function screenManage(){
     if (GOOGLE_READY && !KIOSK) {
       if (email && backed) rows += mrow('<img src="' + BACKUP_IMG + '" alt="">', '✅ ' + nm + ' has a home',
         'Saved to <b>' + esc(email) + '</b>',
-        '<button class="btn ghost mbtn" id="mpups">My pups</button><button class="btn ghost mbtn" id="mout">Sign out</button>' +
+        '<button class="btn ghost mbtn" id="mtour">🎓 Replay the tour</button><button class="btn ghost mbtn" id="mpups">My pups</button><button class="btn ghost mbtn" id="mout">Sign out</button>' +
         '<a href="#" class="mlink" id="mshowkey">show private link</a><div id="mkey" hidden></div>');
       else rows += mrow('<img src="' + BACKUP_IMG + '" alt="">', '🔐 Give ' + nm + ' a home',
         (email ? 'Signed in as <b>' + esc(email) + '</b>' : 'Never lose ' + nm + '. No mail, ever.'),
