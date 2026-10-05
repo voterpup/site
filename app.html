@@ -1225,7 +1225,7 @@ var KIOSK = new URLSearchParams(location.search).get('kiosk') === '1';
 //   'start' = the first screen (tap one issue, get your pup), no intro slides
 //   'city'  = the Your city board, with a big "make your pup" button on top
 //   'walk'  = a pup is made for them straight away (no issue needed) and they land on today's sniff walk
-var AD_LANDING = { yt1: 'start', yt2: 'city', yt3: 'start', yt4: 'start', yt5: 'walk' };
+var AD_LANDING = { yt1: 'start', yt2: 'city', yt3: 'start', yt4: 'start', yt5: 'walk', yt6: 'start', ig4: 'start', ig5: 'walk', ig6: 'start' };   // ig* = the same ads on Instagram
 var AD_CITY = 'Vancouver, British Columbia, Canada';   // 'city' landing when the visitor's city isn't known yet (the ads target Metro Vancouver)
 // the sniff-walk ad: make the pup now (no issue needed) and open today's walk
 // Today's walk shows straight away; the pup is only made when the visitor taps Start (robots that check ad links never tap)
@@ -1244,7 +1244,7 @@ function makeWalkPup(name){
     location.replace(pupURL(l.tail));
   }).catch(function(e){ toast('The pup stumbled: ' + e.message); var b = document.getElementById('walkgo'); if (b) { b.disabled = false; b.textContent = '🐾 Start my walk'; } });
 }
-function adSrc(){ var s = srcTag(); return /^yt\d+$/.test(s) ? s : null; }
+function adSrc(){ var s = srcTag(); return /^(yt|ig)\d+[a-z]?$/.test(s) ? s : null; }
 (function(){ var q = new URLSearchParams(location.search), s = q.get('src'), pl = q.get('place');
   if (s) try { sessionStorage.setItem('vp.src', s.slice(0, 20)); if (!localStorage.getItem('vp.src0')) localStorage.setItem('vp.src0', s.slice(0, 20)); } catch (e) {}
   if (pl && /^[A-Za-z .'’()-]+(, [A-Za-z .'’()-]+){1,3}$/.test(pl.trim())) { savePlace(pl.trim(), true); try { localStorage.setItem('vp.placeqr', '1'); } catch (e) {} } })();   // a QR's city is a guess: the first real location wins
@@ -4307,7 +4307,7 @@ function screenPack(mode, topic0){
   }).catch(function(e){ document.getElementById('board').textContent = 'The pack is napping: ' + e.message; });
 }
 
-var APP_VERSION = "20261005034519";
+var APP_VERSION = "20261005051506";
 (function(){
   try {
     fetch('/version.json?t=' + Date.now(), { cache: 'no-store' }).then(function(r){ return r.json(); }).then(function(j){
