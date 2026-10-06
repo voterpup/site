@@ -1387,7 +1387,7 @@
   .mnpush{color:var(--goldtext) !important; font-weight:800; font-size:13px; text-decoration:none; text-align:center}
   .keybox{font-family:ui-monospace,monospace; font-size:13px; word-break:break-all; background:var(--chip); border:1px dashed var(--line); border-radius:12px; padding:12px; margin:8px 0 12px; user-select:all}
   .reportlink{color:var(--sub) !important; font-size:12px; text-decoration:underline} .reprow{margin:6px 0 !important; text-align:left}
-  .mnansrow{display:flex; gap:8px; align-items:center} .mnansrow input{flex:1; min-width:0}
+  .mnansrow{display:flex; gap:8px; align-items:center} .mnfield .mnansrow input{flex:1; min-width:0; width:auto !important}
   .mnuse{flex:0 0 auto; border:1.5px solid rgba(245,184,61,.6); background:rgba(245,184,61,.12); color:var(--goldtext); border-radius:14px; padding:12px 12px; font:inherit; font-weight:900; font-size:14px; cursor:pointer}
   #mnans::placeholder{color:#6f8599}
 </style>
@@ -5198,7 +5198,7 @@ function screenPack(mode, topic0){
   }).catch(function(e){ var ag = document.getElementById('agenda'); if (ag) ag.hidden = true; var bd = document.getElementById('board'); if (bd) bd.innerHTML = '<div class="hint">Couldn&rsquo;t reach the pack. <a href="#" onclick="location.reload();return false">Try again</a></div>'; });
 }
 
-var APP_VERSION = "20261006232623";
+var APP_VERSION = "20261006232716";
 (function(){
   try {
     fetch('/version.json?t=' + Date.now(), { cache: 'no-store' }).then(function(r){ return r.json(); }).then(function(j){
