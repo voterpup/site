@@ -104,11 +104,12 @@ Deno.serve(async (req) => {
     const since = new Date(Date.now() - 6e5).toISOString();
     const { count } = await db.from("pack_messages").select("id", { count: "exact", head: true }).eq("tail", tail).gte("created_at", since);
     if ((count ?? 0) >= 40) return json({ error: "Slow down a little 🐾" }, 429);
-    const chk = await textOk(body);
+    const ownGame = /^\s*(https?:\/\/)?(www\.)?voterpup\.com\/m\/[0-9]+-[a-z]+-[a-z]+\s*$/i.test(body);   // our own game link: shown as a game tile
+    const chk = ownGame ? { ok: true, why: "" } : await textOk(body);
     if (!chk.ok) return json({ error: "That message wasn't sent" + (chk.why ? " (" + chk.why + ")" : "") + ". Keep it friendly 🐾" }, 422);
     const { data: msg, error } = await db.from("pack_messages").insert({ pack_id: pack, tail, body: body || null, media }).select("id, created_at").single();
     if (error) return json({ error: error.message }, 500);
-    await nudge(db, pack, tail, (me?.name ?? "A pup") + ": " + (body ? body.slice(0, 80) : "📷 sent a photo"));
+    await nudge(db, pack, tail, (me?.name ?? "A pup") + ": " + (ownGame ? "🫣 sent a Guess the wish game" : body ? body.slice(0, 80) : "📷 sent a photo"));
     return json({ ok: true, id: msg.id, ts: msg.created_at });
   }
   if (b.action === "add_item") {   // the pack's list can be shared publicly, so items are checked like messages
