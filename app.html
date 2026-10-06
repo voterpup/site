@@ -1337,6 +1337,15 @@
   .mnshare1{flex:0 0 auto; width:44px; height:44px; border-radius:14px; border:0; background:var(--gold); color:#1a1304; font-size:18px; display:grid; place-items:center; cursor:pointer; margin-right:6px}
   .minecard{display:flex; align-items:center; gap:12px; margin:0 0 14px; padding:12px 14px; border-radius:18px; text-decoration:none; color:#fff; background:linear-gradient(135deg, rgba(124,92,255,.35), rgba(236,72,153,.28)); border:1px solid rgba(168,85,247,.5)}
   .mcemo{font-size:30px} .mctxt{flex:1; min-width:0} .mctxt b{display:block; font-family:'Fredoka','Nunito',sans-serif; font-weight:600; font-size:17px} .mctxt small{font-size:12.5px; color:#e3d7ff}
+  .mnsteps{display:flex; gap:4px; justify-content:space-between; margin:0 0 4px} .mnsteps span{flex:1; display:flex; flex-direction:column; align-items:center; gap:4px; font-size:10.5px; font-weight:800; color:#5d7488; text-align:center}
+  .mnsteps i{font-style:normal; width:24px; height:24px; border-radius:50%; display:grid; place-items:center; background:#16293a; border:1.5px solid #2c4a63; font-size:11.5px; font-weight:900}
+  .mnsteps span.on{color:#fff} .mnsteps span.on i{background:var(--gold); border-color:var(--gold); color:#1a1304} .mnsteps span.d{color:#8fa6ba} .mnsteps span.d i{background:#2fd39c; border-color:#2fd39c; color:#05261c}
+  .mnswitch{display:flex; justify-content:center; gap:8px; align-items:baseline; font-size:13px; color:#7f97ab; margin-top:-4px} .mnswitch a{color:var(--goldtext); font-weight:900; text-decoration:none; font-size:14px}
+  .mnprompt.own textarea{width:100%; margin:16px 0 0 !important; border:0 !important; background:rgba(255,255,255,.16) !important; border-radius:14px !important; padding:12px !important; color:#fff !important; font-family:'Fredoka','Nunito',sans-serif; font-weight:600; font-size:22px !important; line-height:1.2; resize:none}
+  .mnprompt.own textarea::placeholder{color:rgba(255,255,255,.75); font-size:18px}
+  .mncards.preview .mncard{cursor:default; position:relative} .mncard.isme{background:linear-gradient(135deg,#ffd56a,#f5b83d); border-color:#f5b83d; color:#1a1304}
+  .mncard em{position:absolute; top:-9px; right:10px; font-style:normal; background:#1a1304; color:var(--gold); border-radius:999px; padding:1px 8px; font-size:10.5px; font-weight:900; letter-spacing:.06em; text-transform:uppercase}
+  .mnrow2{display:flex; gap:8px} .mnghost{flex:1; border:1.5px solid #2c4a63; background:#132637; color:#fff; border-radius:16px; padding:13px 8px; font:inherit; font-weight:800; font-size:14.5px; cursor:pointer} .mnghost:disabled{opacity:.6}
 </style>
 </head>
 <body>
@@ -4060,36 +4069,65 @@ function mineHistory(){
     box.querySelectorAll('[data-mshare]').forEach(function(b){ b.onclick = function(){ mineShare(b.getAttribute('data-mshare'), b.getAttribute('data-mprompt')); }; });
   }).catch(function(){});
 }
+function mineSteps(n){ return '<div class="mnsteps">' + ['Question', 'Your answer', 'Check the mix', 'Send'].map(function(t, i){ return '<span class="' + (i < n ? 'd' : i === n ? 'on' : '') + '"><i>' + (i + 1) + '</i>' + t + '</span>'; }).join('') + '</div>'; }
 function screenMineMake(){
-  var st = { prompts: [], i: 0 };
+  var st = { prompts: [], i: 0, own: false, ownText: '', answer: '' };
   mineShell('<div class="mnstage" id="mnstage"><div class="mnspin"></div></div><div class="mnhist" id="mnhist"></div>');
   mineHistory();
   function draw(){
-    var p = st.prompts[st.i]; if (!p) return;
-    document.getElementById('mnstage').innerHTML =
-      '<div class="mnkicker">Which one&rsquo;s mine? 🫣</div>' +
-      '<div class="mnprompt deal" style="background:' + mineGrad(p.id) + '"><span class="mnkind">' + esc(p.kind) + '</span><b>' + esc(p.text) + '</b>' +
-        '<button class="mndice" id="mndice" aria-label="Another prompt">🎲</button></div>' +
-      '<label class="mnfield"><span>Your answer</span><input id="mnans" maxlength="80" autocomplete="off" placeholder="keep it real, keep it short"></label>' +
+    var p = st.prompts[st.i]; if (!p && !st.own) return;
+    var card = st.own
+      ? '<div class="mnprompt own deal" style="background:linear-gradient(135deg,#ffb02e,#ff5d73)"><span class="mnkind">your own question</span>' +
+          '<textarea id="mnq" maxlength="100" rows="2" placeholder="Type a sentence your friends finish… e.g. My weirdest snack is…">' + esc(st.ownText) + '</textarea></div>' +
+        '<div class="mnswitch"><a href="#" id="mnback">🎲 Use one of ours instead</a></div>'
+      : '<div class="mnprompt deal" style="background:' + mineGrad(p.id) + '"><span class="mnkind">' + esc(p.kind) + '</span><b>' + esc(p.text) + '</b>' +
+          '<button class="mndice" id="mndice" aria-label="Another question">🎲</button></div>' +
+        '<div class="mnswitch"><a href="#" id="mnownq">✏️ Write my own question</a><span>or tap 🎲 for another</span></div>';
+    document.getElementById('mnstage').innerHTML = mineSteps(st.own && !st.ownText ? 0 : 1) +
+      '<div class="mnkicker">Which one&rsquo;s mine? 🫣</div>' + card +
+      '<label class="mnfield"><span>Your answer</span><input id="mnans" maxlength="80" autocomplete="off" placeholder="the truth, in a few words" value="' + esc(st.answer) + '"></label>' +
       '<label class="mnfield"><span>Your name for friends</span><input id="mnnick" maxlength="24" autocomplete="given-name" placeholder="so they know whose it is" value="' + esc(mineName()) + '"></label>' +
-      '<button class="mnbig" id="mngo">Hide it among 5 others 🫣</button>' +
-      '<p class="mnsmall">We shuffle it with 5 made-up answers. Friends guess which is yours. Fewer tries, more points.</p>';
-    document.getElementById('mndice').onclick = function(){ var c = document.querySelector('.mnprompt'); c.classList.remove('deal'); c.classList.add('roll');
+      '<button class="mnbig" id="mngo">See the mix →</button>' +
+      '<p class="mnsmall">Next you&rsquo;ll see your answer mixed with 5 made-up ones. Friends try to spot yours.</p>';
+    var dice = document.getElementById('mndice'); if (dice) dice.onclick = function(){ var c = document.querySelector('.mnprompt'); c.classList.remove('deal'); c.classList.add('roll'); keep();
       setTimeout(function(){ st.i++; if (st.i >= st.prompts.length) { st.i = 0; load(); } else draw(); }, 260); };
-    document.getElementById('mngo').onclick = make;
-    document.getElementById('mnans').focus();
+    var own = document.getElementById('mnownq'); if (own) own.onclick = function(ev){ ev.preventDefault(); keep(); st.own = true; draw(); setTimeout(function(){ document.getElementById('mnq').focus(); }, 50); };
+    var back = document.getElementById('mnback'); if (back) back.onclick = function(ev){ ev.preventDefault(); keep(); st.own = false; draw(); };
+    document.getElementById('mngo').onclick = preview;
   }
+  function keep(){ var a = document.getElementById('mnans'), q = document.getElementById('mnq'), n = document.getElementById('mnnick'); if (a) st.answer = a.value; if (q) st.ownText = q.value; if (n && n.value.trim()) mineName(n.value.trim()); }
   function load(){ mineCall({ action: 'prompts' }).then(function(l){ st.prompts = l || []; st.i = 0; draw(); }); }
-  function make(){
-    var ans = document.getElementById('mnans').value.trim(), nick = document.getElementById('mnnick').value.trim(), b = document.getElementById('mngo');
-    if (ans.length < 2) { document.getElementById('mnans').focus(); return; }
+  function preview(){
+    keep();
+    var nick = mineName(), b = document.getElementById('mngo');
+    if (st.own && st.ownText.trim().length < 6) { document.getElementById('mnq').focus(); toast('Write your question first.'); return; }
+    if (st.answer.trim().length < 2) { document.getElementById('mnans').focus(); toast('Now your answer.'); return; }
     if (!nick) { document.getElementById('mnnick').focus(); toast('Add the name your friends know you by.'); return; }
-    mineName(nick); b.disabled = true; b.textContent = 'Shuffling…';
-    var p = st.prompts[st.i];
-    mineEnsurePup().then(function(me){ return mineCall({ action: 'create', tail: me.tail, prompt: p.id, answer: ans, nickname: nick }); }).then(function(r){
-      if (r.error) { b.disabled = false; b.textContent = 'Hide it among 5 others 🫣'; toast(r.error); return; }
-      track('mine', { act: 'create' }); mineHidden(r.code, p, ans);
-    }).catch(function(e){ b.disabled = false; b.textContent = 'Hide it among 5 others 🫣'; toast(e.message); });
+    b.disabled = true; b.textContent = 'Writing 5 other answers…';
+    var body = { action: 'preview', answer: st.answer.trim(), nickname: nick };
+    if (st.own) body.custom = st.ownText.trim(); else body.prompt = st.prompts[st.i].id;
+    mineEnsurePup().then(function(me){ body.tail = me.tail; return mineCall(body); }).then(function(r){
+      if (r.error) { b.disabled = false; b.textContent = 'See the mix →'; toast(r.error); return; }
+      mix(r);
+    }).catch(function(e){ b.disabled = false; b.textContent = 'See the mix →'; toast(e.message); });
+  }
+  function mix(r){
+    st.draft = r.draft; st.promptText = r.prompt;
+    document.getElementById('mnstage').innerHTML = mineSteps(2) +
+      '<div class="mnkicker">Here&rsquo;s the mix your friends will see</div>' +
+      '<div class="mnprompt small" style="background:' + mineGrad(r.draft) + '"><b>' + esc(r.prompt) + '</b></div>' +
+      '<div class="mncards preview">' + r.cards.map(function(c, i){ return '<div class="mncard' + (c.mine ? ' isme' : '') + '" style="--n:' + i + '">' + (c.mine ? '<em>yours</em>' : '') + esc(c.text) + '</div>'; }).join('') + '</div>' +
+      '<p class="mnsmall">Only you see the gold one. If yours is too easy to spot, roll new answers.</p>' +
+      '<div class="mnrow2"><button class="mnghost" id="mnroll">🔄 New other answers</button><button class="mnghost" id="mnedit">✏️ Change mine</button></div>' +
+      '<button class="mnbig" id="mnsend">Looks good, hide it 🫣</button>';
+    document.getElementById('mnroll').onclick = function(){ var bt = this; bt.disabled = true; bt.textContent = 'Rolling…';
+      mineCall({ action: 'roll', tail: loadLocal().tail, draft: st.draft }).then(function(r2){ if (r2.error) { toast(r2.error); bt.disabled = false; bt.textContent = '🔄 New other answers'; return; } mix(r2); }); };
+    document.getElementById('mnedit').onclick = function(){ draw(); };
+    document.getElementById('mnsend').onclick = function(){ var bt = this; bt.disabled = true; bt.textContent = 'Hiding…';
+      mineCall({ action: 'create', tail: loadLocal().tail, draft: st.draft }).then(function(r3){
+        if (r3.error) { bt.disabled = false; bt.textContent = 'Looks good, hide it 🫣'; toast(r3.error); return; }
+        track('mine', { act: 'create', own: st.own }); mineHidden(r3.code, { text: r3.prompt }, st.answer.trim());
+      }); };
   }
   load();
 }
@@ -4097,7 +4135,7 @@ function screenMineMake(){
 function mineHidden(code, p, ans){
   var link = location.origin + '/m/' + code, msg = 'I hid a secret answer. Can you find mine? 🫣🐾\n“' + p.text + '”\n' + link;
   var deck = ''; for (var i = 0; i < 6; i++) deck += '<i style="--n:' + i + ';background:' + mineGrad(code + i) + '"></i>';
-  document.getElementById('mnstage').innerHTML =
+  document.getElementById('mnstage').innerHTML = mineSteps(3) +
     '<div class="mndeck" aria-hidden="true">' + deck + '</div>' +
     '<div class="mnkicker">Hidden! 🫣</div><h2 class="mnh">Now, who can find it?</h2>' +
     '<p class="mnsmall">“' + esc(ans) + '” is hiding among 5 others. Send the link to friends or the family chat.</p>' +
@@ -4908,7 +4946,7 @@ function screenPack(mode, topic0){
   }).catch(function(e){ var ag = document.getElementById('agenda'); if (ag) ag.hidden = true; var bd = document.getElementById('board'); if (bd) bd.innerHTML = '<div class="hint">Couldn&rsquo;t reach the pack. <a href="#" onclick="location.reload();return false">Try again</a></div>'; });
 }
 
-var APP_VERSION = "20261006030233";
+var APP_VERSION = "20261006030556";
 (function(){
   try {
     fetch('/version.json?t=' + Date.now(), { cache: 'no-store' }).then(function(r){ return r.json(); }).then(function(j){

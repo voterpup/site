@@ -128,37 +128,79 @@ Deno.serve(async (req) => {
     return json({ prompt: p?.text, answer: g.answer, nickname: g.nickname, plays: plays ?? [] });
   }
 
-  if (b.action === "create") {
+  // 1) preview: check the question and answer, write decoys, show the mix · 2) roll: new decoys for the same draft · 3) create: send it
+  async function tailored(ptext: string, answer: string, avoid: string[]): Promise<string[]> {
+    try {
+      const out = arr(await ask(`You make decoys for a guessing game. A player answered a prompt; their friends will see the real answer shuffled with your decoys and must spot the real one. Write answers that DIFFERENT people would plausibly give: match the real answer's length (within about 30%), its casualness, capitalisation, punctuation and emoji use, so nothing stands out by style. Vary the content: no paraphrases or near-copies of the real answer, and no answer that is obviously sillier, smarter or more polished than the rest. ${RULES} Reply with a JSON array of 8 strings only.`,
+        `Prompt: "${ptext}"\nReal answer: "${answer}"` + (avoid.length ? `\nDo not reuse any of these: ${avoid.join(" | ")}` : ""), 500));
+      const L = answer.length, low = avoid.map((x) => x.toLowerCase());
+      return out.map((x: any) => String(x).trim().slice(0, 90)).filter((x: string) => x.length >= 2 && x.toLowerCase() !== answer.toLowerCase() && !low.includes(x.toLowerCase()))
+        .sort((a: string, c: string) => Math.abs(a.length - L) - Math.abs(c.length - L)).slice(0, 5);
+    } catch (e) { await logFail(db, e); return []; }
+  }
+  const view = (d: any, ptext: string) => ({ draft: d.id, prompt: ptext, cards: (d.decoys as any[]), rolls: d.rolls });
+
+  if (b.action === "preview" || b.action === "roll" || b.action === "create") {
     if (!tail) return json({ error: "no pup" }, 400);
     const { data: proto } = await db.rpc("vp_is_proto", { p_tail: tail });
     const { count: played } = await db.from("mine_plays").select("code", { count: "exact", head: true }).eq("tail", tail);
     if (!proto && !played) return json({ error: "Coming soon 🐾" }, 403);
-    const { count: today } = await db.from("mine_games").select("code", { count: "exact", head: true }).eq("tail", tail).gte("created_at", new Date(Date.now() - 864e5).toISOString());
-    if ((today ?? 0) >= 20) return json({ error: "That's a lot of games today. Come back tomorrow 🐾" }, 429);
-    const pid = Number(b.prompt), answer = String(b.answer || "").replace(/\s+/g, " ").trim().slice(0, 90), nickname = String(b.nickname || "").trim().slice(0, 24);
-    if (!pid || answer.length < 2) return json({ error: "Write your answer first." }, 400);
+  }
+
+  if (b.action === "preview") {
+    const answer = String(b.answer || "").replace(/\s+/g, " ").trim().slice(0, 90), nickname = String(b.nickname || "").trim().slice(0, 24);
+    if (answer.length < 2) return json({ error: "Write your answer first." }, 400);
     if (!nickname) return json({ error: "Add the name your friends know you by." }, 400);
-    const { data: p } = await db.from("mine_prompts").select("id, text").eq("id", pid).maybeSingle();
-    if (!p) return json({ error: "Pick a prompt." }, 400);
+    let p: any = null;
+    if (b.custom) {   // the player's own question
+      let q = String(b.custom).replace(/\s+/g, " ").trim().slice(0, 100);
+      if (q.length < 6) return json({ error: "Write a question with a few more words." }, 400);
+      const chk = await moderate("Question: " + q);
+      if (!chk.ok) return json({ error: "Let's keep the question friendly" + (chk.why ? " (" + chk.why + ")" : "") + " 🐾" }, 422);
+      if (!/[…?]$|\.\.\.$/.test(q)) q = q.replace(/[.:]+$/, "") + "…";
+      const { data: ex } = await db.from("mine_prompts").select("id, text").eq("text", q).maybeSingle();
+      p = ex ?? (await db.from("mine_prompts").insert({ text: q, kind: "your own", active: false, source: "user" }).select("id, text").single()).data;
+    } else {
+      const { data } = await db.from("mine_prompts").select("id, text").eq("id", Number(b.prompt)).maybeSingle(); p = data;
+    }
+    if (!p) return json({ error: "Pick a question." }, 400);
     const chk = await moderate(answer);
     if (!chk.ok) return json({ error: "Let's keep it friendly" + (chk.why ? " (" + chk.why + ")" : "") + ". Try another answer 🐾" }, 422);
-    let dec: string[] = [];
-    try {
-      const out = arr(await ask(`You make decoys for a guessing game. A player answered a prompt; their friends will see the real answer shuffled with your decoys and must spot the real one. Write answers that DIFFERENT people would plausibly give: match the real answer's length (within about 30%), its casualness, capitalisation, punctuation and emoji use, so nothing stands out by style. Vary the content: no paraphrases or near-copies of the real answer, and no answer that is obviously sillier, smarter or more polished than the rest. ${RULES} Reply with a JSON array of 8 strings only.`,
-        `Prompt: "${p.text}"\nReal answer: "${answer}"`, 500));
-      const L = answer.length;
-      dec = out.map((x: any) => String(x).trim().slice(0, 90)).filter((x: string) => x.length >= 2 && x.toLowerCase() !== answer.toLowerCase())
-        .sort((a: string, b2: string) => Math.abs(a.length - L) - Math.abs(b2.length - L)).slice(0, 5);
-    } catch (e) { await logFail(db, e); }
+    let dec = await tailored(p.text, answer, []);
     if (dec.length < 5) dec = [...dec, ...(await decoysFor(db, p.id, p.text, answer)).filter((x) => !dec.includes(x))].slice(0, 5);
-    if (dec.length < 3) return json({ error: "Couldn't set the game up. Try another prompt." }, 500);
+    if (dec.length < 3) return json({ error: "Couldn't make the other answers. Try again." }, 500);
     const cards = shuffle([{ id: crypto.randomUUID().slice(0, 8), text: answer, mine: true }, ...dec.map((t) => ({ id: crypto.randomUUID().slice(0, 8), text: t }))]);
+    const { data: d, error } = await db.from("mine_drafts").insert({ tail, prompt_id: p.id, answer, nickname, decoys: cards }).select("*").single();
+    if (error) return json({ error: error.message }, 500);
+    return json(view(d, p.text));
+  }
+
+  if (b.action === "roll") {   // fresh decoys; your answer stays
+    const { data: d } = await db.from("mine_drafts").select("*").eq("id", String(b.draft || "")).eq("tail", tail).maybeSingle();
+    if (!d) return json({ error: "Start again 🐾" }, 404);
+    if (d.rolls >= 8) return json({ error: "That's the last roll for this one. Send it or start a new one." }, 429);
+    const { data: p } = await db.from("mine_prompts").select("text").eq("id", d.prompt_id).maybeSingle();
+    const before = (d.decoys as any[]).filter((c: any) => !c.mine).map((c: any) => c.text);
+    const dec = await tailored(p?.text ?? "", d.answer, before);
+    if (dec.length < 5) return json({ error: "Couldn't roll new ones. Try again." }, 500);
+    const cards = shuffle([{ id: crypto.randomUUID().slice(0, 8), text: d.answer, mine: true }, ...dec.map((t) => ({ id: crypto.randomUUID().slice(0, 8), text: t }))]);
+    const { data: d2 } = await db.from("mine_drafts").update({ decoys: cards, rolls: d.rolls + 1 }).eq("id", d.id).select("*").single();
+    return json(view(d2, p?.text ?? ""));
+  }
+
+  if (b.action === "create") {
+    const { count: today } = await db.from("mine_games").select("code", { count: "exact", head: true }).eq("tail", tail).gte("created_at", new Date(Date.now() - 864e5).toISOString());
+    if ((today ?? 0) >= 20) return json({ error: "That's a lot of games today. Come back tomorrow 🐾" }, 429);
+    const { data: d } = await db.from("mine_drafts").select("*").eq("id", String(b.draft || "")).eq("tail", tail).maybeSingle();
+    if (!d) return json({ error: "Start again 🐾" }, 404);
     let code = "";
     for (let i = 0; i < 20; i++) { code = `${2 + Math.floor(Math.random() * 11)}-${ADJ[Math.floor(Math.random() * ADJ.length)]}-${NOUN[Math.floor(Math.random() * NOUN.length)]}`;
       const { data: ex } = await db.from("mine_games").select("code").eq("code", code).maybeSingle(); if (!ex) break; }
-    const { error } = await db.from("mine_games").insert({ code, tail, prompt_id: p.id, answer, nickname, decoys: cards });
+    const { error } = await db.from("mine_games").insert({ code, tail, prompt_id: d.prompt_id, answer: d.answer, nickname: d.nickname, decoys: d.decoys });
     if (error) return json({ error: error.message }, 500);
-    return json({ ok: true, code, prompt: p.text });
+    await db.from("mine_drafts").delete().eq("id", d.id);
+    const { data: p } = await db.from("mine_prompts").select("text").eq("id", d.prompt_id).maybeSingle();
+    return json({ ok: true, code, prompt: p?.text });
   }
   return json({ error: "bad action" }, 400);
 });
