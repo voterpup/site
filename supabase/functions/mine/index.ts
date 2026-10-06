@@ -48,6 +48,7 @@ Deno.serve(async (req) => {
   let b: any = {}; try { b = await req.json(); } catch (_) { return json({ error: "bad json" }, 400); }
   const tail = String(b.tail || "");
 
+  if (b.action === "warm") return json({ ok: true });   // the page pings this on open so the first real call is quick
   if (b.action === "gen") {   // internal: top the prompt bank up; needs the service key
     if (!Deno.env.get("MINE_ADMIN") || req.headers.get("x-admin") !== Deno.env.get("MINE_ADMIN")) return json({ error: "no" }, 403);
     const kinds = ["wish", "love", "hate", "secret", "guilty pleasure", "would you rather", "tiny joy", "pet peeve", "hot take", "childhood", "if I could", "my superpower", "weird habit", "comfort", "first thing"];
