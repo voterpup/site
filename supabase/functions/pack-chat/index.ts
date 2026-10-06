@@ -93,7 +93,7 @@ Deno.serve(async (req) => {
   }
 
   if (b.action === "send") {
-    const link = String(b.body || "").match(/voterpup\.com\/issue\/([0-9a-f-]{36})/i);
+    const link = String(b.body || "").match(/voterpup\.com\/issue\/(?:\?id=)?([0-9a-f-]{36})/i);
     if (link && !(Array.isArray(b.media) && b.media.length)) { b.action = "add_item"; b.entry = link[1]; b.pasted = true; }
   }
   if (b.action === "send") {
@@ -104,7 +104,7 @@ Deno.serve(async (req) => {
     const since = new Date(Date.now() - 6e5).toISOString();
     const { count } = await db.from("pack_messages").select("id", { count: "exact", head: true }).eq("tail", tail).gte("created_at", since);
     if ((count ?? 0) >= 40) return json({ error: "Slow down a little 🐾" }, 429);
-    const ownGame = /^\s*(https?:\/\/)?(www\.)?voterpup\.com\/m\/[0-9]+-[a-z]+-[a-z]+\s*$/i.test(body);   // our own game link: shown as a game tile
+    const ownGame = /^\s*(https?:\/\/)?(www\.)?voterpup\.com\/m\/(\?g=)?[0-9]+-[a-z]+-[a-z]+\s*$/i.test(body);   // our own game link: shown as a game tile
     const chk = ownGame ? { ok: true, why: "" } : await textOk(body);
     if (!chk.ok) return json({ error: "That message wasn't sent" + (chk.why ? " (" + chk.why + ")" : "") + ". Keep it friendly 🐾" }, 422);
     const { data: msg, error } = await db.from("pack_messages").insert({ pack_id: pack, tail, body: body || null, media }).select("id, created_at").single();

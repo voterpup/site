@@ -3577,7 +3577,7 @@ function screenPackRoom(pid){
   function codeBox(){
     var el = document.getElementById('roomcode'); if (!el) return;
     rpc('vp_pack_code', { p_tail: me.tail, p_pack: pid }).then(function(c){
-      var mins = Math.max(1, Math.round((new Date(c.expires_at) - Date.now()) / 60000)), link = location.origin + '/join/' + codeSlug(c.code);
+      var mins = Math.max(1, Math.round((new Date(c.expires_at) - Date.now()) / 60000)), link = location.origin + '/join/?c=' + codeSlug(c.code);
       el.innerHTML = '<div class="rcline" id="rcshare" role="button"><i class="rcic ph-fill ph-link"></i><span><b>Invite via link</b><small>' + esc(c.code) + ' · ' + mins + ' min</small></span>' +
         '<button class="rcnew" id="rcnew" title="new code" aria-label="new code"><i class="ph-fill ph-arrows-clockwise"></i></button></div>';
       var txt = 'Join my VoterPup group "' + pack.name + '" 🐾 ' + link + '\n(or type the code ' + c.code + ' · works for an hour)';
@@ -3602,7 +3602,7 @@ function screenPackRoom(pid){
   function msgHTML(m){
     if (m.hidden) return '<div class="msg hidden">A message was hidden after reports.</div>';
     if (m.topic) return topicCard(m);
-    var gm = m.body && !(m.media || []).length ? m.body.match(/voterpup\.com\/m\/([0-9]+-[a-z]+-[a-z]+)/i) : null;
+    var gm = m.body && !(m.media || []).length ? m.body.match(/voterpup\.com\/m\/(?:\?g=)?([0-9]+-[a-z]+-[a-z]+)/i) : null;
     if (gm) { setTimeout(function(){ gameTileFill(gm[1]); }, 0);
       return '<div class="msg gamemsg' + (m.mine ? ' mine' : '') + '" data-mid="' + m.id + '">' + (m.mine ? '' : '<b>' + esc(m.who) + '</b>') +
         '<a class="gtile" data-gt="' + gm[1] + '" href="/m/' + gm[1] + '" style="background:' + mineGrad(gm[1]) + '"><span class="gtk">🫣 Guess the wish</span><b class="gtq">…</b><span class="gtgo">Play →</span></a>' +
@@ -3652,7 +3652,7 @@ function screenPackRoom(pid){
     document.getElementById('tnew').onclick = function(){ var o = document.querySelector('.stkover.tsheetov'); if (o) o.remove(); setTopicMode(true); };
     document.getElementById('plshare').onclick = function(){
       rpc('vp_pack_share', { p_tail: me.tail, p_pack: pid }).then(function(s){
-        var url = location.origin + '/list/' + s, top = items.slice().sort(function(a, b){ return b.votes - a.votes; }).slice(0, 3).map(function(i, n){ return (n + 1) + '. ' + i.body; }).join('\n');
+        var url = location.origin + '/list/?s=' + s, top = items.slice().sort(function(a, b){ return b.votes - a.votes; }).slice(0, 3).map(function(i, n){ return (n + 1) + '. ' + i.body; }).join('\n');
         var txt = poss(pack.name) + ' list 🐾\n' + (top ? top + '\n' : '') + 'Running for office? Start with our list: ' + url;
         track('pack', { act: 'share_list' });
         if (navigator.share) navigator.share({ title: poss(pack.name) + ' list', text: txt }).catch(function(){}); else { navigator.clipboard.writeText(txt); toast('List link copied'); } }); };
@@ -3697,7 +3697,7 @@ function screenPackRoom(pid){
     var files = [];
     document.getElementById('mtopic').onclick = function(){ setTopicMode(!topicMode); };
     var pend = null; try { pend = sessionStorage.getItem('vp.issuelink'); } catch (e) {}
-    if (pend) { var mt = document.getElementById('mtext'); mt.value = pend; try { sessionStorage.removeItem('vp.issuelink'); } catch (e) {} toast(/\/m\//.test(pend) ? 'Your game is ready. Tap send and the group can play.' : 'Your copied issue is ready. Tap send to start the vote.'); }
+    if (pend) { var mt = document.getElementById('mtext'); mt.value = pend; try { sessionStorage.removeItem('vp.issuelink'); } catch (e) {} toast(/\/m\/|[?&]g=/.test(pend) ? 'Your game is ready. Tap send and the group can play.' : 'Your copied issue is ready. Tap send to start the vote.'); }
     document.getElementById('mattach').onclick = function(){ document.getElementById('mpick').click(); };
     document.getElementById('mpick').onchange = function(){ var f = this.files && this.files[0]; this.value = ''; if (!f) return;
       if (f.type.indexOf('video') === 0 && f.size > 15e6) { toast('Videos up to about 15 MB (a short clip).'); return; }
@@ -4176,7 +4176,7 @@ document.addEventListener('pointerdown', function(ev){ var a = ev.target && ev.t
 document.addEventListener('click', function(ev){
   var a = ev.target && ev.target.closest ? ev.target.closest('[data-issue], [data-grouplink]') : null; if (!a) return;
   ev.preventDefault(); ev.stopPropagation();
-  var game = a.hasAttribute('data-grouplink'), url = game ? a.getAttribute('data-grouplink') : 'https://voterpup.com/issue/' + a.getAttribute('data-issue');
+  var game = a.hasAttribute('data-grouplink'), url = game ? a.getAttribute('data-grouplink') : 'https://voterpup.com/issue/?id=' + a.getAttribute('data-issue');
   var go = function(){ track('pack', { act: game ? 'game_link' : 'issue_link' }); location.href = '/groups'; };
   try { sessionStorage.setItem('vp.issuelink', url); } catch (e) {}
   var say = game ? 'Link copied 🐾 Open a group and send it, everyone can play.' : 'Link copied 🐾 Paste it in a group chat to start a vote.';
@@ -4195,7 +4195,7 @@ function gameTileFill(code){
 }
 var DEMO_GAMES = ['1-sniffy-biscuits', '1-waggy-treats', '1-zoomy-walks'];   // warm-up rounds: Biscuit the pup hid a (very pup) answer
 function isDemo(code){ return DEMO_GAMES.indexOf(code) >= 0; }
-function mineShareText(code, prompt){ return 'I hid a secret answer. Can you find mine? 🫣🐾\n“' + prompt + '”\n' + location.origin + '/m/' + code; }
+function mineShareText(code, prompt){ return 'I hid a secret answer. Can you find mine? 🫣🐾\n“' + prompt + '”\n' + location.origin + '/m/?g=' + code; }
 function mineShare(code, prompt){ var msg = mineShareText(code, prompt); track('mine', { act: 'share' });
   if (navigator.share) navigator.share({ text: msg }).catch(function(){}); else navigator.clipboard.writeText(msg).then(function(){ toast('Link copied. Paste it in the chat 🐾'); }, function(){ toast(location.origin + '/m/' + code); }); }
 // your games and the ones you played, under the make card
@@ -4206,7 +4206,7 @@ function mineHistory(){
     box.innerHTML = (made.length ? '<div class="mnsec">Your hidden ones</div>' + made.map(function(g){
         return '<div class="mnrow" style="--g:' + mineGrad(g.code) + '"><a class="mnrowmain" href="/m/' + g.code + '"><small>' + esc(g.prompt || '') + '</small><b>“' + esc(g.answer) + '”</b>' +
           '<span>' + (g.players ? g.players + ' played · ' + g.found + ' found it' : 'Nobody yet') + (g.live ? '' : ' · ended') + '</span></a>' +
-          (g.live ? '<button class="mnshare1 grp" data-grouplink="https://voterpup.com/m/' + g.code + '" aria-label="Send to a group"><i class="ph-fill ph-users-three"></i></button><button class="mnshare1" data-mshare="' + g.code + '" data-mprompt="' + esc(g.prompt || '') + '" aria-label="Send"><i class="ph-fill ph-share-network"></i></button>' : '') + '</div>'; }).join('') : '') +
+          (g.live ? '<button class="mnshare1 grp" data-grouplink="https://voterpup.com/m/?g=' + g.code + '" aria-label="Send to a group"><i class="ph-fill ph-users-three"></i></button><button class="mnshare1" data-mshare="' + g.code + '" data-mprompt="' + esc(g.prompt || '') + '" aria-label="Send"><i class="ph-fill ph-share-network"></i></button>' : '') + '</div>'; }).join('') : '') +
       (played.length ? '<div class="mnsec">You played</div>' + played.map(function(x){
         return '<a class="mnrow" href="/m/' + x.code + '" style="--g:' + mineGrad(x.code) + '"><span class="mnrowmain"><small>' + esc(x.owner || 'A friend') + '&rsquo;s · ' + esc(x.prompt || '') + '</small>' +
           '<b>' + (x.done ? (x.score ? x.score + ' points' : 'Fooled 😎') : 'Not finished') + '</b></span></a>'; }).join('') : '');
@@ -4282,14 +4282,14 @@ function screenMineMake(){
 }
 // the shuffle moment, then the share
 function mineHidden(code, p, ans){
-  var link = location.origin + '/m/' + code, msg = 'I hid a secret answer. Can you find mine? 🫣🐾\n“' + p.text + '”\n' + link;
+  var link = location.origin + '/m/?g=' + code, msg = 'I hid a secret answer. Can you find mine? 🫣🐾\n“' + p.text + '”\n' + link;
   var deck = ''; for (var i = 0; i < 6; i++) deck += '<i style="--n:' + i + ';background:' + mineGrad(code + i) + '"></i>';
   document.getElementById('mnstage').innerHTML = mineSteps(3) +
     '<div class="mndeck" aria-hidden="true">' + deck + '</div>' +
     '<div class="mnkicker">Hidden! 🫣</div><h2 class="mnh">Now, who can find it?</h2>' +
     '<p class="mnsmall">“' + esc(ans) + '” is hiding among 5 others. Send the link to friends or the family chat.</p>' +
     '<button class="mnbig" id="mnshare"><i class="ph-fill ph-share-network"></i> Send to friends</button>' +
-    '<button class="mnghost mngrp" data-grouplink="https://voterpup.com/m/' + code + '"><i class="ph-fill ph-users-three"></i> Send to a VoterPup group</button>' +
+    '<button class="mnghost mngrp" data-grouplink="https://voterpup.com/m/?g=' + code + '"><i class="ph-fill ph-users-three"></i> Send to a VoterPup group</button>' +
     '<a class="mnlink" href="/m/' + code + '">See who&rsquo;s found it →</a>';
   document.getElementById('mnshare').onclick = function(){ mineShare(code, p.text); };
   mineHistory();
@@ -4355,13 +4355,13 @@ function mineBoard(code){
   mineCall({ action: 'board', code: code, tail: me.tail }).then(function(b){
     var el = document.getElementById('mnstage'); if (!el) return;
     var plays = (b.plays || []).slice().sort(function(a, c){ return (c.score || 0) - (a.score || 0); });
-    var link = location.origin + '/m/' + code, msg = 'I hid a secret answer. Can you find mine? 🫣🐾\n“' + b.prompt + '”\n' + link;
+    var link = location.origin + '/m/?g=' + code, msg = 'I hid a secret answer. Can you find mine? 🫣🐾\n“' + b.prompt + '”\n' + link;
     el.innerHTML = '<div class="mnkicker">Your hidden answer</div><div class="mnprompt small" style="background:' + mineGrad(code) + '"><span class="mnkind">' + esc(b.prompt) + '</span><b>“' + esc(b.answer) + '”</b></div>' +
       '<h2 class="mnh">' + (plays.length ? 'Who knows you best' : 'Nobody has played yet') + '</h2>' +
       (plays.length ? '<ol class="mnboard">' + plays.map(function(p, i){ return '<li><span class="mnrank">' + (i + 1) + '</span><b>' + esc(p.nickname || 'Someone') + '</b><em>' + (!p.done ? 'playing…' : p.score ? (p.tries === 1 ? 'first try' : 'try ' + p.tries) : 'fooled 😎') + '</em><strong>' + (p.score || 0) + '</strong></li>'; }).join('') + '</ol>'
         : '<p class="mnsmall">Send the link to friends or family. You&rsquo;ll get a ping when someone plays.</p>') +
       '<button class="mnbig" id="mnshare"><i class="ph-fill ph-share-network"></i> Send to more friends</button>' +
-      '<button class="mnghost mngrp" data-grouplink="https://voterpup.com/m/' + code + '"><i class="ph-fill ph-users-three"></i> Send to a VoterPup group</button><a class="mnlink" href="/mine">Hide another one →</a>';
+      '<button class="mnghost mngrp" data-grouplink="https://voterpup.com/m/?g=' + code + '"><i class="ph-fill ph-users-three"></i> Send to a VoterPup group</button><a class="mnlink" href="/mine">Hide another one →</a>';
     document.getElementById('mnshare').onclick = function(){ if (navigator.share) navigator.share({ text: msg }).catch(function(){}); else navigator.clipboard.writeText(msg).then(function(){ toast('Link copied 🐾'); }, function(){}); };
   });
 }
@@ -5108,7 +5108,7 @@ function screenPack(mode, topic0){
   }).catch(function(e){ var ag = document.getElementById('agenda'); if (ag) ag.hidden = true; var bd = document.getElementById('board'); if (bd) bd.innerHTML = '<div class="hint">Couldn&rsquo;t reach the pack. <a href="#" onclick="location.reload();return false">Try again</a></div>'; });
 }
 
-var APP_VERSION = "20261006053247";
+var APP_VERSION = "20261006062736";
 (function(){
   try {
     fetch('/version.json?t=' + Date.now(), { cache: 'no-store' }).then(function(r){ return r.json(); }).then(function(j){
@@ -5598,6 +5598,14 @@ function introShow(then){
   function next(){ if (++i >= INTRO.length) return done(); show(); }
   el.addEventListener('click', next); show();
 }
+// shared links come as /m/?g=CODE, /join/?c=…, /list/?s=…, /issue/?id=… (real pages, so chat apps show a preview);
+// the app's own routes are /m/CODE etc. Also drop a trailing slash from folder pages (/pack/ -> /pack).
+(function(){
+  var p = location.pathname, q = new URLSearchParams(location.search), mm = p.match(/^\/(m|join|list|issue)\/?$/);
+  var k = mm && (q.get('g') || q.get('c') || q.get('s') || q.get('id'));
+  if (mm && k) { ['g', 'c', 's', 'id'].forEach(function(x){ q.delete(x); }); history.replaceState(null, '', '/' + mm[1] + '/' + k + (q.toString() ? '?' + q : '')); }
+  else if (p.length > 1 && /\/$/.test(p)) history.replaceState(null, '', p.replace(/\/+$/, '') + location.search);
+})();
 // ---------- router ----------
 (function(){
   var m = location.pathname.match(/^\/p\/(.+)$/);
