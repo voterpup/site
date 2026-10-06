@@ -8,7 +8,7 @@ const RULES: [RegExp, string][] = [
   [/\btrees?\b|\bparks?\b|playground|beach|\bfields?\b|garden|weed|grass|vegetation|hedge/i, "parks"],
   [/parking|traffic|bike|transit|vehicle|towing|driveway|abandoned vehicle/i, "transit"], [/heat|hot water|building|development|rental|housing|tenant|property|permit|plumbing|paint|elevator/i, "housing"],
   [/police|safety|unsafe|fire|hazard|drug|weapon/i, "safety"], [/garbage|green bin|recycl|litter|abandoned|graffiti|dump|waste|bin|sanitation|trash|bulky/i, "cleanliness"],
-  [/\btrees?\b|\bparks?\b|playground|beach|\bfields?\b|garden|weed|grass/i, "parks"], [/noise|air|smoke|climate|pollution|odou?r/i, "climate"],
+  [/\btrees?\b|\bparks?\b|playground|beach|\bfields?\b|garden|weed|grass/i, "parks"], [/noise|\bair\b|air quality|smoke|climate|pollution|odou?r/i, "climate"],
   [/tax|fee|cost|fine|bill/i, "cost of living"],
 ];
 const topicOf = (t: string) => RULES.find(([re]) => re.test(t))?.[1] ?? "other";

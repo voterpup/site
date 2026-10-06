@@ -1364,10 +1364,11 @@
   .packhero .ft{font-size:13.5px !important; line-height:1.2} .packhero .ft small{font-size:11.5px !important; margin-top:1px}
   .scopebar{margin-bottom:10px}
   .mndice{font-size:22px}
-  .dfrad{float:right; margin-right:22px; color:var(--goldtext); font-weight:900; text-transform:none; letter-spacing:0}
+  .dfrad{font-size:11.5px; color:var(--goldtext); font-weight:900; margin:-4px 0 8px}
   .dfmore{display:flex; flex-wrap:wrap; gap:6px; justify-content:center; margin-top:8px} .dfmore small{width:100%; text-align:center; color:var(--sub); font-weight:800}
   .dfmore .btn{flex:0 0 auto; width:auto; padding:8px 14px} .dfmore em{font-style:normal; color:var(--goldtext); font-weight:900; margin-left:2px}
   .dfloc{display:block; text-align:center; margin-top:8px; font-weight:800; color:var(--goldtext) !important}
+  .dtogroup{display:inline-block; margin-top:6px; font-size:12px; font-weight:900; color:var(--goldtext) !important; text-decoration:none; position:relative; z-index:2}
 </style>
 </head>
 <body>
@@ -2367,8 +2368,8 @@ function prefetchDeck(){
   if (window._deckP && window._deckPlace === place && now - window._deckAt < 120000) return window._deckP;
   window._deckPlace = place; window._deckAt = now;
   window._deckP = Promise.all([readBoard(place), place ? readBoard(null) : Promise.resolve([])]).then(function(r){
-    var seen = {}, out = [];
-    (r[0] || []).concat(r[1] || []).forEach(function(x){ if (x.id && !seen[x.id]) { seen[x.id] = 1; out.push(x); } });
+    var seen = {}, out = [], local = r[0] || [];
+    (local.length >= 3 ? local : local.concat(r[1] || [])).forEach(function(x){ if (x.id && !seen[x.id]) { seen[x.id] = 1; out.push(x); } });
     return out;
   }).catch(function(){ return []; });
   return window._deckP;
@@ -3167,6 +3168,10 @@ function dailyFetch(L, tail){
   prefetchDeck().then(function(rows){
     // nearest first: only what's within the radius; when it runs out, offer to look further (3, 5, 10 km…)
     var me0 = myPos(), STEPS = [2, 3, 5, 10, 25, 50, 1e9], step = 0;
+    if (me0) {   // you've picked a city you're not in (e.g. browsing Seattle from Vancouver): no distances, just the city's own order
+      var ds = rows.filter(function(r){ return r.lat != null; }).map(function(r){ return kmBetween(me0, { lat: +r.lat, lng: +r.lng }); }).sort(function(a, b){ return a - b; });
+      if (ds.length && ds.at(Math.floor(ds.length / 2)) > 80) me0 = null;
+    }
     var all = rows.filter(function(r){ return r.id && !mine[r.id]; }).map(function(r){ return { r: r, km: me0 && r.lat != null && r.lng != null ? kmBetween(me0, { lat: +r.lat, lng: +r.lng }) : null }; });
     if (me0) all.sort(function(a, b){ return (a.km == null ? 1e9 : a.km) - (b.km == null ? 1e9 : b.km); });
     var used = {}, deck = [];
@@ -3174,7 +3179,7 @@ function dailyFetch(L, tail){
     fill(); while (me0 && !deck.length && step < STEPS.length - 1) { step++; fill(); }
     if (!deck.length) return;
     var radLabel = function(){ var s = STEPS.at(step); return s >= 1e9 ? 'everywhere' : 'within ' + s + ' km'; };
-    host.innerHTML = '<div class="fetchcard dfetch deckwrap"><div class="dfk">🐾 ' + nm + ' fetched these · seen it too? <span class="dfrad" id="dfrad">' + (me0 ? radLabel() : '') + '</span></div>' +
+    host.innerHTML = '<div class="fetchcard dfetch deckwrap"><div class="dfk">🐾 ' + nm + ' fetched these · seen it too?</div>' + (me0 ? '<div class="dfrad" id="dfrad">' + radLabel() + ' of you</div>' : '') +
       '<div class="deck" id="deck"></div>' +
       '<div class="deckhint"><span>← skip</span><span>↑ fixed now</span><span>same here →</span></div><a href="#" class="dfx" id="dfx">✕</a></div>';
     document.getElementById('dfx').onclick = function(ev){ ev.preventDefault(); host.innerHTML = ''; };
@@ -3185,6 +3190,7 @@ function dailyFetch(L, tail){
         '<div class="dbody">' + esc(r.body || '📷') + '</div>' +
         '<div class="dmeta">' + (r.topic ? '#' + esc(r.topic) + ' · ' : '') + esc(r.pup || '') + (r.place ? ', ' + esc(r.place.split(',')[0]) : '') +
           (r._km != null ? ' · 📍 ' + kmText(r._km) + ' away' : r.spot ? ' · 📍 ' + esc(r.spot) : '') + (r.backs ? ' · 🐾 ' + r.backs : '') + (r.fixedv ? ' · ✅ ' + r.fixedv : '') + '</div>' +
+        (r.id ? '<a href="#" class="dtogroup" data-issue="' + r.id + '">👥 Send to a group to vote</a>' : '') +
         '<div class="dstamp yes">🐾 SAME HERE</div><div class="dstamp no">SKIP</div><div class="dstamp up">✅ FIXED NOW</div></div>';
     }
     function draw(){
@@ -3195,7 +3201,7 @@ function dailyFetch(L, tail){
           (more.length ? '<div class="dfmore"><small>Look further?</small>' + more.map(function(m){ return '<button class="btn ghost mbtn" data-step="' + m[0] + '">' + (m[1] >= 1e9 ? 'Everywhere' : m[1] + ' km') + ' <em>+' + m[2] + '</em></button>'; }).join('') + '</div>'
             : '<a class="btn ghost mbtn" href="/pack">See Your city</a>') + (me0 ? '' : '<a href="#" class="dfloc" id="dfloc">📍 Use my location to show the closest first</a>') + '</div>';
         var hh = host.querySelector('.deckhint'); if (hh) hh.style.display = 'none';
-        el.querySelectorAll('[data-step]').forEach(function(b){ b.onclick = function(){ step = +b.getAttribute('data-step'); fill(); var rl = document.getElementById('dfrad'); if (rl) rl.textContent = radLabel(); if (hh) hh.style.display = ''; draw(); }; });
+        el.querySelectorAll('[data-step]').forEach(function(b){ b.onclick = function(){ step = +b.getAttribute('data-step'); fill(); var rl = document.getElementById('dfrad'); if (rl) rl.textContent = radLabel() + ' of you'; if (hh) hh.style.display = ''; draw(); }; });
         var lc = document.getElementById('dfloc'); if (lc) lc.onclick = function(ev){ ev.preventDefault(); navigator.geolocation && navigator.geolocation.getCurrentPosition(function(p2){ savePos(Math.round(p2.coords.latitude * 1e3) / 1e3, Math.round(p2.coords.longitude * 1e3) / 1e3); host.innerHTML = ''; dailyFetch(L, tail); }, function(){ toast('Location is off for VoterPup.'); }, { timeout: 10000, maximumAge: 600000 }); };
         return;
       }
@@ -3668,6 +3674,8 @@ function screenPackRoom(pid){
     window._roomT = setInterval(function(){ if (!document.getElementById('msgs')) return clearInterval(window._roomT); if (document.visibilityState === 'visible') { load(false); topics(); } }, 6000);
     var files = [];
     document.getElementById('mtopic').onclick = function(){ setTopicMode(!topicMode); };
+    var pend = null; try { pend = sessionStorage.getItem('vp.issuelink'); } catch (e) {}
+    if (pend) { var mt = document.getElementById('mtext'); mt.value = pend; try { sessionStorage.removeItem('vp.issuelink'); } catch (e) {} toast('Your copied issue is ready. Tap send to start the vote.'); }
     document.getElementById('mattach').onclick = function(){ document.getElementById('mpick').click(); };
     document.getElementById('mpick').onchange = function(){ var f = this.files && this.files[0]; this.value = ''; if (!f) return;
       if (f.type.indexOf('video') === 0 && f.size > 15e6) { toast('Videos up to about 15 MB (a short clip).'); return; }
@@ -4140,6 +4148,15 @@ function cityTabs(city){
   });
   show(def, false);
 }
+// "Send to a group": copy the issue's link, open Groups; pasting it in a group chat turns it into a vote tile
+document.addEventListener('pointerdown', function(ev){ var a = ev.target && ev.target.closest ? ev.target.closest('.dtogroup') : null; if (a) ev.stopPropagation(); }, true);
+document.addEventListener('click', function(ev){
+  var a = ev.target && ev.target.closest ? ev.target.closest('[data-issue]') : null; if (!a) return;
+  ev.preventDefault(); ev.stopPropagation();
+  var url = 'https://voterpup.com/issue/' + a.getAttribute('data-issue'), go = function(){ track('pack', { act: 'issue_link' }); location.href = '/groups'; };
+  try { sessionStorage.setItem('vp.issuelink', url); } catch (e) {}
+  if (navigator.clipboard) navigator.clipboard.writeText(url).then(function(){ toast('Link copied 🐾 Paste it in a group chat to start a vote.'); setTimeout(go, 1100); }, go); else go();
+}, true);
 function mineShareText(code, prompt){ return 'I hid a secret answer. Can you find mine? 🫣🐾\n“' + prompt + '”\n' + location.origin + '/m/' + code; }
 function mineShare(code, prompt){ var msg = mineShareText(code, prompt); track('mine', { act: 'share' });
   if (navigator.share) navigator.share({ text: msg }).catch(function(){}); else navigator.clipboard.writeText(msg).then(function(){ toast('Link copied. Paste it in the chat 🐾'); }, function(){ toast(location.origin + '/m/' + code); }); }
@@ -5038,7 +5055,7 @@ function screenPack(mode, topic0){
   }).catch(function(e){ var ag = document.getElementById('agenda'); if (ag) ag.hidden = true; var bd = document.getElementById('board'); if (bd) bd.innerHTML = '<div class="hint">Couldn&rsquo;t reach the pack. <a href="#" onclick="location.reload();return false">Try again</a></div>'; });
 }
 
-var APP_VERSION = "20261006033028";
+var APP_VERSION = "20261006034032";
 (function(){
   try {
     fetch('/version.json?t=' + Date.now(), { cache: 'no-store' }).then(function(r){ return r.json(); }).then(function(j){
@@ -5542,6 +5559,7 @@ function introShow(then){
   else if (location.pathname === '/manage') screenManage();
   else if (location.pathname === '/play') screenPlay();
   else if (location.pathname === '/packs' || location.pathname === '/groups') screenPacksHome();
+  else if (/^\/issue\/[0-9a-f-]{36}$/.test(location.pathname)) { history.replaceState(null, '', '/pack'); screenPack(); }
   else if (location.pathname === '/mine') screenMineMake();
   else if (/^\/m\/[0-9]+-[a-z]+-[a-z]+$/.test(location.pathname)) screenMinePlay(location.pathname.slice(3));
   else if (location.pathname === '/wishes') protoCheck().then(function(pr){ if (pr) screenWishes(); else { history.replaceState(null, '', '/pack'); screenPack(); } });

@@ -93,6 +93,10 @@ Deno.serve(async (req) => {
   }
 
   if (b.action === "send") {
+    const link = String(b.body || "").match(/voterpup\.com\/issue\/([0-9a-f-]{36})/i);
+    if (link && !(Array.isArray(b.media) && b.media.length)) { b.action = "add_item"; b.entry = link[1]; b.pasted = true; }
+  }
+  if (b.action === "send") {
     const body = String(b.body || "").slice(0, 500);
     const media = (Array.isArray(b.media) ? b.media : []).slice(0, 4).filter((m: any) => PATH_OK.test(String(m.path)) && /^(image|video)\/[a-z0-9.+-]+$/.test(String(m.type)))
       .map((m: any) => ({ path: m.path, type: m.type }));
@@ -110,8 +114,8 @@ Deno.serve(async (req) => {
   if (b.action === "add_item") {   // the pack's list can be shared publicly, so items are checked like messages
     let entry: string | null = null, etopic: string | null = null, ebody = "";
     if (/^[0-9a-f-]{36}$/.test(String(b.entry || ""))) {   // sharing one of your own issues into the group
-      const { data: e } = await db.from("entries").select("id, tail, body, topic").eq("id", b.entry).maybeSingle();
-      if (!e || e.tail !== tail) return json({ error: "You can only share your own issues." }, 403);
+      const { data: e } = await db.from("entries").select("id, tail, body, topic, shared, source").eq("id", b.entry).maybeSingle();
+      if (!e || (e.tail !== tail && !e.shared && e.source !== "city311")) return json({ error: "That issue is private." }, 403);
       entry = e.id; etopic = e.topic; ebody = String(e.body || "📷 an issue").slice(0, 140);
       const { data: again } = await db.from("pack_items").select("id").eq("pack_id", pack).eq("entry_id", entry).maybeSingle();
       if (again) return json({ error: "That issue is already in this group. Vote for it there 🐾" }, 409);
