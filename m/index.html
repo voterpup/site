@@ -4109,7 +4109,7 @@ function mineEnsurePup(){
   return rpc('vp_create_ledger', { p_name: names.at(Math.floor(Math.random() * names.length)) }).then(function(l){ saveLocal(l.tail, l.name); track('pup_created', { via: 'mine' }); return { tail: l.tail, name: l.name }; });
 }
 function mineBack(){ if (history.length > 1 && document.referrer && document.referrer.indexOf(location.origin) === 0) history.back(); else location.href = '/pack'; }
-function mineShell(inner){ root.innerHTML = '<div class="mngame"><div class="mntop"><button class="mnback" id="mnbackbtn" aria-label="Back"><i class="ph-fill ph-caret-left"></i> Back</button><a class="mnlogo" href="/pack"><i class="ph-fill ph-paw-print"></i> VoterPup</a></div>' + inner + '</div>';
+function mineShell(inner){ if (!window._mineWarm) { window._mineWarm = 1; mineCall({ action: 'warm' }).catch(function(){}); } root.innerHTML = '<div class="mngame"><div class="mntop"><button class="mnback" id="mnbackbtn" aria-label="Back"><i class="ph-fill ph-caret-left"></i> Back</button><a class="mnlogo" href="/pack"><i class="ph-fill ph-paw-print"></i> VoterPup</a></div>' + inner + '</div>';
   document.getElementById('mnbackbtn').onclick = mineBack; try { localStorage.setItem('vp.mineon', '1'); } catch (e) {} }
 
 // make one: pick a prompt, answer it, hide it
@@ -4146,7 +4146,7 @@ function cityTabs(city){
     '<button class="mnbig" id="gwmake"><i class="ph-fill ph-share-network"></i> Answer &amp; send to friends</button>' +
     '<button class="mnghost gwrand" id="gwrand"><i class="ph-fill ph-shuffle"></i> Play a random neighbour&rsquo;s</button>' +
     '<div class="mnhist" id="mnhist"></div>';
-  mineCall({ action: 'prompts' }).then(function(l){ var p = (l || [])[0], c = document.getElementById('gwcard'); if (!p || !c) return; game._p = p;
+  rpc('vp_mine_prompts', { p_n: 6 }).then(function(l){ var p = (l || [])[0], c = document.getElementById('gwcard'); if (!p || !c) return; game._p = p;
     c.style.background = mineGrad(p.id); c.innerHTML = '<span class="mnkind">today&rsquo;s question · ' + esc(p.kind) + '</span><b>' + esc(p.text) + '</b><button class="mndice mnpen" id="gwpen" aria-label="Write my own question"><i class="ph-fill ph-pencil-simple"></i></button><button class="mndice" id="gwdice" aria-label="Another question"><i class="ph-fill ph-arrows-clockwise"></i></button>';
     document.getElementById('gwpen').onclick = function(ev){ ev.stopPropagation(); try { sessionStorage.setItem('vp.mineown', '1'); } catch (e) {} location.href = '/mine'; };
     document.getElementById('gwdice').onclick = function(ev){ ev.stopPropagation(); var pr = l.at(Math.floor(Math.random() * l.length)); game._p = pr; c.classList.remove('deal'); void c.offsetWidth; c.classList.add('deal'); c.style.background = mineGrad(pr.id); c.querySelector('b').textContent = pr.text; c.querySelector('.mnkind').textContent = 'today’s question · ' + pr.kind; }; });
@@ -4184,7 +4184,7 @@ document.addEventListener('click', function(ev){
 }, true);
 var _gtCache = {};
 function gameTileFill(code){
-  var p = _gtCache[code] || (_gtCache[code] = mineCall({ action: 'open', code: code, tail: (loadLocal() || {}).tail || '' }));
+  var p = _gtCache[code] || (_gtCache[code] = rpc('vp_mine_open', { p_code: code, p_tail: (loadLocal() || {}).tail || null }));
   p.then(function(g){ document.querySelectorAll('[data-gt="' + code + '"]').forEach(function(t){
     if (g.error) { t.querySelector('.gtq').textContent = 'This game has ended'; t.querySelector('.gtgo').textContent = ''; return; }
     t.querySelector('.gtk').textContent = '🫣 ' + (g.own ? 'You' : g.nickname) + ' hid an answer';
@@ -4242,7 +4242,7 @@ function screenMineMake(){
     document.getElementById('mngo').onclick = preview;
   }
   function keep(){ var a = document.getElementById('mnans'), q = document.getElementById('mnq'), n = document.getElementById('mnnick'); if (a) st.answer = a.value; if (q) st.ownText = q.value; if (n && n.value.trim()) mineName(n.value.trim()); }
-  function load(){ mineCall({ action: 'prompts' }).then(function(l){ st.prompts = l || [];
+  function load(){ rpc('vp_mine_prompts', { p_n: 6 }).then(function(l){ st.prompts = l || [];
     try { var pre = JSON.parse(sessionStorage.getItem('vp.mineq') || 'null'); sessionStorage.removeItem('vp.mineq'); if (pre && pre.id) st.prompts.unshift(pre);
       if (sessionStorage.getItem('vp.mineown') === '1') { sessionStorage.removeItem('vp.mineown'); st.own = true; } } catch (e) {}
     st.i = 0; draw(); }); }
@@ -4298,7 +4298,7 @@ function mineHidden(code, p, ans){
 function screenMinePlay(code){
   mineShell('<div class="mnstage" id="mnstage"><div class="mnspin"></div></div>');
   var me = loadLocal(), st = { busy: false };
-  mineCall({ action: 'open', code: code, tail: me ? me.tail : '' }).then(function(g){
+  rpc('vp_mine_open', { p_code: code, p_tail: me ? me.tail : null }).then(function(g){
     var el = document.getElementById('mnstage');
     if (g.error) { el.innerHTML = '<div class="mnkicker">Oops</div><h2 class="mnh">' + esc(g.error) + '</h2><a class="mnbig" href="/mine">Make your own 🫣</a>'; return; }
     if (g.own) { mineBoard(code); return; }
@@ -5108,7 +5108,7 @@ function screenPack(mode, topic0){
   }).catch(function(e){ var ag = document.getElementById('agenda'); if (ag) ag.hidden = true; var bd = document.getElementById('board'); if (bd) bd.innerHTML = '<div class="hint">Couldn&rsquo;t reach the pack. <a href="#" onclick="location.reload();return false">Try again</a></div>'; });
 }
 
-var APP_VERSION = "20261006062736";
+var APP_VERSION = "20261006062947";
 (function(){
   try {
     fetch('/version.json?t=' + Date.now(), { cache: 'no-store' }).then(function(r){ return r.json(); }).then(function(j){
