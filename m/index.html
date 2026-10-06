@@ -1386,6 +1386,7 @@
   .mnmailgo{flex:0 0 auto; border:0; border-radius:14px; padding:0 16px; background:var(--gold); color:#1a1304; font:inherit; font-weight:900; cursor:pointer}
   .mnpush{color:var(--goldtext) !important; font-weight:800; font-size:13px; text-decoration:none; text-align:center}
   .keybox{font-family:ui-monospace,monospace; font-size:13px; word-break:break-all; background:var(--chip); border:1px dashed var(--line); border-radius:12px; padding:12px; margin:8px 0 12px; user-select:all}
+  .reportlink{color:var(--sub) !important; font-size:12px; text-decoration:underline} .reprow{margin:6px 0 !important; text-align:left}
 </style>
 </head>
 <body>
@@ -4251,6 +4252,19 @@ function mailBackSheet(){
   document.getElementById('mbgo').onclick = go; document.getElementById('mbin').onkeydown = function(e){ if (e.key === 'Enter') go(); };
   setTimeout(function(){ var i = document.getElementById('mbin'); if (i) i.focus(); }, 200);
 }
+// report a public post (anyone, pup or not). Child safety hides it at once.
+document.addEventListener('click', function(ev){
+  var a = ev.target && ev.target.closest ? ev.target.closest('[data-report]') : null; if (!a) return;
+  ev.preventDefault(); var id = a.getAttribute('data-report');
+  var R = [['child', '🚸 A child safety concern'], ['sexual', 'Nudity or sexual content'], ['violence', 'Violence or self-harm'], ['hate', 'Hate or harassment'], ['personal', 'Personal information about someone'], ['spam', 'Spam or an ad'], ['other', 'Something else']];
+  var s = sheet('<div class="addhead">Report this post</div><p class="hint">What&rsquo;s wrong? Reports are anonymous.</p>' + R.map(function(x){ return '<button class="btn ghost reprow" data-why="' + x[0] + '">' + x[1] + '</button>'; }).join('') +
+    '<p class="hint">If a child is in danger right now, call 911. Child safety reports hide the post immediately and we review every report. <a href="/safety">How we handle this</a></p>');
+  s.ov.querySelectorAll('[data-why]').forEach(function(b){ b.onclick = function(){ var me = loadLocal();
+    rpc('vp_report_entry', { p_reporter: me ? me.tail : 'dev:' + devId(), p_entry: id, p_reason: b.getAttribute('data-why') }).then(function(){
+      s.close(); toast(b.getAttribute('data-why') === 'child' ? 'Thank you. The post is hidden and we&rsquo;ll review it.' : 'Thank you. We&rsquo;ll review it.');
+      if (b.getAttribute('data-why') === 'child') { var c = document.querySelector('[data-rid="' + id + '"]'); if (c) c.remove(); }
+      track('report', { why: b.getAttribute('data-why') }); }).catch(function(e){ toast(e.message); }); }; });
+}, true);
 function mineShareText(code, prompt){ return 'I hid a secret answer. Can you find mine? 🫣🐾\n“' + prompt + '”\n' + location.origin + '/m/?g=' + code; }
 function mineShare(code, prompt){ var msg = mineShareText(code, prompt); track('mine', { act: 'share' });
   if (navigator.share) navigator.share({ text: msg }).catch(function(){}); else navigator.clipboard.writeText(msg).then(function(){ toast('Link copied. Paste it in the chat 🐾'); }, function(){ toast(location.origin + '/m/' + code); }); }
@@ -4906,7 +4920,7 @@ function screenPack(mode, topic0){
           (r.topic ? '<a class="topicchip" href="/pack?t=' + encodeURIComponent(r.topic) + '">#' + esc(r.topic) + '</a> ' : '') +
           (r.place ? '<span class="chip" style="cursor:default">\ud83d\udccd ' + esc(r.place.split(',')[0]) + '</span>' : '') + '</div>' : '') +
         (r.body ? '<div class="entry-body">' + esc(r.body) + '</div>' : '') + mediaHTML(r.media) +
-        '<div class="ts">\u2014 ' + esc(r.pup) + ' \u00b7 ' + new Date(r.ts).toLocaleDateString() + '</div>' +
+        '<div class="ts">\u2014 ' + esc(r.pup) + ' \u00b7 ' + new Date(r.ts).toLocaleDateString() + (r.id && r.source !== 'city311' && !myIds[r.id] ? ' \u00b7 <a href="#" class="reportlink" data-report="' + esc(r.id) + '">Report</a>' : '') + '</div>' +
         (r.id ? '<div class="chips" style="margin-top:6px">' + (window._kmOf && window._kmOf(r) != null ? '<span class="chip kmchip">📍 ' + kmText(window._kmOf(r)) + '</span>' : '') + scopeChip(r.scope) + spotChip(r) + hashChips(r) + sameChip(r.id, r.backs || 0, !!backed[r.id], !!myIds[r.id]) + shareChip(Object.assign({}, r, { shared: true })) + (myIds[r.id] ? groupChip(r.id) : '') +
           (myIds[r.id] ? reactChips(r, null, true) : reactChips(r, myReacts[r.id], false)) + '</div>' + emoRow(r.id, !!myIds[r.id]) : '') +
         '</div>';
@@ -5167,7 +5181,7 @@ function screenPack(mode, topic0){
   }).catch(function(e){ var ag = document.getElementById('agenda'); if (ag) ag.hidden = true; var bd = document.getElementById('board'); if (bd) bd.innerHTML = '<div class="hint">Couldn&rsquo;t reach the pack. <a href="#" onclick="location.reload();return false">Try again</a></div>'; });
 }
 
-var APP_VERSION = "20261006211611";
+var APP_VERSION = "20261006212725";
 (function(){
   try {
     fetch('/version.json?t=' + Date.now(), { cache: 'no-store' }).then(function(r){ return r.json(); }).then(function(j){
