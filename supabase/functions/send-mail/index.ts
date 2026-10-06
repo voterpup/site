@@ -21,7 +21,7 @@ function wrap(name: string, body: string, cta: string, url: string, unsub: strin
   return { html: `<div style="font-family:system-ui,sans-serif;max-width:480px;margin:0 auto;padding:20px;color:#1d2433">
 <p style="font-size:22px;margin:0 0 6px">🐾 ${esc(name)}</p><p style="font-size:16px;line-height:1.5">${esc(body)}</p>
 <p><a href="${url}" style="display:inline-block;background:#e8b84b;color:#2a2418;font-weight:800;padding:12px 18px;border-radius:999px;text-decoration:none">${esc(cta)}</a></p>
-<p style="font-size:12px;color:#6b7387;margin-top:28px">You asked ${esc(name)} to report back by email. VoterPup Technologies Inc., Vancouver, BC · <a href="${unsub}" style="color:#6b7387">Unsubscribe</a> · <a href="${SITE}/privacy.html" style="color:#6b7387">Privacy</a></p></div>`,
+<p style="font-size:12px;color:#6b7387;margin-top:28px">You asked ${esc(name)} to report back by email. VoterPup, Vancouver, BC · <a href="${unsub}" style="color:#6b7387">Unsubscribe</a> · <a href="${SITE}/privacy.html" style="color:#6b7387">Privacy</a></p></div>`,
     text: `${name}\n\n${body}\n\n${cta}: ${url}\n\nUnsubscribe: ${unsub}` };
 }
 const LINES = [(n: string) => `Anything that should be fixed today? ${n} is listening.`, (n: string) => `Saw something that needs fixing? Tell ${n}. Five words is plenty.`];

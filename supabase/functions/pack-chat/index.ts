@@ -9,6 +9,21 @@ async function logFail(svc: string, msg: unknown) {   // founder-alerts mails th
 }
 const CORS = { "Access-Control-Allow-Origin": "*", "Access-Control-Allow-Headers": "content-type", "Access-Control-Allow-Methods": "POST, OPTIONS" };
 const anthropic = new Anthropic({ apiKey: Deno.env.get("ANTHROPIC_API_KEY")! });
+// group photos are checked before they're shown (fail-closed: no verdict, no photo)
+const PHOTO_RULES = `You check one photo that a person is sending to a small private group of friends or family.
+Block it if it contains ANY of: nudity or sexual content of anyone; any child (anyone who may be under 18) who is unclothed or partly clothed (including swimwear or underwear) or shown in a sexualised or suggestive way; graphic violence, gore or self-harm; hate symbols or hateful text.
+Ordinary everyday photos are fine, including fully clothed children in family scenes, pets, food, streets, screenshots and memes without the above.
+Call report_image exactly once.`;
+async function photoOk(db: any, path: string): Promise<boolean> {
+  const { data: su } = await db.storage.from("media").createSignedUrl(path, 120);
+  if (!su?.signedUrl) return false;
+  const r = await anthropic.messages.create({ model: "claude-haiku-4-5-20251001", max_tokens: 200, system: PHOTO_RULES,
+    tools: [{ name: "report_image", description: "Report the verdict.", input_schema: { type: "object", properties: { verdict: { type: "string", enum: ["ok", "block"] }, reason: { type: "string" } }, required: ["verdict", "reason"] } }],
+    messages: [{ role: "user", content: [{ type: "image", source: { type: "url", url: su.signedUrl } }, { type: "text", text: "Check this photo and call report_image." }] }] } as any);
+  if (r.stop_reason === "refusal") return false;
+  const call = r.content.find((x: any) => x.type === "tool_use") as any;
+  return call?.input?.verdict === "ok";
+}
 webpush.setVapidDetails("mailto:hi@voterpup.com", Deno.env.get("VAPID_PUBLIC")!, Deno.env.get("VAPID_PRIVATE")!);
 const MODEL = "claude-haiku-4-5-20251001";
 const PATH_OK = /^[0-9a-f-]{8,40}\.[a-z0-9]{1,5}$/;
@@ -107,6 +122,12 @@ Deno.serve(async (req) => {
     const ownGame = /^\s*(https?:\/\/)?(www\.)?voterpup\.com\/m\/(\?g=)?[0-9]+-[a-z]+-[a-z]+\s*$/i.test(body);   // our own game link: shown as a game tile
     const chk = ownGame ? { ok: true, why: "" } : await textOk(body);
     if (!chk.ok) return json({ error: "That message wasn't sent" + (chk.why ? " (" + chk.why + ")" : "") + ". Keep it friendly 🐾" }, 422);
+    if (media.some((m: any) => m.type.startsWith("video/"))) return json({ error: "Videos are paused in groups for now while we add safety checks. Photos work 🐾" }, 422);
+    for (const m of media) {
+      let ok = false;
+      try { ok = await photoOk(db, m.path); } catch (e) { await logFail("pack-chat", e); return json({ error: "Couldn't check that photo just now. Try again in a moment 🐾" }, 503); }
+      if (!ok) { return json({ error: "That photo wasn't sent: it didn't pass our safety check 🐾" }, 422); }
+    }
     const { data: msg, error } = await db.from("pack_messages").insert({ pack_id: pack, tail, body: body || null, media }).select("id, created_at").single();
     if (error) return json({ error: error.message }, 500);
     await nudge(db, pack, tail, (me?.name ?? "A pup") + ": " + (ownGame ? "🫣 sent a Guess the wish game" : body ? body.slice(0, 80) : "📷 sent a photo"));

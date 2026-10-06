@@ -1380,6 +1380,12 @@
   .mndice.mnpen{right:64px}
   .mnwarm{align-self:center; background:rgba(245,184,61,.15); color:var(--goldtext); border:1px solid rgba(245,184,61,.5); border-radius:999px; padding:5px 14px; font-weight:900; font-size:13px; letter-spacing:.04em}
   .mnwarmend{background:#132637; border:1px solid #2c4a63; border-radius:18px; padding:14px 16px; color:#cfdbe6; font-size:14.5px; line-height:1.4; text-align:center} .mnwarmend b{display:block; color:#fff; font-family:'Fredoka','Nunito',sans-serif; font-size:20px; margin-bottom:4px}
+  .mnnote{margin-top:6px; background:#132637; border:1px solid #2c4a63; border-radius:18px; padding:14px; display:flex; flex-direction:column; gap:8px; color:#cfdbe6; font-size:13.5px; line-height:1.4}
+  .mnnote b{color:#fff; font-size:15.5px} .mnnote.on{flex-direction:row; align-items:center; gap:10px} .mnnote.on i{font-size:24px; color:var(--goldtext)}
+  .mnmail{display:flex; gap:8px} .mnmail input{flex:1; min-width:0; margin:0 !important; border-radius:14px !important; padding:11px 12px !important; font-size:16px !important; background:#0f1d2a !important; border:1.5px solid #2c4a63 !important; color:#fff !important}
+  .mnmailgo{flex:0 0 auto; border:0; border-radius:14px; padding:0 16px; background:var(--gold); color:#1a1304; font:inherit; font-weight:900; cursor:pointer}
+  .mnpush{color:var(--goldtext) !important; font-weight:800; font-size:13px; text-decoration:none; text-align:center}
+  .keybox{font-family:ui-monospace,monospace; font-size:13px; word-break:break-all; background:var(--chip); border:1px dashed var(--line); border-radius:12px; padding:12px; margin:8px 0 12px; user-select:all}
 </style>
 </head>
 <body>
@@ -2161,9 +2167,11 @@ function screenCapture(prefGripe, prefName){
     (saved && !KIOSK ? '<button class="btn ghost" id="resume">Continue with ' + esc(saved.name) + ' →</button>' : '') +
     '<p class="privacy">🔒 Free · no account · no parties or candidates · private unless you share</p>' +
     (!saved && !KIOSK ? '<p class="privacy"><a href="/pack" style="color:#3b6fb6;font-weight:700">Just looking? See what your city wants fixed →</a></p>' : '') +
+    (!saved && !KIOSK ? '<p class="privacy"><a href="#" id="mailback" style="color:#3b6fb6;font-weight:700">Had a pup on another phone? Get it back by email →</a></p>' : '') +
     (GOOGLE_READY && !saved && !KIOSK ? '<p class="privacy"><a href="#" id="grestore" style="color:#3b6fb6;font-weight:700">Backed up a pup before? Find it →</a></p><div id="grslot"></div>' : '') +
     (saved ? tabbar('pup') : '');
   wireAttach(); wireTabs(); pendingSpot = null; wireSpot(); wireTags(document.getElementById('gripe'));
+  var mb = document.getElementById('mailback'); if (mb) mb.onclick = function(ev){ ev.preventDefault(); mailBackSheet(); };
   var gr = document.getElementById('grestore'); if (gr) gr.onclick = function(ev){ ev.preventDefault(); gr.style.display = 'none'; startRestore(document.getElementById('grslot')); };
   var ta = document.getElementById('gripe'), inp = document.getElementById('pname');
   if (prefGripe) ta.value = prefGripe;
@@ -2421,6 +2429,9 @@ function screenLedger(tail){
     var q0 = new URLSearchParams(location.search);
     if (q0.get('add') === 'walk' && !KIOSK) { history.replaceState(null, '', location.pathname); track('notif_open', { kind: 'walk' }); setTimeout(function(){ openAdd(); toast('🐾 Tap 📸 Feed to give ' + esc(L.name) + ' a photo'); }, 400); }
     if (q0.get('add') === '1' && !KIOSK) { history.replaceState(null, '', location.pathname); track('notif_open', { kind: 'reminder' }); setTimeout(openAdd, 250); }   // from a reminder
+    if (q0.get('back') === '1') { history.replaceState(null, '', location.pathname); track('notif_open', { kind: 'recover' }); setTimeout(function(){ toast('🐾 Welcome back. ' + L.name + ' is on this phone now.'); }, 700); }
+    var qm = q0.get('m');
+    if (qm && /^[0-9]+-[a-z]+-[a-z]+$/.test(qm)) { track('notif_open', { kind: 'game_mail' }); try { sessionStorage.setItem('vp.welcomeback', '1'); } catch (e) {} location.replace('/m/' + qm); return; }
     var qe = q0.get('e');
     if (qe && /^[0-9a-f-]{36}$/.test(qe)) { history.replaceState(null, '', location.pathname); track('notif_open', { kind: 'issue' });
       setTimeout(function(){ var t0 = document.querySelector('[data-open="' + qe + '"]');
@@ -4195,6 +4206,51 @@ function gameTileFill(code){
 }
 var DEMO_GAMES = ['1-sniffy-biscuits', '1-waggy-treats', '1-zoomy-walks'];   // warm-up rounds: Biscuit the pup hid a (very pup) answer
 function isDemo(code){ return DEMO_GAMES.indexOf(code) >= 0; }
+// "Tell me when friends play": an optional email (works on every phone) and, where the phone allows, a notification.
+// The email is also the way back: its button reopens your pup on any device.
+function mineNotify(el){
+  var me = loadLocal(); if (!el || !me) return;
+  rpc('vp_game_email_status', { p_tail: me.tail }).then(function(st){
+    var remOn = false; try { var rr = JSON.parse(localStorage.getItem('vp.rem') || 'null'); remOn = !!(rr && !rr.off); } catch (e) {}
+    if (st && st.on) { el.innerHTML = '<div class="mnnote on"><i class="ph-fill ph-envelope-simple"></i><span>We&rsquo;ll email <b>' + esc(st.email) + '</b> when friends play. That email also opens your pup on any phone.</span></div>'; return; }
+    el.innerHTML = '<div class="mnnote"><b>📬 Want to know when friends play?</b><span>Optional. We&rsquo;ll email you when someone finds yours, and that email brings you back to your pup on any phone. Never shared, no spam, unsubscribe any time.</span>' +
+      '<form class="mnmail" id="mnmail"><input type="email" id="mnmailin" placeholder="you@email.com" autocomplete="email" inputmode="email"><button class="mnmailgo">Email me</button></form>' +
+      (pushOK() && !remOn ? '<a href="#" class="mnpush" id="mnpush">or 🔔 notify this phone instead</a>' : '') +
+      '<a href="#" class="mnpush" id="mnkey">No email? Save your pup link instead</a></div>';
+    document.getElementById('mnmail').onsubmit = function(ev){ ev.preventDefault(); var v = document.getElementById('mnmailin').value.trim(), b = this.querySelector('button');
+      if (!/^[^@\s]+@[^@\s]+\.[a-z]{2,}$/i.test(v)) { toast('That email doesn&rsquo;t look right.'); return; }
+      b.disabled = true; b.textContent = '…';
+      rpc('vp_set_game_email', { p_tail: me.tail, p_email: v }).then(function(){ track('mine', { act: 'email' }); toast('📬 Done. We&rsquo;ll tell you when friends play.'); mineNotify(el); })
+        .catch(function(e){ b.disabled = false; b.textContent = 'Email me'; toast(e.message); }); };
+    var kb = document.getElementById('mnkey'); if (kb) kb.onclick = function(ev){ ev.preventDefault(); pupLinkSheet(); };
+    var pb = document.getElementById('mnpush'); if (pb) pb.onclick = function(ev){ ev.preventDefault();
+      saveReminder(me.tail, Object.assign({}, REM_DEFAULT)).then(function(){ toast('🔔 This phone will ping you when friends play.'); pb.remove(); }).catch(function(e){ toast(e.message); }); };
+  }).catch(function(){});
+}
+// no email: their private pup link, to keep somewhere safe (it is the pup: whoever has it can open it)
+function pupLinkSheet(){
+  var me = loadLocal(); if (!me) return; var link = 'https://voterpup.com/p/' + me.tail + '?back=1';
+  var s = sheet('<div class="addhead">🔑 Your pup link</div><p class="hint">Open this on any phone to get ' + esc(me.name) + ' back, with your list and your games. Keep it private, like a password: anyone with it can open your pup.</p>' +
+    '<div class="keybox">' + esc(link) + '</div><button class="btn gold" id="keycopy"><i class="ph-fill ph-copy"></i> Copy link</button>' +
+    '<p class="hint">Good places: your notes app, a password manager, or a message to yourself.</p>');
+  document.getElementById('keycopy').onclick = function(){ track('mine', { act: 'keylink' });
+    (navigator.clipboard ? navigator.clipboard.writeText(link) : Promise.reject()).then(function(){ toast('🔑 Copied. Paste it somewhere private.'); s.close(); },
+      function(){ toast('Press and hold the link to copy it.'); }); };
+}
+// "get my pup back": we email the private pup link to the address linked to that pup
+function mailBackSheet(){
+  var s = sheet('<div class="addhead">🐾 Get your pup back</div><p class="hint">Type the email you gave your pup. We&rsquo;ll send a link; open it on this phone.</p>' +
+    '<input type="email" id="mbin" placeholder="you@email.com" autocomplete="email" inputmode="email"><button class="btn gold" id="mbgo">Email me the link</button>');
+  var go = function(){ var v = document.getElementById('mbin').value.trim(), b = document.getElementById('mbgo');
+    if (!/^[^@\s]+@[^@\s]+\.[a-z]{2,}$/i.test(v)) { toast('That email doesn&rsquo;t look right.'); return; }
+    b.disabled = true; b.textContent = 'Sending…';
+    mineCall({ action: 'recover', email: v }).then(function(r){
+      if (r.error) { b.disabled = false; b.textContent = 'Email me the link'; toast(r.error); return; }
+      track('recover', {}); s.close(); toast('📬 If that email has a pup, the link is on its way. Check spam too.');
+    }).catch(function(){ b.disabled = false; b.textContent = 'Email me the link'; toast('Couldn&rsquo;t send. Try again.'); }); };
+  document.getElementById('mbgo').onclick = go; document.getElementById('mbin').onkeydown = function(e){ if (e.key === 'Enter') go(); };
+  setTimeout(function(){ var i = document.getElementById('mbin'); if (i) i.focus(); }, 200);
+}
 function mineShareText(code, prompt){ return 'I hid a secret answer. Can you find mine? 🫣🐾\n“' + prompt + '”\n' + location.origin + '/m/?g=' + code; }
 function mineShare(code, prompt){ var msg = mineShareText(code, prompt); track('mine', { act: 'share' });
   if (navigator.share) navigator.share({ text: msg }).catch(function(){}); else navigator.clipboard.writeText(msg).then(function(){ toast('Link copied. Paste it in the chat 🐾'); }, function(){ toast(location.origin + '/m/' + code); }); }
@@ -4290,12 +4346,14 @@ function mineHidden(code, p, ans){
     '<p class="mnsmall">“' + esc(ans) + '” is hiding among 5 others. Send the link to friends or the family chat.</p>' +
     '<button class="mnbig" id="mnshare"><i class="ph-fill ph-share-network"></i> Send to friends</button>' +
     '<button class="mnghost mngrp" data-grouplink="https://voterpup.com/m/?g=' + code + '"><i class="ph-fill ph-users-three"></i> Send to a VoterPup group</button>' +
-    '<a class="mnlink" href="/m/' + code + '">See who&rsquo;s found it →</a>';
+    '<a class="mnlink" href="/m/' + code + '">See who&rsquo;s found it →</a><div id="mnnotify"></div>';
   document.getElementById('mnshare').onclick = function(){ mineShare(code, p.text); };
+  mineNotify(document.getElementById('mnnotify'));
   mineHistory();
 }
 // a friend plays, or the owner sees the scoreboard
 function screenMinePlay(code){
+  try { if (sessionStorage.getItem('vp.welcomeback') === '1') { sessionStorage.removeItem('vp.welcomeback'); setTimeout(function(){ toast('🐾 Welcome back. Your pup is on this phone now.'); }, 900); } } catch (e) {}
   mineShell('<div class="mnstage" id="mnstage"><div class="mnspin"></div></div>');
   var me = loadLocal(), st = { busy: false };
   rpc('vp_mine_open', { p_code: code, p_tail: me ? me.tail : null }).then(function(g){
@@ -4361,7 +4419,8 @@ function mineBoard(code){
       (plays.length ? '<ol class="mnboard">' + plays.map(function(p, i){ return '<li><span class="mnrank">' + (i + 1) + '</span><b>' + esc(p.nickname || 'Someone') + '</b><em>' + (!p.done ? 'playing…' : p.score ? (p.tries === 1 ? 'first try' : 'try ' + p.tries) : 'fooled 😎') + '</em><strong>' + (p.score || 0) + '</strong></li>'; }).join('') + '</ol>'
         : '<p class="mnsmall">Send the link to friends or family. You&rsquo;ll get a ping when someone plays.</p>') +
       '<button class="mnbig" id="mnshare"><i class="ph-fill ph-share-network"></i> Send to more friends</button>' +
-      '<button class="mnghost mngrp" data-grouplink="https://voterpup.com/m/?g=' + code + '"><i class="ph-fill ph-users-three"></i> Send to a VoterPup group</button><a class="mnlink" href="/mine">Hide another one →</a>';
+      '<button class="mnghost mngrp" data-grouplink="https://voterpup.com/m/?g=' + code + '"><i class="ph-fill ph-users-three"></i> Send to a VoterPup group</button><a class="mnlink" href="/mine">Hide another one →</a><div id="mnnotify"></div>';
+    mineNotify(document.getElementById('mnnotify'));
     document.getElementById('mnshare').onclick = function(){ if (navigator.share) navigator.share({ text: msg }).catch(function(){}); else navigator.clipboard.writeText(msg).then(function(){ toast('Link copied 🐾'); }, function(){}); };
   });
 }
@@ -5108,7 +5167,7 @@ function screenPack(mode, topic0){
   }).catch(function(e){ var ag = document.getElementById('agenda'); if (ag) ag.hidden = true; var bd = document.getElementById('board'); if (bd) bd.innerHTML = '<div class="hint">Couldn&rsquo;t reach the pack. <a href="#" onclick="location.reload();return false">Try again</a></div>'; });
 }
 
-var APP_VERSION = "20261006063517";
+var APP_VERSION = "20261006211611";
 (function(){
   try {
     fetch('/version.json?t=' + Date.now(), { cache: 'no-store' }).then(function(r){ return r.json(); }).then(function(j){

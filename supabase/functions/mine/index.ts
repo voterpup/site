@@ -11,6 +11,25 @@ const json = (b: unknown, s = 200) => new Response(JSON.stringify(b), { status: 
 const ADJ = ["sleepy","muddy","fluffy","waggy","bouncy","sunny","zoomy","snuggly","sniffy","crunchy","jolly","speedy","cozy","sparkly","giggly","happy"];
 const NOUN = ["socks","paws","tails","sticks","biscuits","puddles","naps","treats","acorns","bones","frisbees","walks","sniffs","collars"];
 const SCORE = [100, 60, 30, 10];
+const escH = (x: string) => String(x).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]!));
+// the optional "email me when friends play" note; its button logs you back into your pup on any device
+async function gameMail(db: any, owner: string, code: string, who: string, tries: number, score: number | null, answer: string) {
+  const { data: m } = await db.from("mail_subs").select("email, token, last_game").eq("tail", owner).eq("game", true).is("unsub_at", null).order("consent_at", { ascending: false }).limit(1).maybeSingle();
+  if (!m || (m.last_game && Date.now() - new Date(m.last_game).getTime() < 10 * 60e3)) return;   // at most one every 10 minutes
+  const key = Deno.env.get("RESEND_API_KEY"); if (!key) return;
+  const found = (score ?? 0) > 0, subject = found ? `🫣 ${who} found your answer on try ${tries}` : `😎 ${who} couldn't find your answer`;
+  const link = `https://voterpup.com/p/${owner}?m=${code}`, unsub = `https://setyjmgijsbplgyqynlh.supabase.co/functions/v1/send-mail?unsub=${m.token}`;
+  const line = found ? `${who} found “${answer}” on try ${tries} (+${score}).` : `${who} tried 4 times and still couldn't spot “${answer}”.`;
+  const html = `<div style="font-family:system-ui,sans-serif;max-width:480px;margin:0 auto;padding:20px;color:#1d2433"><p style="font-size:22px;margin:0 0 6px">🫣 Guess the wish</p>
+<p style="font-size:16px;line-height:1.5">${escH(line)} See who knows you best, or hide another one.</p>
+<p><a href="${link}" style="display:inline-block;background:#e8b84b;color:#2a2418;font-weight:800;padding:12px 18px;border-radius:999px;text-decoration:none">See your scoreboard</a></p>
+<p style="font-size:12px;color:#6b7387;margin-top:28px">You asked VoterPup to email you when friends play. This button opens your pup on any device, so keep this email to yourself. <a href="${unsub}" style="color:#6b7387">Unsubscribe</a></p></div>`;
+  const text = `${line}\n\nSee your scoreboard (opens your pup on any device; keep it private): ${link}\n\nUnsubscribe: ${unsub}`;
+  const r = await fetch("https://api.resend.com/emails", { method: "POST", headers: { Authorization: "Bearer " + key, "content-type": "application/json" },
+    body: JSON.stringify({ from: "VoterPup <pup@voterpup.com>", to: [m.email], subject, html, text, headers: { "List-Unsubscribe": `<${unsub}>` } }) });
+  if (!r.ok) { await logFail(db, "game mail " + r.status + " " + (await r.text()).slice(0, 160)); return; }
+  await db.from("mail_subs").update({ last_game: new Date().toISOString() }).eq("email", m.email);
+}
 async function logFail(db: any, msg: unknown) { try { await db.from("svc_errors").insert({ svc: "mine", msg: String((msg as any)?.message ?? msg).slice(0, 400) }); } catch (_) { /* never block */ } }
 function shuffle<T>(a: T[]): T[] { const b = [...a]; for (let i = b.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [b[i], b[j]] = [b[j], b[i]]; } return b; }
 async function ask(system: string, user: string, max = 1200, model = "claude-sonnet-5-5"): Promise<string> {
@@ -48,7 +67,25 @@ Deno.serve(async (req) => {
   let b: any = {}; try { b = await req.json(); } catch (_) { return json({ error: "bad json" }, 400); }
   const tail = String(b.tail || "");
 
-  if (b.action === "warm") return json({ ok: true });   // the page pings this on open so the first real call is quick
+  if (b.action === "warm") return json({ ok: true });
+  if (b.action === "recover") {   // "get my pup back": email the private pup link to the address linked to it. Same answer either way, so nobody can probe emails.
+    const e = String(b.email || "").trim().toLowerCase(), done = json({ ok: true });
+    if (!/^[^@\s]+@[^@\s]+\.[a-z]{2,}$/.test(e) || e.length > 120) return json({ error: "That email doesn't look right." }, 400);
+    const { data: m } = await db.from("mail_subs").select("email, tail, token, last_recover").eq("email", e).maybeSingle();
+    if (!m || (m.last_recover && Date.now() - new Date(m.last_recover).getTime() < 10 * 60e3)) return done;
+    const { data: l } = await db.from("ledgers").select("name").eq("tail", m.tail).maybeSingle();
+    const key = Deno.env.get("RESEND_API_KEY"); if (!key || !l) return done;
+    const link = `https://voterpup.com/p/${m.tail}?back=1`, name = l.name ?? "Your pup";
+    const html = `<div style="font-family:system-ui,sans-serif;max-width:480px;margin:0 auto;padding:20px;color:#1d2433"><p style="font-size:22px;margin:0 0 6px">🐾 ${escH(name)} missed you</p>
+<p style="font-size:16px;line-height:1.5">Tap the button on the phone where you want ${escH(name)}. Your list, your games and your scoreboard come with it.</p>
+<p><a href="${link}" style="display:inline-block;background:#e8b84b;color:#2a2418;font-weight:800;padding:12px 18px;border-radius:999px;text-decoration:none">Bring ${escH(name)} back</a></p>
+<p style="font-size:12px;color:#6b7387;margin-top:28px">Someone asked for this at voterpup.com. If it wasn't you, ignore this email. Don't forward it: this button opens your pup.</p></div>`;
+    const r = await fetch("https://api.resend.com/emails", { method: "POST", headers: { Authorization: "Bearer " + key, "content-type": "application/json" },
+      body: JSON.stringify({ from: "VoterPup <pup@voterpup.com>", to: [m.email], subject: `🐾 Bring ${name} back`, html, text: `Bring ${name} back (open on the phone you want it on; don't forward): ${link}` }) });
+    if (!r.ok) await logFail(db, "recover mail " + r.status + " " + (await r.text()).slice(0, 160));
+    else await db.from("mail_subs").update({ last_recover: new Date().toISOString() }).eq("email", m.email);
+    return done;
+  }   // the page pings this on open so the first real call is quick
   if (b.action === "gen") {   // internal: top the prompt bank up; needs the service key
     if (!Deno.env.get("MINE_ADMIN") || req.headers.get("x-admin") !== Deno.env.get("MINE_ADMIN")) return json({ error: "no" }, 403);
     const kinds = ["wish", "love", "hate", "secret", "guilty pleasure", "would you rather", "tiny joy", "pet peeve", "hot take", "childhood", "if I could", "my superpower", "weird habit", "comfort", "first thing"];
@@ -98,7 +135,8 @@ Deno.serve(async (req) => {
       const who = String(b.nickname || pl.nickname || "Someone").slice(0, 24);
       const line = ok ? `${who} found yours on try ${tries} (+${score})` : `${who} couldn't find yours 😎`;
       const { data: subs } = await db.from("push_subs").select("endpoint, p256dh, auth").eq("tail", g.tail);
-      for (const s of subs ?? []) webpush.sendNotification({ endpoint: s.endpoint, keys: { p256dh: s.p256dh, auth: s.auth } }, JSON.stringify({ title: "🫣 Guess the wish", body: line, url: "/m/" + g.code }), { TTL: 6 * 3600 }).catch(() => {});
+      await gameMail(db, g.tail, g.code, who, tries, score, g.answer).catch((e) => logFail(db, e));
+      for (const s of subs ?? []) webpush.sendNotification({ endpoint: s.endpoint, keys: { p256dh: s.p256dh, auth: s.auth } }, JSON.stringify({ title: "🫣 Guess the wish", body: line, url: "/m/?g=" + g.code }), { TTL: 6 * 3600 }).catch(() => {});
     }
     return json({ correct: ok, tries, score, done: ok || out, wrong: ok ? wrong : [...wrong, pick], answer: ok || out ? g.answer : undefined, right: ok || out ? right : undefined });
   }
