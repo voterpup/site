@@ -20,7 +20,7 @@ Deno.serve(async (req) => {
   for (const s of subs ?? []) {
     try {
       await webpush.sendNotification({ endpoint: s.endpoint, keys: { p256dh: s.p256dh, auth: s.auth } },
-        JSON.stringify({ title: "🐾 " + name, body: text, url: "/p/" + e.tail }), { TTL: 6 * 3600, urgency: "normal" });
+        JSON.stringify({ title: "🐾 " + name, body: text, url: "/p/" + e.tail + "?e=" + body.entry_id }), { TTL: 6 * 3600, urgency: "normal" });
       sent++;
     } catch (err: any) {
       if (err?.statusCode === 404 || err?.statusCode === 410) await db.from("push_subs").delete().eq("endpoint", s.endpoint);

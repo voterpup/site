@@ -97,7 +97,7 @@ Deno.serve(async (req) => {
       const who = String(b.nickname || pl.nickname || "Someone").slice(0, 24);
       const line = ok ? `${who} found yours on try ${tries} (+${score})` : `${who} couldn't find yours 😎`;
       const { data: subs } = await db.from("push_subs").select("endpoint, p256dh, auth").eq("tail", g.tail);
-      for (const s of subs ?? []) webpush.sendNotification({ endpoint: s.endpoint, keys: { p256dh: s.p256dh, auth: s.auth } }, JSON.stringify({ title: "🐾 Which one's mine?", body: line, url: "/m/" + g.code }), { TTL: 6 * 3600 }).catch(() => {});
+      for (const s of subs ?? []) webpush.sendNotification({ endpoint: s.endpoint, keys: { p256dh: s.p256dh, auth: s.auth } }, JSON.stringify({ title: "🫣 Guess the wish", body: line, url: "/m/" + g.code }), { TTL: 6 * 3600 }).catch(() => {});
     }
     return json({ correct: ok, tries, score, done: ok || out, wrong: ok ? wrong : [...wrong, pick], answer: ok || out ? g.answer : undefined, right: ok || out ? right : undefined });
   }

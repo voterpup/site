@@ -47,7 +47,7 @@ Deno.serve(async (req) => {
       const { data: f } = await db.rpc("vp_reminder_facts", { p_tail: s.tail });
       const nb = f?.new_backs, q = (t: string) => "\u201c" + String(t).slice(0, 44) + "\u201d";
       if (nb?.n > 0) { line = (nb.n === 1 ? "Someone near you agrees: " : nb.n + " people near you agree: ") + q(nb.body); url = "/p/" + s.tail; }
-      else if (f?.top?.rank && f.top.rank <= 5) { line = q(f.top.body || "your photo") + " is #" + f.top.rank + (f.top.city ? " in " + f.top.city : "") + " this week."; url = "/p/" + s.tail; }
+      else if (f?.top?.rank && f.top.rank <= 5) { line = q(f.top.body || "your photo") + " is #" + f.top.rank + (f.top.city ? " in " + f.top.city : "") + " this week."; url = "/p/" + s.tail + (f.top.id ? "?e=" + f.top.id : ""); }
       else if (f?.good_nearby) { line = s.name + " found something good nearby: " + q(f.good_nearby); url = "/pack?q=" + encodeURIComponent(String(f.good_nearby).slice(0, 40)); }
       else if (!s.last_sent) { line = s.name + " sniffed around" + (f?.city ? " " + f.city : "") + ". No \u201csame here\u201d on your list yet. Walk me tomorrow?"; url = "/p/" + s.tail + "?add=walk"; }
       else if (Date.now() - new Date(s.last_sent).getTime() > 44 * 3600e3) {   // nothing new for 2 evenings: one friendly nudge, never two nights running
