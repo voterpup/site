@@ -102,6 +102,24 @@ Deno.serve(async (req) => {
     return json({ correct: ok, tries, score, done: ok || out, wrong: ok ? wrong : [...wrong, pick], answer: ok || out ? g.answer : undefined, right: ok || out ? right : undefined });
   }
 
+  if (b.action === "list") {
+    if (!tail) return json({ made: [], played: [] });
+    const { data: made } = await db.from("mine_games").select("code, answer, prompt_id, created_at, expires_at").eq("tail", tail).order("created_at", { ascending: false }).limit(30);
+    const codes = (made ?? []).map((g: any) => g.code);
+    const { data: plays } = codes.length ? await db.from("mine_plays").select("code, score, done").in("code", codes) : { data: [] as any[] };
+    const { data: mine } = await db.from("mine_plays").select("code, score, tries, done, created_at").eq("tail", tail).order("created_at", { ascending: false }).limit(30);
+    const pcodes = (mine ?? []).map((x: any) => x.code);
+    const { data: pg } = pcodes.length ? await db.from("mine_games").select("code, nickname, prompt_id").in("code", pcodes) : { data: [] as any[] };
+    const pids = [...new Set([...(made ?? []).map((g: any) => g.prompt_id), ...(pg ?? []).map((g: any) => g.prompt_id)])];
+    const { data: pr } = pids.length ? await db.from("mine_prompts").select("id, text").in("id", pids) : { data: [] as any[] };
+    const ptext = new Map((pr ?? []).map((x: any) => [x.id, x.text]));
+    return json({
+      made: (made ?? []).map((g: any) => { const ps = (plays ?? []).filter((x: any) => x.code === g.code);
+        return { code: g.code, prompt: ptext.get(g.prompt_id), answer: g.answer, players: ps.length, found: ps.filter((x: any) => (x.score ?? 0) > 0).length, live: new Date(g.expires_at) > new Date() }; }),
+      played: (mine ?? []).map((x: any) => { const g = (pg ?? []).find((y: any) => y.code === x.code); return { code: x.code, owner: g?.nickname, prompt: g ? ptext.get(g.prompt_id) : null, score: x.score, tries: x.tries, done: x.done }; }),
+    });
+  }
+
   if (b.action === "board") {
     const { data: g } = await db.from("mine_games").select("code, tail, answer, nickname, prompt_id").eq("code", String(b.code || "")).maybeSingle();
     if (!g || g.tail !== tail) return json({ error: "not yours" }, 403);
@@ -124,7 +142,15 @@ Deno.serve(async (req) => {
     if (!p) return json({ error: "Pick a prompt." }, 400);
     const chk = await moderate(answer);
     if (!chk.ok) return json({ error: "Let's keep it friendly" + (chk.why ? " (" + chk.why + ")" : "") + ". Try another answer 🐾" }, 422);
-    const dec = await decoysFor(db, p.id, p.text, answer);
+    let dec: string[] = [];
+    try {
+      const out = arr(await ask(`You make decoys for a guessing game. A player answered a prompt; their friends will see the real answer shuffled with your decoys and must spot the real one. Write answers that DIFFERENT people would plausibly give: match the real answer's length (within about 30%), its casualness, capitalisation, punctuation and emoji use, so nothing stands out by style. Vary the content: no paraphrases or near-copies of the real answer, and no answer that is obviously sillier, smarter or more polished than the rest. ${RULES} Reply with a JSON array of 8 strings only.`,
+        `Prompt: "${p.text}"\nReal answer: "${answer}"`, 500));
+      const L = answer.length;
+      dec = out.map((x: any) => String(x).trim().slice(0, 90)).filter((x: string) => x.length >= 2 && x.toLowerCase() !== answer.toLowerCase())
+        .sort((a: string, b2: string) => Math.abs(a.length - L) - Math.abs(b2.length - L)).slice(0, 5);
+    } catch (e) { await logFail(db, e); }
+    if (dec.length < 5) dec = [...dec, ...(await decoysFor(db, p.id, p.text, answer)).filter((x) => !dec.includes(x))].slice(0, 5);
     if (dec.length < 3) return json({ error: "Couldn't set the game up. Try another prompt." }, 500);
     const cards = shuffle([{ id: crypto.randomUUID().slice(0, 8), text: answer, mine: true }, ...dec.map((t) => ({ id: crypto.randomUUID().slice(0, 8), text: t }))]);
     let code = "";

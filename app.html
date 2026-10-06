@@ -1328,6 +1328,15 @@
   .mnboard strong{font-family:'Fredoka','Nunito',sans-serif; font-size:20px; color:var(--gold); min-width:40px; text-align:right} .mnrank{font-family:'Fredoka','Nunito',sans-serif; color:#5d7488; font-size:18px; width:18px}
   .wtgo2{margin:8px 0 0 !important}
   @media (prefers-reduced-motion: reduce){ .mncard, .mnprompt.deal, .mndeck i, .mncard.yes, .mncard.shake{animation:none} }
+  .mnhist{margin-top:26px; display:flex; flex-direction:column; gap:8px}
+  .mnsec{font-size:12px; font-weight:900; letter-spacing:.1em; text-transform:uppercase; color:#8fa6ba; margin:10px 4px 2px}
+  .mnrow{display:flex; align-items:center; gap:8px; border-radius:18px; padding:4px 4px 4px 0; background:#16293a; border:1px solid #23394d; text-decoration:none; position:relative; overflow:hidden}
+  .mnrow::before{content:''; width:6px; align-self:stretch; background:var(--g); flex:0 0 auto}
+  .mnrowmain{flex:1; min-width:0; display:block; padding:10px 6px; text-decoration:none; color:#fff}
+  .mnrowmain small{display:block; font-size:11.5px; color:#8fa6ba; white-space:nowrap; overflow:hidden; text-overflow:ellipsis} .mnrowmain b{display:block; font-size:15.5px; margin:2px 0} .mnrowmain span{font-size:12px; color:var(--goldtext)}
+  .mnshare1{flex:0 0 auto; width:44px; height:44px; border-radius:14px; border:0; background:var(--gold); color:#1a1304; font-size:18px; display:grid; place-items:center; cursor:pointer; margin-right:6px}
+  .minecard{display:flex; align-items:center; gap:12px; margin:0 0 14px; padding:12px 14px; border-radius:18px; text-decoration:none; color:#fff; background:linear-gradient(135deg, rgba(124,92,255,.35), rgba(236,72,153,.28)); border:1px solid rgba(168,85,247,.5)}
+  .mcemo{font-size:30px} .mctxt{flex:1; min-width:0} .mctxt b{display:block; font-family:'Fredoka','Nunito',sans-serif; font-weight:600; font-size:17px} .mctxt small{font-size:12.5px; color:#e3d7ff}
 </style>
 </head>
 <body>
@@ -2352,7 +2361,7 @@ function screenLedger(tail){
         '</div>' +
       (KIOSK ? '' : huntCardHTML(L.name) + '<div class="actrow"><button class="actbtn snap" id="qwalk"><span class="acti"><i class="ph-fill ph-camera"></i></span><span class="actt"><b>Snap</b><small>a photo</small></span></button>' +
         '<button class="actbtn note" id="qnote"><span class="acti"><i class="ph-fill ph-note-pencil"></i></span><span class="actt"><b>Note</b><small>a few words</small></span></button></div>') +
-      '<div id="fetchslot"></div>' +
+      '<div id="minecard"></div><div id="fetchslot"></div>' +
       '<div class="momwrap" id="votestrip"></div>' +
       '<div id="entries" class="elist"></div>' + '<div id="backedbox"></div>' +
       (KIOSK ? '' : '<a href="#" class="flashbtn" id="flashbtn" aria-label="Memory Lane">' + ic('memory', 'btnic') + '<span>Memory Lane</span></a>') + tabbar('pup');
@@ -2379,6 +2388,9 @@ function screenLedger(tail){
     }
     var wantTour = false; try { wantTour = sessionStorage.getItem('vp.tour') === '1'; sessionStorage.removeItem('vp.tour'); } catch (e) {}
     tourResume();   // the tour is never forced: the chip under the logo invites it
+    mineCall({ action: 'list', tail: tail }).then(function(r){ var mc = document.getElementById('minecard'); if (!mc) return;
+      var n = (r.made || []).length + (r.played || []).length; if (!n) return protoCheck().then(function(pr){ if (pr) mineCardFill(mc, r); });
+      mineCardFill(mc, r); }).catch(function(){});
     if (!window._vpVisWired) { window._vpVisWired = true;
       document.addEventListener('visibilitychange', function(){
         if (!document.hidden) refreshPlaceIfStale();
@@ -4025,9 +4037,33 @@ function mineEnsurePup(){
 function mineShell(inner){ root.innerHTML = '<div class="mn"><a class="mnlogo" href="/pack"><i class="ph-fill ph-paw-print"></i> VoterPup</a>' + inner + '</div>'; }
 
 // make one: pick a prompt, answer it, hide it
+function mineCardFill(mc, r){
+  var made = r.made || [], fresh = made.reduce(function(s, g){ return s + (g.players || 0); }, 0);
+  mc.innerHTML = '<a class="minecard" href="/mine"><span class="mcemo">🫣</span><span class="mctxt"><b>Which one&rsquo;s mine?</b><small>' +
+    (made.length ? made.length + ' hidden · ' + fresh + ' friend' + (fresh === 1 ? '' : 's') + ' played' : 'Hide an answer, see which friends find it') + '</small></span><i class="ph-bold ph-caret-right"></i></a>';
+}
+function mineShareText(code, prompt){ return 'I hid a secret answer. Can you find mine? 🫣🐾\n“' + prompt + '”\n' + location.origin + '/m/' + code; }
+function mineShare(code, prompt){ var msg = mineShareText(code, prompt); track('mine', { act: 'share' });
+  if (navigator.share) navigator.share({ text: msg }).catch(function(){}); else navigator.clipboard.writeText(msg).then(function(){ toast('Link copied. Paste it in the chat 🐾'); }, function(){ toast(location.origin + '/m/' + code); }); }
+// your games and the ones you played, under the make card
+function mineHistory(){
+  var box = document.getElementById('mnhist'), me = loadLocal(); if (!box || !me) return;
+  mineCall({ action: 'list', tail: me.tail }).then(function(r){
+    var made = r.made || [], played = r.played || []; if (!made.length && !played.length) { box.innerHTML = ''; return; }
+    box.innerHTML = (made.length ? '<div class="mnsec">Your hidden ones</div>' + made.map(function(g){
+        return '<div class="mnrow" style="--g:' + mineGrad(g.code) + '"><a class="mnrowmain" href="/m/' + g.code + '"><small>' + esc(g.prompt || '') + '</small><b>“' + esc(g.answer) + '”</b>' +
+          '<span>' + (g.players ? g.players + ' played · ' + g.found + ' found it' : 'Nobody yet') + (g.live ? '' : ' · ended') + '</span></a>' +
+          (g.live ? '<button class="mnshare1" data-mshare="' + g.code + '" data-mprompt="' + esc(g.prompt || '') + '" aria-label="Send"><i class="ph-fill ph-share-network"></i></button>' : '') + '</div>'; }).join('') : '') +
+      (played.length ? '<div class="mnsec">You played</div>' + played.map(function(x){
+        return '<a class="mnrow" href="/m/' + x.code + '" style="--g:' + mineGrad(x.code) + '"><span class="mnrowmain"><small>' + esc(x.owner || 'A friend') + '&rsquo;s · ' + esc(x.prompt || '') + '</small>' +
+          '<b>' + (x.done ? (x.score ? x.score + ' points' : 'Fooled 😎') : 'Not finished') + '</b></span></a>'; }).join('') : '');
+    box.querySelectorAll('[data-mshare]').forEach(function(b){ b.onclick = function(){ mineShare(b.getAttribute('data-mshare'), b.getAttribute('data-mprompt')); }; });
+  }).catch(function(){});
+}
 function screenMineMake(){
   var st = { prompts: [], i: 0 };
-  mineShell('<div class="mnstage" id="mnstage"><div class="mnspin"></div></div>');
+  mineShell('<div class="mnstage" id="mnstage"><div class="mnspin"></div></div><div class="mnhist" id="mnhist"></div>');
+  mineHistory();
   function draw(){
     var p = st.prompts[st.i]; if (!p) return;
     document.getElementById('mnstage').innerHTML =
@@ -4067,8 +4103,8 @@ function mineHidden(code, p, ans){
     '<p class="mnsmall">“' + esc(ans) + '” is hiding among 5 others. Send the link to friends or the family chat.</p>' +
     '<button class="mnbig" id="mnshare"><i class="ph-fill ph-share-network"></i> Send to friends</button>' +
     '<a class="mnlink" href="/m/' + code + '">See who&rsquo;s found it →</a>';
-  document.getElementById('mnshare').onclick = function(){ track('mine', { act: 'share' });
-    if (navigator.share) navigator.share({ text: msg }).catch(function(){}); else navigator.clipboard.writeText(msg).then(function(){ toast('Link copied. Paste it in the chat 🐾'); }, function(){ toast(link); }); };
+  document.getElementById('mnshare').onclick = function(){ mineShare(code, p.text); };
+  mineHistory();
 }
 // a friend plays, or the owner sees the scoreboard
 function screenMinePlay(code){
@@ -4872,7 +4908,7 @@ function screenPack(mode, topic0){
   }).catch(function(e){ var ag = document.getElementById('agenda'); if (ag) ag.hidden = true; var bd = document.getElementById('board'); if (bd) bd.innerHTML = '<div class="hint">Couldn&rsquo;t reach the pack. <a href="#" onclick="location.reload();return false">Try again</a></div>'; });
 }
 
-var APP_VERSION = "20261006024751";
+var APP_VERSION = "20261006030233";
 (function(){
   try {
     fetch('/version.json?t=' + Date.now(), { cache: 'no-store' }).then(function(r){ return r.json(); }).then(function(j){
