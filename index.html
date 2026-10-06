@@ -1204,6 +1204,48 @@
   .nav.compact .navr{width:min(62vw, 250px); flex:0 0 auto; justify-content:flex-end}
   .nav.compact .navpill{flex:1 1 auto; justify-content:center; min-width:0; padding:0 8px}
   .kmchip{cursor:default; font-weight:900; color:var(--goldtext) !important; border-color:rgba(245,184,61,.5) !important} .sortbtn.busy{opacity:.6}
+  /* ---------- The Agenda ---------- */
+  .agd{position:relative; margin:4px 0 18px; padding:16px 14px 14px; border-radius:22px; background:linear-gradient(165deg, #172c40 0%, #13212f 55%, #101c28 100%); border:1px solid #27425a; box-shadow:0 10px 30px rgba(0,0,0,.28)}
+  .agload{display:grid; grid-template-columns:1fr 1fr; gap:10px; height:212px} .agload span{border-radius:18px; background:linear-gradient(110deg, #1a2c3d 25%, #223a50 50%, #1a2c3d 75%); background-size:220% 100%; animation:tshim 1.3s linear infinite}
+  .agtop{display:flex; justify-content:space-between; align-items:flex-start; gap:10px}
+  .agq{font-family:'Fredoka','Nunito',system-ui,sans-serif; font-weight:600; font-size:20px; line-height:1.15; color:#fff; text-wrap:balance}
+  .ags{font-size:12.5px; color:#9db4c8; margin-top:3px}
+  .agcity{flex:0 0 auto; font-size:12px; font-weight:900; color:var(--goldtext) !important; text-decoration:none; border:1px solid rgba(245,184,61,.45); border-radius:999px; padding:5px 10px; margin-top:2px}
+  .agsegs{display:flex; gap:4px; margin:12px 0 12px} .agsegs i{flex:1; height:5px; border-radius:3px; background:#25384b; transition:background .3s} .agsegs i.d{background:var(--gold)} .agsegs i.n{background:rgba(245,184,61,.35)}
+  .duel{position:relative; display:grid; grid-template-columns:1fr 1fr; gap:10px; transition:opacity .22s ease, transform .22s ease}
+  .duel.out{opacity:0; transform:translateX(-18px)} .duel.in{animation:duelin .32s cubic-bezier(.2,.8,.2,1)} @keyframes duelin{from{opacity:0; transform:translateX(22px)} to{opacity:1; transform:none}}
+  .pcard{position:relative; min-height:212px; border:0; border-radius:18px; padding:12px; display:flex; flex-direction:column; justify-content:space-between; text-align:left; color:#fff; font:inherit; cursor:pointer;
+    background-size:cover; background-position:center; box-shadow:0 4px 0 rgba(0,0,0,.35), inset 0 0 0 1px rgba(255,255,255,.06); transition:transform .18s ease, opacity .25s ease, filter .25s ease, box-shadow .2s ease; overflow:hidden}
+  .pcard:hover{transform:translateY(-2px)} .pcard:active{transform:translateY(2px); box-shadow:0 1px 0 rgba(0,0,0,.35)}
+  .pcard:focus-visible{outline:3px solid var(--gold); outline-offset:2px}
+  .pchips{display:flex; gap:4px; flex-wrap:wrap} .pchip{background:rgba(8,14,20,.38); backdrop-filter:blur(4px); border-radius:999px; padding:3px 8px; font-size:11px; font-weight:900; color:#fff}
+  .picon{font-size:38px; color:rgba(255,255,255,.9); align-self:flex-start; margin:auto 0 8px}
+  .plabel{font-family:'Fredoka','Nunito',system-ui,sans-serif; font-weight:600; font-size:18px; line-height:1.18; text-shadow:0 1px 4px rgba(0,0,0,.35); display:-webkit-box; -webkit-line-clamp:5; -webkit-box-orient:vertical; overflow:hidden}
+  .por{position:absolute; left:50%; top:50%; transform:translate(-50%,-50%); z-index:2; width:40px; height:40px; border-radius:50%; background:var(--gold); color:#1a1304; display:grid; place-items:center; font-family:'Fredoka','Nunito',sans-serif; font-weight:700; font-size:15px; box-shadow:0 0 0 5px #142433; pointer-events:none; transition:opacity .2s}
+  .duel.decided .por{opacity:0}
+  .pcard.chosen{transform:scale(1.03); box-shadow:0 0 0 3px var(--gold), 0 10px 26px rgba(0,0,0,.4); z-index:1}
+  .pcard.lost{opacity:.32; filter:saturate(.4); transform:scale(.96)}
+  .pstamp{position:absolute; left:50%; top:40%; font-size:64px; color:var(--gold); line-height:1; transform:translate(-50%,-50%) rotate(-14deg); animation:stamp .42s cubic-bezier(.2,1.6,.4,1) both; filter:drop-shadow(0 3px 6px rgba(0,0,0,.45)); pointer-events:none}
+  @keyframes stamp{0%{transform:translate(-50%,-50%) rotate(-14deg) scale(2.2); opacity:0} 100%{transform:translate(-50%,-50%) rotate(-14deg) scale(1); opacity:1}}
+  .agctl{display:flex; justify-content:center; gap:10px; margin:12px 0 2px; font-size:13px; color:#7f97ab; min-height:34px; align-items:center}
+  .agctl a{color:#b9cad8; font-weight:800; text-decoration:none} .agctl a:hover{color:#fff}
+  .agres{width:100%} .agbar{height:8px; border-radius:4px; background:#24384b; overflow:hidden} .agbar i{display:block; height:100%; width:0; border-radius:4px; background:linear-gradient(90deg, var(--gold), #ffd56a); transition:width .7s cubic-bezier(.2,.8,.2,1)}
+  .agres span{display:block; margin-top:7px; font-size:13px; color:#cfdbe6; text-align:center} .agres b{color:#fff}
+  .agmine{margin-top:12px; padding-top:12px; border-top:1px solid #25384b}
+  .agmh{display:flex; justify-content:space-between; align-items:baseline; margin-bottom:6px} .agmh b{font-family:'Fredoka','Nunito',sans-serif; font-weight:600; font-size:15px; color:#fff} .agmh span{font-size:12px; color:#8fa6ba}
+  .agrow{display:flex; align-items:center; gap:10px; padding:6px 2px} .agn{font-family:'Fredoka','Nunito',sans-serif; font-weight:700; font-size:16px; color:var(--gold); width:16px; text-align:center}
+  .agl{flex:1; min-width:0; font-weight:800; font-size:14px; color:#e6eef5; white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+  .agrow em{font-style:normal; font-size:11px; font-weight:900} .mvup{color:var(--accent)} .mvdn{color:var(--red)} .mvnew{color:var(--goldtext)}
+  .agmatch{margin-top:8px; font-size:12.5px; color:#cfe9df; background:rgba(47,211,156,.1); border:1px solid rgba(47,211,156,.3); border-radius:10px; padding:7px 10px} .agmatch b{color:#fff; font-size:15px}
+  .agmatch.quiet{color:#8fa6ba; background:transparent; border-style:dashed; border-color:#2b4257}
+  .agdone{display:flex; gap:12px; align-items:center; background:rgba(245,184,61,.08); border:1px solid rgba(245,184,61,.35); border-radius:16px; padding:12px; margin-top:2px}
+  .agdone img{width:58px; height:58px; border-radius:50%; border:3px solid var(--gold); flex:0 0 auto} .agdone b{display:block; font-family:'Fredoka','Nunito',sans-serif; font-weight:600; font-size:17px; color:#fff} .agdone span{font-size:13px; color:#c9d6e2}
+  .agbtns{display:flex; gap:8px; margin-top:12px} .agbtns .btn{flex:1; margin:0; font-size:14px; padding:11px 8px}
+  .cagl{list-style:none; padding:0; margin:8px 0 12px} .cagl li{display:flex; gap:10px; align-items:flex-start; padding:9px 0; border-top:1px solid var(--line)} .cagl li > div{flex:1; min-width:0}
+  .cagl b{display:block; font-size:14.5px} .cagl small{display:block; font-size:11.5px; color:var(--sub); margin-top:3px}
+  .cagbar{display:block; height:6px; border-radius:3px; background:var(--chip); margin-top:5px; overflow:hidden} .cagbar i{display:block; height:100%; border-radius:3px; background:var(--gold)}
+  @media (max-width:360px){ .plabel{font-size:16px} .pcard{min-height:196px} }
+  @media (prefers-reduced-motion: reduce){ .duel, .pcard, .agbar i{transition:none} .pstamp, .duel.in{animation:none} }
 </style>
 </head>
 <body>
@@ -3593,6 +3635,201 @@ document.addEventListener('click', function(ev){
   var a = ev.target && ev.target.closest ? ev.target.closest('[data-togroup]') : null; if (!a) return;
   ev.preventDefault(); ev.stopPropagation(); groupPickSheet(a.getAttribute('data-togroup'));
 });
+// ---------- The Agenda: "which should the city fix first?" ----------
+// Two issues side by side; you pick one. Every pick moves the city's ranking (server, Elo) and builds your own agenda
+// (computed here from your picks). Ten a day. Big issues (housing prices, healthcare) and the ones on your street compete fairly.
+var AGENDA_DAILY = 10;
+function agendaToday(){ var d = new Date(); return d.getFullYear() + '-' + (d.getMonth() + 1) + '-' + d.getDate(); }
+function agendaCount(ck, add){
+  var k = 'vp.pk.' + agendaToday() + '.' + ck, n = 0;
+  try { n = +localStorage.getItem(k) || 0; if (add) { n += add; localStorage.setItem(k, String(n)); } } catch (e) {}
+  return n;
+}
+function agendaSlug(s){ return String(s || '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 60); }
+function agendaClean(s){   // "Street Light Out Complaint" -> "Street light out"
+  var t = String(s || '').replace(/\s*(complaint|request|case|service request)$/i, '').replace(/\s+/g, ' ').trim();
+  if (/^[A-Z][a-z0-9'-]*( [A-Z&][a-zA-Z0-9'-]*)+$/.test(t)) t = t.charAt(0) + t.slice(1).toLowerCase();   // Title Case from city feeds -> sentence case
+  return t.length > 90 ? t.slice(0, 88) + '…' : t;
+}
+var AGENDA_311 = [   // [pattern on the city's request type, the issue in plain words, topic]
+  [/encampment/i, 'Tents and encampments on streets', 'homelessness'], [/noise.*(residential|chronic)|^noise$|noise - street|noise - vehicle|music complaint/i, 'Noise at night', 'climate'],
+  [/aircraft noise/i, 'Aircraft noise', 'climate'], [/street ?light|streetlight/i, 'Street lights out', 'infrastructure'], [/pothole/i, 'Potholes', 'infrastructure'],
+  [/graffiti/i, 'Graffiti on walls', 'cleanliness'], [/illegal dumping|fly dumping|abandoned (non-recyclables|recyclables)|bulky/i, 'Dumped garbage and junk', 'cleanliness'],
+  [/needle/i, 'Needles left in public', 'safety'], [/street and sidewalk cleaning|sanitation/i, 'Dirty streets and sidewalks', 'cleanliness'],
+  [/rodent|rat complaint/i, 'Rats', 'health'], [/abandoned (vehicle|or uninsured)|72hr/i, 'Abandoned cars', 'transit'],
+  [/parked on sidewalk|blocked driveway|illegal parking|parking violation|too close to fire hydrant/i, 'Illegal parking blocking the way', 'transit'],
+  [/scooter|bike share/i, 'Scooters and share bikes left in the way', 'transit'], [/traffic signal/i, 'Broken traffic signals', 'transit'],
+  [/sign repair|one way sign/i, 'Damaged street signs', 'infrastructure'], [/tree|vegetation/i, 'Overgrown trees and plants', 'parks'],
+  [/missed garbage|garbage cart|recycling cart|blue recycling/i, 'Missed garbage and recycling pickups', 'cleanliness'], [/water leak/i, 'Water leaks', 'utilities'],
+  [/curb ramp|sidewalk (repair|damage)/i, 'Broken sidewalks and curb ramps', 'infrastructure'], [/dead animal/i, 'Dead animals left on streets', 'cleanliness']
+];
+function agenda311(type){ for (var i = 0; i < AGENDA_311.length; i++) if (AGENDA_311[i][0].test(type)) return AGENDA_311[i]; return null; }
+function agendaPool(rows){
+  var me = myPos(), pool = [], seen = {};
+  QUICK_ISSUES.forEach(function(q){ var lb = q[1]; seen[lb.toLowerCase()] = 1;
+    pool.push({ key: 'big:' + agendaSlug(lb), label: lb, kind: 'big', topic: guessTopic(lb), scope: guessScope(lb, guessTopic(lb)), icon: q[0] }); });
+  (rows || []).forEach(function(r){
+    var off = r.source === 'city311', m3 = off ? agenda311(r.body) : null; if (off && !m3) return;   // city request types we can't say plainly stay out
+    var lb = off ? m3[1] : agendaClean(r.body), k0 = lb.toLowerCase();
+    if (!lb || lb.length < 4) return;
+    var me0 = myPos(), kk = me0 && r.lat != null ? kmBetween(me0, { lat: +r.lat, lng: +r.lng }) : null;
+    if (seen[k0]) { var ex = pool.filter(function(p){ return p.label.toLowerCase() === k0; })[0]; if (ex && kk != null && (ex.km == null || kk < ex.km)) ex.km = kk; if (ex && ex.reports != null) ex.reports++; return; }
+    seen[k0] = 1;
+    var img = null; (r.media || []).forEach(function(m){ if (!img && m.url && m.type && m.type.indexOf('image') === 0) img = m.url; });
+    var k = me && r.lat != null ? kmBetween(me, { lat: +r.lat, lng: +r.lng }) : null;
+    pool.push({ key: off ? 'o:' + agendaSlug(lb) : 'e:' + r.id, label: lb, kind: off ? 'official' : 'local', topic: off ? m3[2] : (r.topic || guessTopic(lb)), reports: off ? 1 : null, entry: off ? '' : r.id, img: img, km: k, scope: r.scope || 'local' });
+  });
+  return pool;
+}
+// the pair to show next: mixes a big issue with one near you, then two local ones, then two big ones; never the same pair twice a day
+function agendaPair(S){
+  var big = S.pool.filter(function(p){ return p.kind === 'big'; }), loc = S.pool.filter(function(p){ return p.kind !== 'big'; });
+  loc.sort(function(a, b){ return (a.km == null ? 1e9 : a.km) - (b.km == null ? 1e9 : b.km); });
+  var near = loc.slice(0, 14), shape = ['bl', 'll', 'bl', 'bb'].at(S.turn % 4), recent = S.lastKeys || [];
+  var pick = function(list){ var l = list.filter(function(p){ return recent.indexOf(p.key) < 0; }); if (!l.length) l = list; return l.at(Math.floor(Math.random() * l.length)); };
+  for (var tries = 0; tries < 30; tries++) {
+    var a, b;
+    if (shape === 'bb' || near.length < 2 && shape === 'll') { a = pick(big); b = pick(big); }
+    else if (shape === 'll') { a = pick(near); b = pick(near); }
+    else { a = pick(big); b = pick(near.length ? near : big); }
+    if (!a || !b || a.key === b.key) continue;
+    var pk = [a.key, b.key].sort().join('|'); if (S.donePairs[pk] && tries < 25) continue;
+    S.turn++; S.lastKeys = [a.key, b.key];
+    return Math.random() < .5 ? [a, b] : [b, a];
+  }
+  return null;
+}
+// your agenda: your own picks, replayed through the same rating maths, top 5
+function agendaMine(picks){
+  var R = {}, L = {}, W = {};
+  (picks || []).forEach(function(p){
+    var rw = R[p.w] || 1500, rl = R[p.l] || 1500, ew = 1 / (1 + Math.pow(10, (rl - rw) / 400));
+    R[p.w] = rw + 32 * (1 - ew); R[p.l] = rl - 32 * (1 - ew); L[p.w] = p.wl || L[p.w]; L[p.l] = p.ll || L[p.l]; W[p.w] = (W[p.w] || 0) + 1;
+  });
+  return Object.keys(R).filter(function(k){ return W[k]; }).sort(function(a, b){ return R[b] - R[a]; }).slice(0, 5).map(function(k){ return { key: k, label: L[k] || k, r: R[k] }; });
+}
+function agendaMatch(picks, ratings){   // how often your pick agrees with the city's current order
+  var n = 0, agree = 0; (picks || []).forEach(function(p){ var a = ratings[p.w], b = ratings[p.l]; if (a == null || b == null || a === b) return; n++; if (a > b) agree++; });
+  return n >= 5 ? Math.round(agree / n * 100) : null;
+}
+var AGENDA_ICON = { housing: 'ph-house-line', homelessness: 'ph-tent', transit: 'ph-bus', infrastructure: 'ph-road-horizon', utilities: 'ph-drop', safety: 'ph-shield-check',
+  'cost of living': 'ph-shopping-cart', health: 'ph-first-aid', education: 'ph-graduation-cap', climate: 'ph-leaf', cleanliness: 'ph-broom', parks: 'ph-tree', other: 'ph-paw-print' };
+function agendaFace(it){
+  var L = scopeLabels(), chip;
+  if (it.kind === 'big') { var s = L[it.scope] || L.local; chip = s[0] + ' ' + s[1] + '-wide'; }
+  else if (it.kind === 'official') chip = '🏛️ 3-1-1' + (it.km != null ? ' · ' + kmText(it.km) : it.reports > 1 ? ' · ' + it.reports + ' reports' : '');
+  else chip = it.km != null ? '📍 ' + kmText(it.km) : '🐾 Neighbour';
+  if (!it.icon) it.icon = AGENDA_ICON[it.topic] || 'ph-paw-print';
+  var bg = it.img ? 'background-image:linear-gradient(180deg, rgba(12,23,34,.15) 20%, rgba(12,23,34,.9) 78%),url(' + esc(it.img) + ')' : 'background:' + tileCol(it.key);
+  return '<div class="pcard" role="button" tabindex="0" aria-label="' + esc(it.label) + '" data-key="' + esc(it.key) + '" style="' + bg + '"><span class="pchips"><span class="pchip">' + chip + '</span>' +
+    '</span>' +
+    (it.icon && !it.img ? '<i class="picon ph-duotone ' + it.icon + '"></i>' : '') +
+    '<span class="plabel">' + esc(it.label) + '</span></div>';
+}
+function agendaEnsurePup(){
+  var me = loadLocal(); if (me) return Promise.resolve(me);
+  var names = ['Maple','Scout','Biscuit','Oreo','Juno','Pepper','Milo','Hazel','Kobe','Nala','Toffee','Ziggy'], name = names.at(Math.floor(Math.random() * names.length));
+  return rpc('vp_create_ledger', { p_name: name }).then(function(l){
+    saveLocal(l.tail, l.name); track('pup_created', { via: 'agenda' });
+    toast('🐾 Meet ' + esc(l.name) + ', your pup. It keeps your agenda and brings it back on voting day.', 4200);
+    return { tail: l.tail, name: l.name };
+  });
+}
+function agendaInit(city, rows){
+  var root0 = document.getElementById('agenda'); if (!root0 || !city) return;
+  var ck = city.toLowerCase(), me = loadLocal();
+  var S = { city: city, ck: ck, pool: agendaPool(rows), turn: 0, donePairs: {}, picks: [], ratings: {}, pickers: 0, busy: false, prevMine: [] };
+  if (S.pool.length < 4) { root0.hidden = true; return; }
+  Promise.all([rpc('vp_city_agenda', { p_city: ck, p_n: 10 }).catch(function(){ return null; }), me ? rpc('vp_my_picks', { p_tail: me.tail, p_city: ck }).catch(function(){ return []; }) : Promise.resolve([])])
+    .then(function(res){
+      var ca = res[0] || {}; S.ratings = ca.ratings || {}; S.pickers = ca.pickers || 0; S.cityTop = ca.items || [];
+      S.picks = res[1] || []; var dayAgo = Date.now() - 864e5;
+      S.picks.forEach(function(p){ if (new Date(p.ts).getTime() > dayAgo) S.donePairs[[p.w, p.l].sort().join('|')] = 1; });
+      S.prevMine = agendaMine(S.picks);
+      agendaRender(S);
+    });
+}
+function agendaHead(S, n){
+  var segs = ''; for (var i = 0; i < AGENDA_DAILY; i++) segs += '<i class="' + (i < n ? 'd' : i === n ? 'n' : '') + '"></i>';
+  return '<div class="agtop"><div><div class="agq">Which should ' + esc(S.city) + ' fix first?</div><div class="ags">' +
+    (S.pickers > 1 ? S.pickers + ' pups are building ' + esc(S.city) + '&rsquo;s agenda' : 'Your picks build your agenda and ' + esc(S.city) + '&rsquo;s') + '</div></div>' +
+    '<a href="#" class="agcity" id="agcity">City&rsquo;s list</a></div><div class="agsegs" aria-label="' + n + ' of ' + AGENDA_DAILY + ' today">' + segs + '</div>';
+}
+function agendaMineHTML(S, mine){
+  if (!mine.length) return '';
+  var prev = {}; S.prevMine.forEach(function(x, i){ prev[x.key] = i; });
+  var m = S.pickers >= 5 ? agendaMatch(S.picks, S.ratings) : null;
+  return '<div class="agmine"><div class="agmh"><b>Your agenda</b><span>' + S.picks.length + ' pick' + (S.picks.length === 1 ? '' : 's') + '</span></div>' +
+    mine.map(function(x, i){ var p = prev[x.key], mv = p == null ? '<em class="mvnew">new</em>' : p > i ? '<em class="mvup">▲ ' + (p - i) + '</em>' : p < i ? '<em class="mvdn">▼ ' + (i - p) + '</em>' : '';
+      return '<div class="agrow"><span class="agn">' + (i + 1) + '</span><span class="agl">' + esc(x.label) + '</span>' + mv + '</div>'; }).join('') +
+    (m != null ? '<div class="agmatch"><b>' + m + '%</b> of your picks agree with ' + esc(S.city) + ' so far</div>' : '<div class="agmatch quiet">' + (S.picks.length < 5 ? 'Your match with ' + esc(S.city) + ' shows after 5 picks' : 'Your match with ' + esc(S.city) + ' shows once a few more neighbours pick') + '</div>') + '</div>';
+}
+function agendaRender(S){
+  var el = document.getElementById('agenda'); if (!el) return;
+  var n = agendaCount(S.ck), mine = agendaMine(S.picks);
+  if (n >= AGENDA_DAILY) { agendaDone(S, mine); return; }
+  var pair = agendaPair(S); if (!pair) { el.hidden = true; return; }
+  S.pair = pair;
+  var f0 = agendaFace(pair[0]), f1 = agendaFace(pair[1]);
+  if (!pair[1].img && !pair[0].img && tileCol(pair[0].key) === tileCol(pair[1].key)) f1 = f1.replace('background:' + tileCol(pair[1].key), 'background:' + tileCol(pair[1].key + '~'));
+  el.innerHTML = agendaHead(S, n) + '<div class="duel" id="duel">' + f0 + '<span class="por">or</span>' + f1 + '</div>' +
+    '<div class="agctl" id="agctl"><a href="#" id="agboth">Both matter</a><span>·</span><a href="#" id="agskip">Skip</a></div>' + agendaMineHTML(S, mine);
+  el.querySelectorAll('.pcard').forEach(function(c){ c.onclick = function(){ agendaChoose(S, c.getAttribute('data-key')); };
+    c.onkeydown = function(ev){ if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); c.click(); } }; });
+  document.getElementById('agskip').onclick = function(ev){ ev.preventDefault(); agendaSwap(S); };
+  document.getElementById('agboth').onclick = function(ev){ ev.preventDefault(); toast('Both noted. Here’s another pair.'); agendaSwap(S); };
+  document.getElementById('agcity').onclick = function(ev){ ev.preventDefault(); agendaCitySheet(S); };
+}
+function agendaSwap(S){ var d = document.getElementById('duel'); if (!d) return; d.classList.add('out'); setTimeout(function(){ agendaRender(S); var d2 = document.getElementById('duel'); if (d2) d2.classList.add('in'); }, reduceMotionPref() ? 0 : 220); }
+function agendaChoose(S, key){
+  if (S.busy) return; S.busy = true;
+  var w = S.pair.filter(function(p){ return p.key === key; })[0], l = S.pair.filter(function(p){ return p.key !== key; })[0];
+  var duel = document.getElementById('duel'); duel.classList.add('decided');
+  duel.querySelectorAll('.pcard').forEach(function(c){ c.classList.add(c.getAttribute('data-key') === key ? 'chosen' : 'lost'); });
+  var ch = duel.querySelector('.pcard.chosen'); ch.insertAdjacentHTML('beforeend', '<span class="pstamp"><i class="ph-fill ph-paw-print"></i></span>');
+  if (navigator.vibrate) navigator.vibrate(18);
+  var ctl = document.getElementById('agctl'); ctl.innerHTML = '<div class="agres"><div class="agbar"><i id="agfill"></i></div><span id="agtxt">Counting…</span></div>';
+  agendaEnsurePup().then(function(me){
+    var body = function(p){ return { key: p.key, label: p.label, kind: p.kind, topic: p.topic || null, entry: p.entry || '' }; };
+    return rpc('vp_pick', { p_tail: me.tail, p_city: S.ck, p_w: body(w), p_l: body(l) });
+  }).then(function(r){
+    track('pick', { kind: w.kind + '>' + l.kind });
+    S.prevMine = agendaMine(S.picks);
+    S.picks.push({ w: w.key, l: l.key, wl: w.label, ll: l.label, ts: new Date().toISOString() });
+    S.donePairs[[w.key, l.key].sort().join('|')] = 1; agendaCount(S.ck, 1);
+    var tot = (r.same || 0) + (r.other || 0), pct = tot ? Math.round((r.same || 0) / tot * 100) : 100;
+    var txt = tot >= 5 ? '<b>' + pct + '%</b> of ' + esc(S.city) + ' picked the same' : 'You&rsquo;re among the first to weigh these two';
+    if (r.rank_w && S.pickers >= 3) txt += '<br>' + esc(w.label) + ' is <b>#' + r.rank_w + '</b> in ' + esc(S.city) + '&rsquo;s agenda';
+    var f = document.getElementById('agfill'), t = document.getElementById('agtxt');
+    if (t) t.innerHTML = txt; if (f) requestAnimationFrame(function(){ f.style.width = (tot >= 5 ? pct : 100) + '%'; });
+    return rpc('vp_city_agenda', { p_city: S.ck, p_n: 10 }).then(function(ca){ S.ratings = ca.ratings || S.ratings; S.pickers = ca.pickers || S.pickers; S.cityTop = ca.items || S.cityTop; }).catch(function(){});
+  }).then(function(){
+    setTimeout(function(){ S.busy = false; agendaSwap(S); }, reduceMotionPref() ? 900 : 1700);
+  }).catch(function(e){ S.busy = false; toast(e.message || 'Couldn’t save that pick. Try again.'); agendaRender(S); });
+}
+function agendaDone(S, mine){
+  var el = document.getElementById('agenda');
+  el.innerHTML = agendaHead(S, AGENDA_DAILY) +
+    '<div class="agdone"><img src="/pup-face.jpg" alt=""><div><b>Your agenda is set for today</b><span>' + esc(loadLocal() ? loadLocal().name : 'Your pup') + ' will bring it back on voting day.</span></div></div>' +
+    agendaMineHTML(S, mine) +
+    '<div class="agbtns"><button class="btn gold" id="agshare"><i class="ph-fill ph-share-network"></i> Share my agenda</button><button class="btn ghost" id="agmore">Pick 10 more</button></div>';
+  document.getElementById('agcity').onclick = function(ev){ ev.preventDefault(); agendaCitySheet(S); };
+  document.getElementById('agmore').onclick = function(){ try { localStorage.setItem('vp.pk.' + agendaToday() + '.' + S.ck, '0'); } catch (e) {} agendaRender(S); };
+  document.getElementById('agshare').onclick = function(){
+    var txt = 'My agenda for ' + S.city + ' 🐾\n' + mine.map(function(x, i){ return (i + 1) + '. ' + x.label; }).join('\n') + '\nWhat’s yours? voterpup.com/pack';
+    track('pick', { act: 'share' });
+    if (navigator.share) navigator.share({ text: txt }).catch(function(){}); else { navigator.clipboard.writeText(txt).then(function(){ toast('Copied. Paste it anywhere.'); }, function(){}); }
+  };
+}
+function agendaCitySheet(S){
+  var top = S.cityTop || [], max = top.length ? top[0].rating : 1;
+  var s = sheet('<div class="addhead">' + esc(S.city) + '&rsquo;s agenda</div><p class="hint">Ranked from ' + (S.pickers || 0) + ' pup' + (S.pickers === 1 ? '&rsquo;s picks' : 's&rsquo; picks') + ' between pairs. It changes with every pick.</p>' +
+    (top.length ? '<ol class="cagl">' + top.map(function(x, i){ var w = Math.max(8, Math.round((x.rating - 1300) / Math.max(1, max - 1300) * 100));
+      return '<li><span class="agn">' + (i + 1) + '</span><div><b>' + esc(x.label) + '</b><span class="cagbar"><i style="width:' + w + '%"></i></span><small>' + (x.kind === 'big' ? 'Big issue' : x.kind === 'official' ? 'From City 3-1-1 reports' : 'Posted by a neighbour') + ' · won ' + x.wins + ' of ' + x.n + ' matchup' + (x.n === 1 ? '' : 's') + '</small></div></li>'; }).join('') + '</ol>'
+      : '<p class="hint">No picks yet. Yours will be the first.</p>') + '<button class="btn ghost" id="cagx">Close</button>');
+  document.getElementById('cagx').onclick = s.close;
+}
+
 var METRO = { 'north vancouver': 'vancouver', 'west vancouver': 'vancouver', 'burnaby': 'vancouver', 'surrey': 'vancouver', 'richmond': 'vancouver', 'new westminster': 'vancouver',
   'coquitlam': 'vancouver', 'port coquitlam': 'vancouver', 'port moody': 'vancouver', 'delta': 'vancouver', 'langley': 'vancouver', 'maple ridge': 'vancouver', 'pitt meadows': 'vancouver',
   'white rock': 'vancouver', 'anmore': 'vancouver', 'belcarra': 'vancouver', 'lions bay': 'vancouver', 'bowen island': 'vancouver', 'tsawwassen': 'vancouver', 'district of north vancouver': 'vancouver' };
@@ -4015,6 +4252,7 @@ function screenPack(mode, topic0){
     '<div class="packhero">' + slotMedia('pack') +
       '<div class="ft">What ' + esc(city || 'your city') + ' wants fixed<small>The agenda is set for us. Time we set it.</small></div></div>' +
     '<div id="citystrip"></div>' +
+    (mode === 'local' && city && !wall ? '<section class="agd" id="agenda" aria-label="Which should ' + esc(city) + ' fix first?"><div class="agload"><span></span><span></span></div></section>' : '') +
     (loadLocal() ? '' : adSrc() ? '<a class="adcta" href="/app.html?new=1"><img src="/pup-face.jpg" alt=""><span><b>This is your city&rsquo;s list.</b>Add yours: tap one issue, get a pup that remembers it. Free, no sign-up.</span><i>Start →</i></a>'
       : '<div class="newbie">\ud83d\udc4b New here? Tap <b>📸 Snap</b> to get your own pup.</div>') +
     '<div class="scopebar"><div class="seg">' +
@@ -4042,6 +4280,7 @@ function screenPack(mode, topic0){
     saved ? readLedger(saved.tail).catch(function(){ return null; }) : Promise.resolve(null)
   ]).then(function(res){
     var rows = res[0] || [];
+    if (mode === 'local' && city && !wall) agendaInit(city, rows);
     if (autoMode && mode === 'local' && rows.length < 5 && !wall) { window._packQuiet = city; screenPack('all', topic0); return; }
     if (mode === 'all' && window._packQuiet) { var qn = document.getElementById('board'); if (qn) qn.insertAdjacentHTML('beforebegin', '<div class="quietnote">Quiet in ' + esc(window._packQuiet) + ' so far · showing everywhere</div>'); window._packQuiet = null; }
     var mine = (res[1] && res[1].entries || []).filter(function(e){ return e.shared; })
@@ -4321,10 +4560,10 @@ function screenPack(mode, topic0){
     };
 
     tilesView();
-  }).catch(function(e){ document.getElementById('board').textContent = 'The pack is napping: ' + e.message; });
+  }).catch(function(e){ var ag = document.getElementById('agenda'); if (ag) ag.hidden = true; var bd = document.getElementById('board'); if (bd) bd.innerHTML = '<div class="hint">Couldn&rsquo;t reach the pack. <a href="#" onclick="location.reload();return false">Try again</a></div>'; });
 }
 
-var APP_VERSION = "20261005235305";
+var APP_VERSION = "20261006004542";
 (function(){
   try {
     fetch('/version.json?t=' + Date.now(), { cache: 'no-store' }).then(function(r){ return r.json(); }).then(function(j){
