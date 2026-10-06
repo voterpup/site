@@ -5097,7 +5097,7 @@ function screenPack(mode, topic0){
   }).catch(function(e){ var ag = document.getElementById('agenda'); if (ag) ag.hidden = true; var bd = document.getElementById('board'); if (bd) bd.innerHTML = '<div class="hint">Couldn&rsquo;t reach the pack. <a href="#" onclick="location.reload();return false">Try again</a></div>'; });
 }
 
-var APP_VERSION = "20261006043539";
+var APP_VERSION = "20261006044416";
 (function(){
   try {
     fetch('/version.json?t=' + Date.now(), { cache: 'no-store' }).then(function(r){ return r.json(); }).then(function(j){
@@ -5609,7 +5609,9 @@ function introShow(then){
   else if (/^\/list\/[0-9a-f]{10}$/.test(location.pathname)) screenPublicList(location.pathname.split('/')[2]);
   else if (/^\/packs\/[0-9a-f-]{36}$/.test(location.pathname)) screenPackRoom(location.pathname.split('/')[2]);
   else if (!loadLocal() && !KIOSK && qs.get('new') !== '1' && qs.get('src') && AD_LANDING[qs.get('src')] === 'walk') walkFirstPup();
-  else if (!KIOSK && qs.get('src') && AD_LANDING[qs.get('src')] === 'game') { if (!getPlace()) savePlace(AD_CITY, true); try { sessionStorage.setItem('vp.ctab', 'game'); } catch (e) {} history.replaceState(null, '', '/pack'); screenPack(); }
+  else if (!KIOSK && qs.get('src') && AD_LANDING[qs.get('src')] === 'game') {   // game ads: straight onto today's question; the pup is made on their first tap
+    try { sessionStorage.setItem('vp.ctab', 'game'); localStorage.setItem('vp.mineon', '1'); } catch (e) {}
+    track('open', { land: 'game' }); history.replaceState(null, '', '/mine'); screenMineMake(); }
   else if (!loadLocal() && !KIOSK && qs.get('new') !== '1' && qs.get('src') && AD_LANDING[qs.get('src')] === 'city') {   // this ad lands on Your city
     if (!getPlace()) savePlace(AD_CITY, true);
     history.replaceState(null, '', '/pack'); screenPack();
