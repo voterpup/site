@@ -68,6 +68,23 @@ Deno.serve(async (req) => {
   const tail = String(b.tail || "");
 
   if (b.action === "warm") return json({ ok: true });
+  if (b.action === "hint") {   // a grey example answer for the box: from saved answers, or a quick batch written once and kept
+    const pid = Number(b.prompt); if (!pid) return json({ hint: null });
+    let { data: rows } = await db.from("mine_decoys").select("text").eq("prompt_id", pid).limit(30);
+    if (!rows || rows.length < 3) {
+      const { data: p } = await db.from("mine_prompts").select("text").eq("id", pid).maybeSingle();
+      if (!p) return json({ hint: null });
+      try {
+        const out = arr(await ask(`Write short, believable answers different ordinary people might give to a fill-in prompt in a friends' guessing game. ${RULES} Each 2 to 8 words, casual, at most one emoji. Reply with a JSON array of strings only.`, `Prompt: "${p.text}"\nWrite 8 answers.`, 300, "claude-haiku-4-5-20251001"));
+        const fresh = out.map((x: any) => String(x).trim().slice(0, 60)).filter((x: string) => x.length >= 2);
+        if (fresh.length) await db.from("mine_decoys").upsert(fresh.map((t: string) => ({ prompt_id: pid, text: t })), { onConflict: "prompt_id,text", ignoreDuplicates: true });
+        rows = fresh.map((t: string) => ({ text: t }));
+      } catch (e) { await logFail(db, e); return json({ hint: null }); }
+    }
+    const short = (rows ?? []).filter((r: any) => r.text.length <= 40);
+    const pick = (short.length ? short : rows ?? [])[Math.floor(Math.random() * Math.max(1, (short.length ? short : rows ?? []).length))];
+    return json({ hint: pick?.text ?? null });
+  }
   if (b.action === "recover") {   // "get my pup back": email the private pup link to the address linked to it. Same answer either way, so nobody can probe emails.
     const e = String(b.email || "").trim().toLowerCase(), done = json({ ok: true });
     if (!/^[^@\s]+@[^@\s]+\.[a-z]{2,}$/.test(e) || e.length > 120) return json({ error: "That email doesn't look right." }, 400);

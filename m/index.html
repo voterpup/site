@@ -1387,6 +1387,9 @@
   .mnpush{color:var(--goldtext) !important; font-weight:800; font-size:13px; text-decoration:none; text-align:center}
   .keybox{font-family:ui-monospace,monospace; font-size:13px; word-break:break-all; background:var(--chip); border:1px dashed var(--line); border-radius:12px; padding:12px; margin:8px 0 12px; user-select:all}
   .reportlink{color:var(--sub) !important; font-size:12px; text-decoration:underline} .reprow{margin:6px 0 !important; text-align:left}
+  .mnansrow{display:flex; gap:8px; align-items:center} .mnansrow input{flex:1; min-width:0}
+  .mnuse{flex:0 0 auto; border:1.5px solid rgba(245,184,61,.6); background:rgba(245,184,61,.12); color:var(--goldtext); border-radius:14px; padding:12px 12px; font:inherit; font-weight:900; font-size:14px; cursor:pointer}
+  #mnans::placeholder{color:#6f8599}
 </style>
 </head>
 <body>
@@ -4299,7 +4302,8 @@ function screenMineMake(){
         '<div class="mnswitch"><a href="#" id="mnownq">✏️ Write my own question</a><span>or tap ↻ for a new one</span></div>';
     document.getElementById('mnstage').innerHTML = mineSteps(st.own && !st.ownText ? 0 : 1) +
       '<div class="mnkicker">Guess the wish 🫣</div>' + card +
-      '<label class="mnfield"><span>Your answer</span><input id="mnans" maxlength="80" autocomplete="off" placeholder="the truth, in a few words" value="' + esc(st.answer) + '"></label>' +
+      '<label class="mnfield"><span>Your answer</span><span class="mnansrow"><input id="mnans" maxlength="80" autocomplete="off" placeholder="the truth, in a few words" value="' + esc(st.answer) + '">' +
+        '<button type="button" class="mnuse" id="mnuse" hidden>Use it</button></span></label>' +
       '<label class="mnfield"><span>Your name for friends</span><input id="mnnick" maxlength="24" autocomplete="given-name" placeholder="so they know whose it is" value="' + esc(mineName()) + '"></label>' +
       '<button class="mnbig" id="mngo">See the mix →</button>' +
       '<p class="mnsmall">Next you&rsquo;ll see your answer mixed with 5 made-up ones. Friends try to spot yours.</p>' +
@@ -4311,6 +4315,18 @@ function screenMineMake(){
     var pen = document.getElementById('mnpen'); if (pen) pen.onclick = goOwn;
     var back = document.getElementById('mnback'); if (back) back.onclick = function(ev){ ev.preventDefault(); keep(); st.own = false; draw(); };
     document.getElementById('mngo').onclick = preview;
+    hint();
+  }
+  // a grey example answer in the box: shows what to write, and one tap uses it
+  function hint(){
+    var inp = document.getElementById('mnans'), use = document.getElementById('mnuse'); if (!inp || st.own) return;
+    var p = st.prompts[st.i]; if (!p) return; var pid = p.id;
+    mineCall({ action: 'hint', prompt: pid }).then(function(r){
+      if (!r || !r.hint || !st.prompts[st.i] || st.prompts[st.i].id !== pid || st.own) return;
+      st.hint = r.hint; inp.placeholder = 'e.g. ' + r.hint;
+      var sync = function(){ use.hidden = !!inp.value.trim(); }; sync(); inp.addEventListener('input', sync);
+      use.onclick = function(){ inp.value = st.hint; st.answer = st.hint; use.hidden = true; inp.focus(); track('mine', { act: 'use_hint' }); };
+    }).catch(function(){});
   }
   function keep(){ var a = document.getElementById('mnans'), q = document.getElementById('mnq'), n = document.getElementById('mnnick'); if (a) st.answer = a.value; if (q) st.ownText = q.value; if (n && n.value.trim()) mineName(n.value.trim()); }
   function load(){ rpc('vp_mine_prompts', { p_n: 6 }).then(function(l){ st.prompts = l || [];
@@ -5182,7 +5198,7 @@ function screenPack(mode, topic0){
   }).catch(function(e){ var ag = document.getElementById('agenda'); if (ag) ag.hidden = true; var bd = document.getElementById('board'); if (bd) bd.innerHTML = '<div class="hint">Couldn&rsquo;t reach the pack. <a href="#" onclick="location.reload();return false">Try again</a></div>'; });
 }
 
-var APP_VERSION = "20261006232314";
+var APP_VERSION = "20261006232623";
 (function(){
   try {
     fetch('/version.json?t=' + Date.now(), { cache: 'no-store' }).then(function(r){ return r.json(); }).then(function(j){
