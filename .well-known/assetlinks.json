@@ -1,0 +1,8 @@
+[{
+      "relation": ["delegate_permission/common.handle_all_urls"],
+      "target": {
+        "namespace": "android_app",
+        "package_name": "com.voterpup.app",
+        "sha256_cert_fingerprints": ["B8:5C:3D:DE:65:77:1F:4F:70:FB:AC:F2:93:94:42:6F:F6:59:4B:0E:D6:05:08:18:BC:FA:19:DB:14:6B:67:16"]
+      }
+    }]
