@@ -1377,6 +1377,7 @@
   .gtk{display:block; font-size:11px; font-weight:900; letter-spacing:.06em; text-transform:uppercase; opacity:.9} .gtq{display:block; font-family:'Fredoka','Nunito',sans-serif; font-weight:600; font-size:18px; line-height:1.2; margin:6px 0 10px}
   .gtgo{display:inline-block; background:rgba(255,255,255,.95); color:#1a1304; border-radius:999px; padding:6px 14px; font-weight:900; font-size:13px}
   .card.flashme{animation:flashme 1.8s ease 2; box-shadow:0 0 0 3px var(--gold)} @keyframes flashme{50%{box-shadow:0 0 0 7px rgba(245,184,61,.35)}}
+  .mndice.mnpen{right:64px}
 </style>
 </head>
 <body>
@@ -4144,7 +4145,8 @@ function cityTabs(city){
     '<button class="mnghost gwrand" id="gwrand"><i class="ph-fill ph-shuffle"></i> Play a random neighbour&rsquo;s</button>' +
     '<div class="mnhist" id="mnhist"></div>';
   mineCall({ action: 'prompts' }).then(function(l){ var p = (l || [])[0], c = document.getElementById('gwcard'); if (!p || !c) return; game._p = p;
-    c.style.background = mineGrad(p.id); c.innerHTML = '<span class="mnkind">today&rsquo;s question · ' + esc(p.kind) + '</span><b>' + esc(p.text) + '</b><button class="mndice" id="gwdice" aria-label="Another question"><i class="ph-fill ph-arrows-clockwise"></i></button>';
+    c.style.background = mineGrad(p.id); c.innerHTML = '<span class="mnkind">today&rsquo;s question · ' + esc(p.kind) + '</span><b>' + esc(p.text) + '</b><button class="mndice mnpen" id="gwpen" aria-label="Write my own question"><i class="ph-fill ph-pencil-simple"></i></button><button class="mndice" id="gwdice" aria-label="Another question"><i class="ph-fill ph-arrows-clockwise"></i></button>';
+    document.getElementById('gwpen').onclick = function(ev){ ev.stopPropagation(); try { sessionStorage.setItem('vp.mineown', '1'); } catch (e) {} location.href = '/mine'; };
     document.getElementById('gwdice').onclick = function(ev){ ev.stopPropagation(); var pr = l.at(Math.floor(Math.random() * l.length)); game._p = pr; c.classList.remove('deal'); void c.offsetWidth; c.classList.add('deal'); c.style.background = mineGrad(pr.id); c.querySelector('b').textContent = pr.text; c.querySelector('.mnkind').textContent = 'today’s question · ' + pr.kind; }; });
   var make = function(){ try { if (game._p) sessionStorage.setItem('vp.mineq', JSON.stringify(game._p)); } catch (e) {} location.href = '/mine'; };
   document.getElementById('gwmake').onclick = make; document.getElementById('gwcard').onclick = make;
@@ -4219,7 +4221,7 @@ function screenMineMake(){
           '<textarea id="mnq" maxlength="100" rows="2" placeholder="Type a sentence your friends finish… e.g. My weirdest snack is…">' + esc(st.ownText) + '</textarea></div>' +
         '<div class="mnswitch"><a href="#" id="mnback">↻ Use one of ours instead</a></div>'
       : '<div class="mnprompt deal" style="background:' + mineGrad(p.id) + '"><span class="mnkind">' + esc(p.kind) + '</span><b>' + esc(p.text) + '</b>' +
-          '<button class="mndice" id="mndice" aria-label="Another question"><i class="ph-fill ph-arrows-clockwise"></i></button></div>' +
+          '<button class="mndice mnpen" id="mnpen" aria-label="Write my own question"><i class="ph-fill ph-pencil-simple"></i></button><button class="mndice" id="mndice" aria-label="Another question"><i class="ph-fill ph-arrows-clockwise"></i></button></div>' +
         '<div class="mnswitch"><a href="#" id="mnownq">✏️ Write my own question</a><span>or tap ↻ for a new one</span></div>';
     document.getElementById('mnstage').innerHTML = mineSteps(st.own && !st.ownText ? 0 : 1) +
       '<div class="mnkicker">Guess the wish 🫣</div>' + card +
@@ -4229,13 +4231,16 @@ function screenMineMake(){
       '<p class="mnsmall">Next you&rsquo;ll see your answer mixed with 5 made-up ones. Friends try to spot yours.</p>';
     var dice = document.getElementById('mndice'); if (dice) dice.onclick = function(){ var c = document.querySelector('.mnprompt'); c.classList.remove('deal'); c.classList.add('roll'); keep();
       setTimeout(function(){ st.i++; if (st.i >= st.prompts.length) { st.i = 0; load(); } else draw(); }, 260); };
-    var own = document.getElementById('mnownq'); if (own) own.onclick = function(ev){ ev.preventDefault(); keep(); st.own = true; draw(); setTimeout(function(){ document.getElementById('mnq').focus(); }, 50); };
+    var goOwn = function(ev){ ev.preventDefault(); keep(); st.own = true; draw(); setTimeout(function(){ document.getElementById('mnq').focus(); }, 50); };
+    var own = document.getElementById('mnownq'); if (own) own.onclick = goOwn;
+    var pen = document.getElementById('mnpen'); if (pen) pen.onclick = goOwn;
     var back = document.getElementById('mnback'); if (back) back.onclick = function(ev){ ev.preventDefault(); keep(); st.own = false; draw(); };
     document.getElementById('mngo').onclick = preview;
   }
   function keep(){ var a = document.getElementById('mnans'), q = document.getElementById('mnq'), n = document.getElementById('mnnick'); if (a) st.answer = a.value; if (q) st.ownText = q.value; if (n && n.value.trim()) mineName(n.value.trim()); }
   function load(){ mineCall({ action: 'prompts' }).then(function(l){ st.prompts = l || [];
-    try { var pre = JSON.parse(sessionStorage.getItem('vp.mineq') || 'null'); sessionStorage.removeItem('vp.mineq'); if (pre && pre.id) st.prompts.unshift(pre); } catch (e) {}
+    try { var pre = JSON.parse(sessionStorage.getItem('vp.mineq') || 'null'); sessionStorage.removeItem('vp.mineq'); if (pre && pre.id) st.prompts.unshift(pre);
+      if (sessionStorage.getItem('vp.mineown') === '1') { sessionStorage.removeItem('vp.mineown'); st.own = true; } } catch (e) {}
     st.i = 0; draw(); }); }
   function preview(){
     keep();
@@ -5097,7 +5102,7 @@ function screenPack(mode, topic0){
   }).catch(function(e){ var ag = document.getElementById('agenda'); if (ag) ag.hidden = true; var bd = document.getElementById('board'); if (bd) bd.innerHTML = '<div class="hint">Couldn&rsquo;t reach the pack. <a href="#" onclick="location.reload();return false">Try again</a></div>'; });
 }
 
-var APP_VERSION = "20261006044416";
+var APP_VERSION = "20261006044635";
 (function(){
   try {
     fetch('/version.json?t=' + Date.now(), { cache: 'no-store' }).then(function(r){ return r.json(); }).then(function(j){
