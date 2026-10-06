@@ -1286,7 +1286,7 @@
   @media (prefers-reduced-motion: reduce){ .wcd.born, .wpaw.pop i{animation:none} }
   .wtrow small{font-family:'Nunito',sans-serif; font-weight:900; font-size:10.5px; letter-spacing:.06em; text-transform:uppercase; color:rgba(255,255,255,.6); margin-right:2px}
   /* ---------- Which one's mine? ---------- */
-  .mn{max-width:460px; margin:0 auto; padding:6px 2px 60px; min-height:90vh}
+  .mngame{max-width:460px; margin:0 auto; padding:6px 2px 60px; min-height:90vh}
   .mnlogo{display:inline-flex; align-items:center; gap:6px; font-family:'Fredoka','Nunito',sans-serif; font-weight:700; font-size:17px; color:var(--goldtext) !important; text-decoration:none; margin:6px 0 18px}
   .mnstage{display:flex; flex-direction:column; gap:14px}
   .mnspin{width:40px; height:40px; margin:60px auto; border-radius:50%; border:4px solid #23394d; border-top-color:var(--gold); animation:mnspin .8s linear infinite} @keyframes mnspin{to{transform:rotate(360deg)}}
@@ -1359,6 +1359,15 @@
   .gwcard b{font-family:'Fredoka','Nunito',sans-serif; font-weight:600; font-size:28px; line-height:1.12; text-wrap:balance} .gwcard.deal{animation:mndeal .45s cubic-bezier(.2,1.3,.4,1)}
   .gwrand{width:100%; padding:15px 8px !important; font-size:16px !important}
   @media (prefers-reduced-motion: reduce){ .ctpanel.in-l, .ctpanel.in-r, .gwcard.deal{animation:none} .ctline{transition:none} }
+  .packhero{padding:8px 12px !important; gap:10px !important; border-radius:14px !important; margin-bottom:10px}
+  .packhero .slotmedia{width:34px !important; height:34px !important; border-radius:50% !important}
+  .packhero .ft{font-size:13.5px !important; line-height:1.2} .packhero .ft small{font-size:11.5px !important; margin-top:1px}
+  .scopebar{margin-bottom:10px}
+  .mndice{font-size:22px}
+  .dfrad{float:right; margin-right:22px; color:var(--goldtext); font-weight:900; text-transform:none; letter-spacing:0}
+  .dfmore{display:flex; flex-wrap:wrap; gap:6px; justify-content:center; margin-top:8px} .dfmore small{width:100%; text-align:center; color:var(--sub); font-weight:800}
+  .dfmore .btn{flex:0 0 auto; width:auto; padding:8px 14px} .dfmore em{font-style:normal; color:var(--goldtext); font-weight:900; margin-left:2px}
+  .dfloc{display:block; text-align:center; margin-top:8px; font-weight:800; color:var(--goldtext) !important}
 </style>
 </head>
 <body>
@@ -3156,9 +3165,16 @@ function dailyFetch(L, tail){
   // nothing of your own to bring back: a swipe deck of nearby issues (preloaded, no waiting between cards)
   var mine = {}; L.entries.forEach(function(e){ mine[e.id] = 1; }); (L.backed || []).forEach(function(e){ mine[e.id] = 1; });
   prefetchDeck().then(function(rows){
-    var deck = rows.filter(function(r){ return r.id && !mine[r.id]; }).slice(0, 20);
+    // nearest first: only what's within the radius; when it runs out, offer to look further (3, 5, 10 km…)
+    var me0 = myPos(), STEPS = [2, 3, 5, 10, 25, 50, 1e9], step = 0;
+    var all = rows.filter(function(r){ return r.id && !mine[r.id]; }).map(function(r){ return { r: r, km: me0 && r.lat != null && r.lng != null ? kmBetween(me0, { lat: +r.lat, lng: +r.lng }) : null }; });
+    if (me0) all.sort(function(a, b){ return (a.km == null ? 1e9 : a.km) - (b.km == null ? 1e9 : b.km); });
+    var used = {}, deck = [];
+    function fill(){ var lim = me0 ? STEPS.at(step) : 1e9; all.forEach(function(x){ if (!used[x.r.id] && (x.km == null ? lim >= 1e9 : x.km <= lim)) { used[x.r.id] = 1; x.r._km = x.km; deck.push(x.r); } }); }
+    fill(); while (me0 && !deck.length && step < STEPS.length - 1) { step++; fill(); }
     if (!deck.length) return;
-    host.innerHTML = '<div class="fetchcard dfetch deckwrap"><div class="dfk">🐾 ' + nm + ' fetched these · seen it too?</div>' +
+    var radLabel = function(){ var s = STEPS.at(step); return s >= 1e9 ? 'everywhere' : 'within ' + s + ' km'; };
+    host.innerHTML = '<div class="fetchcard dfetch deckwrap"><div class="dfk">🐾 ' + nm + ' fetched these · seen it too? <span class="dfrad" id="dfrad">' + (me0 ? radLabel() : '') + '</span></div>' +
       '<div class="deck" id="deck"></div>' +
       '<div class="deckhint"><span>← skip</span><span>↑ fixed now</span><span>same here →</span></div><a href="#" class="dfx" id="dfx">✕</a></div>';
     document.getElementById('dfx').onclick = function(ev){ ev.preventDefault(); host.innerHTML = ''; };
@@ -3168,14 +3184,20 @@ function dailyFetch(L, tail){
       return '<div class="dcard">' + (img ? '<img src="' + esc(img) + '" alt="">' : (r.lat != null && r.lng != null ? miniMap(r.lat, r.lng, r.topic) : '')) +
         '<div class="dbody">' + esc(r.body || '📷') + '</div>' +
         '<div class="dmeta">' + (r.topic ? '#' + esc(r.topic) + ' · ' : '') + esc(r.pup || '') + (r.place ? ', ' + esc(r.place.split(',')[0]) : '') +
-          (r.spot ? ' · 📍 ' + esc(r.spot) : '') + (r.backs ? ' · 🐾 ' + r.backs : '') + (r.fixedv ? ' · ✅ ' + r.fixedv : '') + '</div>' +
+          (r._km != null ? ' · 📍 ' + kmText(r._km) + ' away' : r.spot ? ' · 📍 ' + esc(r.spot) : '') + (r.backs ? ' · 🐾 ' + r.backs : '') + (r.fixedv ? ' · ✅ ' + r.fixedv : '') + '</div>' +
         '<div class="dstamp yes">🐾 SAME HERE</div><div class="dstamp no">SKIP</div><div class="dstamp up">✅ FIXED NOW</div></div>';
     }
     function draw(){
       if (idx >= deck.length) {
-        el.innerHTML = '<div class="dcard done"><div class="dbody">That&rsquo;s everyone nearby 🐾' + (backed ? '<br>You backed ' + backed + '.' : '') + '</div>' +
-          '<a class="btn ghost mbtn" href="/pack">See Your city</a></div>';
-        var hh = host.querySelector('.deckhint'); if (hh) hh.style.display = 'none'; return;
+        var more = [], left = all.filter(function(x){ return !used[x.r.id]; });
+        if (me0) for (var s2 = step + 1; s2 < STEPS.length && more.length < 3; s2++) { var lim2 = STEPS.at(s2), n2 = left.filter(function(x){ return x.km == null ? lim2 >= 1e9 : x.km <= lim2; }).length; if (n2) more.push([s2, lim2, n2]); }
+        el.innerHTML = '<div class="dcard done"><div class="dbody">' + (me0 ? 'Nothing more ' + radLabel() + ' 🐾' : 'That&rsquo;s everyone nearby 🐾') + (backed ? '<br>You backed ' + backed + '.' : '') + '</div>' +
+          (more.length ? '<div class="dfmore"><small>Look further?</small>' + more.map(function(m){ return '<button class="btn ghost mbtn" data-step="' + m[0] + '">' + (m[1] >= 1e9 ? 'Everywhere' : m[1] + ' km') + ' <em>+' + m[2] + '</em></button>'; }).join('') + '</div>'
+            : '<a class="btn ghost mbtn" href="/pack">See Your city</a>') + (me0 ? '' : '<a href="#" class="dfloc" id="dfloc">📍 Use my location to show the closest first</a>') + '</div>';
+        var hh = host.querySelector('.deckhint'); if (hh) hh.style.display = 'none';
+        el.querySelectorAll('[data-step]').forEach(function(b){ b.onclick = function(){ step = +b.getAttribute('data-step'); fill(); var rl = document.getElementById('dfrad'); if (rl) rl.textContent = radLabel(); if (hh) hh.style.display = ''; draw(); }; });
+        var lc = document.getElementById('dfloc'); if (lc) lc.onclick = function(ev){ ev.preventDefault(); navigator.geolocation && navigator.geolocation.getCurrentPosition(function(p2){ savePos(Math.round(p2.coords.latitude * 1e3) / 1e3, Math.round(p2.coords.longitude * 1e3) / 1e3); host.innerHTML = ''; dailyFetch(L, tail); }, function(){ toast('Location is off for VoterPup.'); }, { timeout: 10000, maximumAge: 600000 }); };
+        return;
       }
       el.innerHTML = (deck[idx + 1] ? '<div class="dunder">' + cardHTML(deck[idx + 1]) + '</div>' : '') + cardHTML(deck[idx]);
       wire(el.lastElementChild);
@@ -3964,7 +3986,7 @@ function wishCard(w){
     (w.example ? '<span class="wex">example</span>' : '') + (w.mine ? '<span class="wex mine">yours</span>' : '') +
     '<p><small>I wish</small>' + esc(wishBody(w.body)) + '</p>' +
     '<footer><span>' + meta + '</span><button class="wpaw' + (w.pawed ? ' on' : '') + '" data-wpaw="' + w.id + '" aria-label="Me too"><i class="ph-fill ph-paw-print"></i><b>' + w.paws + '</b></button>' +
-    '<button class="wmore" data-wmore="' + w.id + '" aria-label="More"><i class="ph-bold ph-dots-three"></i></button></footer></article>';
+    '<button class="wmore" data-wmore="' + w.id + '" aria-label="More"><i class="ph-fill ph-dots-three"></i></button></footer></article>';
 }
 function screenWishes(){
   var me = loadLocal(); if (!me) { location.href = '/app.html?new=1'; return; }
@@ -4057,14 +4079,14 @@ function mineEnsurePup(){
   return rpc('vp_create_ledger', { p_name: names.at(Math.floor(Math.random() * names.length)) }).then(function(l){ saveLocal(l.tail, l.name); track('pup_created', { via: 'mine' }); return { tail: l.tail, name: l.name }; });
 }
 function mineBack(){ if (history.length > 1 && document.referrer && document.referrer.indexOf(location.origin) === 0) history.back(); else location.href = '/pack'; }
-function mineShell(inner){ root.innerHTML = '<div class="mn"><div class="mntop"><button class="mnback" id="mnbackbtn" aria-label="Back"><i class="ph-bold ph-caret-left"></i> Back</button><a class="mnlogo" href="/pack"><i class="ph-fill ph-paw-print"></i> VoterPup</a></div>' + inner + '</div>';
+function mineShell(inner){ root.innerHTML = '<div class="mngame"><div class="mntop"><button class="mnback" id="mnbackbtn" aria-label="Back"><i class="ph-fill ph-caret-left"></i> Back</button><a class="mnlogo" href="/pack"><i class="ph-fill ph-paw-print"></i> VoterPup</a></div>' + inner + '</div>';
   document.getElementById('mnbackbtn').onclick = mineBack; try { localStorage.setItem('vp.mineon', '1'); } catch (e) {} }
 
 // make one: pick a prompt, answer it, hide it
 function mineCardFill(mc, r){
   var made = r.made || [], fresh = made.reduce(function(s, g){ return s + (g.players || 0); }, 0);
   mc.innerHTML = '<a class="minecard" href="/mine"><span class="mcemo">🫣</span><span class="mctxt"><b>Guess the wish</b><small>' +
-    (made.length ? made.length + ' hidden · ' + fresh + ' friend' + (fresh === 1 ? '' : 's') + ' played' : 'Hide an answer, see which friends find it') + '</small></span><i class="ph-bold ph-caret-right"></i></a>';
+    (made.length ? made.length + ' hidden · ' + fresh + ' friend' + (fresh === 1 ? '' : 's') + ' played' : 'Hide an answer, see which friends find it') + '</small></span><i class="ph-fill ph-caret-right"></i></a>';
 }
 function mineRandom(btn){
   var me = loadLocal(); if (btn) { btn.disabled = true; btn.classList.add('busy'); }
@@ -4092,10 +4114,10 @@ function cityTabs(city){
   game.innerHTML = '<div class="gwh"><h2>Guess the wish 🫣</h2><p>Answer one fun question. We hide it among fakes. See which friends find yours.</p></div>' +
     '<div class="gwcard" id="gwcard"><div class="mnspin"></div></div>' +
     '<button class="mnbig" id="gwmake"><i class="ph-fill ph-share-network"></i> Answer &amp; send to friends</button>' +
-    '<button class="mnghost gwrand" id="gwrand">🎲 Play a random neighbour&rsquo;s</button>' +
+    '<button class="mnghost gwrand" id="gwrand"><i class="ph-fill ph-shuffle"></i> Play a random neighbour&rsquo;s</button>' +
     '<div class="mnhist" id="mnhist"></div>';
   mineCall({ action: 'prompts' }).then(function(l){ var p = (l || [])[0], c = document.getElementById('gwcard'); if (!p || !c) return; game._p = p;
-    c.style.background = mineGrad(p.id); c.innerHTML = '<span class="mnkind">today&rsquo;s question · ' + esc(p.kind) + '</span><b>' + esc(p.text) + '</b><button class="mndice" id="gwdice" aria-label="Another question">🎲</button>';
+    c.style.background = mineGrad(p.id); c.innerHTML = '<span class="mnkind">today&rsquo;s question · ' + esc(p.kind) + '</span><b>' + esc(p.text) + '</b><button class="mndice" id="gwdice" aria-label="Another question"><i class="ph-fill ph-arrows-clockwise"></i></button>';
     document.getElementById('gwdice').onclick = function(ev){ ev.stopPropagation(); var pr = l.at(Math.floor(Math.random() * l.length)); game._p = pr; c.classList.remove('deal'); void c.offsetWidth; c.classList.add('deal'); c.style.background = mineGrad(pr.id); c.querySelector('b').textContent = pr.text; c.querySelector('.mnkind').textContent = 'today’s question · ' + pr.kind; }; });
   var make = function(){ try { if (game._p) sessionStorage.setItem('vp.mineq', JSON.stringify(game._p)); } catch (e) {} location.href = '/mine'; };
   document.getElementById('gwmake').onclick = make; document.getElementById('gwcard').onclick = make;
@@ -4146,10 +4168,10 @@ function screenMineMake(){
     var card = st.own
       ? '<div class="mnprompt own deal" style="background:linear-gradient(135deg,#ffb02e,#ff5d73)"><span class="mnkind">your own question</span>' +
           '<textarea id="mnq" maxlength="100" rows="2" placeholder="Type a sentence your friends finish… e.g. My weirdest snack is…">' + esc(st.ownText) + '</textarea></div>' +
-        '<div class="mnswitch"><a href="#" id="mnback">🎲 Use one of ours instead</a></div>'
+        '<div class="mnswitch"><a href="#" id="mnback">↻ Use one of ours instead</a></div>'
       : '<div class="mnprompt deal" style="background:' + mineGrad(p.id) + '"><span class="mnkind">' + esc(p.kind) + '</span><b>' + esc(p.text) + '</b>' +
-          '<button class="mndice" id="mndice" aria-label="Another question">🎲</button></div>' +
-        '<div class="mnswitch"><a href="#" id="mnownq">✏️ Write my own question</a><span>or tap 🎲 for another</span></div>';
+          '<button class="mndice" id="mndice" aria-label="Another question"><i class="ph-fill ph-arrows-clockwise"></i></button></div>' +
+        '<div class="mnswitch"><a href="#" id="mnownq">✏️ Write my own question</a><span>or tap ↻ for a new one</span></div>';
     document.getElementById('mnstage').innerHTML = mineSteps(st.own && !st.ownText ? 0 : 1) +
       '<div class="mnkicker">Guess the wish 🫣</div>' + card +
       '<label class="mnfield"><span>Your answer</span><input id="mnans" maxlength="80" autocomplete="off" placeholder="the truth, in a few words" value="' + esc(st.answer) + '"></label>' +
@@ -4701,17 +4723,17 @@ function screenPack(mode, topic0){
   var city = place ? place.split(',')[0] : null;
   root.innerHTML = nav() +
     (wall ? '<div class="wallhead">🐾 What ' + esc(city || 'the Pack') + ' wants fixed<em>The agenda is set for us. Time we set it.</em><small id="wallstat">voterpup.com · scan the sticker, name a pup, add yours</small></div>' : '') +
+    '<div class="scopebar"><div class="seg">' +
+      (city ? '<span class="segbtn' + (mode==='local'?' on':'') + '" id="mlocal">' + ic('round_pushpin', 'segic') + esc(city) + '</span>'
+            : '<span class="segbtn" id="mfind">' + ic('round_pushpin', 'segic') + 'Near me</span>') +
+      '<span class="segbtn' + (mode==='all'?' on':'') + '" id="mall">' + ic('globe_showing_americas', 'segic') + 'Everywhere</span></div>' +
+      (city ? '<button class="segedit chgloc" title="change place" aria-label="change place">✎</button>' : '') + '</div>' +
     '<div class="packhero">' + slotMedia('pack') +
       '<div class="ft">What ' + esc(city || 'your city') + ' wants fixed<small>The agenda is set for us. Time we set it.</small></div></div>' +
     '<div id="citystrip"></div>' +
     (mode === 'local' && city && !wall ? '<section class="agd" id="agenda" aria-label="Which should ' + esc(city) + ' fix first?"><div class="agload"><span></span><span></span></div></section>' : '') +
     (loadLocal() ? '' : adSrc() ? '<a class="adcta" href="/app.html?new=1"><img src="/pup-face.jpg" alt=""><span><b>This is your city&rsquo;s list.</b>Add yours: tap one issue, get a pup that remembers it. Free, no sign-up.</span><i>Start →</i></a>'
       : '<div class="newbie">\ud83d\udc4b New here? Tap <b>📸 Snap</b> to get your own pup.</div>') +
-    '<div class="scopebar"><div class="seg">' +
-      (city ? '<span class="segbtn' + (mode==='local'?' on':'') + '" id="mlocal">' + ic('round_pushpin', 'segic') + esc(city) + '</span>'
-            : '<span class="segbtn" id="mfind">' + ic('round_pushpin', 'segic') + 'Near me</span>') +
-      '<span class="segbtn' + (mode==='all'?' on':'') + '" id="mall">' + ic('globe_showing_americas', 'segic') + 'Everywhere</span></div>' +
-      (city ? '<button class="segedit chgloc" title="change place" aria-label="change place">✎</button>' : '') + '</div>' +
     '<label class="searchwrap"><svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><circle cx="11" cy="11" r="7" fill="none" stroke="currentColor" stroke-width="2.2"/><path d="M20 20l-3.5-3.5" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>' +
       '<input class="searchbar" id="packsearch" placeholder="' + (mode === 'local' && city ? 'Search ' + esc(city) : 'Search everywhere') + '" enterkeyhint="search"></label>' +
     (wall ? '' : '<div class="sortrow">' + [['near', '📍', 'Nearest'], ['similar', '✨', 'Similar to me'], ['voted', '🐾', 'Most voted'], ['trending', '🔥', 'Trending']].map(function(s){
@@ -5016,7 +5038,7 @@ function screenPack(mode, topic0){
   }).catch(function(e){ var ag = document.getElementById('agenda'); if (ag) ag.hidden = true; var bd = document.getElementById('board'); if (bd) bd.innerHTML = '<div class="hint">Couldn&rsquo;t reach the pack. <a href="#" onclick="location.reload();return false">Try again</a></div>'; });
 }
 
-var APP_VERSION = "20261006031822";
+var APP_VERSION = "20261006033028";
 (function(){
   try {
     fetch('/version.json?t=' + Date.now(), { cache: 'no-store' }).then(function(r){ return r.json(); }).then(function(j){
