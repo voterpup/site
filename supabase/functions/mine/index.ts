@@ -18,7 +18,7 @@ async function gameMail(db: any, owner: string, code: string, who: string, tries
   if (!m || (m.last_game && Date.now() - new Date(m.last_game).getTime() < 10 * 60e3)) return;   // at most one every 10 minutes
   const key = Deno.env.get("RESEND_API_KEY"); if (!key) return;
   const found = (score ?? 0) > 0, subject = found ? `🫣 ${who} found your answer on try ${tries}` : `😎 ${who} couldn't find your answer`;
-  const link = `https://voterpup.com/p/${owner}?m=${code}`, unsub = `https://setyjmgijsbplgyqynlh.supabase.co/functions/v1/send-mail?unsub=${m.token}`;
+  const link = `https://voterpup.com/p/?k=${owner}&m=${code}`, unsub = `https://setyjmgijsbplgyqynlh.supabase.co/functions/v1/send-mail?unsub=${m.token}`;
   const line = found ? `${who} found “${answer}” on try ${tries} (+${score}).` : `${who} tried 4 times and still couldn't spot “${answer}”.`;
   const html = `<div style="font-family:system-ui,sans-serif;max-width:480px;margin:0 auto;padding:20px;color:#1d2433"><p style="font-size:22px;margin:0 0 6px">🫣 Guess the wish</p>
 <p style="font-size:16px;line-height:1.5">${escH(line)} See who knows you best, or hide another one.</p>
@@ -75,7 +75,7 @@ Deno.serve(async (req) => {
     if (!m || (m.last_recover && Date.now() - new Date(m.last_recover).getTime() < 10 * 60e3)) return done;
     const { data: l } = await db.from("ledgers").select("name").eq("tail", m.tail).maybeSingle();
     const key = Deno.env.get("RESEND_API_KEY"); if (!key || !l) return done;
-    const link = `https://voterpup.com/p/${m.tail}?back=1`, name = l.name ?? "Your pup";
+    const link = `https://voterpup.com/p/?k=${m.tail}&back=1`, name = l.name ?? "Your pup";
     const html = `<div style="font-family:system-ui,sans-serif;max-width:480px;margin:0 auto;padding:20px;color:#1d2433"><p style="font-size:22px;margin:0 0 6px">🐾 ${escH(name)} missed you</p>
 <p style="font-size:16px;line-height:1.5">Tap the button on the phone where you want ${escH(name)}. Your list, your games and your scoreboard come with it.</p>
 <p><a href="${link}" style="display:inline-block;background:#e8b84b;color:#2a2418;font-weight:800;padding:12px 18px;border-radius:999px;text-decoration:none">Bring ${escH(name)} back</a></p>
