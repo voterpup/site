@@ -1378,6 +1378,8 @@
   .gtgo{display:inline-block; background:rgba(255,255,255,.95); color:#1a1304; border-radius:999px; padding:6px 14px; font-weight:900; font-size:13px}
   .card.flashme{animation:flashme 1.8s ease 2; box-shadow:0 0 0 3px var(--gold)} @keyframes flashme{50%{box-shadow:0 0 0 7px rgba(245,184,61,.35)}}
   .mndice.mnpen{right:64px}
+  .mnwarm{align-self:center; background:rgba(245,184,61,.15); color:var(--goldtext); border:1px solid rgba(245,184,61,.5); border-radius:999px; padding:5px 14px; font-weight:900; font-size:13px; letter-spacing:.04em}
+  .mnwarmend{background:#132637; border:1px solid #2c4a63; border-radius:18px; padding:14px 16px; color:#cfdbe6; font-size:14.5px; line-height:1.4; text-align:center} .mnwarmend b{display:block; color:#fff; font-family:'Fredoka','Nunito',sans-serif; font-size:20px; margin-bottom:4px}
 </style>
 </head>
 <body>
@@ -4191,6 +4193,8 @@ function gameTileFill(code){
     else if (g.play && g.play.done) t.querySelector('.gtgo').textContent = (g.play.score ? 'You scored ' + g.play.score : 'You got fooled 😎') + ' ✓';
   }); }).catch(function(){});
 }
+var DEMO_GAMES = ['1-sniffy-biscuits', '1-waggy-treats', '1-zoomy-walks'];   // warm-up rounds: Biscuit the pup hid a (very pup) answer
+function isDemo(code){ return DEMO_GAMES.indexOf(code) >= 0; }
 function mineShareText(code, prompt){ return 'I hid a secret answer. Can you find mine? 🫣🐾\n“' + prompt + '”\n' + location.origin + '/m/' + code; }
 function mineShare(code, prompt){ var msg = mineShareText(code, prompt); track('mine', { act: 'share' });
   if (navigator.share) navigator.share({ text: msg }).catch(function(){}); else navigator.clipboard.writeText(msg).then(function(){ toast('Link copied. Paste it in the chat 🐾'); }, function(){ toast(location.origin + '/m/' + code); }); }
@@ -4301,14 +4305,15 @@ function screenMinePlay(code){
     st.g = g;
     var wrong = (g.play && g.play.wrong) || [], done = g.play && g.play.done;
     el.innerHTML =
-      '<div class="mnkicker">' + esc(g.nickname) + ' hid one of these 🫣</div>' +
+      (isDemo(code) ? '<div class="mnwarm">Warm-up round 🐾</div><div class="mnkicker">Biscuit the pup hid one of these. Which one?</div>'
+        : '<div class="mnkicker">' + esc(g.nickname) + ' hid one of these 🫣</div>') +
       '<div class="mnprompt small" style="background:' + mineGrad(code) + '"><b>' + esc(g.prompt) + '</b></div>' +
       '<div class="mnlives" id="mnlives">' + MINE_POINTS.map(function(p, i){ return '<span class="' + (i < wrong.length ? 'used' : i === wrong.length ? 'now' : '') + '">' + p + '</span>'; }).join('') + '</div>' +
       '<div class="mncards" id="mncards">' + g.cards.map(function(c, i){ return '<button class="mncard' + (wrong.indexOf(c.id) >= 0 ? ' nope' : '') + '" data-cid="' + c.id + '" style="--n:' + i + '">' + esc(c.text) + '</button>'; }).join('') + '</div>' +
-      '<p class="mnsmall" id="mnhint">Tap the one you think ' + esc(g.nickname) + ' wrote.</p>';
+      '<p class="mnsmall" id="mnhint">' + (isDemo(code) ? 'Tap the answer you think the pup wrote. Fewer tries, more points.' : 'Tap the one you think ' + esc(g.nickname) + ' wrote.') + '</p>';
     if (done) { mineEnd(code, g, g.play.score, g.play.tries, ''); return; }
     el.querySelectorAll('.mncard').forEach(function(c){ c.onclick = function(){ mineGuess(code, st, c); }; });
-    if (!mineName()) setTimeout(function(){ mineAskName(g.nickname); }, 600);
+    if (!mineName() && !isDemo(code)) setTimeout(function(){ mineAskName(g.nickname); }, 600);
   });
 }
 function mineAskName(owner){
@@ -4339,8 +4344,9 @@ function mineEnd(code, g, score, tries, ans){
   var el = document.getElementById('mnstage'), found = score > 0; ans = ans || '';
   el.innerHTML = '<div class="mnscore"><div class="mnkicker">' + (found ? (tries === 1 ? 'First try! You really know ' + esc(g.nickname) + ' 🔥' : 'Found it on try ' + tries + '!') : esc(g.nickname) + ' fooled you 😎') + '</div>' +
     '<div class="mnbigscore" id="mnbs">0</div><div class="mnsmall">points</div></div>' +
-    (ans ? '<div class="mnprompt small reveal" style="background:' + mineGrad(code) + '"><span class="mnkind">' + esc(g.nickname) + ' wrote</span><b>“' + esc(ans) + '”</b></div>' : '') +
-    '<button class="mnbig" id="mnmine">Now hide yours 🫣</button><p class="mnsmall">See if ' + esc(g.nickname) + ' can find yours.</p>';
+    (ans ? '<div class="mnprompt small mnreveal" style="background:' + mineGrad(code) + '"><span class="mnkind">' + esc(g.nickname) + ' wrote</span><b>“' + esc(ans) + '”</b></div>' : '') +
+    (isDemo(code) ? '<div class="mnwarmend"><b>Now it&rsquo;s your turn.</b>Answer one question. We hide it among 5 fakes. Send it and see which friends find yours.</div>' : '') +
+    '<button class="mnbig" id="mnmine">Now hide yours 🫣</button>' + (isDemo(code) ? '' : '<p class="mnsmall">See if ' + esc(g.nickname) + ' can find yours.</p>');
   var n = 0, t = setInterval(function(){ n = Math.min(score, n + Math.max(1, Math.round(score / 18))); var b = document.getElementById('mnbs'); if (b) b.textContent = n; if (n >= score) clearInterval(t); }, 30);
   document.getElementById('mnmine').onclick = function(){ location.href = '/mine'; };
 }
@@ -5102,7 +5108,7 @@ function screenPack(mode, topic0){
   }).catch(function(e){ var ag = document.getElementById('agenda'); if (ag) ag.hidden = true; var bd = document.getElementById('board'); if (bd) bd.innerHTML = '<div class="hint">Couldn&rsquo;t reach the pack. <a href="#" onclick="location.reload();return false">Try again</a></div>'; });
 }
 
-var APP_VERSION = "20261006044635";
+var APP_VERSION = "20261006053247";
 (function(){
   try {
     fetch('/version.json?t=' + Date.now(), { cache: 'no-store' }).then(function(r){ return r.json(); }).then(function(j){
@@ -5616,7 +5622,8 @@ function introShow(then){
   else if (!loadLocal() && !KIOSK && qs.get('new') !== '1' && qs.get('src') && AD_LANDING[qs.get('src')] === 'walk') walkFirstPup();
   else if (!KIOSK && qs.get('src') && AD_LANDING[qs.get('src')] === 'game') {   // game ads: straight onto today's question; the pup is made on their first tap
     try { sessionStorage.setItem('vp.ctab', 'game'); localStorage.setItem('vp.mineon', '1'); } catch (e) {}
-    track('open', { land: 'game' }); history.replaceState(null, '', '/mine'); screenMineMake(); }
+    var demo = DEMO_GAMES.at(Math.floor(Math.random() * DEMO_GAMES.length));   // play first (what the ad showed), then hide your own
+    track('open', { land: 'game' }); history.replaceState(null, '', '/m/' + demo); screenMinePlay(demo); }
   else if (!loadLocal() && !KIOSK && qs.get('new') !== '1' && qs.get('src') && AD_LANDING[qs.get('src')] === 'city') {   // this ad lands on Your city
     if (!getPlace()) savePlace(AD_CITY, true);
     history.replaceState(null, '', '/pack'); screenPack();

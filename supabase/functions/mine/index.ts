@@ -105,7 +105,7 @@ Deno.serve(async (req) => {
   if (b.action === "random") {   // someone else's live game you haven't played yet
     const { data: mine } = tail ? await db.from("mine_plays").select("code").eq("tail", tail) : { data: [] as any[] };
     const seen = new Set((mine ?? []).map((x: any) => x.code));
-    const { data: games } = await db.from("mine_games").select("code, tail").gt("expires_at", new Date().toISOString()).order("created_at", { ascending: false }).limit(200);
+    const { data: games } = await db.from("mine_games").select("code, tail").neq("nickname", "Biscuit the pup").gt("expires_at", new Date().toISOString()).order("created_at", { ascending: false }).limit(200);
     const pool = (games ?? []).filter((g: any) => g.tail !== tail && !seen.has(g.code));
     if (!pool.length) return json({ none: true });
     return json({ code: pool[Math.floor(Math.random() * pool.length)].code });
