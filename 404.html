@@ -1246,6 +1246,45 @@
   .cagbar{display:block; height:6px; border-radius:3px; background:var(--chip); margin-top:5px; overflow:hidden} .cagbar i{display:block; height:100%; border-radius:3px; background:var(--gold)}
   @media (max-width:360px){ .plabel{font-size:16px} .pcard{min-height:196px} }
   @media (prefers-reduced-motion: reduce){ .duel, .pcard, .agbar i{transition:none} .pstamp, .duel.in{animation:none} }
+  /* ---------- Wish Wall ---------- */
+  .wwall{padding-bottom:110px}
+  .whead{margin:2px 2px 14px} .weyebrow{font-size:11.5px; font-weight:900; letter-spacing:.1em; text-transform:uppercase; color:var(--goldtext)}
+  .whead h1{font-family:'Fredoka','Nunito',system-ui,sans-serif; font-weight:600; font-size:30px; line-height:1.08; margin:6px 0 6px; color:#fff; text-wrap:balance}
+  .whead p{margin:0; color:#9db4c8; font-size:14.5px}
+  .wcompose{display:flex; align-items:center; gap:8px; background:#132637; border:1.5px solid #2c4a63; border-radius:20px; padding:8px 8px 8px 16px; transition:border-color .2s, box-shadow .2s}
+  .wcompose:focus-within{border-color:var(--gold); box-shadow:0 0 0 4px rgba(245,184,61,.15)}
+  .wlead{font-family:'Fredoka','Nunito',sans-serif; font-weight:600; font-size:17px; color:var(--goldtext); white-space:nowrap}
+  .wcompose input{flex:1; min-width:0; border:0 !important; background:transparent !important; box-shadow:none !important; padding:8px 0 !important; margin:0 !important; font:inherit; font-size:17px; color:#fff; outline:none}
+  .wsend{flex:0 0 auto; width:44px; height:44px; border-radius:50%; border:0; background:var(--gold); color:#1a1304; font-size:19px; display:grid; place-items:center; cursor:pointer; transition:transform .12s}
+  .wsend:active{transform:scale(.92)} .wsend.busy{opacity:.6} .wsend:focus-visible{outline:3px solid #fff; outline-offset:2px}
+  .wnote{font-size:12px; color:#7f97ab; margin:8px 4px 16px}
+  .wtabs{display:flex; justify-content:space-between; gap:8px; margin:0 0 14px; flex-wrap:wrap}
+  .wseg{display:inline-flex; background:#132637; border:1px solid #23394d; border-radius:999px; padding:3px}
+  .wseg button{border:0; background:transparent; color:#9db4c8; font:inherit; font-weight:800; font-size:13px; padding:7px 13px; border-radius:999px; cursor:pointer}
+  .wseg button.on{background:#e9f1f8; color:#0c1722}
+  .wgrid{columns:2; column-gap:10px}
+  @media (max-width:340px){ .wgrid{columns:1} }
+  .wcd{break-inside:avoid; position:relative; margin:0 0 10px; border-radius:18px; padding:14px 14px 10px; background:linear-gradient(160deg, color-mix(in srgb, var(--wt) 42%, #142433), color-mix(in srgb, var(--wt) 18%, #0f1d2a)); border:1px solid color-mix(in srgb, var(--wt) 45%, #23394d); color:#fff}
+  .wcd p{margin:0; font-family:'Fredoka','Nunito',system-ui,sans-serif; font-weight:500; font-size:17px; line-height:1.25}
+  .wcd p small{display:block; font-family:'Nunito',sans-serif; font-size:11px; font-weight:900; letter-spacing:.08em; text-transform:uppercase; color:rgba(255,255,255,.6); margin-bottom:3px}
+  .wcd footer{display:flex; align-items:center; gap:6px; margin-top:12px; font-size:11.5px; color:rgba(255,255,255,.62)} .wcd footer span{flex:1; min-width:0}
+  .wpaw{display:inline-flex; align-items:center; gap:4px; border:1px solid rgba(255,255,255,.25); background:rgba(0,0,0,.18); color:#fff; border-radius:999px; padding:5px 10px; font:inherit; font-weight:900; font-size:12.5px; cursor:pointer}
+  .wpaw.on{background:var(--gold); border-color:var(--gold); color:#1a1304} .wpaw.pop i{animation:wpop .4s cubic-bezier(.2,1.8,.4,1)} @keyframes wpop{0%{transform:scale(1)} 40%{transform:scale(1.6) rotate(-12deg)} 100%{transform:scale(1)}}
+  .wmore{border:0; background:transparent; color:rgba(255,255,255,.55); font-size:16px; padding:4px; cursor:pointer}
+  .wex{position:absolute; top:8px; right:10px; font-size:9.5px; font-weight:900; letter-spacing:.08em; text-transform:uppercase; color:rgba(255,255,255,.55)} .wex.mine{color:var(--goldtext)}
+  .wcd.born{animation:wborn .7s cubic-bezier(.2,.9,.3,1.2)} @keyframes wborn{0%{transform:scale(.85); opacity:0} 100%{transform:none; opacity:1}}
+  .wskel{break-inside:avoid; height:120px; margin:0 0 10px; border-radius:18px; background:linear-gradient(110deg, #16283a 25%, #1e3449 50%, #16283a 75%); background-size:220% 100%; animation:tshim 1.3s linear infinite} .wskel:nth-child(2n){height:150px}
+  .wempty{column-span:all; text-align:center; padding:30px 10px; color:#9db4c8} .wempty b{display:block; color:#fff; font-size:17px; margin-bottom:4px}
+  .wshare{margin-top:14px}
+  .wquote{font-family:'Fredoka','Nunito',sans-serif; font-size:19px; line-height:1.3; margin:8px 0 14px}
+  .wteaser{margin:4px 0 18px; padding:16px 14px 14px; border-radius:22px; background:linear-gradient(165deg, #1d2f48, #121f2d); border:1px solid #2c4a63}
+  .wteh b{display:block; font-family:'Fredoka','Nunito',sans-serif; font-weight:600; font-size:20px; line-height:1.15; color:#fff; margin-top:4px}
+  .wtlist{display:flex; flex-direction:column; gap:7px; margin:12px 0 12px}
+  .wtrow{display:flex; align-items:center; gap:8px; padding:10px 12px; border-radius:14px; background:color-mix(in srgb, var(--wt) 30%, #142433); border:1px solid color-mix(in srgb, var(--wt) 40%, #23394d)}
+  .wtrow span{flex:1; min-width:0; font-family:'Fredoka','Nunito',sans-serif; font-size:15px; color:#fff} .wtrow em{font-style:normal; font-weight:900; font-size:12px; color:rgba(255,255,255,.75); white-space:nowrap}
+  .wtgo{margin:0}
+  @media (prefers-reduced-motion: reduce){ .wcd.born, .wpaw.pop i{animation:none} }
+  .wtrow small{font-family:'Nunito',sans-serif; font-weight:900; font-size:10.5px; letter-spacing:.06em; text-transform:uppercase; color:rgba(255,255,255,.6); margin-right:2px}
 </style>
 </head>
 <body>
@@ -3830,6 +3869,105 @@ function agendaCitySheet(S){
   document.getElementById('cagx').onclick = s.close;
 }
 
+// ---------- The Wish Wall (prototype): what your neighbours secretly wish for ----------
+var WISH_TINTS = ['#2a5a8a', '#2f7a63', '#6a4aa6', '#8a4b2a', '#245f73', '#8a3a62', '#4d6b2a', '#7a5a14'];
+function wishTint(id){ var h = 0, s = String(id); for (var i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) >>> 0; return WISH_TINTS.at(h % WISH_TINTS.length); }
+function isProto(){ return !!window._proto; }
+function protoCheck(){   // asks once per session whether this pup is on the prototype list
+  var me = loadLocal(); if (!me) return Promise.resolve(false);
+  if (window._protoP) return window._protoP;
+  window._protoP = rpc('vp_is_proto', { p_tail: me.tail }).then(function(v){ window._proto = !!v; return !!v; }).catch(function(){ return false; });
+  return window._protoP;
+}
+function wishBody(b){ var t = String(b || '').replace(/^i wish\s*/i, ''); return t.charAt(0).toUpperCase() + t.slice(1); }
+function daysToVote(){ var d = Math.ceil((Date.parse('2026-10-17T07:00:00-07:00') - Date.now()) / 864e5); return d; }
+function wishCard(w){
+  var meta = (w.km != null ? (w.km < 1 ? Math.max(100, Math.round(w.km * 10) * 100) + ' m' : w.km.toFixed(1) + ' km') + ' · ' : '') + agoShort(w.ts);
+  return '<article class="wcd" data-wid="' + w.id + '" style="--wt:' + wishTint(w.id) + '">' +
+    (w.example ? '<span class="wex">example</span>' : '') + (w.mine ? '<span class="wex mine">yours</span>' : '') +
+    '<p><small>I wish</small>' + esc(wishBody(w.body)) + '</p>' +
+    '<footer><span>' + meta + '</span><button class="wpaw' + (w.pawed ? ' on' : '') + '" data-wpaw="' + w.id + '" aria-label="Me too"><i class="ph-fill ph-paw-print"></i><b>' + w.paws + '</b></button>' +
+    '<button class="wmore" data-wmore="' + w.id + '" aria-label="More"><i class="ph-bold ph-dots-three"></i></button></footer></article>';
+}
+function screenWishes(){
+  var me = loadLocal(); if (!me) { location.href = '/app.html?new=1'; return; }
+  var place = getPlace(), city = place ? place.split(',')[0] : null;
+  var st = { scope: 'near', sort: 'top' }; try { st = Object.assign(st, JSON.parse(sessionStorage.getItem('vp.wishst') || '{}')); } catch (e) {}
+  var d = daysToVote();
+  root.innerHTML = nav() + '<div class="wwall">' +
+    '<div class="whead"><div class="weyebrow">' + esc(city || 'Your city') + (d > 0 && d < 30 ? ' · votes in ' + d + ' day' + (d === 1 ? '' : 's') : '') + '</div>' +
+    '<h1>What your neighbours secretly wish for</h1><p>Anonymous. Nearby. One line each.</p></div>' +
+    '<form class="wcompose" id="wform"><span class="wlead">I wish</span><input id="wtext" maxlength="120" autocomplete="off" placeholder="the bus came on time…" aria-label="Your wish"><button class="wsend" id="wsend" aria-label="Post wish"><i class="ph-fill ph-paper-plane-right"></i></button></form>' +
+    '<div class="wnote">No names. Checked before it shows. Nobody can see it was you.</div>' +
+    '<div class="wtabs"><div class="wseg"><button data-ws="near" class="' + (st.scope === 'near' ? 'on' : '') + '">Nearby</button><button data-ws="city" class="' + (st.scope === 'city' ? 'on' : '') + '">All of ' + esc(city || 'the city') + '</button></div>' +
+      '<div class="wseg"><button data-wo="top" class="' + (st.sort === 'top' ? 'on' : '') + '">Top</button><button data-wo="new" class="' + (st.sort === 'new' ? 'on' : '') + '">New</button></div></div>' +
+    '<div class="wgrid" id="wgrid"><div class="wskel"></div><div class="wskel"></div><div class="wskel"></div><div class="wskel"></div></div>' +
+    '<button class="btn ghost wshare" id="wshareall"><i class="ph-fill ph-share-network"></i> Share this wall</button></div>' + tabbar('pack');
+  wireTabs();
+  var pos = myPos();
+  function load(){
+    try { sessionStorage.setItem('vp.wishst', JSON.stringify(st)); } catch (e) {}
+    var near = st.scope === 'near' && pos;
+    return rpc('vp_wishes', { p_tail: me.tail, p_city: (city || '').toLowerCase(), p_lat: pos ? pos.lat : null, p_lng: pos ? pos.lng : null, p_km: near ? 2 : 200, p_sort: st.sort }).then(function(list){
+      var g = document.getElementById('wgrid'); if (!g) return;
+      window._wishes = list || [];
+      g.innerHTML = list && list.length ? list.map(wishCard).join('')
+        : '<div class="wempty"><b>No wishes here yet</b><span>Be the first on your block. One line, no name.</span></div>';
+    }).catch(function(){ var g = document.getElementById('wgrid'); if (g) g.innerHTML = '<div class="wempty"><b>Couldn&rsquo;t reach the wall</b><span><a href="#" onclick="location.reload();return false">Try again</a></span></div>'; });
+  }
+  if (st.scope === 'near' && !pos && navigator.geolocation) {
+    navigator.geolocation.getCurrentPosition(function(p){ savePos(Math.round(p.coords.latitude * 1e3) / 1e3, Math.round(p.coords.longitude * 1e3) / 1e3); pos = myPos(); load(); },
+      function(){ st.scope = 'city'; document.querySelectorAll('[data-ws]').forEach(function(b){ b.classList.toggle('on', b.getAttribute('data-ws') === 'city'); }); load(); }, { enableHighAccuracy: false, timeout: 10000, maximumAge: 600000 });
+  } else load();
+  document.querySelectorAll('[data-ws]').forEach(function(b){ b.onclick = function(){ st.scope = b.getAttribute('data-ws'); document.querySelectorAll('[data-ws]').forEach(function(x){ x.classList.toggle('on', x === b); }); load(); }; });
+  document.querySelectorAll('[data-wo]').forEach(function(b){ b.onclick = function(){ st.sort = b.getAttribute('data-wo'); document.querySelectorAll('[data-wo]').forEach(function(x){ x.classList.toggle('on', x === b); }); load(); }; });
+  document.getElementById('wform').onsubmit = function(ev){
+    ev.preventDefault(); var t = document.getElementById('wtext'), b = document.getElementById('wsend'), v = t.value.trim(); if (v.length < 3) { t.focus(); return; }
+    b.disabled = true; b.classList.add('busy');
+    fetch(SUPABASE_URL + '/functions/v1/wish', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ tail: me.tail, city: (city || '').toLowerCase(), body: v, lat: pos ? pos.lat : null, lng: pos ? pos.lng : null }) })
+      .then(function(r){ return r.json(); }).then(function(r){
+        b.disabled = false; b.classList.remove('busy');
+        if (r.error) { toast(r.error); return; }
+        t.value = ''; track('issue', { wish: true }); st.sort = 'new'; document.querySelectorAll('[data-wo]').forEach(function(x){ x.classList.toggle('on', x.getAttribute('data-wo') === 'new'); });
+        load().then(function(){ var c = document.querySelector('.wcd[data-wid="' + r.id + '"]'); if (c) { c.classList.add('born'); c.scrollIntoView({ block: 'center', behavior: 'smooth' }); } });
+        toast('🐾 Your wish is on the wall. Anonymous, as promised.');
+      }).catch(function(e){ b.disabled = false; b.classList.remove('busy'); toast('Not posted: ' + e.message); });
+  };
+  document.getElementById('wshareall').onclick = function(){
+    var top = (window._wishes || []).filter(function(w){ return !w.example; }).slice(0, 3).map(function(w){ return '“I wish ' + wishBody(w.body).replace(/^./, function(c){ return c.toLowerCase(); }) + '”'; }).join('\n');
+    var txt = 'What ' + (city || 'my city') + ' secretly wishes for 👀\n' + (top ? top + '\n' : '') + 'Add yours, anonymously: voterpup.com/wishes';
+    if (navigator.share) navigator.share({ text: txt }).catch(function(){}); else navigator.clipboard.writeText(txt).then(function(){ toast('Copied. Paste it anywhere.'); }, function(){});
+  };
+}
+document.addEventListener('click', function(ev){
+  var t = ev.target && ev.target.closest ? ev.target : null; if (!t) return;
+  var p = t.closest('[data-wpaw]');
+  if (p) { ev.preventDefault(); var me = loadLocal(); if (!me) return; var on = !p.classList.contains('on'), b = p.querySelector('b');
+    p.classList.toggle('on', on); p.classList.remove('pop'); void p.offsetWidth; if (on) p.classList.add('pop'); b.textContent = Math.max(0, (+b.textContent || 0) + (on ? 1 : -1));
+    if (navigator.vibrate && on) navigator.vibrate(12);
+    rpc('vp_wish_paw', { p_tail: me.tail, p_id: p.getAttribute('data-wpaw') }).then(function(n){ b.textContent = n; }).catch(function(){}); return; }
+  var m = t.closest('[data-wmore]');
+  if (m) { ev.preventDefault(); var id = m.getAttribute('data-wmore'), w = (window._wishes || []).filter(function(x){ return x.id === id; })[0]; if (!w) return;
+    var s = sheet('<div class="addhead">A wish</div><p class="wquote">“I wish ' + esc(wishBody(w.body).replace(/^./, function(c){ return c.toLowerCase(); })) + '”</p>' +
+      '<button class="btn gold" id="wsh1"><i class="ph-fill ph-share-network"></i> Share it</button>' + (w.mine ? '' : '<button class="btn ghost" id="wrep">Report</button>'));
+    document.getElementById('wsh1').onclick = function(){ var txt = 'Someone near me wished: “I wish ' + wishBody(w.body).replace(/^./, function(c){ return c.toLowerCase(); }) + '” 👀\nWhat do your neighbours wish for? voterpup.com/wishes';
+      s.close(); if (navigator.share) navigator.share({ text: txt }).catch(function(){}); else navigator.clipboard.writeText(txt).then(function(){ toast('Copied.'); }, function(){}); };
+    var rr = document.getElementById('wrep'); if (rr) rr.onclick = function(){ var me = loadLocal(); rpc('vp_wish_report', { p_tail: me.tail, p_id: id }).then(function(){ s.close(); toast('Thanks. Reported.'); }); };
+  }
+});
+// the teaser at the top of Your city (prototype pups only): three wishes and the way in
+function wishTeaser(city){
+  var el = document.getElementById('agenda'); if (!el) return;
+  var me = loadLocal(), pos = myPos();
+  el.className = 'wteaser'; el.innerHTML = '<div class="agload"><span></span><span></span></div>';
+  rpc('vp_wishes', { p_tail: me.tail, p_city: city.toLowerCase(), p_lat: pos ? pos.lat : null, p_lng: pos ? pos.lng : null, p_km: pos ? 2 : 200, p_sort: 'top' }).then(function(list){
+    var top = (list || []).slice(0, 3);
+    el.innerHTML = '<div class="wteh"><div><div class="weyebrow">New · ' + esc(city) + '</div><b>What your neighbours secretly wish for</b></div></div>' +
+      '<div class="wtlist">' + top.map(function(w){ return '<div class="wtrow" style="--wt:' + wishTint(w.id) + '"><span><small>I wish</small> ' + esc(wishBody(w.body).replace(/^./, function(c){ return c.toLowerCase(); })) + '</span><em><i class="ph-fill ph-paw-print"></i> ' + w.paws + '</em></div>'; }).join('') + '</div>' +
+      '<a class="btn gold wtgo" href="/wishes">Read the wall · add yours</a>';
+  }).catch(function(){ el.hidden = true; });
+}
+
 var METRO = { 'north vancouver': 'vancouver', 'west vancouver': 'vancouver', 'burnaby': 'vancouver', 'surrey': 'vancouver', 'richmond': 'vancouver', 'new westminster': 'vancouver',
   'coquitlam': 'vancouver', 'port coquitlam': 'vancouver', 'port moody': 'vancouver', 'delta': 'vancouver', 'langley': 'vancouver', 'maple ridge': 'vancouver', 'pitt meadows': 'vancouver',
   'white rock': 'vancouver', 'anmore': 'vancouver', 'belcarra': 'vancouver', 'lions bay': 'vancouver', 'bowen island': 'vancouver', 'tsawwassen': 'vancouver', 'district of north vancouver': 'vancouver' };
@@ -4280,7 +4418,7 @@ function screenPack(mode, topic0){
     saved ? readLedger(saved.tail).catch(function(){ return null; }) : Promise.resolve(null)
   ]).then(function(res){
     var rows = res[0] || [];
-    if (mode === 'local' && city && !wall) agendaInit(city, rows);
+    if (mode === 'local' && city && !wall) protoCheck().then(function(pr){ if (pr) wishTeaser(city); else agendaInit(city, rows); });
     if (autoMode && mode === 'local' && rows.length < 5 && !wall) { window._packQuiet = city; screenPack('all', topic0); return; }
     if (mode === 'all' && window._packQuiet) { var qn = document.getElementById('board'); if (qn) qn.insertAdjacentHTML('beforebegin', '<div class="quietnote">Quiet in ' + esc(window._packQuiet) + ' so far · showing everywhere</div>'); window._packQuiet = null; }
     var mine = (res[1] && res[1].entries || []).filter(function(e){ return e.shared; })
@@ -4563,7 +4701,7 @@ function screenPack(mode, topic0){
   }).catch(function(e){ var ag = document.getElementById('agenda'); if (ag) ag.hidden = true; var bd = document.getElementById('board'); if (bd) bd.innerHTML = '<div class="hint">Couldn&rsquo;t reach the pack. <a href="#" onclick="location.reload();return false">Try again</a></div>'; });
 }
 
-var APP_VERSION = "20261006004542";
+var APP_VERSION = "20261006023445";
 (function(){
   try {
     fetch('/version.json?t=' + Date.now(), { cache: 'no-store' }).then(function(r){ return r.json(); }).then(function(j){
@@ -5067,6 +5205,7 @@ function introShow(then){
   else if (location.pathname === '/manage') screenManage();
   else if (location.pathname === '/play') screenPlay();
   else if (location.pathname === '/packs' || location.pathname === '/groups') screenPacksHome();
+  else if (location.pathname === '/wishes') protoCheck().then(function(pr){ if (pr) screenWishes(); else { history.replaceState(null, '', '/pack'); screenPack(); } });
   else if (/^\/join\/[0-9]+-[a-z-]+$/i.test(location.pathname)) joinFromLink(decodeURIComponent(location.pathname.slice(6)).replace(/-/g, ' '));
   else if (/^\/list\/[0-9a-f]{10}$/.test(location.pathname)) screenPublicList(location.pathname.split('/')[2]);
   else if (/^\/packs\/[0-9a-f-]{36}$/.test(location.pathname)) screenPackRoom(location.pathname.split('/')[2]);
