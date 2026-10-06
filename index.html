@@ -1368,7 +1368,8 @@
   .dfmore{display:flex; flex-wrap:wrap; gap:6px; justify-content:center; margin-top:8px} .dfmore small{width:100%; text-align:center; color:var(--sub); font-weight:800}
   .dfmore .btn{flex:0 0 auto; width:auto; padding:8px 14px} .dfmore em{font-style:normal; color:var(--goldtext); font-weight:900; margin-left:2px}
   .dfloc{display:block; text-align:center; margin-top:8px; font-weight:800; color:var(--goldtext) !important}
-  .dtogroup{display:inline-block; margin-top:6px; font-size:12px; font-weight:900; color:var(--goldtext) !important; text-decoration:none; position:relative; z-index:2}
+  .dtogroup{display:flex; align-items:center; justify-content:center; gap:6px; width:100%; margin-top:10px; padding:10px; border-radius:14px; border:1.5px solid rgba(245,184,61,.5); background:rgba(245,184,61,.1); color:var(--goldtext); font:inherit; font-weight:900; font-size:14px; cursor:pointer}
+  .dtogroup[hidden]{display:none}
 </style>
 </head>
 <body>
@@ -3181,7 +3182,8 @@ function dailyFetch(L, tail){
     var radLabel = function(){ var s = STEPS.at(step); return s >= 1e9 ? 'everywhere' : 'within ' + s + ' km'; };
     host.innerHTML = '<div class="fetchcard dfetch deckwrap"><div class="dfk">🐾 ' + nm + ' fetched these · seen it too?</div>' + (me0 ? '<div class="dfrad" id="dfrad">' + radLabel() + ' of you</div>' : '') +
       '<div class="deck" id="deck"></div>' +
-      '<div class="deckhint"><span>← skip</span><span>↑ fixed now</span><span>same here →</span></div><a href="#" class="dfx" id="dfx">✕</a></div>';
+      '<div class="deckhint"><span>← skip</span><span>↑ fixed now</span><span>same here →</span></div>' +
+      '<button class="dtogroup" id="dtogroup" data-issue=""><i class="ph-fill ph-users-three"></i> Send this to a group to vote</button><a href="#" class="dfx" id="dfx">✕</a></div>';
     document.getElementById('dfx').onclick = function(ev){ ev.preventDefault(); host.innerHTML = ''; };
     var el = document.getElementById('deck'), idx = 0, backed = 0;
     function cardHTML(r){
@@ -3190,7 +3192,6 @@ function dailyFetch(L, tail){
         '<div class="dbody">' + esc(r.body || '📷') + '</div>' +
         '<div class="dmeta">' + (r.topic ? '#' + esc(r.topic) + ' · ' : '') + esc(r.pup || '') + (r.place ? ', ' + esc(r.place.split(',')[0]) : '') +
           (r._km != null ? ' · 📍 ' + kmText(r._km) + ' away' : r.spot ? ' · 📍 ' + esc(r.spot) : '') + (r.backs ? ' · 🐾 ' + r.backs : '') + (r.fixedv ? ' · ✅ ' + r.fixedv : '') + '</div>' +
-        (r.id ? '<a href="#" class="dtogroup" data-issue="' + r.id + '">👥 Send to a group to vote</a>' : '') +
         '<div class="dstamp yes">🐾 SAME HERE</div><div class="dstamp no">SKIP</div><div class="dstamp up">✅ FIXED NOW</div></div>';
     }
     function draw(){
@@ -3201,11 +3202,13 @@ function dailyFetch(L, tail){
           (more.length ? '<div class="dfmore"><small>Look further?</small>' + more.map(function(m){ return '<button class="btn ghost mbtn" data-step="' + m[0] + '">' + (m[1] >= 1e9 ? 'Everywhere' : m[1] + ' km') + ' <em>+' + m[2] + '</em></button>'; }).join('') + '</div>'
             : '<a class="btn ghost mbtn" href="/pack">See Your city</a>') + (me0 ? '' : '<a href="#" class="dfloc" id="dfloc">📍 Use my location to show the closest first</a>') + '</div>';
         var hh = host.querySelector('.deckhint'); if (hh) hh.style.display = 'none';
+        var tg2 = document.getElementById('dtogroup'); if (tg2) tg2.hidden = true;
         el.querySelectorAll('[data-step]').forEach(function(b){ b.onclick = function(){ step = +b.getAttribute('data-step'); fill(); var rl = document.getElementById('dfrad'); if (rl) rl.textContent = radLabel() + ' of you'; if (hh) hh.style.display = ''; draw(); }; });
         var lc = document.getElementById('dfloc'); if (lc) lc.onclick = function(ev){ ev.preventDefault(); navigator.geolocation && navigator.geolocation.getCurrentPosition(function(p2){ savePos(Math.round(p2.coords.latitude * 1e3) / 1e3, Math.round(p2.coords.longitude * 1e3) / 1e3); host.innerHTML = ''; dailyFetch(L, tail); }, function(){ toast('Location is off for VoterPup.'); }, { timeout: 10000, maximumAge: 600000 }); };
         return;
       }
       el.innerHTML = (deck[idx + 1] ? '<div class="dunder">' + cardHTML(deck[idx + 1]) + '</div>' : '') + cardHTML(deck[idx]);
+      var tg = document.getElementById('dtogroup'); if (tg) { tg.setAttribute('data-issue', deck[idx].id); tg.hidden = false; }
       wire(el.lastElementChild);
       wakeMiniMaps(el);
     }
@@ -5055,7 +5058,7 @@ function screenPack(mode, topic0){
   }).catch(function(e){ var ag = document.getElementById('agenda'); if (ag) ag.hidden = true; var bd = document.getElementById('board'); if (bd) bd.innerHTML = '<div class="hint">Couldn&rsquo;t reach the pack. <a href="#" onclick="location.reload();return false">Try again</a></div>'; });
 }
 
-var APP_VERSION = "20261006034032";
+var APP_VERSION = "20261006034656";
 (function(){
   try {
     fetch('/version.json?t=' + Date.now(), { cache: 'no-store' }).then(function(r){ return r.json(); }).then(function(j){
