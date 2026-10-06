@@ -1,6 +1,6 @@
 // "Which one's mine?" — a friends game. Actions: prompts (a few to pick from) · create (your answer, hidden among 5 decoys)
 // · open (a friend sees the prompt + 6 shuffled cards; the answer never leaves the server) · guess · board (the owner's scoreboard)
-// · gen (internal: Claude writes new prompts). Creating is for prototype pups and anyone who has already played a game.
+// · gen (internal: Claude writes new prompts). Anyone with a pup can make games.
 import Anthropic from "npm:@anthropic-ai/sdk";
 import webpush from "npm:web-push@3";
 import { createClient } from "npm:@supabase/supabase-js@2";
@@ -102,6 +102,15 @@ Deno.serve(async (req) => {
     return json({ correct: ok, tries, score, done: ok || out, wrong: ok ? wrong : [...wrong, pick], answer: ok || out ? g.answer : undefined, right: ok || out ? right : undefined });
   }
 
+  if (b.action === "random") {   // someone else's live game you haven't played yet
+    const { data: mine } = tail ? await db.from("mine_plays").select("code").eq("tail", tail) : { data: [] as any[] };
+    const seen = new Set((mine ?? []).map((x: any) => x.code));
+    const { data: games } = await db.from("mine_games").select("code, tail").gt("expires_at", new Date().toISOString()).order("created_at", { ascending: false }).limit(200);
+    const pool = (games ?? []).filter((g: any) => g.tail !== tail && !seen.has(g.code));
+    if (!pool.length) return json({ none: true });
+    return json({ code: pool[Math.floor(Math.random() * pool.length)].code });
+  }
+
   if (b.action === "list") {
     if (!tail) return json({ made: [], played: [] });
     const { data: made } = await db.from("mine_games").select("code, answer, prompt_id, created_at, expires_at").eq("tail", tail).order("created_at", { ascending: false }).limit(30);
@@ -141,10 +150,7 @@ Deno.serve(async (req) => {
   const view = (d: any, ptext: string) => ({ draft: d.id, prompt: ptext, cards: (d.decoys as any[]), rolls: d.rolls });
 
   if (b.action === "preview" || b.action === "roll" || b.action === "create") {
-    if (!tail) return json({ error: "no pup" }, 400);
-    const { data: proto } = await db.rpc("vp_is_proto", { p_tail: tail });
-    const { count: played } = await db.from("mine_plays").select("code", { count: "exact", head: true }).eq("tail", tail);
-    if (!proto && !played) return json({ error: "Coming soon 🐾" }, 403);
+    if (!tail || !(await db.from("ledgers").select("tail").eq("tail", tail).maybeSingle()).data) return json({ error: "no pup" }, 400);
   }
 
   if (b.action === "preview") {

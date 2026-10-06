@@ -1346,6 +1346,19 @@
   .mncards.preview .mncard{cursor:default; position:relative} .mncard.isme{background:linear-gradient(135deg,#ffd56a,#f5b83d); border-color:#f5b83d; color:#1a1304}
   .mncard em{position:absolute; top:-9px; right:10px; font-style:normal; background:#1a1304; color:var(--gold); border-radius:999px; padding:1px 8px; font-size:10.5px; font-weight:900; letter-spacing:.06em; text-transform:uppercase}
   .mnrow2{display:flex; gap:8px} .mnghost{flex:1; border:1.5px solid #2c4a63; background:#132637; color:#fff; border-radius:16px; padding:13px 8px; font:inherit; font-weight:800; font-size:14.5px; cursor:pointer} .mnghost:disabled{opacity:.6}
+  .mntop{display:flex; align-items:center; justify-content:space-between; margin:4px 0 14px} .mntop .mnlogo{margin:0}
+  .mnback{display:inline-flex; align-items:center; gap:4px; border:1px solid #2c4a63; background:#132637; color:#fff; border-radius:999px; padding:8px 14px 8px 10px; font:inherit; font-weight:800; font-size:14px; cursor:pointer}
+  .ctabs{position:relative; display:grid; grid-template-columns:1fr 1fr; background:#132637; border:1px solid #23394d; border-radius:16px; padding:4px; margin:0 0 14px}
+  .ctabs button{position:relative; z-index:1; border:0; background:transparent; color:#9db4c8; font:inherit; font-weight:900; font-size:14.5px; padding:11px 6px; border-radius:12px; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:6px; transition:color .25s}
+  .ctabs button.on{color:#1a1304} .ctline{position:absolute; top:4px; bottom:4px; left:4px; width:calc(50% - 4px); border-radius:12px; background:linear-gradient(135deg,#ffd56a,#f5b83d); transition:transform .3s cubic-bezier(.2,.8,.2,1)} .ctabs.r .ctline{transform:translateX(100%)}
+  .ctpanel.in-l{animation:ctinl .3s cubic-bezier(.2,.8,.2,1)} .ctpanel.in-r{animation:ctinr .3s cubic-bezier(.2,.8,.2,1)}
+  @keyframes ctinl{from{transform:translateX(-24px); opacity:0} to{transform:none; opacity:1}} @keyframes ctinr{from{transform:translateX(24px); opacity:0} to{transform:none; opacity:1}}
+  #ctgame{min-height:calc(100vh - 210px); display:flex; flex-direction:column; gap:12px; padding-bottom:110px}
+  .gwh h2{font-family:'Fredoka','Nunito',sans-serif; font-weight:700; font-size:30px; color:#fff; margin:2px 0 4px} .gwh p{margin:0; color:#9db4c8; font-size:14.5px}
+  .gwcard{position:relative; border-radius:26px; padding:24px 20px 26px; color:#fff; min-height:190px; display:flex; flex-direction:column; justify-content:flex-end; box-shadow:0 14px 34px rgba(0,0,0,.35); background:#16293a; cursor:pointer}
+  .gwcard b{font-family:'Fredoka','Nunito',sans-serif; font-weight:600; font-size:28px; line-height:1.12; text-wrap:balance} .gwcard.deal{animation:mndeal .45s cubic-bezier(.2,1.3,.4,1)}
+  .gwrand{width:100%; padding:15px 8px !important; font-size:16px !important}
+  @media (prefers-reduced-motion: reduce){ .ctpanel.in-l, .ctpanel.in-r, .gwcard.deal{animation:none} .ctline{transition:none} }
 </style>
 </head>
 <body>
@@ -1368,7 +1381,7 @@ var KIOSK = new URLSearchParams(location.search).get('kiosk') === '1';
 //   'start' = the first screen (tap one issue, get your pup), no intro slides
 //   'city'  = the Your city board, with a big "make your pup" button on top
 //   'walk'  = a pup is made for them straight away (no issue needed) and they land on today's sniff walk
-var AD_LANDING = { yt1: 'start', yt2: 'city', yt3: 'start', yt4: 'start', yt5: 'walk', yt6: 'start', ig4: 'start', ig5: 'walk', ig6: 'start' };   // ig* = the same ads on Instagram
+var AD_LANDING = { yt1: 'start', yt2: 'city', yt3: 'start', yt4: 'start', yt5: 'walk', yt6: 'start', ig4: 'start', ig5: 'walk', ig6: 'start', yt7: 'game', ig7: 'game' };   // 'game' = Your city with Guess the wish open   // ig* = the same ads on Instagram
 var AD_CITY = 'Vancouver, British Columbia, Canada';   // 'city' landing when the visitor's city isn't known yet (the ads target Metro Vancouver)
 // the sniff-walk ad: make the pup now (no issue needed) and open today's walk
 // Today's walk shows straight away; the pup is only made when the visitor taps Start (robots that check ad links never tap)
@@ -4028,7 +4041,7 @@ function wishTeaser(city){
     var top = (list || []).slice(0, 3);
     el.innerHTML = '<div class="wteh"><div><div class="weyebrow">New · ' + esc(city) + '</div><b>What your neighbours secretly wish for</b></div></div>' +
       '<div class="wtlist">' + top.map(function(w){ return '<div class="wtrow" style="--wt:' + wishTint(w.id) + '"><span><small>I wish</small> ' + esc(wishBody(w.body).replace(/^./, function(c){ return c.toLowerCase(); })) + '</span><em><i class="ph-fill ph-paw-print"></i> ' + w.paws + '</em></div>'; }).join('') + '</div>' +
-      '<a class="btn gold wtgo" href="/wishes">Read the wall · add yours</a><a class="btn ghost wtgo2" href="/mine">🫣 Play “Which one&rsquo;s mine?” with friends</a>';
+      '<a class="btn gold wtgo" href="/wishes">Read the wall · add yours</a><a class="btn ghost wtgo2" href="/mine">🫣 Play “Guess the wish” with friends</a>';
   }).catch(function(){ el.hidden = true; });
 }
 
@@ -4043,13 +4056,67 @@ function mineEnsurePup(){
   var names = ['Maple','Scout','Biscuit','Oreo','Juno','Pepper','Milo','Hazel','Kobe','Nala','Toffee','Ziggy'];
   return rpc('vp_create_ledger', { p_name: names.at(Math.floor(Math.random() * names.length)) }).then(function(l){ saveLocal(l.tail, l.name); track('pup_created', { via: 'mine' }); return { tail: l.tail, name: l.name }; });
 }
-function mineShell(inner){ root.innerHTML = '<div class="mn"><a class="mnlogo" href="/pack"><i class="ph-fill ph-paw-print"></i> VoterPup</a>' + inner + '</div>'; }
+function mineBack(){ if (history.length > 1 && document.referrer && document.referrer.indexOf(location.origin) === 0) history.back(); else location.href = '/pack'; }
+function mineShell(inner){ root.innerHTML = '<div class="mn"><div class="mntop"><button class="mnback" id="mnbackbtn" aria-label="Back"><i class="ph-bold ph-caret-left"></i> Back</button><a class="mnlogo" href="/pack"><i class="ph-fill ph-paw-print"></i> VoterPup</a></div>' + inner + '</div>';
+  document.getElementById('mnbackbtn').onclick = mineBack; try { localStorage.setItem('vp.mineon', '1'); } catch (e) {} }
 
 // make one: pick a prompt, answer it, hide it
 function mineCardFill(mc, r){
   var made = r.made || [], fresh = made.reduce(function(s, g){ return s + (g.players || 0); }, 0);
-  mc.innerHTML = '<a class="minecard" href="/mine"><span class="mcemo">🫣</span><span class="mctxt"><b>Which one&rsquo;s mine?</b><small>' +
+  mc.innerHTML = '<a class="minecard" href="/mine"><span class="mcemo">🫣</span><span class="mctxt"><b>Guess the wish</b><small>' +
     (made.length ? made.length + ' hidden · ' + fresh + ' friend' + (fresh === 1 ? '' : 's') + ' played' : 'Hide an answer, see which friends find it') + '</small></span><i class="ph-bold ph-caret-right"></i></a>';
+}
+function mineRandom(btn){
+  var me = loadLocal(); if (btn) { btn.disabled = true; btn.classList.add('busy'); }
+  mineCall({ action: 'random', tail: me ? me.tail : '' }).then(function(r){
+    if (btn) { btn.disabled = false; btn.classList.remove('busy'); }
+    if (r.code) { track('mine', { act: 'random' }); location.href = '/m/' + r.code; }
+    else toast('You&rsquo;ve played them all. Hide yours and be the next one 🫣');
+  }).catch(function(){ if (btn) btn.disabled = false; });
+}
+var GAME_SRC = /^(yt|ig)\d+$/;
+function cityTabsWanted(){
+  var s = adSrc(), on = false; try { on = localStorage.getItem('vp.mineon') === '1'; } catch (e) {}
+  return (s && AD_LANDING[s] === 'game') || on || isProto();
+}
+function cityTabs(city){
+  var nav0 = root.querySelector('.nav'), tb = root.querySelector('.tabbar'); if (!nav0 || root.querySelector('.ctabs')) return;
+  var s = adSrc(), def = 'city'; try { def = sessionStorage.getItem('vp.ctab') || ((s && AD_LANDING[s] === 'game') ? 'game' : 'city'); } catch (e) {}
+  var head = document.createElement('div'); head.className = 'ctabs';
+  head.innerHTML = '<button data-ct="game"><span>🫣</span>Guess the wish</button><button data-ct="city"><span>🏙️</span>' + esc(city || 'Your city') + '</button><i class="ctline"></i>';
+  var game = document.createElement('div'); game.className = 'ctpanel'; game.id = 'ctgame';
+  var cityp = document.createElement('div'); cityp.className = 'ctpanel'; cityp.id = 'ctcity';
+  Array.prototype.slice.call(root.children).forEach(function(el){ if (el !== nav0 && el !== tb && !el.classList.contains('mapbtn')) cityp.appendChild(el); });
+  nav0.after(head); head.after(game); game.after(cityp);
+  var mb = root.querySelector('.mapbtn'); if (mb) cityp.appendChild(mb);
+  game.innerHTML = '<div class="gwh"><h2>Guess the wish 🫣</h2><p>Answer one fun question. We hide it among fakes. See which friends find yours.</p></div>' +
+    '<div class="gwcard" id="gwcard"><div class="mnspin"></div></div>' +
+    '<button class="mnbig" id="gwmake"><i class="ph-fill ph-share-network"></i> Answer &amp; send to friends</button>' +
+    '<button class="mnghost gwrand" id="gwrand">🎲 Play a random neighbour&rsquo;s</button>' +
+    '<div class="mnhist" id="mnhist"></div>';
+  mineCall({ action: 'prompts' }).then(function(l){ var p = (l || [])[0], c = document.getElementById('gwcard'); if (!p || !c) return; game._p = p;
+    c.style.background = mineGrad(p.id); c.innerHTML = '<span class="mnkind">today&rsquo;s question · ' + esc(p.kind) + '</span><b>' + esc(p.text) + '</b><button class="mndice" id="gwdice" aria-label="Another question">🎲</button>';
+    document.getElementById('gwdice').onclick = function(ev){ ev.stopPropagation(); var pr = l.at(Math.floor(Math.random() * l.length)); game._p = pr; c.classList.remove('deal'); void c.offsetWidth; c.classList.add('deal'); c.style.background = mineGrad(pr.id); c.querySelector('b').textContent = pr.text; c.querySelector('.mnkind').textContent = 'today’s question · ' + pr.kind; }; });
+  var make = function(){ try { if (game._p) sessionStorage.setItem('vp.mineq', JSON.stringify(game._p)); } catch (e) {} location.href = '/mine'; };
+  document.getElementById('gwmake').onclick = make; document.getElementById('gwcard').onclick = make;
+  document.getElementById('gwrand').onclick = function(){ mineRandom(this); };
+  mineHistory();
+  function show(t, swipe){
+    try { sessionStorage.setItem('vp.ctab', t); } catch (e) {}
+    head.querySelectorAll('[data-ct]').forEach(function(b){ b.classList.toggle('on', b.getAttribute('data-ct') === t); });
+    head.classList.toggle('r', t === 'city');
+    var on = t === 'game' ? game : cityp, off = t === 'game' ? cityp : game;
+    off.hidden = true; on.hidden = false; if (mb) mb.hidden = t === 'game' || mb._hide;
+    if (swipe) { on.classList.remove('in-l', 'in-r'); void on.offsetWidth; on.classList.add(t === 'game' ? 'in-l' : 'in-r'); }
+  }
+  head.querySelectorAll('[data-ct]').forEach(function(b){ b.onclick = function(){ show(b.getAttribute('data-ct'), true); window.scrollTo(0, 0); }; });
+  var x0 = null, y0 = null;
+  [game, cityp].forEach(function(p){
+    p.addEventListener('touchstart', function(e){ if (e.touches.length !== 1 || e.target.closest('.cityrow, .mapwrap, .sortrow, #packmap, .maplibregl-map')) { x0 = null; return; } x0 = e.touches[0].clientX; y0 = e.touches[0].clientY; }, { passive: true });
+    p.addEventListener('touchend', function(e){ if (x0 == null) return; var dx = e.changedTouches[0].clientX - x0, dy = e.changedTouches[0].clientY - y0; x0 = null;
+      if (Math.abs(dx) > 70 && Math.abs(dx) > Math.abs(dy) * 1.6) show(dx < 0 ? 'city' : 'game', true); }, { passive: true });
+  });
+  show(def, false);
 }
 function mineShareText(code, prompt){ return 'I hid a secret answer. Can you find mine? 🫣🐾\n“' + prompt + '”\n' + location.origin + '/m/' + code; }
 function mineShare(code, prompt){ var msg = mineShareText(code, prompt); track('mine', { act: 'share' });
@@ -4084,7 +4151,7 @@ function screenMineMake(){
           '<button class="mndice" id="mndice" aria-label="Another question">🎲</button></div>' +
         '<div class="mnswitch"><a href="#" id="mnownq">✏️ Write my own question</a><span>or tap 🎲 for another</span></div>';
     document.getElementById('mnstage').innerHTML = mineSteps(st.own && !st.ownText ? 0 : 1) +
-      '<div class="mnkicker">Which one&rsquo;s mine? 🫣</div>' + card +
+      '<div class="mnkicker">Guess the wish 🫣</div>' + card +
       '<label class="mnfield"><span>Your answer</span><input id="mnans" maxlength="80" autocomplete="off" placeholder="the truth, in a few words" value="' + esc(st.answer) + '"></label>' +
       '<label class="mnfield"><span>Your name for friends</span><input id="mnnick" maxlength="24" autocomplete="given-name" placeholder="so they know whose it is" value="' + esc(mineName()) + '"></label>' +
       '<button class="mnbig" id="mngo">See the mix →</button>' +
@@ -4096,7 +4163,9 @@ function screenMineMake(){
     document.getElementById('mngo').onclick = preview;
   }
   function keep(){ var a = document.getElementById('mnans'), q = document.getElementById('mnq'), n = document.getElementById('mnnick'); if (a) st.answer = a.value; if (q) st.ownText = q.value; if (n && n.value.trim()) mineName(n.value.trim()); }
-  function load(){ mineCall({ action: 'prompts' }).then(function(l){ st.prompts = l || []; st.i = 0; draw(); }); }
+  function load(){ mineCall({ action: 'prompts' }).then(function(l){ st.prompts = l || [];
+    try { var pre = JSON.parse(sessionStorage.getItem('vp.mineq') || 'null'); sessionStorage.removeItem('vp.mineq'); if (pre && pre.id) st.prompts.unshift(pre); } catch (e) {}
+    st.i = 0; draw(); }); }
   function preview(){
     keep();
     var nick = mineName(), b = document.getElementById('mngo');
@@ -4663,7 +4732,8 @@ function screenPack(mode, topic0){
     saved ? readLedger(saved.tail).catch(function(){ return null; }) : Promise.resolve(null)
   ]).then(function(res){
     var rows = res[0] || [];
-    if (mode === 'local' && city && !wall) protoCheck().then(function(pr){ if (pr) wishTeaser(city); else agendaInit(city, rows); });
+    if (mode === 'local' && city && !wall) protoCheck().then(function(pr){ if (cityTabsWanted()) { var ag = document.getElementById('agenda'); if (ag) ag.hidden = true; } else agendaInit(city, rows); });
+    if (!wall) protoCheck().then(function(){ if (cityTabsWanted()) cityTabs(city); });
     if (autoMode && mode === 'local' && rows.length < 5 && !wall) { window._packQuiet = city; screenPack('all', topic0); return; }
     if (mode === 'all' && window._packQuiet) { var qn = document.getElementById('board'); if (qn) qn.insertAdjacentHTML('beforebegin', '<div class="quietnote">Quiet in ' + esc(window._packQuiet) + ' so far · showing everywhere</div>'); window._packQuiet = null; }
     var mine = (res[1] && res[1].entries || []).filter(function(e){ return e.shared; })
@@ -4946,7 +5016,7 @@ function screenPack(mode, topic0){
   }).catch(function(e){ var ag = document.getElementById('agenda'); if (ag) ag.hidden = true; var bd = document.getElementById('board'); if (bd) bd.innerHTML = '<div class="hint">Couldn&rsquo;t reach the pack. <a href="#" onclick="location.reload();return false">Try again</a></div>'; });
 }
 
-var APP_VERSION = "20261006030556";
+var APP_VERSION = "20261006031822";
 (function(){
   try {
     fetch('/version.json?t=' + Date.now(), { cache: 'no-store' }).then(function(r){ return r.json(); }).then(function(j){
@@ -5457,6 +5527,7 @@ function introShow(then){
   else if (/^\/list\/[0-9a-f]{10}$/.test(location.pathname)) screenPublicList(location.pathname.split('/')[2]);
   else if (/^\/packs\/[0-9a-f-]{36}$/.test(location.pathname)) screenPackRoom(location.pathname.split('/')[2]);
   else if (!loadLocal() && !KIOSK && qs.get('new') !== '1' && qs.get('src') && AD_LANDING[qs.get('src')] === 'walk') walkFirstPup();
+  else if (!KIOSK && qs.get('src') && AD_LANDING[qs.get('src')] === 'game') { if (!getPlace()) savePlace(AD_CITY, true); try { sessionStorage.setItem('vp.ctab', 'game'); } catch (e) {} history.replaceState(null, '', '/pack'); screenPack(); }
   else if (!loadLocal() && !KIOSK && qs.get('new') !== '1' && qs.get('src') && AD_LANDING[qs.get('src')] === 'city') {   // this ad lands on Your city
     if (!getPlace()) savePlace(AD_CITY, true);
     history.replaceState(null, '', '/pack'); screenPack();
