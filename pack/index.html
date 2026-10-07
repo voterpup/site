@@ -1400,6 +1400,9 @@
   .fdchg{font-size:13px; font-weight:800; color:var(--goldtext) !important}
   .fdbtns{display:flex; flex-direction:column; gap:8px} .fdbtns .btn{margin:0}
   .fdskip{text-align:center; font-weight:800; color:var(--sub) !important; text-decoration:none; margin-top:4px}
+  /* Your city, simpler: no banner, no pinch hint, a quieter sort row */
+  .packhero{display:none !important} .pinchhint{display:none}
+  .sortrow{gap:8px} .sortrow .sortbtn{flex:0 0 auto}
 </style>
 </head>
 <body>
@@ -3429,7 +3432,7 @@ function savePos(la, lo){ try { localStorage.setItem('vp.pos', JSON.stringify({ 
 function myPos(){ try { var p = JSON.parse(localStorage.getItem('vp.pos') || 'null'); return p && Date.now() - p.ts < 30 * 864e5 ? p : null; } catch (e) { return null; } }   // stays on this phone
 function kmBetween(a, b){ var r = Math.PI / 180, x = (b.lng - a.lng) * r * Math.cos((a.lat + b.lat) / 2 * r), y = (b.lat - a.lat) * r; return Math.sqrt(x * x + y * y) * 6371; }
 function kmText(k){ return k < 1 ? Math.max(50, Math.round(k * 20) * 50) + ' m' : k < 10 ? k.toFixed(1) + ' km' : Math.round(k) + ' km'; }
-function packSort(){ try { return localStorage.getItem('vp.packsort') || (myPos() ? 'near' : 'similar'); } catch (e) { return 'similar'; } }   // nearest first once we know where you are
+function packSort(){ try { var s = localStorage.getItem('vp.packsort'); if (s !== 'near' && s !== 'voted') s = null; return s || (myPos() ? 'near' : 'voted'); } catch (e) { return 'voted'; } }   // two sorts now: nearest, or most agreed   // nearest first once we know where you are
 document.addEventListener('click', function(ev){
   var b = ev.target && ev.target.closest ? ev.target.closest('.sortbtn[data-sort]') : null; if (!b) return;
   if (b.getAttribute('data-sort') === 'near' && !myPos()) {   // nearest needs your position once: ask, then sort
@@ -4950,7 +4953,7 @@ function screenPack(mode, topic0){
       : '<div class="newbie">\ud83d\udc4b New here? Tap <b>📸 Snap</b> to get your own pup.</div>') +
     '<label class="searchwrap"><svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><circle cx="11" cy="11" r="7" fill="none" stroke="currentColor" stroke-width="2.2"/><path d="M20 20l-3.5-3.5" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>' +
       '<input class="searchbar" id="packsearch" placeholder="' + (mode === 'local' && city ? 'Search ' + esc(city) : 'Search everywhere') + '" enterkeyhint="search"></label>' +
-    (wall ? '' : '<div class="sortrow">' + [['near', '📍', 'Nearest'], ['similar', '✨', 'Similar to me'], ['voted', '🐾', 'Most voted'], ['trending', '🔥', 'Trending']].map(function(s){
+    (wall ? '' : '<div class="sortrow">' + [['near', '📍', 'Nearest'], ['voted', '🐾', 'Most agreed']].map(function(s){
       return '<button class="sortbtn' + (packSort() === s[0] ? ' on' : '') + '" data-sort="' + s[0] + '"><span>' + s[1] + '</span>' + s[2] + '</button>'; }).join('') + '</div>') +
     '<div id="board" class="hint">fetching the pack...</div>' +
     (wall ? '' : '<a href="#" class="mapbtn" id="mapbtn" hidden>' + ic('world_map', 'btnic') + '<span>Map</span></a>') +
@@ -4968,9 +4971,9 @@ function screenPack(mode, topic0){
     saved ? readLedger(saved.tail).catch(function(){ return null; }) : Promise.resolve(null)
   ]).then(function(res){
     var rows = res[0] || [];
-    if (mode === 'local' && city && !wall) protoCheck().then(function(pr){ if (cityTabsWanted()) { var ag = document.getElementById('agenda'); if (ag) ag.hidden = true; } else agendaInit(city, rows); });
+    var ag0 = document.getElementById('agenda'); if (ag0) ag0.remove();   // the this-or-that block is retired: Your city stays simple
     if (!wall) protoCheck().then(function(){ if (cityTabsWanted()) cityTabs(city); });
-    if (autoMode && mode === 'local' && rows.length < 5 && !wall) { window._packQuiet = city; screenPack('all', topic0); return; }
+    if (autoMode && mode === 'local' && !city && rows.length < 5 && !wall) { window._packQuiet = city; screenPack('all', topic0); return; }   // only when we don't know the city
     if (mode === 'all' && window._packQuiet) { var qn = document.getElementById('board'); if (qn) qn.insertAdjacentHTML('beforebegin', '<div class="quietnote">Quiet in ' + esc(window._packQuiet) + ' so far · showing everywhere</div>'); window._packQuiet = null; }
     var mine = (res[1] && res[1].entries || []).filter(function(e){ return e.shared; })
       .map(function(e){ return { id: e.id, backs: e.backs || 0, body: e.body, ts: e.ts, pup: saved.name, media: e.media, topic: e.topic, place: e.place }; });
@@ -5260,7 +5263,7 @@ function screenPack(mode, topic0){
   }).catch(function(e){ var ag = document.getElementById('agenda'); if (ag) ag.hidden = true; var bd = document.getElementById('board'); if (bd) bd.innerHTML = '<div class="hint">Couldn&rsquo;t reach the pack. <a href="#" onclick="location.reload();return false">Try again</a></div>'; });
 }
 
-var APP_VERSION = "20261007155948";
+var APP_VERSION = "20261007161051";
 (function(){
   try {
     fetch('/version.json?t=' + Date.now(), { cache: 'no-store' }).then(function(r){ return r.json(); }).then(function(j){
