@@ -1467,6 +1467,23 @@
   /* screens designed as dark stages keep the dark palette in light mode too (their own colours assume it) */
   html[data-theme="light"] .flashov, html[data-theme="light"] #room{--ink:#eaf2f8; --sub:#93a8ba; --card:#142433; --card2:#1b3043; --line:#233a4e; --chip:#1a2d3d;
     --goldtext:#ffcd5e; --bg:#0c1722; --blue:#3d9bff; --accent:#2fd39c; --red:#ff5d73; color-scheme:dark; color:var(--ink)}
+  /* block */
+  .bk{display:flex; flex-direction:column; gap:12px; padding-bottom:110px}
+  .bkhead h1{font-family:'Fredoka','Nunito',sans-serif; font-weight:700; font-size:28px; line-height:1.1; margin:4px 0 6px} .bkhead p{margin:0; color:var(--sub); font-size:15px}
+  .eyebrow2{font-size:12px; font-weight:900; letter-spacing:.09em; text-transform:uppercase; color:var(--goldtext)}
+  .bkspot{display:flex; flex-wrap:wrap; gap:8px; align-items:center; justify-content:space-between; background:var(--card); border:1px solid var(--line); border-radius:16px; padding:8px 10px}
+  .bkspot > span{font-weight:800; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; flex:1 1 140px}
+  .bkr{display:flex; gap:4px} .bkrb{border:1px solid var(--line); background:var(--chip); color:var(--ink); border-radius:999px; padding:0 12px; min-height:40px; font:inherit; font-weight:800; font-size:13px; cursor:pointer}
+  .bkrb.on{background:var(--ink); color:var(--bg); border-color:var(--ink)} .bkchg{border:0; background:transparent; color:var(--goldtext); font:inherit; font-weight:900; min-height:44px; cursor:pointer}
+  .bksum{display:grid; grid-template-columns:repeat(3,1fr); gap:8px} .bksum > div{background:var(--card); border:1px solid var(--line); border-radius:14px; padding:10px}
+  .bksum b{display:block; font-family:'Fredoka','Nunito',sans-serif; font-size:24px; font-variant-numeric:tabular-nums} .bksum span{font-size:12px; color:var(--sub); font-weight:700}
+  .bkopen{color:var(--goldtext)} .bkdone{color:var(--accent)}
+  .bktop{font-size:13.5px; color:var(--sub)}
+  .bkfol{flex:0 0 auto; border:1.5px solid var(--gold); background:transparent; color:var(--goldtext); border-radius:999px; padding:0 14px; min-height:40px; font:inherit; font-weight:900; font-size:13.5px; cursor:pointer}
+  .bkfol.on{background:var(--gold); color:#1a1304} .bkdonechip{flex:0 0 auto; font-size:12px; font-weight:900; color:var(--accent)}
+  .bkrow{cursor:default}
+  .bksrc{font-size:12.5px; color:var(--sub); margin:6px 2px}
+  .bkempty{display:flex; flex-direction:column; gap:8px; align-items:flex-start; background:var(--card); border:1px solid var(--line); border-radius:16px; padding:16px} .bkempty b{font-size:17px} .bkempty span{color:var(--sub)}
 </style>
 </head>
 <body>
@@ -1489,7 +1506,7 @@ var KIOSK = new URLSearchParams(location.search).get('kiosk') === '1';
 //   'start' = the first screen (tap one issue, get your pup), no intro slides
 //   'city'  = the Your city board, with a big "make your pup" button on top
 //   'walk'  = a pup is made for them straight away (no issue needed) and they land on today's sniff walk
-var AD_LANDING = { yt1: 'start', yt2: 'city', yt3: 'start', yt4: 'start', yt5: 'walk', yt6: 'start', ig4: 'start', ig5: 'walk', ig6: 'start', yt7: 'game', ig7: 'game', yt8: 'game', ig8: 'game', yt9: 'game', ig9: 'game', yt10: 'game', ig10: 'game' };   // 'game' = Your city with Guess the wish open   // ig* = the same ads on Instagram
+var AD_LANDING = { yt1: 'start', yt2: 'city', yt3: 'start', yt4: 'start', yt5: 'walk', yt6: 'start', ig4: 'start', ig5: 'walk', ig6: 'start', yt7: 'game', ig7: 'game', yt8: 'game', ig8: 'game', yt9: 'game', ig9: 'game', yt10: 'game', ig10: 'game', yt21: 'block', ig21: 'block' };   // 'game' = Your city with Guess the wish open   // ig* = the same ads on Instagram
 var AD_CITY = 'Vancouver, British Columbia, Canada';   // 'city' landing when the visitor's city isn't known yet (the ads target Metro Vancouver)
 // the sniff-walk ad: make the pup now (no issue needed) and open today's walk
 // Today's walk shows straight away; the pup is only made when the visitor taps Start (robots that check ad links never tap)
@@ -2512,6 +2529,7 @@ function screenLedger(tail){
     if (q0.get('add') === 'walk' && !KIOSK) { history.replaceState(null, '', location.pathname); track('notif_open', { kind: 'walk' }); setTimeout(function(){ openAdd(); toast('🐾 Tap 📸 Feed to give ' + esc(L.name) + ' a photo'); }, 400); }
     if (q0.get('add') === '1' && !KIOSK) { history.replaceState(null, '', location.pathname); track('notif_open', { kind: 'reminder' }); setTimeout(openAdd, 250); }   // from a reminder
     if (q0.get('back') === '1') { history.replaceState(null, '', location.pathname); track('notif_open', { kind: 'recover' }); setTimeout(function(){ toast('🐾 Welcome back. ' + L.name + ' is on this phone now.'); }, 700); }
+    if (q0.get('go') === 'block') { location.replace('/block'); return; }
     var qm = q0.get('m');
     if (qm && /^[0-9]+-[a-z]+-[a-z]+$/.test(qm)) { track('notif_open', { kind: 'game_mail' }); try { sessionStorage.setItem('vp.welcomeback', '1'); } catch (e) {} location.replace('/m/' + qm); return; }
     var qe = q0.get('e');
@@ -4386,6 +4404,103 @@ document.addEventListener('click', function(ev){
       if (b.getAttribute('data-why') === 'child') { var c = document.querySelector('[data-rid="' + id + '"]'); if (c) c.remove(); }
       track('report', { why: b.getAttribute('data-why') }); }).catch(function(e){ toast(e.message); }); }; });
 }, true);
+// ---------- What's broken on your block: the City's own 3-1-1 records near you, and Follow ----------
+function blockCall(body){ return fetch(SUPABASE_URL + '/functions/v1/block', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) }).then(function(r){ return r.json(); }); }
+var BLOCK_ICON = [[/light/i, 'ph-lightbulb'], [/graffiti/i, 'ph-spray-bottle'], [/encampment|homeless/i, 'ph-tent'], [/vehicle|parking|car/i, 'ph-car'], [/noise/i, 'ph-speaker-high'],
+  [/tree|vegetation|park/i, 'ph-tree'], [/clean|garbage|trash|dump|litter|waste|debris/i, 'ph-trash'], [/pothole|street defect|sidewalk|road|pavement/i, 'ph-road-horizon'],
+  [/water|sewer|drain|hydrant|flood|leak/i, 'ph-drop'], [/sign|signal/i, 'ph-traffic-sign'], [/rat|rodent|pest/i, 'ph-bug'], [/scooter|bike/i, 'ph-bicycle']];
+function blockIcon(t){ for (var i = 0; i < BLOCK_ICON.length; i++) if (BLOCK_ICON[i][0].test(t)) return BLOCK_ICON[i][1]; return 'ph-clipboard-text'; }
+function blockWhen(x){
+  if (x.closed) return x.took != null ? 'Closed by the City · took ' + (x.took === 0 ? 'under a day' : x.took + ' day' + (x.took === 1 ? '' : 's')) : 'Closed by the City';
+  return x.status + ' · reported ' + (x.age === 0 ? 'today' : x.age + ' day' + (x.age === 1 ? '' : 's') + ' ago');
+}
+function screenBlock(){
+  var st = { r: 500, spot: null, data: null, follows: {} };
+  try { st.r = +localStorage.getItem('vp.blockr') || 500; var sp = JSON.parse(localStorage.getItem('vp.blockspot') || 'null'); if (sp && sp.lat) st.spot = sp; } catch (e) {}
+  if (!st.spot && myPos()) st.spot = { lat: myPos().lat, lng: myPos().lng, label: 'Near you' };
+  root.innerHTML = nav() + '<div class="bk"><div class="bkhead"><div class="eyebrow2">Official city records</div><h1>What&rsquo;s broken on your block?</h1>' +
+    '<p>Every problem people reported to the City nearby in the last 30 days, and whether the City has fixed it. Follow one and we&rsquo;ll tell you when it&rsquo;s closed.</p></div>' +
+    '<div id="bkspot"></div><div id="bkbody"></div></div>' + (loadLocal() ? tabbar('pack') : '');
+  wireTabs();
+  function spotBar(){
+    document.getElementById('bkspot').innerHTML = '<div class="bkspot"><span><i class="ph-fill ph-navigation-arrow locico"></i> ' + esc(st.spot ? st.spot.label : 'Pick a spot') + '</span>' +
+      '<div class="bkr">' + [250, 500, 1000].map(function(r){ return '<button type="button" class="bkrb' + (st.r === r ? ' on' : '') + '" data-r="' + r + '">' + (r < 1000 ? r + ' m' : '1 km') + '</button>'; }).join('') + '</div>' +
+      '<button type="button" class="bkchg" id="bkchg">Change</button></div>';
+    document.querySelectorAll('[data-r]').forEach(function(b){ b.onclick = function(){ st.r = +b.getAttribute('data-r'); try { localStorage.setItem('vp.blockr', st.r); } catch (e) {} spotBar(); load(); }; });
+    document.getElementById('bkchg').onclick = pickSpot;
+  }
+  function pickSpot(){
+    var s = sheet('<div class="addhead">Which block?</div><p class="hint">Type a street, an intersection or a neighbourhood. We only use it to look up the City&rsquo;s records nearby.</p>' +
+      '<div style="display:flex; gap:8px"><input id="bkq" placeholder="e.g. Valencia St & 18th St, San Francisco" style="flex:1"><button class="btn compact" id="bkgo">Search</button></div><div id="bkres"></div>' +
+      '<button class="btn ghost" id="bkgps">Use my location</button>');
+    var go = function(){ var q = document.getElementById('bkq').value.trim(); if (!q) return; document.getElementById('bkres').innerHTML = '<p class="hint">Searching…</p>';
+      fetch('https://nominatim.openstreetmap.org/search?format=jsonv2&limit=5&accept-language=en&email=hi%40voterpup.com&q=' + encodeURIComponent(q)).then(function(r){ return r.json(); }).then(function(rows){
+        var box = document.getElementById('bkres'); if (!rows || !rows.length) { box.innerHTML = '<p class="hint">Nothing found. Add the city name.</p>'; return; }
+        box.innerHTML = rows.map(function(r, i){ return '<button class="btn ghost" data-pi="' + i + '">' + esc(r.display_name.split(',').slice(0, 3).join(',')) + '</button>'; }).join('');
+        box.querySelectorAll('[data-pi]').forEach(function(b){ b.onclick = function(){ var r = rows[+b.getAttribute('data-pi')]; setSpot(+r.lat, +r.lon, r.display_name.split(',').slice(0, 2).join(',')); s.close(); }; });
+      }).catch(function(){ document.getElementById('bkres').innerHTML = '<p class="hint">Search failed. Try again.</p>'; }); };
+    document.getElementById('bkgo').onclick = go; document.getElementById('bkq').onkeydown = function(e){ if (e.key === 'Enter') go(); };
+    document.getElementById('bkgps').onclick = function(){ if (!navigator.geolocation) return; this.textContent = 'Finding you…';
+      navigator.geolocation.getCurrentPosition(function(p){ var la = Math.round(p.coords.latitude * 1e3) / 1e3, lo = Math.round(p.coords.longitude * 1e3) / 1e3; savePos(la, lo); setSpot(la, lo, 'Near you'); s.close(); },
+        function(){ toast('Location is off. Type a street instead.'); }, { timeout: 10000, maximumAge: 600000 }); };
+    setTimeout(function(){ var i = document.getElementById('bkq'); if (i) i.focus(); }, 200);
+  }
+  function setSpot(la, lo, label){ st.spot = { lat: la, lng: lo, label: label }; try { localStorage.setItem('vp.blockspot', JSON.stringify(st.spot)); } catch (e) {} track('block', { act: 'spot' }); spotBar(); load(); }
+  function load(){
+    var body = document.getElementById('bkbody');
+    if (!st.spot) { body.innerHTML = '<div class="bkempty"><b>Start with your block</b><span>Use your location or type a street. Your spot stays on this phone.</span><button class="btn gold" id="bkstart">Pick my block</button></div>';
+      document.getElementById('bkstart').onclick = pickSpot; return; }
+    body.innerHTML = '<div class="wskel"></div><div class="wskel"></div>';
+    var me = loadLocal();
+    blockCall({ action: 'near', lat: st.spot.lat, lng: st.spot.lng, r: st.r, tail: me ? me.tail : '' }).then(function(d){
+      if (d.error) { body.innerHTML = '<div class="bkempty"><b>Couldn&rsquo;t load the City&rsquo;s records</b><span>' + esc(d.error) + '</span></div>'; return; }
+      if (!d.covered) { body.innerHTML = '<div class="bkempty"><b>Not in your city yet</b><span>Block records work in ' + esc((d.cities || []).join(', ')) + ' so far. More cities soon.</span><a class="btn ghost" href="/pack">See what your city wants fixed</a></div>'; return; }
+      st.data = d; st.follows = {}; (d.follows || []).forEach(function(id){ st.follows[id] = 1; }); track('block', { act: 'view', city: d.city });
+      draw();
+    }).catch(function(){ body.innerHTML = '<div class="bkempty"><b>Couldn&rsquo;t reach the City&rsquo;s records</b><span><a href="#" onclick="location.reload();return false">Try again</a></span></div>'; });
+  }
+  function draw(){
+    var d = st.data, body = document.getElementById('bkbody'), rad = st.r < 1000 ? st.r + ' m' : '1 km';
+    body.innerHTML = '<div class="bksum"><div><b class="num">' + d.total.toLocaleString() + '</b><span>reported within ' + rad + ' · last 30 days</span></div>' +
+        '<div><b class="num bkopen">' + d.open.toLocaleString() + '</b><span>still open</span></div><div><b class="num bkdone">' + d.closed.toLocaleString() + '</b><span>closed by the City</span></div></div>' +
+      (d.top && d.top.length ? '<div class="bktop">Most reported: ' + d.top.map(function(t){ return esc(t.type); }).join(' · ') + '</div>' : '') +
+      '<div class="lhead" style="margin-top:14px"><b>Latest near you</b><small>Newest first · tap Follow to hear when the City closes it</small></div>' +
+      '<div class="elist">' + d.list.map(function(x){
+        var f = st.follows[x.id];
+        return '<div class="lrow bkrow"><div class="lthumb" style="background:' + (x.closed ? '#2a8a5a' : '#a8740a') + '"><i class="ph-fill ' + blockIcon(x.type + ' ' + (x.sub || '')) + '"></i></div>' +
+          '<div class="lmain"><b>' + esc(x.type) + (x.sub && x.sub.toLowerCase() !== x.type.toLowerCase() ? ' · ' + esc(x.sub) : '') + '</b><small>' + esc(blockWhen(x)) + (x.block ? ' · ' + esc(x.block) : '') + (x.km != null ? ' · ' + kmText(x.km) : '') + '</small></div>' +
+          (x.closed ? '<span class="bkdonechip">Fixed</span>' : '<button type="button" class="bkfol' + (f ? ' on' : '') + '" data-fid="' + esc(x.id) + '">' + (f ? '✓ Following' : 'Follow') + '</button>') + '</div>'; }).join('') + '</div>' +
+      '<p class="bksrc">Source: <a href="' + esc(d.site) + '" target="_blank" rel="noopener">' + esc(d.source) + '</a>. Shown as the City publishes it; we show the block, never a house number.</p>' +
+      '<a class="btn ghost" href="' + (loadLocal() ? pupURL(loadLocal().tail) + '?add=1' : '/app.html') + '">Something the City doesn&rsquo;t know about? Add it</a>';
+    body.querySelectorAll('[data-fid]').forEach(function(b){ b.onclick = function(){ follow(b); }; });
+  }
+  function follow(b){
+    var id = b.getAttribute('data-fid'), on = !st.follows[id];
+    b.disabled = true;
+    mineEnsurePup().then(function(me){ return blockCall({ action: on ? 'follow' : 'unfollow', tail: me.tail, city: st.data.city, id: id }).then(function(r){
+      b.disabled = false; if (r.error) { toast(r.error); return; }
+      if (on) st.follows[id] = 1; else delete st.follows[id];
+      b.classList.toggle('on', on); b.textContent = on ? '✓ Following' : 'Follow'; track('block', { act: on ? 'follow' : 'unfollow' });
+      if (on) followAsk(me);
+    }); }).catch(function(e){ b.disabled = false; toast(e.message); });
+  }
+  function followAsk(me){
+    var asked = false; try { asked = localStorage.getItem('vp.followask') === '1'; } catch (e) {}
+    var remOn = false; try { var rr = JSON.parse(localStorage.getItem('vp.rem') || 'null'); remOn = !!(rr && !rr.off); } catch (e) {}
+    if (asked || remOn || hasMail()) { toast('✓ Following. We&rsquo;ll tell you when the City closes it.'); return; }
+    var s = sheet('<div class="addhead">✓ Following</div><p class="hint">We check the City&rsquo;s records every few hours. How should we tell you when it&rsquo;s closed?</p>' +
+      '<form class="mnmail" id="fmail"><input type="email" id="fmailin" placeholder="you@email.com" autocomplete="email" inputmode="email"><button class="mnmailgo">Email me</button></form>' +
+      (pushOK() ? '<button class="btn ghost" id="fpush">🔔 Notify this phone</button>' : '') + '<button class="btn ghost" id="flater">I&rsquo;ll check back myself</button>' +
+      '<p class="hint" style="font-size:12px">Your email is used only for these updates. Unsubscribe any time.</p>');
+    try { localStorage.setItem('vp.followask', '1'); } catch (e) {}
+    document.getElementById('fmail').onsubmit = function(ev){ ev.preventDefault(); var v = document.getElementById('fmailin').value.trim();
+      if (!/^[^@\s]+@[^@\s]+\.[a-z]{2,}$/i.test(v)) { toast('That email doesn&rsquo;t look right.'); return; }
+      rpc('vp_set_follow_email', { p_tail: me.tail, p_email: v }).then(function(){ try { localStorage.setItem('vp.mail', '1'); } catch (e) {} track('block', { act: 'email' }); s.close(); toast('📬 Done. We&rsquo;ll email you when it&rsquo;s closed.'); }).catch(function(e){ toast(e.message); }); };
+    var fp = document.getElementById('fpush'); if (fp) fp.onclick = function(){ saveReminder(me.tail, Object.assign({}, REM_DEFAULT)).then(function(){ track('block', { act: 'push' }); s.close(); toast('🔔 This phone will tell you.'); }).catch(function(e){ toast(e.message); }); };
+    document.getElementById('flater').onclick = s.close;
+  }
+  spotBar(); load();
+}
 function mineShareText(code, prompt){ return 'I hid a secret answer. Can you find mine? 🫣🐾\n“' + prompt + '”\n' + location.origin + '/m/?g=' + code; }
 function mineShare(code, prompt){ var msg = mineShareText(code, prompt); track('mine', { act: 'share' });
   if (navigator.share) navigator.share({ text: msg }).catch(function(){}); else navigator.clipboard.writeText(msg).then(function(){ toast('Link copied. Paste it in the chat 🐾'); }, function(){ toast(location.origin + '/m/' + code); }); }
@@ -5390,7 +5505,7 @@ function screenPack(mode, topic0){
   }).catch(function(e){ var ag = document.getElementById('agenda'); if (ag) ag.hidden = true; var bd = document.getElementById('board'); if (bd) bd.innerHTML = '<div class="hint">Couldn&rsquo;t reach the pack. <a href="#" onclick="location.reload();return false">Try again</a></div>'; });
 }
 
-var APP_VERSION = "20261007201354";
+var APP_VERSION = "20261007205644";
 (function(){
   try {
     fetch('/version.json?t=' + Date.now(), { cache: 'no-store' }).then(function(r){ return r.json(); }).then(function(j){
@@ -5916,6 +6031,7 @@ window.addEventListener('scroll', function(){ document.body.classList.toggle('sc
   else if (location.pathname === '/play') screenPlay();
   else if (location.pathname === '/packs' || location.pathname === '/groups') screenPacksHome();
   else if (/^\/issue\/[0-9a-f-]{36}$/.test(location.pathname)) { window._openIssue = location.pathname.split('/')[2]; try { sessionStorage.setItem('vp.ctab', 'city'); } catch (e) {} history.replaceState(null, '', '/pack'); screenPack(); }
+  else if (location.pathname === '/block') screenBlock();
   else if (location.pathname === '/mine') screenMineMake();
   else if (/^\/m\/[0-9]+-[a-z]+-[a-z]+$/.test(location.pathname)) screenMinePlay(location.pathname.slice(3));
   else if (location.pathname === '/wishes') protoCheck().then(function(pr){ if (pr) screenWishes(); else { history.replaceState(null, '', '/pack'); screenPack(); } });
@@ -5923,6 +6039,7 @@ window.addEventListener('scroll', function(){ document.body.classList.toggle('sc
   else if (/^\/list\/[0-9a-f]{10}$/.test(location.pathname)) screenPublicList(location.pathname.split('/')[2]);
   else if (/^\/packs\/[0-9a-f-]{36}$/.test(location.pathname)) screenPackRoom(location.pathname.split('/')[2]);
   else if (!loadLocal() && !KIOSK && qs.get('new') !== '1' && qs.get('src') && AD_LANDING[qs.get('src')] === 'walk') walkFirstPup();
+  else if (!KIOSK && qs.get('src') && AD_LANDING[qs.get('src')] === 'block') { track('open', { land: 'block' }); history.replaceState(null, '', '/block'); screenBlock(); }
   else if (!KIOSK && qs.get('src') && AD_LANDING[qs.get('src')] === 'game') {   // game ads: straight onto today's question; the pup is made on their first tap
     try { sessionStorage.setItem('vp.ctab', 'game'); localStorage.setItem('vp.mineon', '1'); } catch (e) {}
     // straight to the game: one question, your answer, send. The sample round is one tap away for the curious.
