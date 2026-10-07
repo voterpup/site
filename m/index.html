@@ -1417,6 +1417,7 @@
   .mapchip{margin-left:auto}
   #board{padding-bottom:96px}   /* room above the camera button */
   .elist .lrow{margin-bottom:8px} .lgo{color:var(--sub); font-size:16px; flex:0 0 auto}
+  .elist{display:flex; flex-direction:column; gap:8px} .elist .lrow{margin:0}
 </style>
 </head>
 <body>
@@ -2492,7 +2493,7 @@ function screenLedger(tail){
     var tileOf = function(e){
       var st = e.fixed_at ? '✅ Fixed' : e.shared ? (e.backs ? '🐾 ' + e.backs + ' agree' : '👥 Shared in Your city') : '🔒 Private';
       return listRowHTML('data-open="' + e.id + '"', e, st + (e.topic ? ' · #' + esc(e.topic) : '') + ' · ' + new Date(e.ts || e.created_at || Date.now()).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })); };
-    box.innerHTML = '<div class="elist">' + L.entries.map(tileOf).join('') + '</div><div class="ecards" hidden>' + L.entries.map(function(e){
+    box.innerHTML = '<div class="lhead"><b>Your issues</b><small>' + L.entries.length + ' remembered · tap one to open</small></div><div class="elist">' + L.entries.map(tileOf).join('') + '</div><div class="ecards" hidden>' + L.entries.map(function(e){
       var fixedTxt = e.fixed_at ? new Date(e.fixed_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) : '';
       return '<div class="card ecard' + (e.fixed_at ? ' fixedcard' : '') + '" data-card="' + e.id + '">' +
         '<div class="ehead">' + (e.topic ? '<a class="topicchip" href="/pack?t=' + encodeURIComponent(e.topic) + '">#' + esc(e.topic) + '</a>' : '<span></span>') +
@@ -4768,7 +4769,7 @@ function listRowHTML(attr, e, meta){
   var ic = (typeof AGENDA_ICON !== 'undefined' && AGENDA_ICON[e.topic]) || 'ph-paw-print';
   return '<div class="lrow" ' + attr + '><div class="lthumb" style="background:' + (LIST_COL[e.topic] || '#4a5b6e') + '">' +
     (img ? '<img src="' + esc(img) + '" alt="" loading="lazy">' : '<i class="ph-fill ' + ic + '"></i>') + '</div>' +
-    '<div class="lmain"><b>' + esc((e.body || '📷 a photo').slice(0, 120)) + '</b><small>' + meta + '</small></div><i class="ph-bold ph-caret-right lgo"></i></div>';
+    '<div class="lmain"><b>' + esc((e.body || '📷 a photo').slice(0, 120)) + '</b><small>' + meta + '</small></div><i class="ph-fill ph-caret-right lgo"></i></div>';
 }
 function huntShown(){ return false; }   // the sniff walk is retired from the pup page
 function huntShownOld(){ try { if (localStorage.getItem('vp.walkon') === '1') return true; var s = JSON.parse(localStorage.getItem('vp.hunt') || 'null'); if (s && s.found && Object.keys(s.found).length) return true; return huntWalks().length > 0; } catch (e) { return false; } }
@@ -5332,7 +5333,7 @@ function screenPack(mode, topic0){
   }).catch(function(e){ var ag = document.getElementById('agenda'); if (ag) ag.hidden = true; var bd = document.getElementById('board'); if (bd) bd.innerHTML = '<div class="hint">Couldn&rsquo;t reach the pack. <a href="#" onclick="location.reload();return false">Try again</a></div>'; });
 }
 
-var APP_VERSION = "20261007163206";
+var APP_VERSION = "20261007163638";
 (function(){
   try {
     fetch('/version.json?t=' + Date.now(), { cache: 'no-store' }).then(function(r){ return r.json(); }).then(function(j){
