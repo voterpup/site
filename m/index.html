@@ -2367,6 +2367,7 @@ function screenUnbox(name, gripe){
 // ---------- The tour: one real control at a time, across the three tabs; it resumes after each tab change ----------
 var TOUR_STEPS = [
   { at: 'pup', welcome: true, title: 'Hi, I’m NAME 🐾', text: 'I remember what you want fixed, show you who agrees, and bring your list back when you vote. Quick tour? About a minute, and you can tap anything along the way.' },
+  { at: 'pup', sel: '#huntcard', title: 'Today’s sniff walk', text: 'Every day: find 5 things outside and snap them. 🟢 Common 10 · 🔵 Uncommon 25 · ✨ Rare 60. Every walk becomes a memory.' },
   { at: 'pup', sel: '#qwalk', title: 'Snap what bugs you', text: 'See something broken, or something great? Snap it. I read the photo, name the issue and keep it. No name, no sign-up.' },
   { at: 'pup', sel: '#qnote', title: 'Or just say it', text: 'No photo? A few words is plenty: housing prices, the bus, a dark street.' },
   { at: 'pup', sel: '#entries', need: '.etile', title: 'Your issues', text: 'They live here as tiles. Tap one to add its spot, share it with Your city, or send it to a group.' },
@@ -4936,7 +4937,7 @@ function listRowHTML(attr, e, meta){
     (img ? '<img src="' + esc(img) + '" alt="" loading="lazy">' : '<i class="ph-fill ' + ic + '"></i>') + '</div>' +
     '<div class="lmain"><b>' + esc((e.body || '📷 a photo').slice(0, 120)) + '</b><small>' + meta + '</small></div><i class="ph-fill ph-caret-right lgo"></i></div>';
 }
-function huntShown(){ return false; }   // the sniff walk is retired from the pup page
+function huntShown(){ return true; }   // the sniff walk is VoterPup's own fun: back on the pup page for everyone
 function huntShownOld(){ try { if (localStorage.getItem('vp.walkon') === '1') return true; var s = JSON.parse(localStorage.getItem('vp.hunt') || 'null'); if (s && s.found && Object.keys(s.found).length) return true; return huntWalks().length > 0; } catch (e) { return false; } }
 function huntCardHTML(name){ var s = huntState(), tg = huntTargets(s.walk), n = tg.filter(function(k){ return s.found[k]; }).length, bonus = s.walk > 1;
   return '<div class="huntcard' + (bonus ? ' bonus' : '') + '" id="huntcard"><div class="hhead"><b>' + (n >= 5 ? '🏆 Walk complete!' : bonus ? '🐾 Bonus walk #' + (s.walk - 1) : 'Today&rsquo;s sniff walk') + '</b><span class="hclock">' + huntClockText() + '</span></div>' +
@@ -5505,7 +5506,7 @@ function screenPack(mode, topic0){
   }).catch(function(e){ var ag = document.getElementById('agenda'); if (ag) ag.hidden = true; var bd = document.getElementById('board'); if (bd) bd.innerHTML = '<div class="hint">Couldn&rsquo;t reach the pack. <a href="#" onclick="location.reload();return false">Try again</a></div>'; });
 }
 
-var APP_VERSION = "20261007205644";
+var APP_VERSION = "20261007205942";
 (function(){
   try {
     fetch('/version.json?t=' + Date.now(), { cache: 'no-store' }).then(function(r){ return r.json(); }).then(function(j){
