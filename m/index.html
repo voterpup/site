@@ -1403,6 +1403,16 @@
   /* Your city, simpler: no banner, no pinch hint, a quieter sort row */
   .packhero{display:none !important} .pinchhint{display:none}
   .sortrow{gap:8px} .sortrow .sortbtn{flex:0 0 auto}
+  /* Your city: the calm list */
+  .lsec{margin:4px 0 18px} .lhead{margin:0 2px 8px} .lhead b{display:block; font-size:17px} .lhead small{color:var(--sub); font-size:12.5px}
+  .lrow{display:flex; align-items:center; gap:12px; padding:10px; border-radius:16px; background:var(--card); border:1px solid var(--line); margin-bottom:8px; cursor:pointer}
+  .lrow:active{transform:scale(.99)}
+  .lthumb{flex:0 0 auto; width:52px; height:52px; border-radius:12px; overflow:hidden; display:grid; place-items:center; color:#fff; font-size:24px}
+  .lthumb img{width:100%; height:100%; object-fit:cover}
+  .lmain{flex:1; min-width:0} .lmain b{display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; font-size:15px; line-height:1.3} .lmain small{display:block; color:var(--sub); font-size:12px; margin-top:3px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+  .lact{flex:0 0 auto} .lact .chip{margin:0; white-space:nowrap}
+  .lcard{margin:-2px 0 10px} .lcard .card{margin:0}
+  .lmore{display:block; width:100%; border:1px dashed var(--line); background:transparent; color:var(--goldtext); font:inherit; font-weight:800; padding:10px; border-radius:14px; cursor:pointer}
 </style>
 </head>
 <body>
@@ -5172,7 +5182,7 @@ function screenPack(mode, topic0){
         '<div class="count" style="margin-top:0">' + esc(t.name) + ' \u00b7 ' + t.list.length + '</div>' +
         '<div id="tmoments"></div>' +
         feedHTML(t.list);
-      document.getElementById('back').onclick = tilesView;
+      window._packView = 'feed'; document.getElementById('back').onclick = function(){ if (wall) tilesView(); else listView(); };
       if (!t.mine) topicMoments(t, function(html){
         var tm = document.getElementById('tmoments'); if (tm) mountMoments(tm, html, false, 'When you can act on ' + t.name);
       });
@@ -5233,7 +5243,7 @@ function screenPack(mode, topic0){
         cityOn = true; document.getElementById('citytg').checked = true; drawCity();   // on by default; untick to hide
       }).catch(function(){ var el0 = document.getElementById('packmap'); if (el0) el0.innerHTML = '<div class="hint" style="padding:40px 12px">The map couldn&rsquo;t load. Try again in a minute.</div>'; });
     }
-    function tilesOff(){ mapOn = false; mb.innerHTML = '🗺️<span>Map</span>'; try { sessionStorage.removeItem('vp.packmap'); } catch (e) {} tilesView(); }
+    function tilesOff(){ mapOn = false; mb.innerHTML = '🗺️<span>Map</span>'; try { sessionStorage.removeItem('vp.packmap'); } catch (e) {} if (wall) tilesView(); else listView(); }
     if (mb) { mb.hidden = false; mb.onclick = function(ev){ ev.preventDefault(); if (mapOn) tilesOff(); else mapView(); }; }
     var wantMap = false; try { wantMap = sessionStorage.getItem('vp.packmap') === '1'; } catch (e) {}
     if (mb && wantMap && !topic0) { mapView(); return; }
@@ -5244,12 +5254,65 @@ function screenPack(mode, topic0){
       if (hit0) { feedView(hit0); return; }
     }
 
+    // the calm list: neighbours' issues, then what the City's 3-1-1 heard, each a still row you can open
+    var LCOL = { housing: '#2f7a63', homelessness: '#5b3fb8', transit: '#1b62a8', infrastructure: '#a8740a', utilities: '#0f7c80', safety: '#1769c2', 'cost of living': '#13795b',
+      health: '#a8455b', education: '#3a4fc0', climate: '#237a44', cleanliness: '#0b6e8a', parks: '#2a8a3e', other: '#4a5b6e' };
+    function lrow(r, extra){
+      var img = itemImg(r), ic = (typeof AGENDA_ICON !== 'undefined' && AGENDA_ICON[r.topic]) || 'ph-paw-print', k = km(r), off = r.source === 'city311';
+      var meta = off ? '🏛️ City 3-1-1' + (extra && extra.n > 1 ? ' · ' + extra.n + ' reports' : '') : (r.backs ? '🐾 ' + r.backs + ' agree' : '🐾 Be the first to agree');
+      if (k != null) meta += ' · 📍 ' + kmText(k);
+      if (r.topic) meta += ' · #' + esc(r.topic);
+      return '<div class="lrow" data-lid="' + esc(r.id) + '"><div class="lthumb" style="background:' + (LCOL[r.topic] || '#4a5b6e') + '">' +
+        (img ? '<img src="' + esc(img) + '" alt="" loading="lazy">' : '<i class="ph-fill ' + ic + '"></i>') + '</div>' +
+        '<div class="lmain"><b>' + esc((r.body || '📷 a photo').slice(0, 120)) + '</b><small>' + meta + '</small></div>' +
+        (!off && !myIds[r.id] ? '<div class="lact">' + sameChip(r.id, 0, !!backed[r.id], false) + '</div>' : '') + '</div>' +
+        '<div class="lcard" id="lc-' + esc(r.id) + '" hidden></div>';
+    }
+    var byId = {};
+    function listView(){
+      clearInterval(window._packT); window._packView = 'list';
+      var people = rows.filter(function(r){ return r.source !== 'city311'; });
+      mine.forEach(function(m){ if (!people.some(function(r){ return r.id === m.id; })) people.push(m); });
+      people.sort(function(a, b){ return score(b) - score(a); });
+      var cg = {}, order = [];
+      rows.filter(function(r){ return r.source === 'city311'; }).forEach(function(r){ var k2 = (r.body || '').trim().toLowerCase();
+        if (!cg[k2]) { cg[k2] = { best: r, n: 0 }; order.push(k2); } cg[k2].n++; if (score(r) > score(cg[k2].best)) cg[k2].best = r; });
+      var cityL = order.map(function(k2){ return cg[k2]; }).sort(function(a, b){ return SORT === 'near' ? score(b.best) - score(a.best) : b.n - a.n; });
+      people.concat(cityL.map(function(x){ return x.best; })).forEach(function(r){ byId[r.id] = r; });
+      var sec = function(title, sub, items, render, id){
+        var shown = items.slice(0, 8);
+        return '<div class="lsec"><div class="lhead"><b>' + title + '</b><small>' + sub + '</small></div>' + shown.map(render).join('') +
+          (items.length > 8 ? '<button class="lmore" data-lmore="' + id + '">Show all ' + items.length + '</button>' : '') + '</div>';
+      };
+      b.innerHTML = (people.length ? sec('From neighbours', 'What people here said should be fixed', people, function(r){ return lrow(r); }, 'p')
+          : '<div class="lsec"><div class="lhead"><b>From neighbours</b><small>Nobody here has shared one yet.</small></div><a class="btn gold" href="' + (saved ? pupURL(saved.tail) + '?add=1' : '/app.html') + '">Be the first: add yours</a></div>') +
+        (cityL.length ? sec('What the City heard', 'Requests to 3-1-1 this week', cityL, function(x){ return lrow(x.best, x); }, 'c') : '');
+      b.querySelectorAll('[data-lmore]').forEach(function(m){ m.onclick = function(){ var w = m.getAttribute('data-lmore');
+        m.insertAdjacentHTML('beforebegin', (w === 'p' ? people.slice(8).map(function(r){ return lrow(r); }) : cityL.slice(8).map(function(x){ return lrow(x.best, x); })).join('')); m.remove(); }; });
+      if (window._openIssue) { var oid = window._openIssue; window._openIssue = null;
+        if (byId[oid]) setTimeout(function(){ openRow(oid, true); }, 60);
+        else if (!window._openTried && document.getElementById('mall')) { window._openTried = 1; window._openIssue = oid; document.getElementById('mall').click(); }
+        else { window._openTried = 0; toast('That issue isn&rsquo;t on the list any more 🐾'); } }
+      tourResume();
+    }
+    function openRow(id, scroll){
+      var c = document.getElementById('lc-' + id), r = byId[id]; if (!c || !r) return;
+      if (!c.hidden) { c.hidden = true; return; }
+      c.innerHTML = cardHTML(r); c.hidden = false; if (typeof wakeMiniMaps === 'function') wakeMiniMaps(c);
+      if (scroll) { var row = b.querySelector('[data-lid="' + id + '"]'); if (row) { row.scrollIntoView({ block: 'center' }); row.classList.add('flashme'); } }
+    }
+    b.addEventListener('click', function(ev){
+      if (window._packView !== 'list') return;
+      var row = ev.target.closest ? ev.target.closest('.lrow') : null; if (!row || ev.target.closest('[data-back]')) return;
+      openRow(row.getAttribute('data-lid'), false);
+    });
+
     var all = rows.slice();
     mine.forEach(function(m){ if (!all.some(function(r){ return r.ts === m.ts && r.pup === m.pup; })) all.push(m); });
     document.getElementById('packsearch').oninput = function(){
       var q = this.value.trim().toLowerCase();
-      if (!q) { tilesView(); return; }
-      clearInterval(window._packT);
+      if (!q) { if (wall) tilesView(); else listView(); return; }
+      clearInterval(window._packT); window._packView = 'search';
       var hit = all.filter(function(r){
         return (r.body || '').toLowerCase().indexOf(q) >= 0 || (r.tags || []).some(function(t){ return ('#' + t).indexOf(q) >= 0; }) ||
                (r.topic || '').toLowerCase().indexOf(q) >= 0 ||
@@ -5259,11 +5322,11 @@ function screenPack(mode, topic0){
       b.innerHTML = hit.length ? feedHTML(hit) : '<div class="hint">Nothing in the pack matches that. \ud83d\udc3e</div>';
     };
 
-    tilesView();
+    if (wall) tilesView(); else listView();
   }).catch(function(e){ var ag = document.getElementById('agenda'); if (ag) ag.hidden = true; var bd = document.getElementById('board'); if (bd) bd.innerHTML = '<div class="hint">Couldn&rsquo;t reach the pack. <a href="#" onclick="location.reload();return false">Try again</a></div>'; });
 }
 
-var APP_VERSION = "20261007161153";
+var APP_VERSION = "20261007161654";
 (function(){
   try {
     fetch('/version.json?t=' + Date.now(), { cache: 'no-store' }).then(function(r){ return r.json(); }).then(function(j){
