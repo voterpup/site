@@ -1413,6 +1413,9 @@
   .lact{flex:0 0 auto} .lact .chip{margin:0; white-space:nowrap}
   .lcard{margin:-2px 0 10px} .lcard .card{margin:0}
   .lmore{display:block; width:100%; border:1px dashed var(--line); background:transparent; color:var(--goldtext); font:inherit; font-weight:800; padding:10px; border-radius:14px; cursor:pointer}
+  body:not(.wall) .mapbtn{display:none !important}   /* Map lives in the sort row now, not floating over the list */
+  .mapchip{margin-left:auto}
+  #board{padding-bottom:96px}   /* room above the camera button */
 </style>
 </head>
 <body>
@@ -4964,7 +4967,8 @@ function screenPack(mode, topic0){
     '<label class="searchwrap"><svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><circle cx="11" cy="11" r="7" fill="none" stroke="currentColor" stroke-width="2.2"/><path d="M20 20l-3.5-3.5" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>' +
       '<input class="searchbar" id="packsearch" placeholder="' + (mode === 'local' && city ? 'Search ' + esc(city) : 'Search everywhere') + '" enterkeyhint="search"></label>' +
     (wall ? '' : '<div class="sortrow">' + [['near', '📍', 'Nearest'], ['voted', '🐾', 'Most agreed']].map(function(s){
-      return '<button class="sortbtn' + (packSort() === s[0] ? ' on' : '') + '" data-sort="' + s[0] + '"><span>' + s[1] + '</span>' + s[2] + '</button>'; }).join('') + '</div>') +
+      return '<button class="sortbtn' + (packSort() === s[0] ? ' on' : '') + '" data-sort="' + s[0] + '"><span>' + s[1] + '</span>' + s[2] + '</button>'; }).join('') +
+      '<button class="sortbtn mapchip" id="mapchip" type="button"><span>🗺️</span>Map</button></div>') +
     '<div id="board" class="hint">fetching the pack...</div>' +
     (wall ? '' : '<a href="#" class="mapbtn" id="mapbtn" hidden>' + ic('world_map', 'btnic') + '<span>Map</span></a>') +
     '<footer>Only what people chose to share. \ud83c\udf31 \u00b7 <a href="mailto:hi@voterpup.com">hi@voterpup.com</a></footer>' +
@@ -5245,6 +5249,7 @@ function screenPack(mode, topic0){
     }
     function tilesOff(){ mapOn = false; mb.innerHTML = '🗺️<span>Map</span>'; try { sessionStorage.removeItem('vp.packmap'); } catch (e) {} if (wall) tilesView(); else listView(); }
     if (mb) { mb.hidden = false; mb.onclick = function(ev){ ev.preventDefault(); if (mapOn) tilesOff(); else mapView(); }; }
+    var mch = document.getElementById('mapchip'); if (mch && mb) mch.onclick = function(ev){ ev.preventDefault(); mb.click(); mch.classList.toggle('on', mapOn); mch.innerHTML = mapOn ? '<span>📋</span>List' : '<span>🗺️</span>Map'; };
     var wantMap = false; try { wantMap = sessionStorage.getItem('vp.packmap') === '1'; } catch (e) {}
     if (mb && wantMap && !topic0) { mapView(); return; }
 
@@ -5326,7 +5331,7 @@ function screenPack(mode, topic0){
   }).catch(function(e){ var ag = document.getElementById('agenda'); if (ag) ag.hidden = true; var bd = document.getElementById('board'); if (bd) bd.innerHTML = '<div class="hint">Couldn&rsquo;t reach the pack. <a href="#" onclick="location.reload();return false">Try again</a></div>'; });
 }
 
-var APP_VERSION = "20261007161804";
+var APP_VERSION = "20261007162551";
 (function(){
   try {
     fetch('/version.json?t=' + Date.now(), { cache: 'no-store' }).then(function(r){ return r.json(); }).then(function(j){
