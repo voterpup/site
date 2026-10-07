@@ -4902,7 +4902,7 @@ function screenPack(mode, topic0){
   }
   var cityKey = place ? place.split(',')[0].toLowerCase() : null;
   var dataCity = cityKey ? (METRO[cityKey] || CITY_ALIAS[cityKey] || cityKey) : null;   // Surrey, Burnaby… share Metro Vancouver's city data
-  if (mode === 'local' && dataCity) rpc('vp_city_pulse', { p_place: dataCity + ', x, x' }).then(function(cp){
+  if ((mode || (place ? 'local' : 'all')) === 'local' && dataCity) rpc('vp_city_pulse', { p_place: dataCity + ', x, x' }).then(function(cp){   // your city: just its own card (the 10-city carousel is for Everywhere)
     var cs = document.getElementById('citystrip');
     if (!cp || !cp.week_total) { rpc('vp_city_wanted', { p_place: (METRO[cityKey] || CITY_ALIAS[cityKey]) ? dataCity : (place || dataCity) }).catch(function(){}); return; }   // full place, so the search can find the right city   // no official data yet: note the ask
     if (!cs) return;
@@ -5263,7 +5263,7 @@ function screenPack(mode, topic0){
   }).catch(function(e){ var ag = document.getElementById('agenda'); if (ag) ag.hidden = true; var bd = document.getElementById('board'); if (bd) bd.innerHTML = '<div class="hint">Couldn&rsquo;t reach the pack. <a href="#" onclick="location.reload();return false">Try again</a></div>'; });
 }
 
-var APP_VERSION = "20261007161051";
+var APP_VERSION = "20261007161153";
 (function(){
   try {
     fetch('/version.json?t=' + Date.now(), { cache: 'no-store' }).then(function(r){ return r.json(); }).then(function(j){
