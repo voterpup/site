@@ -1422,7 +1422,7 @@
   html, body{overscroll-behavior-y:none}
   .wrap{overflow-x:clip}
   body:not(.wall) .nav{position:sticky; top:0; z-index:8; margin:calc(-1 * max(18px, env(safe-area-inset-top))) -16px 12px; padding:max(14px, env(safe-area-inset-top)) 16px 10px;
-    background:rgba(12,23,34,.92); backdrop-filter:blur(12px); -webkit-backdrop-filter:blur(12px); border-bottom:1px solid transparent; transition:border-color .2s}
+    background:rgba(12,23,34,.98); backdrop-filter:blur(12px); -webkit-backdrop-filter:blur(12px); border-bottom:1px solid transparent; transition:border-color .2s}
   body.scrolled:not(.wall) .nav{border-bottom-color:var(--line)}
 </style>
 </head>
@@ -5339,7 +5339,7 @@ function screenPack(mode, topic0){
   }).catch(function(e){ var ag = document.getElementById('agenda'); if (ag) ag.hidden = true; var bd = document.getElementById('board'); if (bd) bd.innerHTML = '<div class="hint">Couldn&rsquo;t reach the pack. <a href="#" onclick="location.reload();return false">Try again</a></div>'; });
 }
 
-var APP_VERSION = "20261007164243";
+var APP_VERSION = "20261007165029";
 (function(){
   try {
     fetch('/version.json?t=' + Date.now(), { cache: 'no-store' }).then(function(r){ return r.json(); }).then(function(j){
