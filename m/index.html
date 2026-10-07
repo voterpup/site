@@ -1390,6 +1390,16 @@
   .mnansrow{display:flex; gap:8px; align-items:center} .mnfield .mnansrow input{flex:1; min-width:0; width:auto !important}
   .mnuse{flex:0 0 auto; border:1.5px solid rgba(245,184,61,.6); background:rgba(245,184,61,.12); color:var(--goldtext); border-radius:14px; padding:12px 12px; font:inherit; font-weight:900; font-size:14px; cursor:pointer}
   #mnans::placeholder{color:#6f8599}
+  .fd{max-width:480px; margin:0 auto; padding:4px 0 40px; display:flex; flex-direction:column; gap:12px}
+  .fdhead{display:flex; gap:14px; align-items:center} .fdhead img{width:72px; height:72px; border-radius:50%; border:3px solid var(--gold); flex:0 0 auto; object-fit:cover}
+  .fdk{font-size:12px; font-weight:900; letter-spacing:.1em; text-transform:uppercase; color:var(--goldtext)} .fdhead h1{font-size:18px; margin:2px 0 4px; font-weight:800}
+  .fdissue{display:inline-block; font-family:'Fredoka','Nunito',sans-serif; font-weight:600; font-size:24px; line-height:1.15; color:var(--ink)}
+  .fdstep{background:var(--card); border:1px solid var(--line); border-radius:18px; padding:14px; display:flex; flex-direction:column; gap:8px} .fdstep > b{font-size:16px} .fdstep small{color:var(--sub); font-size:13.5px; line-height:1.4}
+  .fdstep .btn{margin:2px 0 0}
+  .fdrow{display:flex; gap:12px; align-items:flex-start} .fdrow i{font-size:22px; color:var(--goldtext); margin-top:2px} .fdrow > div{flex:1; min-width:0} .fdrow b{display:block; font-size:15.5px} .fdrow small{display:block}
+  .fdchg{font-size:13px; font-weight:800; color:var(--goldtext) !important}
+  .fdbtns{display:flex; flex-direction:column; gap:8px} .fdbtns .btn{margin:0}
+  .fdskip{text-align:center; font-weight:800; color:var(--sub) !important; text-decoration:none; margin-top:4px}
 </style>
 </head>
 <body>
@@ -1417,6 +1427,7 @@ var AD_CITY = 'Vancouver, British Columbia, Canada';   // 'city' landing when th
 // the sniff-walk ad: make the pup now (no issue needed) and open today's walk
 // Today's walk shows straight away; the pup is only made when the visitor taps Start (robots that check ad links never tap)
 function walkFirstPup(){
+  try { localStorage.setItem('vp.walkon', '1'); } catch (e) {}
   var names = ['Maple','Scout','Biscuit','Oreo','Juno','Pepper','Milo','Hazel','Kobe','Nala','Toffee','Ziggy'], name = names[Math.floor(Math.random() * names.length)];
   root.innerHTML = nav() + '<div class="walkhello"><img src="/pup-face.jpg" alt=""><div><b>Hi! I&rsquo;m ' + esc(name) + ' 🐾</b>Let&rsquo;s go for a walk! Find these 5 things outside. ✨ Rare ones are worth the most.</div></div>' +
     '<div class="walkprev">' + huntCardHTML(name) + '</div>' +
@@ -1872,6 +1883,7 @@ function detectPlace(cb){
 }
 function afterPlaceChange(){
   _elCache = {};
+  if (window._firstDoneRedraw) { window._firstDoneRedraw(); return; }
   if (document.getElementById('votestrip')) renderVoteStrip();
   else if (location.pathname === '/pack') screenPack('local');
 }
@@ -2258,7 +2270,7 @@ function screenUnbox(name, gripe){
       document.getElementById('newpup').onclick = function(){ location.href = location.pathname + '?kiosk=1'; };
     } else {
       try { sessionStorage.setItem('vp.first', l.first || ''); sessionStorage.setItem('vp.firstbody', gripe || ''); sessionStorage.setItem('vp.tour', '1'); } catch (e) {}
-      afterFirstPup(l).then(function(dest){ location.href = dest || url; });
+      afterFirstPup(l).then(function(dest){ if (dest) location.href = dest; else screenFirstDone(l, gripe, url); });
       return;
     }
     r.className = 'reveal show';
@@ -2414,7 +2426,7 @@ function screenLedger(tail){
       '<div class="puphead"><span class="pupav-wrap">' + pupRing(76) + '</span><div><div class="pupname">' + esc(L.name) + '</div><div class="puplv">' + (function(lv){ return '<b>' + lv.name + '</b>' + (lv.next ? ' · ' + lv.toNext + ' pts to ' + lv.next : ''); })(pupLevel()) + '</div>' +
         '<div class="pupsub">' + (n ? 'remembers ' + n + ' thing' + (n === 1 ? '' : 's') : 'tap 📸 to feed ' + esc(L.name) + ' a photo') + '</div></div>' +
         '</div>' +
-      (KIOSK ? '' : huntCardHTML(L.name) + '<div class="actrow"><button class="actbtn snap" id="qwalk"><span class="acti"><i class="ph-fill ph-camera"></i></span><span class="actt"><b>Snap</b><small>a photo</small></span></button>' +
+      (KIOSK ? '' : (huntShown() ? huntCardHTML(L.name) : '') + '<div class="actrow"><button class="actbtn snap" id="qwalk"><span class="acti"><i class="ph-fill ph-camera"></i></span><span class="actt"><b>Snap</b><small>a photo</small></span></button>' +
         '<button class="actbtn note" id="qnote"><span class="acti"><i class="ph-fill ph-note-pencil"></i></span><span class="actt"><b>Note</b><small>a few words</small></span></button></div>') +
       '<div id="minecard"></div><div id="fetchslot"></div>' +
       '<div class="momwrap" id="votestrip"></div>' +
@@ -3193,6 +3205,7 @@ function dailyFetch(L, tail){
     });
   }
   if (pick) { render(pick); return; }
+  return;   // no swipe deck on the pup page: it pulled attention away from your own list
   // nothing of your own to bring back: a swipe deck of nearby issues (preloaded, no waiting between cards)
   var mine = {}; L.entries.forEach(function(e){ mine[e.id] = 1; }); (L.backed || []).forEach(function(e){ mine[e.id] = 1; });
   prefetchDeck().then(function(rows){
@@ -3750,6 +3763,53 @@ function joinFromLink(code){
     if (!p) { try { localStorage.removeItem('vp.joincode'); } catch (e) {} toast('That invite has expired. Ask for a fresh link 🐾'); return; }
     var n = document.querySelector('.hello'); if (n) n.insertAdjacentHTML('beforebegin', '<div class="joinban"><b>🐾 ' + esc(p.owner) + ' invited you to “' + esc(p.name) + '”</b><span>Tap one issue below to make your pup and join the group.</span></div>');
   }).catch(function(){});
+}
+// the moment right after someone's first issue: confirm it, ask where they vote, show the real next vote and who agrees,
+// and offer the voting-morning reminder. Then the pup page.
+function screenFirstDone(l, gripe, url){
+  var issue = (gripe || '').trim() || 'your issue', nm = esc(l.name), me = { tail: l.tail, name: l.name };
+  track('first_done', { act: 'show' });
+  function draw(){
+    var place = getPlace(), city = place ? place.split(',')[0] : null;
+    root.innerHTML = nav() + '<div class="fd">' +
+      '<div class="fdhead"><img src="/pup-face.jpg" alt=""><div><div class="fdk">Saved 🐾</div><h1>' + nm + ' will remember:</h1><div class="fdissue">' + esc(issue) + '</div></div></div>' +
+      '<div class="fdstep" id="fdplace">' + (city
+        ? '<div class="fdrow"><i class="ph-fill ph-map-pin"></i><div><b>You vote in ' + esc(city) + '</b><small id="fdvote">Checking your next vote…</small></div><a href="#" class="fdchg chgloc">change</a></div>' +
+          '<div class="fdrow"><i class="ph-fill ph-users-three"></i><div><b id="fdsame">…</b><small id="fdsamesub"></small></div></div>'
+        : '<b>Where do you vote?</b><small>So ' + nm + ' knows your next election, and shows what people near you want fixed.</small>' +
+          '<button class="btn gold" id="fdwhere">📍 Set my city</button>') + '</div>' +
+      '<div class="fdstep" id="fdremind"><b>🗳️ Want ' + nm + ' to remind you on voting morning?</b><small>Your list, the morning you vote. Nothing else.</small>' +
+        '<form class="mnmail" id="fdmail"><input type="email" id="fdmailin" placeholder="you@email.com (optional)" autocomplete="email" inputmode="email"><button class="mnmailgo">Remind me</button></form>' +
+        (pushOK() ? '<a href="#" class="mnpush" id="fdpush">or 🔔 notify this phone instead</a>' : '') + '</div>' +
+      '<div class="fdbtns"><button class="btn ghost" id="fdmore">➕ Add another issue</button><button class="btn ghost" id="fdcity">🏙️ See what ' + esc(city || 'people') + ' want' + (city ? 's' : '') + ' fixed</button></div>' +
+      '<a href="' + esc(url) + '" class="fdskip" id="fdpup">Go to ' + nm + ' →</a></div>';
+    var w = document.getElementById('fdwhere'); if (w) w.onclick = function(){ track('first_done', { act: 'where' }); changePlaceSheet(); };
+    if (city) {
+      rpc('vp_upcoming', { p_place: place }).then(function(list){
+        var el = (list || []).filter(function(x){ return x.kind === 'election'; })[0], v = document.getElementById('fdvote'); if (!v) return;
+        v.textContent = el ? 'Next vote: ' + el.name + (el.days != null ? (el.days === 0 ? ', today' : ', in ' + el.days + ' day' + (el.days === 1 ? '' : 's')) : '') : 'No election date found yet; ' + l.name + ' keeps watching.';
+      }).catch(function(){ var v = document.getElementById('fdvote'); if (v) v.textContent = ''; });
+      rpc('vp_same_issue_count', { p_place: place, p_body: issue }).then(function(n){
+        var others = Math.max(0, (+n || 0) - 1), b = document.getElementById('fdsame'), s = document.getElementById('fdsamesub'); if (!b) return;
+        b.textContent = others ? others + ' other pup' + (others === 1 ? '' : 's') + ' in ' + city + ' listed this too' : 'You’re the first in ' + city + ' to list this';
+        s.textContent = others ? 'Share yours and the count grows.' : 'Share it and see who agrees.';
+      }).catch(function(){});
+    }
+    document.getElementById('fdmail').onsubmit = function(ev){ ev.preventDefault(); var v = document.getElementById('fdmailin').value.trim(), bt = this.querySelector('button');
+      if (!/^[^@\s]+@[^@\s]+\.[a-z]{2,}$/i.test(v)) { toast('That email doesn&rsquo;t look right.'); return; }
+      bt.disabled = true; bt.textContent = '…';
+      rpc('vp_set_vote_email', { p_tail: me.tail, p_email: v, p_tz: Intl.DateTimeFormat().resolvedOptions().timeZone || 'America/Vancouver' }).then(function(){
+        track('first_done', { act: 'email' }); try { localStorage.setItem('vp.mail', '1'); } catch (e) {}
+        document.getElementById('fdremind').innerHTML = '<b>📬 Done.</b><small>' + nm + ' will email your list on voting morning. That email also brings your pup back on any phone.</small>';
+      }).catch(function(e){ bt.disabled = false; bt.textContent = 'Remind me'; toast(e.message); }); };
+    var pb = document.getElementById('fdpush'); if (pb) pb.onclick = function(ev){ ev.preventDefault();
+      saveReminder(me.tail, Object.assign({}, REM_DEFAULT)).then(function(){ track('first_done', { act: 'push' });
+        document.getElementById('fdremind').innerHTML = '<b>🔔 Done.</b><small>' + nm + ' will ping this phone on voting day, and when someone agrees with you.</small>'; }).catch(function(e){ toast(e.message); }); };
+    document.getElementById('fdmore').onclick = function(){ track('first_done', { act: 'more' }); window._firstDoneRedraw = null; location.href = url + '?add=1'; };
+    document.getElementById('fdcity').onclick = function(){ track('first_done', { act: 'city' }); window._firstDoneRedraw = null; location.href = '/pack'; };
+    document.getElementById('fdpup').onclick = function(){ window._firstDoneRedraw = null; };
+  }
+  window._firstDoneRedraw = draw; draw();
 }
 function afterFirstPup(l){   // called once the new pup exists: an invite waiting? go straight to the pack
   var code = null; try { code = localStorage.getItem('vp.joincode'); localStorage.removeItem('vp.joincode'); } catch (e) {}
@@ -4693,6 +4753,8 @@ function huntCircles(found, fresh){   // a little winding trail: stop, stop, sto
   return '<div class="hcircles trail">' + svg + tg.map(function(k, i){ var it = HUNT_ITEMS[k] || HUNT_ITEMS.tree, on = !!found[k], tier = it[3] || 1;
     return '<div class="hc t' + tier + (on ? ' on' : '') + (fresh && fresh.indexOf(k) >= 0 ? ' pop' : '') + '" style="left:' + (X[i] / 5) + '%;top:' + (Y[i] - 24) + 'px">' +
       '<span class="hcdot" style="--c:' + it[2] + '"><i class="ph-duotone ' + it[0] + '"></i>' + (on ? '<b>✓</b>' : '') + (tier === 3 ? '<em>✨</em>' : '') + '</span><small>' + esc(it[1]) + '</small></div>'; }).join('') + '</div>'; }
+// the sniff walk is a game: only on the pup page for people who came for it (the walk ad) or have already played
+function huntShown(){ try { if (localStorage.getItem('vp.walkon') === '1') return true; var s = JSON.parse(localStorage.getItem('vp.hunt') || 'null'); if (s && s.found && Object.keys(s.found).length) return true; return huntWalks().length > 0; } catch (e) { return false; } }
 function huntCardHTML(name){ var s = huntState(), tg = huntTargets(s.walk), n = tg.filter(function(k){ return s.found[k]; }).length, bonus = s.walk > 1;
   return '<div class="huntcard' + (bonus ? ' bonus' : '') + '" id="huntcard"><div class="hhead"><b>' + (n >= 5 ? '🏆 Walk complete!' : bonus ? '🐾 Bonus walk #' + (s.walk - 1) : 'Today&rsquo;s sniff walk') + '</b><span class="hclock">' + huntClockText() + '</span></div>' +
     '<div class="hlegend"><span><i style="background:' + TIER_COL[1] + '"></i>Common ' + (bonus ? 5 : 10) + '</span><span><i style="background:' + TIER_COL[2] + '"></i>Uncommon ' + (bonus ? 13 : 25) + '</span><span class="lr"><i style="background:' + TIER_COL[3] + '"></i>✨ Rare ' + (bonus ? 30 : 60) + '</span></div>' +
@@ -5198,7 +5260,7 @@ function screenPack(mode, topic0){
   }).catch(function(e){ var ag = document.getElementById('agenda'); if (ag) ag.hidden = true; var bd = document.getElementById('board'); if (bd) bd.innerHTML = '<div class="hint">Couldn&rsquo;t reach the pack. <a href="#" onclick="location.reload();return false">Try again</a></div>'; });
 }
 
-var APP_VERSION = "20261006232716";
+var APP_VERSION = "20261007155948";
 (function(){
   try {
     fetch('/version.json?t=' + Date.now(), { cache: 'no-store' }).then(function(r){ return r.json(); }).then(function(j){
