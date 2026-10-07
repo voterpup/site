@@ -1424,6 +1424,12 @@
   body:not(.wall) .nav{position:sticky; top:0; z-index:8; margin:calc(-1 * max(18px, env(safe-area-inset-top))) -16px 12px; padding:max(14px, env(safe-area-inset-top)) 16px 10px;
     background:rgba(12,23,34,.98); backdrop-filter:blur(12px); -webkit-backdrop-filter:blur(12px); border-bottom:1px solid transparent; transition:border-color .2s}
   body.scrolled:not(.wall) .nav{border-bottom-color:var(--line)}
+  .locico{color:#4da3ff; font-size:.95em; vertical-align:-1px}
+  .chead{margin:2px 2px 14px} .chead h1{font-family:'Fredoka','Nunito',sans-serif; font-weight:700; font-size:26px; line-height:1.1; margin:0 0 4px; color:var(--ink)}
+  .chead p{margin:0; color:var(--sub); font-size:14px} .cvote{margin-top:10px; font-size:14px; color:var(--ink); background:rgba(245,184,61,.1); border:1px solid rgba(245,184,61,.35); border-radius:12px; padding:9px 12px} .cvote:empty{display:none}
+  .lrank{flex:0 0 auto; width:20px; text-align:center; font-family:'Fredoka','Nunito',sans-serif; font-weight:700; font-size:17px; color:var(--goldtext)}
+  .laddyours{margin:8px 0 0 !important}
+  #citystrip{margin-top:6px}
 </style>
 </head>
 <body>
@@ -2023,7 +2029,7 @@ function renderVoteStrip(){
     }
     notePlace(place);
     addOffices(el, place);
-    mountMoments(el, list, true, 'When you can act · 📍 ' + esc(place.split(',')[0]) + ' · <a href="#" class="chgloc" style="color:#3b6fb6;text-transform:none">change</a>');
+    mountMoments(el, list, true, 'When you can act · <i class="ph-fill ph-navigation-arrow locico"></i> ' + esc(place.split(',')[0]) + ' · <a href="#" class="chgloc" style="color:#3b6fb6;text-transform:none">change</a>');
   }).catch(function(){ el.innerHTML = ''; });
 }
 var _elCache = {};
@@ -2313,7 +2319,7 @@ var TOUR_STEPS = [
   { at: 'pup', sel: '#flashbtn', title: 'Memory Lane', text: 'Everything I remember, walked back to you. On voting morning it’s ready before you leave the house.' },
   { at: 'pup', sel: '#bell', title: 'Your notifications', text: 'Same-heres, reactions, group votes and what’s new near you all land here.' },
   { at: 'pack', sel: '#board', title: 'Your city', text: 'What neighbours want fixed, then what the City’s 3-1-1 heard. Tap a row to open it, and tap “Same here” on the ones you feel too.' },
-  { at: 'pack', sel: '.sortrow', title: 'Sort it your way', text: '📍 Nearest · ✨ Similar to me · 🐾 Most voted · 🔥 Trending.' },
+  { at: 'pack', sel: '.sortrow', title: 'Sort it your way', text: '🐾 Most agreed puts our shared list in order. Nearest shows what is closest to you. Map shows every issue as a pin.' },
   { at: 'pack', sel: '#mapchip', title: 'See it on the map', text: 'Every issue as a pin, coloured by topic. Pins open in Street View.' },
   { at: 'packs', sel: '#pkh-new', title: 'Groups', text: 'Start a group with friends: the invite link lasts an hour and you let people in. Post topics or share your issues, and everyone votes with a 🐾.' },
   { at: 'packs', sel: '#pkh-join', title: 'Want our vote? Start with our list.', text: 'Share your group’s ranked list with anyone running for office. No names, just the issues.', last: true }
@@ -2709,7 +2715,7 @@ function startWalk(){
 }
 var PH = { camera_with_flash: ['ph-fill ph-camera', 'inherit'], packs: ['ph-duotone ph-users-three', '#1fb5b0'], cityscape: ['ph-duotone ph-buildings', '#22786a'], writing_hand: ['ph-duotone ph-pencil-simple-line', '#3b6fb6'],
   bullseye: ['ph-duotone ph-game-controller', '#d1495b'], high_voltage: ['ph-fill ph-lightning', '#f4b63f'], world_map: ['ph-duotone ph-map-trifold', '#22786a'],
-  round_pushpin: ['ph-fill ph-map-pin', '#d1495b'], globe_showing_americas: ['ph-duotone ph-globe-hemisphere-west', '#3b6fb6'], paw_prints: ['ph-duotone ph-paw-print', '#9a5f00'], memory: ['ph-duotone ph-clock-counter-clockwise', '#f4b63f'], dog: ['ph-duotone ph-dog', '#9a5f00'] };
+  round_pushpin: ['ph-fill ph-navigation-arrow', '#4da3ff'], globe_showing_americas: ['ph-duotone ph-globe-hemisphere-west', '#3b6fb6'], paw_prints: ['ph-duotone ph-paw-print', '#9a5f00'], memory: ['ph-duotone ph-clock-counter-clockwise', '#f4b63f'], dog: ['ph-duotone ph-dog', '#9a5f00'] };
 function ic(n, cls){
   var p = PH[n]; if (!p) return '<img class="ic' + (cls ? ' ' + cls : '') + '" src="/ic/' + n + '.webp" alt="" draggable="false">';   // the mascot stays 3D
   return '<i class="ic ph ' + p[0] + (cls ? ' ' + cls : '') + '"' + (p[1] !== 'inherit' ? ' style="color:' + p[1] + '"' : '') + ' aria-hidden="true"></i>';
@@ -3443,7 +3449,7 @@ function savePos(la, lo){ try { localStorage.setItem('vp.pos', JSON.stringify({ 
 function myPos(){ try { var p = JSON.parse(localStorage.getItem('vp.pos') || 'null'); return p && Date.now() - p.ts < 30 * 864e5 ? p : null; } catch (e) { return null; } }   // stays on this phone
 function kmBetween(a, b){ var r = Math.PI / 180, x = (b.lng - a.lng) * r * Math.cos((a.lat + b.lat) / 2 * r), y = (b.lat - a.lat) * r; return Math.sqrt(x * x + y * y) * 6371; }
 function kmText(k){ return k < 1 ? Math.max(50, Math.round(k * 20) * 50) + ' m' : k < 10 ? k.toFixed(1) + ' km' : Math.round(k) + ' km'; }
-function packSort(){ try { var s = localStorage.getItem('vp.packsort'); if (s !== 'near' && s !== 'voted') s = null; return s || (myPos() ? 'near' : 'voted'); } catch (e) { return 'voted'; } }   // two sorts now: nearest, or most agreed   // nearest first once we know where you are
+function packSort(){ try { var s = localStorage.getItem('vp.packsort'); return s === 'near' ? 'near' : 'voted'; } catch (e) { return 'voted'; } }   // our list, ranked by people, unless you chose Nearest   // two sorts now: nearest, or most agreed   // nearest first once we know where you are
 document.addEventListener('click', function(ev){
   var b = ev.target && ev.target.closest ? ev.target.closest('.sortbtn[data-sort]') : null; if (!b) return;
   if (b.getAttribute('data-sort') === 'near' && !myPos()) {   // nearest needs your position once: ask, then sort
@@ -4921,6 +4927,10 @@ function screenPack(mode, topic0){
       '</div>' + (recent ? '<details class="crlatest"><summary>Latest reports (' + Math.min((cp.pins || []).length, 60) + ')</summary><div class="crscroll">' + recent + '</div></details>' : '') +
       '<div class="crsrc">' + esc(CITY_DATA[String(cp.city || '').toLowerCase()] || ('City of ' + cp.city + ' open data')) + '</div></div>';
   }
+  if (mode !== 'all' && city && !wall && place) rpc('vp_upcoming', { p_place: place }).then(function(list){
+    var el = (list || []).filter(function(x){ return x.kind === 'election' && x.days != null && x.days >= 0; })[0], cv = document.getElementById('cvote'); if (!cv || !el) return;
+    cv.innerHTML = '🗳️ <b>' + esc(el.name) + (el.days === 0 ? ' is today' : ' in ' + el.days + ' day' + (el.days === 1 ? '' : 's')) + '.</b> Your pup brings your list to the ballot.';
+  }).catch(function(){});
   var cityKey = place ? place.split(',')[0].toLowerCase() : null;
   var dataCity = cityKey ? (METRO[cityKey] || CITY_ALIAS[cityKey] || cityKey) : null;   // Surrey, Burnaby… share Metro Vancouver's city data
   if ((mode || (place ? 'local' : 'all')) === 'local' && dataCity) rpc('vp_city_pulse', { p_place: dataCity + ', x, x' }).then(function(cp){   // your city: just its own card (the 10-city carousel is for Everywhere)
@@ -4968,16 +4978,17 @@ function screenPack(mode, topic0){
       (city ? '<button class="segedit chgloc" title="change place" aria-label="change place">✎</button>' : '') + '</div>' +
     '<div class="packhero">' + slotMedia('pack') +
       '<div class="ft">What ' + esc(city || 'your city') + ' wants fixed<small>The agenda is set for us. Time we set it.</small></div></div>' +
-    '<div id="citystrip"></div>' +
+    (mode !== 'all' && city && !wall ? '<div class="chead"><h1>What ' + esc(city) + ' wants fixed</h1><p>Ranked by neighbours. Not by parties, ads or algorithms.</p><div class="cvote" id="cvote"></div></div>' : '') +
     (mode === 'local' && city && !wall ? '<section class="agd" id="agenda" aria-label="Which should ' + esc(city) + ' fix first?"><div class="agload"><span></span><span></span></div></section>' : '') +
     (loadLocal() ? '' : adSrc() ? '<a class="adcta" href="/app.html?new=1"><img src="/pup-face.jpg" alt=""><span><b>This is your city&rsquo;s list.</b>Add yours: tap one issue, get a pup that remembers it. Free, no sign-up.</span><i>Start →</i></a>'
       : '<div class="newbie">\ud83d\udc4b New here? Tap <b>📸 Snap</b> to get your own pup.</div>') +
     '<label class="searchwrap"><svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><circle cx="11" cy="11" r="7" fill="none" stroke="currentColor" stroke-width="2.2"/><path d="M20 20l-3.5-3.5" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>' +
       '<input class="searchbar" id="packsearch" placeholder="' + (mode === 'local' && city ? 'Search ' + esc(city) : 'Search everywhere') + '" enterkeyhint="search"></label>' +
-    (wall ? '' : '<div class="sortrow">' + [['near', '📍', 'Nearest'], ['voted', '🐾', 'Most agreed']].map(function(s){
+    (wall ? '' : '<div class="sortrow">' + [['voted', '🐾', 'Most agreed'], ['near', '<i class="ph-fill ph-navigation-arrow locico"></i>', 'Nearest']].map(function(s){
       return '<button class="sortbtn' + (packSort() === s[0] ? ' on' : '') + '" data-sort="' + s[0] + '"><span>' + s[1] + '</span>' + s[2] + '</button>'; }).join('') +
       '<button class="sortbtn mapchip" id="mapchip" type="button"><span>🗺️</span>Map</button></div>') +
     '<div id="board" class="hint">fetching the pack...</div>' +
+    '<div id="citystrip"></div>' +
     (wall ? '' : '<a href="#" class="mapbtn" id="mapbtn" hidden>' + ic('world_map', 'btnic') + '<span>Map</span></a>') +
     '<footer>Only what people chose to share. \ud83c\udf31 \u00b7 <a href="mailto:hi@voterpup.com">hi@voterpup.com</a></footer>' +
     tabbar('pack');
@@ -5025,7 +5036,7 @@ function screenPack(mode, topic0){
           (r.place ? '<span class="chip" style="cursor:default">\ud83d\udccd ' + esc(r.place.split(',')[0]) + '</span>' : '') + '</div>' : '') +
         (r.body ? '<div class="entry-body">' + esc(r.body) + '</div>' : '') + mediaHTML(r.media) +
         '<div class="ts">\u2014 ' + esc(r.pup) + ' \u00b7 ' + new Date(r.ts).toLocaleDateString() + (r.id && r.source !== 'city311' && !myIds[r.id] ? ' \u00b7 <a href="#" class="reportlink" data-report="' + esc(r.id) + '">Report</a>' : '') + '</div>' +
-        (r.id ? '<div class="chips" style="margin-top:6px">' + (window._kmOf && window._kmOf(r) != null ? '<span class="chip kmchip">📍 ' + kmText(window._kmOf(r)) + '</span>' : '') + scopeChip(r.scope) + spotChip(r) + hashChips(r) + sameChip(r.id, r.backs || 0, !!backed[r.id], !!myIds[r.id]) + shareChip(Object.assign({}, r, { shared: true })) + (myIds[r.id] ? groupChip(r.id) : '') +
+        (r.id ? '<div class="chips" style="margin-top:6px">' + (window._kmOf && window._kmOf(r) != null ? '<span class="chip kmchip"><i class="ph-fill ph-navigation-arrow locico"></i> ' + kmText(window._kmOf(r)) + '</span>' : '') + scopeChip(r.scope) + spotChip(r) + hashChips(r) + sameChip(r.id, r.backs || 0, !!backed[r.id], !!myIds[r.id]) + shareChip(Object.assign({}, r, { shared: true })) + (myIds[r.id] ? groupChip(r.id) : '') +
           (myIds[r.id] ? reactChips(r, null, true) : reactChips(r, myReacts[r.id], false)) + '</div>' + emoRow(r.id, !!myIds[r.id]) : '') +
         '</div>';
     }
@@ -5273,7 +5284,7 @@ function screenPack(mode, topic0){
     function lrow(r, extra){
       var img = itemImg(r), ic = (typeof AGENDA_ICON !== 'undefined' && AGENDA_ICON[r.topic]) || 'ph-paw-print', k = km(r), off = r.source === 'city311';
       var meta = off ? '🏛️ City 3-1-1' + (extra && extra.n > 1 ? ' · ' + extra.n + ' reports' : '') : (r.backs ? '🐾 ' + r.backs + ' agree' : '🐾 Be the first to agree');
-      if (k != null) meta += ' · 📍 ' + kmText(k);
+      if (k != null) meta += ' · <i class="ph-fill ph-navigation-arrow locico"></i> ' + kmText(k);
       if (r.topic) meta += ' · #' + esc(r.topic);
       return '<div class="lrow" data-lid="' + esc(r.id) + '"><div class="lthumb" style="background:' + (LCOL[r.topic] || '#4a5b6e') + '">' +
         (img ? '<img src="' + esc(img) + '" alt="" loading="lazy">' : '<i class="ph-fill ' + ic + '"></i>') + '</div>' +
@@ -5297,11 +5308,13 @@ function screenPack(mode, topic0){
         return '<div class="lsec"><div class="lhead"><b>' + title + '</b><small>' + sub + '</small></div>' + shown.map(render).join('') +
           (items.length > 8 ? '<button class="lmore" data-lmore="' + id + '">Show all ' + items.length + '</button>' : '') + '</div>';
       };
-      b.innerHTML = (people.length ? sec('From neighbours', 'What people here said should be fixed', people, function(r){ return lrow(r); }, 'p')
-          : '<div class="lsec"><div class="lhead"><b>From neighbours</b><small>Nobody here has shared one yet.</small></div><a class="btn gold" href="' + (saved ? pupURL(saved.tail) + '?add=1' : '/app.html') + '">Be the first: add yours</a></div>') +
-        (cityL.length ? sec('What the City heard', 'The most recent requests to 3-1-1 near here', cityL, function(x){ return lrow(x.best, x); }, 'c') : '');
+      var addHref = saved ? pupURL(saved.tail) + '?add=1' : '/app.html';
+      var rank = 0, prow = function(r){ rank++; return SORT === 'voted' ? lrow(r).replace('<div class="lthumb"', '<span class="lrank">' + rank + '</span><div class="lthumb"') : lrow(r); };
+      b.innerHTML = (people.length ? sec('Our list', SORT === 'voted' ? 'Ranked by how many neighbours say “same here”' : 'Closest to you first', people, prow, 'p').replace(/<\/div>$/, '<a class="btn gold laddyours" href="' + addHref + '">➕ Add yours to the list</a></div>')
+          : '<div class="lsec"><div class="lhead"><b>Our list</b><small>Nobody here has added one yet.</small></div><a class="btn gold" href="' + addHref + '">Be the first: add yours</a></div>') +
+        (cityL.length ? sec('What the City’s 3-1-1 heard', 'Official requests, most recent near here', cityL, function(x){ return lrow(x.best, x); }, 'c') : '');
       b.querySelectorAll('[data-lmore]').forEach(function(m){ m.onclick = function(){ var w = m.getAttribute('data-lmore');
-        m.insertAdjacentHTML('beforebegin', (w === 'p' ? people.slice(8).map(function(r){ return lrow(r); }) : cityL.slice(8).map(function(x){ return lrow(x.best, x); })).join('')); m.remove(); }; });
+        m.insertAdjacentHTML('beforebegin', (w === 'p' ? people.slice(8).map(prow) : cityL.slice(8).map(function(x){ return lrow(x.best, x); })).join('')); m.remove(); }; });
       if (window._openIssue) { var oid = window._openIssue; window._openIssue = null;
         if (byId[oid]) setTimeout(function(){ openRow(oid, true); }, 60);
         else if (!window._openTried && document.getElementById('mall')) { window._openTried = 1; window._openIssue = oid; document.getElementById('mall').click(); }
@@ -5339,7 +5352,7 @@ function screenPack(mode, topic0){
   }).catch(function(e){ var ag = document.getElementById('agenda'); if (ag) ag.hidden = true; var bd = document.getElementById('board'); if (bd) bd.innerHTML = '<div class="hint">Couldn&rsquo;t reach the pack. <a href="#" onclick="location.reload();return false">Try again</a></div>'; });
 }
 
-var APP_VERSION = "20261007165029";
+var APP_VERSION = "20261007165608";
 (function(){
   try {
     fetch('/version.json?t=' + Date.now(), { cache: 'no-store' }).then(function(r){ return r.json(); }).then(function(j){
