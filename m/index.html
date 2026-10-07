@@ -1464,6 +1464,9 @@
   .sortrow{gap:8px} .lact .chip{padding-left:12px; padding-right:12px}
   .mbtn{min-height:44px} .segedit{min-width:44px; min-height:44px}
   .mnfield .mnansrow{display:flex; flex-wrap:nowrap; gap:8px; align-items:center; margin:0; text-transform:none; letter-spacing:0} .mnfield .mnansrow input{min-width:0 !important}
+  /* screens designed as dark stages keep the dark palette in light mode too (their own colours assume it) */
+  html[data-theme="light"] .flashov, html[data-theme="light"] #room{--ink:#eaf2f8; --sub:#93a8ba; --card:#142433; --card2:#1b3043; --line:#233a4e; --chip:#1a2d3d;
+    --goldtext:#ffcd5e; --bg:#0c1722; --blue:#3d9bff; --accent:#2fd39c; --red:#ff5d73; color-scheme:dark; color:var(--ink)}
 </style>
 </head>
 <body>
@@ -5387,7 +5390,7 @@ function screenPack(mode, topic0){
   }).catch(function(e){ var ag = document.getElementById('agenda'); if (ag) ag.hidden = true; var bd = document.getElementById('board'); if (bd) bd.innerHTML = '<div class="hint">Couldn&rsquo;t reach the pack. <a href="#" onclick="location.reload();return false">Try again</a></div>'; });
 }
 
-var APP_VERSION = "20261007201102";
+var APP_VERSION = "20261007201354";
 (function(){
   try {
     fetch('/version.json?t=' + Date.now(), { cache: 'no-store' }).then(function(r){ return r.json(); }).then(function(j){
