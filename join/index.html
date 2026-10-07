@@ -1,6 +1,7 @@
 <!doctype html>
 <html lang="en">
 <head>
+<script>(function(){ try { var t = localStorage.getItem('vp.theme'); if (t !== 'light' && t !== 'dark') t = (window.matchMedia && matchMedia('(prefers-color-scheme: light)').matches) ? 'light' : 'dark'; document.documentElement.setAttribute('data-theme', t); } catch (e) { document.documentElement.setAttribute('data-theme', 'dark'); } })();</script>
 <meta charset="utf-8">
 <meta property="og:site_name" content="VoterPup"><meta property="og:title" content="You're invited to a VoterPup group 🐾"><meta property="og:description" content="Join, vote on topics together and chat. Free, anonymous, no account."><meta property="og:image" content="https://voterpup.com/pup-share.jpg"><meta property="og:type" content="website"><meta name="twitter:card" content="summary_large_image">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
@@ -1430,6 +1431,31 @@
   .lrank{flex:0 0 auto; width:20px; text-align:center; font-family:'Fredoka','Nunito',sans-serif; font-weight:700; font-size:17px; color:var(--goldtext)}
   .laddyours{margin:8px 0 0 !important}
   #citystrip{margin-top:6px}
+  /* ================= LIGHT theme (toggle in the header; default follows the phone) ================= */
+  html[data-theme="light"]{ --bg:#faf7f0; --card:#ffffff; --card2:#eef2f6; --ink:#15212d; --sub:#566778; --accent:#0e9b6c; --blue:#1d64c8; --teal:#0f8f8a; --red:#d63c55;
+    --gold:#f5b83d; --goldink:#1a1304; --goldtext:#8a5a00; --line:#dbe2ea; --chip:#eef2f6; color-scheme:light; }
+  html[data-theme="light"] body{background:var(--bg) !important}
+  html[data-theme="light"] body:not(.wall) .nav{background:rgba(250,247,240,.97) !important}
+  /* bright gold fails contrast as text on light backgrounds (1.8:1): logo, links and gold text use deep gold; gold stays a fill behind navy text */
+  html[data-theme="light"] .brand, html[data-theme="light"] .nav .logo, html[data-theme="light"] .logo, html[data-theme="light"] .mnlogo{color:#7a5200 !important}
+  html[data-theme="light"] .locico{color:#1d64c8}
+  html[data-theme="light"] .tabbar{background:rgba(255,255,255,.97) !important; border-top-color:var(--line) !important}
+  html[data-theme="light"] .lrow, html[data-theme="light"] .card, html[data-theme="light"] .stksheet{box-shadow:0 1px 2px rgba(20,33,45,.06)}
+  html[data-theme="light"] .stkover{background:rgba(20,33,45,.35)}
+  /* light: the screens that had their own dark colours */
+  html[data-theme="light"] .ctabs{background:var(--card); border-color:var(--line)} html[data-theme="light"] .ctabs button{color:var(--sub)}
+  html[data-theme="light"] .mnkicker, html[data-theme="light"] .mnh, html[data-theme="light"] .gwh h2{color:var(--ink)} html[data-theme="light"] .gwh p, html[data-theme="light"] .mnsmall{color:var(--sub)}
+  html[data-theme="light"] .mnfield input, html[data-theme="light"] .mnprompt.own textarea{background:var(--card) !important; border-color:var(--line) !important; color:var(--ink) !important}
+  html[data-theme="light"] .mnfield span, html[data-theme="light"] .mnsec{color:var(--sub)}
+  html[data-theme="light"] .mnsteps i{background:var(--card); border-color:var(--line)} html[data-theme="light"] .mnsteps span{color:var(--sub)} html[data-theme="light"] .mnsteps span.on{color:var(--ink)}
+  html[data-theme="light"] .mncard{background:var(--card); border-color:var(--line); color:var(--ink)} html[data-theme="light"] .mncard.nope{background:var(--card2); color:#9aa8b6}
+  html[data-theme="light"] .mnlives span{background:var(--card); border-color:var(--line); color:var(--sub)}
+  html[data-theme="light"] .mnrow, html[data-theme="light"] .mnboard li, html[data-theme="light"] .mnnote, html[data-theme="light"] .mnwarmend{background:var(--card); border-color:var(--line); color:var(--ink)}
+  html[data-theme="light"] .mnrowmain{color:var(--ink)} html[data-theme="light"] .mnrowmain small, html[data-theme="light"] .mnboard em{color:var(--sub)} html[data-theme="light"] .mnboard b, html[data-theme="light"] .mnnote b, html[data-theme="light"] .mnwarmend b{color:var(--ink)}
+  html[data-theme="light"] .mnghost, html[data-theme="light"] .mnback{background:var(--card); border-color:var(--line); color:var(--ink)}
+  html[data-theme="light"] .mnmail input{background:var(--card2) !important; border-color:var(--line) !important; color:var(--ink) !important}
+  html[data-theme="light"] .actbtn.note{background:var(--card) !important; color:var(--ink) !important; border-color:var(--line) !important}
+  html[data-theme="light"] .mnspin{border-color:var(--line); border-top-color:var(--gold)}
 </style>
 </head>
 <body>
@@ -2693,6 +2719,7 @@ function nav(extra){
   var me = loadLocal(), plain = KIOSK || isWall() || !me, chip = !plain && tourVisits() <= 15;   // the tour chip shines for the first 15 visits
   return '<div class="nav"><div class="brandcol"><div class="brand">Voter<b>Pup</b> 🐾</div>' +
     (chip ? '<a href="#" class="tourchip' + (tourDone() ? '' : ' shine') + '"><i class="ph-fill ph-sparkle"></i> ' + (tourDone() ? 'Tour again' : 'Take the tour') + '</a>' : '') + '</div><div class="navr">' +
+    '<a href="#" class="bell themebtn" id="themebtn" aria-label="Switch light or dark"><i class="ph-fill ' + (document.documentElement.getAttribute('data-theme') === 'light' ? 'ph-moon' : 'ph-sun') + '"></i></a>' +
     (plain ? '' : '<a href="#" class="bell" id="bell" aria-label="Notifications"><i class="ph-fill ph-bell"></i><b class="bellbadge" id="bellbadge" hidden></b></a>') +
     (canOfferInstall() ? '<a href="#" class="installchip"><i class="ph-duotone ph-device-mobile"></i><span> Get the app</span></a>' : '') + (extra || '') + '</div></div>'; }
 function say(text, small, name){
@@ -5352,7 +5379,7 @@ function screenPack(mode, topic0){
   }).catch(function(e){ var ag = document.getElementById('agenda'); if (ag) ag.hidden = true; var bd = document.getElementById('board'); if (bd) bd.innerHTML = '<div class="hint">Couldn&rsquo;t reach the pack. <a href="#" onclick="location.reload();return false">Try again</a></div>'; });
 }
 
-var APP_VERSION = "20261007165608";
+var APP_VERSION = "20261007170953";
 (function(){
   try {
     fetch('/version.json?t=' + Date.now(), { cache: 'no-store' }).then(function(r){ return r.json(); }).then(function(j){
@@ -5852,6 +5879,15 @@ function introShow(then){
   // personal invites (?src=ams, ?src=kits …) go to people in Vancouver: show them Vancouver, not the busiest city in the list
   var sg = q.get('src'); try { if (sg && !/^(yt|ig)\d/.test(sg) && !getPlace()) savePlace(AD_CITY, true); } catch (e) {}
 })();
+// light / dark: one tap in the header; the choice is remembered on this phone
+document.addEventListener('click', function(ev){
+  var b = ev.target && ev.target.closest ? ev.target.closest('#themebtn') : null; if (!b) return; ev.preventDefault();
+  var t = document.documentElement.getAttribute('data-theme') === 'light' ? 'dark' : 'light';
+  document.documentElement.setAttribute('data-theme', t); try { localStorage.setItem('vp.theme', t); } catch (e) {}
+  document.querySelectorAll('#themebtn i').forEach(function(i){ i.className = 'ph-fill ' + (t === 'light' ? 'ph-moon' : 'ph-sun'); });
+  var mt = document.querySelector('meta[name=theme-color]'); if (mt) mt.setAttribute('content', t === 'light' ? '#faf7f0' : '#0c1722');
+  track('theme', { t: t });
+});
 // a hairline under the sticky header once the page has scrolled
 window.addEventListener('scroll', function(){ document.body.classList.toggle('scrolled', window.scrollY > 4); }, { passive: true });
 // ---------- router ----------
