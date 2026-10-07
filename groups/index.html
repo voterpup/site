@@ -5286,7 +5286,7 @@ function screenPack(mode, topic0){
       };
       b.innerHTML = (people.length ? sec('From neighbours', 'What people here said should be fixed', people, function(r){ return lrow(r); }, 'p')
           : '<div class="lsec"><div class="lhead"><b>From neighbours</b><small>Nobody here has shared one yet.</small></div><a class="btn gold" href="' + (saved ? pupURL(saved.tail) + '?add=1' : '/app.html') + '">Be the first: add yours</a></div>') +
-        (cityL.length ? sec('What the City heard', 'Requests to 3-1-1 this week', cityL, function(x){ return lrow(x.best, x); }, 'c') : '');
+        (cityL.length ? sec('What the City heard', 'The most recent requests to 3-1-1 near here', cityL, function(x){ return lrow(x.best, x); }, 'c') : '');
       b.querySelectorAll('[data-lmore]').forEach(function(m){ m.onclick = function(){ var w = m.getAttribute('data-lmore');
         m.insertAdjacentHTML('beforebegin', (w === 'p' ? people.slice(8).map(function(r){ return lrow(r); }) : cityL.slice(8).map(function(x){ return lrow(x.best, x); })).join('')); m.remove(); }; });
       if (window._openIssue) { var oid = window._openIssue; window._openIssue = null;
@@ -5326,7 +5326,7 @@ function screenPack(mode, topic0){
   }).catch(function(e){ var ag = document.getElementById('agenda'); if (ag) ag.hidden = true; var bd = document.getElementById('board'); if (bd) bd.innerHTML = '<div class="hint">Couldn&rsquo;t reach the pack. <a href="#" onclick="location.reload();return false">Try again</a></div>'; });
 }
 
-var APP_VERSION = "20261007161654";
+var APP_VERSION = "20261007161804";
 (function(){
   try {
     fetch('/version.json?t=' + Date.now(), { cache: 'no-store' }).then(function(r){ return r.json(); }).then(function(j){
