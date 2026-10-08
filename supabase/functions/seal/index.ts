@@ -64,7 +64,7 @@ Deno.serve(async (req) => {
     if (opens.getTime() > Date.now() + 5 * 366 * 86400 * 1000) return json({ error: "too far" }, 400);
     const c = code();
     const { error } = await db.from("seals").insert({ code: c, creator_dev: d || "anon", creator_name: name, friend_name: to, call_text: text, opens_at: opens.toISOString(), src: clean(b.src, 24) || null });
-    if (error) return json({ error: "db" }, 500);
+    if (error) { console.error(error); return json({ error: "db: " + error.message }, 500); }
     return json({ code: c });
   }
 
