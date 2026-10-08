@@ -1,0 +1,223 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>That spot · VoterPup</title>
+<meta name="description" content="Leave something at a spot. It opens only when they’re standing there.">
+<meta property="og:title" content="📍 Something is buried here for you">
+<meta property="og:description" content="Someone left you a message at a real spot. It opens only when you’re standing there.">
+<meta property="og:image" content="https://voterpup.com/pup-share.jpg">
+<meta property="og:url" content="https://voterpup.com/thatspot/">
+<meta name="theme-color" content="#0c1722">
+<link rel="icon" href="/favicon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Nunito:wght@600;700;800;900&display=swap">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+:root{--bg:#0c1722;--card:#142433;--line:#233a4e;--ink:#eaf2f8;--sub:#9fb4c6;--gold:#f5b83d;--gold2:#ffcd5e;--onGold:#1a1304;--good:#2fd39c;--bad:#ff6b80;--field:#0f1d2a;color-scheme:dark}
+@media (prefers-color-scheme: light){:root{--bg:#f6f4ee;--card:#fff;--line:#e2ddd0;--ink:#14202c;--sub:#566778;--gold:#f5b83d;--gold2:#a8740a;--onGold:#1a1304;--good:#12865f;--bad:#c4384f;--field:#efece4;color-scheme:light}}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;min-height:100%;background:var(--bg);color:var(--ink);font:600 17px/1.45 Nunito,system-ui,sans-serif}
+button,input,textarea,select{font:inherit;color:inherit}
+.app{max-width:480px;margin:0 auto;padding:calc(env(safe-area-inset-top,0px) + 14px) 16px calc(env(safe-area-inset-bottom,0px) + 24px);display:flex;flex-direction:column;gap:14px}
+.top{display:flex;justify-content:space-between;align-items:center;min-height:40px;gap:8px}
+.logo{font:700 21px Fredoka,sans-serif;color:var(--gold);text-decoration:none}
+.lnk{font:800 14px Nunito;color:var(--sub);text-decoration:none;min-height:44px;display:inline-flex;align-items:center;padding:0 6px;background:none;border:0;cursor:pointer}
+.me{display:flex;align-items:center;gap:8px}.me img{width:30px;height:30px;border-radius:50%;object-fit:cover;border:2px solid var(--gold)}
+h1{font:600 34px/1.08 Fredoka,sans-serif;margin:0;text-wrap:balance}
+h2{font:600 25px/1.15 Fredoka,sans-serif;margin:0;text-wrap:balance}
+.lead{color:var(--sub);margin:0}
+.k{font:900 12.5px Nunito;letter-spacing:.1em;text-transform:uppercase;color:var(--gold2)}
+.btn{display:flex;align-items:center;justify-content:center;gap:8px;min-height:52px;border-radius:16px;border:1.5px solid var(--line);background:transparent;font-weight:900;font-size:16.5px;padding:12px 16px;text-decoration:none;color:var(--ink);cursor:pointer;width:100%}
+.btn.gold{background:var(--gold);border-color:var(--gold);color:var(--onGold)}
+.btn:disabled{opacity:.5}
+.box{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:16px;display:flex;flex-direction:column;gap:10px}
+.muted{color:var(--sub);font-size:14px}
+.foot{font-size:12.5px;color:var(--sub);text-align:center}
+label.l{font:900 12.5px Nunito;letter-spacing:.08em;text-transform:uppercase;color:var(--sub)}
+.in{width:100%;background:var(--field);border:1.5px solid var(--line);border-radius:14px;padding:13px;font-size:17px;font-weight:700;outline:none;min-height:52px}
+.in:focus{border-color:var(--gold)}
+textarea.in{min-height:110px;resize:vertical;line-height:1.35}
+.seg{display:flex;background:var(--field);border:1px solid var(--line);border-radius:14px;padding:4px;gap:4px}
+.seg button{flex:1;border:0;background:transparent;border-radius:11px;min-height:44px;font-weight:900;font-size:14px;color:var(--sub);cursor:pointer;padding:6px}
+.seg button.on{background:var(--ink);color:var(--bg)}
+.row{display:flex;gap:10px}.row>*{flex:1;min-width:0}
+.spot{position:relative;border-radius:22px;padding:22px 18px 18px;background:linear-gradient(160deg,#1d3550,#0c1722);border:1px solid #2a4258;color:#eaf2f8;display:flex;flex-direction:column;gap:10px}
+.spot.open{background:linear-gradient(160deg,#1f5a46,#0c1722);border-color:#2fd39c}
+.spot .who{display:flex;align-items:center;gap:9px;font:800 13.5px Nunito;color:#b8cad8}.spot .who img{width:34px;height:34px;border-radius:50%;object-fit:cover;border:2px solid #f5b83d}
+.spot .pin{position:absolute;right:16px;top:14px;width:44px;height:44px;border-radius:50%;background:#f5b83d;display:grid;place-items:center;font-size:20px}
+.spot .body{font:600 23px/1.25 Fredoka,sans-serif;text-wrap:balance;white-space:pre-wrap}
+.spot .hid{font:600 23px/1.25 Fredoka,sans-serif;letter-spacing:.14em;color:#4b657d;filter:blur(2px);user-select:none}
+.spot .clue{font:700 15px/1.4 Nunito;color:#eaf2f8;background:rgba(255,255,255,.06);border-radius:12px;padding:10px 12px}
+.spot .meta{font:900 12.5px Nunito;letter-spacing:.08em;text-transform:uppercase;color:#ffcd5e}
+.dist{font:600 44px/1 Fredoka,sans-serif}
+.log{display:flex;flex-direction:column;gap:8px}.log div{background:var(--field);border-radius:12px;padding:10px 12px;font-size:14.5px}.log small{display:block;color:var(--sub);font-size:12px}
+.list{display:flex;flex-direction:column;gap:8px}
+.item{display:flex;gap:10px;align-items:center;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:12px;text-decoration:none;color:inherit}
+.item b{display:block;font-size:15px}.item small{color:var(--sub);font-size:12.5px}
+select.in{min-height:44px;padding:8px 10px;font-size:14px;width:auto}
+.hidden{display:none!important}
+.err{color:var(--bad);font-size:14px;font-weight:800}
+#gslot{min-height:44px;display:flex;justify-content:center}
+</style>
+</head>
+<body>
+<div class="app" id="app"></div>
+<script>
+// That spot: bury a message where you stand; it opens only for someone standing there. Makers sign in with Google; finding needs nothing.
+var SB_URL = 'https://setyjmgijsbplgyqynlh.supabase.co', KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNldHlqbWdpanNicGxneXF5bmxoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTA1NDU0NTAsImV4cCI6MjEwNjEyMTQ1MH0.v8tjuc2UZrTw5whfDXtpEPW4CHggusgjq8Mkdh6ZMw8';
+var GOOGLE_CLIENT_ID = '1084138810740-b2p2ln24ulfnrkb8mofppeist551u8bm.apps.googleusercontent.com';
+var sb = null; try { sb = supabase.createClient(SB_URL, KEY, { auth: { persistSession: true } }); } catch (e) {}
+var app = document.getElementById('app'), ME = null, SESSION = null;
+function $(h){ app.innerHTML = h; window.scrollTo(0, 0); }
+function esc(s){ var d = document.createElement('div'); d.textContent = s == null ? '' : s; return d.innerHTML; }
+function ls(k, v){ try { if (v === undefined) return localStorage.getItem(k); localStorage.setItem(k, v); } catch (e) { return null; } }
+function devId(){ var d = ls('vp.dev'); if (!d) { d = Array.from(crypto.getRandomValues(new Uint8Array(8))).map(function(b){ return b.toString(16).padStart(2, '0'); }).join(''); ls('vp.dev', d); } return d || 'nostorage'; }
+(function(){ var m = location.search.match(/[?&]src=([a-z0-9_-]{1,24})/i); if (m) { try { sessionStorage.setItem('vp.src', m[1]); if (!ls('vp.src0')) ls('vp.src0', m[1]); } catch (e) {} } })();
+function src(){ try { return sessionStorage.getItem('vp.src') || ls('vp.src0') || 'direct'; } catch (e) { return 'direct'; } }
+function track(step, meta){
+  if (navigator.webdriver || /HeadlessChrome/.test(navigator.userAgent) || ls('vp.internal') === '1') return;
+  var m = meta || {}; m.step = step;
+  fetch(SB_URL + '/rest/v1/rpc/vp_track', { method: 'POST', headers: { 'Content-Type': 'application/json', apikey: KEY, Authorization: 'Bearer ' + KEY }, body: JSON.stringify({ p_dev: devId(), p_event: 'spot', p_tail: null, p_src: src(), p_meta: m }) }).catch(function(){});
+}
+var QA_TOKEN = null;   // headless QA only: a token minted by the function's qa action, set from the test script
+function api(body){
+  var tok = QA_TOKEN || (SESSION && SESSION.access_token) || KEY;
+  return fetch(SB_URL + '/functions/v1/thatspot', { method: 'POST', headers: { 'Content-Type': 'application/json', apikey: KEY, Authorization: 'Bearer ' + tok }, body: JSON.stringify(body) })
+    .then(function(r){ return r.json().then(function(j){ if (!r.ok) throw new Error(j.error || r.status); return j; }); });
+}
+function locate(){ return new Promise(function(res, rej){ if (!navigator.geolocation) return rej(new Error('No location on this device')); navigator.geolocation.getCurrentPosition(function(p){ res({ lat: p.coords.latitude, lng: p.coords.longitude, acc: p.coords.accuracy }); }, function(e){ rej(new Error(e.code === 1 ? 'Location permission was denied. Allow it for voterpup.com and try again.' : 'Could not get your location. Try outside, or wait a moment.')); }, { enableHighAccuracy: true, timeout: 20000, maximumAge: 15000 }); }); }
+function fmt(iso){ return new Date(iso).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' }); }
+function fmtWhen(iso){ return new Date(iso).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }); }
+function km(m){ return m < 1000 ? m + ' m' : (m / 1000).toFixed(1) + ' km'; }
+function spotUrl(code){ return 'https://voterpup.com/thatspot/?d=' + code; }
+function toast(t){ var e = document.getElementById('toast'); if (!e) { e = document.createElement('div'); e.id = 'toast'; e.style.cssText = 'position:fixed;left:50%;bottom:28px;transform:translateX(-50%);background:#eaf2f8;color:#0c1722;padding:12px 16px;border-radius:999px;font:800 14px Nunito;z-index:9;max-width:90%'; document.body.appendChild(e); } e.textContent = t; e.style.display = 'block'; clearTimeout(e._t); e._t = setTimeout(function(){ e.style.display = 'none'; }, 2800); }
+function share(code, text){ var msg = text + ' ' + spotUrl(code); if (navigator.share) { navigator.share({ text: msg }).then(function(){ track('share', { how: 'share' }); }).catch(function(){}); return; } navigator.clipboard.writeText(msg).then(function(){ toast('Copied. Paste it to them.'); track('share', { how: 'copy' }); }).catch(function(){ prompt('Copy this', msg); }); }
+function hdr(){ return '<div class="top"><a class="logo" href="/thatspot/">That spot</a><div class="me">' + (ME ? (ME.photo ? '<img src="' + esc(ME.photo) + '" alt="">' : '') + '<a class="lnk" href="/thatspot/?mine=1">Mine</a>' : '<a class="lnk" href="/thatspot/?near=1">Near me</a>') + '</div></div>'; }
+
+// ---------- Google sign-in (same mechanism as the main app: Google Identity button -> Supabase id-token session) ----------
+var _gis = null;
+function loadGIS(){ if (_gis) return _gis; _gis = new Promise(function(res, rej){ var s = document.createElement('script'); s.src = 'https://accounts.google.com/gsi/client'; s.async = true; s.onload = res; s.onerror = function(){ rej(new Error('could not load Google sign-in')); }; document.head.appendChild(s); }); return _gis; }
+function sha256hex(str){ return crypto.subtle.digest('SHA-256', new TextEncoder().encode(str)).then(function(buf){ return Array.prototype.map.call(new Uint8Array(buf), function(b){ return ('0' + b.toString(16)).slice(-2); }).join(''); }); }
+function inAppBrowser(){ return /Instagram|FBAN|FBAV|TikTok|musical_ly|Snapchat|Line\/|WhatsApp|; wv\)/i.test(navigator.userAgent); }
+function googleButton(slot, after){
+  if (inAppBrowser()) { slot.innerHTML = '<p class="muted">Google blocks sign-in inside this app. Open voterpup.com/thatspot in Chrome or Safari.</p>'; return; }
+  slot.innerHTML = '<p class="muted">Loading Google sign-in…</p>';
+  var raw = Array.prototype.map.call(crypto.getRandomValues(new Uint8Array(16)), function(b){ return ('0' + b.toString(16)).slice(-2); }).join('');
+  Promise.all([loadGIS(), sha256hex(raw)]).then(function(v){
+    google.accounts.id.initialize({ client_id: GOOGLE_CLIENT_ID, nonce: v[1], ux_mode: 'popup', callback: function(resp){
+      slot.innerHTML = '<p class="muted">Signing in…</p>';
+      sb.auth.signInWithIdToken({ provider: 'google', token: resp.credential, nonce: raw }).then(function(r){ if (r.error) throw new Error(r.error.message); return boot(); }).then(function(){ track('signin', {}); after(); })
+        .catch(function(e){ slot.innerHTML = '<p class="err">Sign-in didn’t finish: ' + esc(e.message) + '</p>'; }); } });
+    slot.innerHTML = ''; google.accounts.id.renderButton(slot, { theme: 'outline', size: 'large', text: 'continue_with', shape: 'pill', width: 280 });
+  }).catch(function(e){ slot.innerHTML = '<p class="err">' + esc(e.message) + '</p>'; });
+}
+function signinBox(why){ return '<div class="box" id="signin"><div style="font-weight:900">' + esc(why || 'Sign in to bury one') + '</div><div class="muted">A quick profile from your Google account: your name and photo, so people know who buried it. Finding needs no account.</div><div id="gslot"></div></div>'; }
+function wireSignin(after){ var s = document.getElementById('gslot'); if (s) googleButton(s, after); }
+
+// ---------- home: bury where you stand ----------
+function home(){
+  if (!ME) {
+    $(hdr() + '<div class="k">That spot</div><h1>Leave something at a spot. It opens only when they’re standing there.</h1><p class="lead">A message for one person, or for anyone who finds it. You bury it where you stand. The pup keeps it until someone is there.</p>' +
+      signinBox('Sign in to bury one') + '<a class="btn" href="/thatspot/?near=1">Find what’s buried near me</a>' +
+      '<div class="foot">We never track you. We learn a location only the moment you bury or open something.</div>');
+    wireSignin(home); track('open', { mode: 'home', signed: false }); return;
+  }
+  $(hdr() + '<div class="k">Bury it where you stand</div><h1>What should they find here?</h1>' +
+    '<div class="box"><div class="row" style="align-items:center"><div class="muted" id="where">Getting your spot…</div><button class="btn" id="relocate" style="flex:0 0 auto;width:auto;min-height:44px;padding:8px 14px;font-size:14px">Use where I am</button></div>' +
+    '<label class="l" for="t">The message</label><textarea id="t" class="in" maxlength="600" placeholder="Remember this bench? Sit for a minute. Then look under the left armrest."></textarea>' +
+    '<label class="l" for="c">How to find the exact spot (optional)</label><input id="c" class="in" maxlength="140" placeholder="The bench facing the water, third from the pier">' +
+    '<label class="l">Who can open it</label><div class="seg" id="vis"><button type="button" class="on" data-v="link">The person I send the link to</button><button type="button" data-v="public">Anyone who stands here</button></div>' +
+    '<label class="l" for="o">Not before (optional)</label><input id="o" type="datetime-local" class="in">' +
+    '<div class="err hidden" id="e"></div><button class="btn gold" id="go" disabled>Bury it</button></div>' +
+    '<div class="foot">Checked before anyone can open it. No notes at private homes. You can hide or reopen it any time from Mine.</div>');
+  var pos = null, vis = 'link';
+  function getPos(){ document.getElementById('where').textContent = 'Getting your spot…'; document.getElementById('go').disabled = true;
+    locate().then(function(p){ pos = p; document.getElementById('where').textContent = 'Spot set (±' + Math.round(p.acc) + ' m).' + (p.acc > 60 ? ' Weak signal; try outside.' : ''); document.getElementById('go').disabled = false; })
+      .catch(function(e){ document.getElementById('where').textContent = e.message; }); }
+  getPos(); document.getElementById('relocate').onclick = getPos;
+  document.getElementById('vis').onclick = function(ev){ var b = ev.target.closest('button'); if (!b) return; vis = b.dataset.v; app.querySelectorAll('#vis button').forEach(function(x){ x.classList.toggle('on', x === b); }); };
+  document.getElementById('go').onclick = function(){
+    var body = document.getElementById('t').value.trim(), clue = document.getElementById('c').value.trim(), o = document.getElementById('o').value, err = document.getElementById('e');
+    err.classList.add('hidden'); if (!body) { err.textContent = 'Write the message first.'; err.classList.remove('hidden'); return; } if (!pos) { err.textContent = 'We need your spot first.'; err.classList.remove('hidden'); return; }
+    this.disabled = true; this.textContent = 'Burying…';
+    api({ action: 'bury', lat: pos.lat, lng: pos.lng, acc: pos.acc, body: body, clue: clue, visibility: vis, opens_at: o ? new Date(o).toISOString() : null, src: src() })
+      .then(function(j){ track('bury', { vis: vis, clue: !!clue, timed: !!o }); history.replaceState(null, '', '/thatspot/?d=' + j.code); buried(j.code, vis); })
+      .catch(function(e){ err.textContent = e.message; err.classList.remove('hidden'); document.getElementById('go').disabled = false; document.getElementById('go').textContent = 'Bury it'; });
+  };
+  track('open', { mode: 'home', signed: true });
+}
+function buried(code, vis){
+  $(hdr() + '<div class="k">Buried</div><h2>' + (vis === 'public' ? 'It’s here for whoever finds it.' : 'Now send them the link.') + '</h2>' +
+    '<div class="spot"><div class="pin">📍</div><div class="who">Buried by you · ' + esc(fmt(new Date().toISOString())) + '</div><div class="hid">■■■■■ ■■■■■■■ ■■■ ■■■■</div><div class="meta">' + (vis === 'public' ? 'Opens for anyone standing here' : 'Opens only for them, standing here') + '</div></div>' +
+    (vis === 'public' ? '<button class="btn gold" id="sh">Share the spot</button>' : '<button class="btn gold" id="sh">Send the link</button><div class="muted" style="text-align:center">They’ll see who buried it and your clue. The message opens only when they’re standing here.</div>') +
+    '<a class="btn" href="/thatspot/">Bury another</a><a class="btn" href="/thatspot/?mine=1">Mine</a>');
+  document.getElementById('sh').onclick = function(){ share(code, vis === 'public' ? '📍 I buried something at a spot. Go stand there to open it:' : '📍 I buried something for you at a spot. It opens only when you’re standing there:'); };
+}
+
+// ---------- finder ----------
+function find(code){
+  $(hdr() + '<div class="muted">Looking for the spot…</div>');
+  api({ action: 'peek', code: code }).then(function(s){
+    $(hdr() + '<div class="k">' + (s.is_maker ? 'Your drop' : 'Something is buried here for you') + '</div><h2>' + (s.is_maker ? 'This is yours.' : 'Go stand there to open it.') + '</h2>' +
+      '<div class="spot" id="card"><div class="pin">📍</div><div class="who">' + (s.maker_photo ? '<img src="' + esc(s.maker_photo) + '" alt="">' : '') + 'Buried by ' + esc(s.maker_name || 'someone') + ' · ' + esc(fmt(s.created_at)) + '</div>' +
+      (s.clue ? '<div class="clue">🧭 ' + esc(s.clue) + '</div>' : '') + '<div class="hid">■■■■■ ■■■■■■■ ■■■ ■■■■</div>' +
+      '<div class="meta">' + (s.opens_at && new Date(s.opens_at) > Date.now() ? 'Not before ' + esc(fmtWhen(s.opens_at)) + ' · ' : '') + (s.visibility === 'public' ? 'Anyone standing here' : 'Only you, standing there') + (s.finds ? ' · found ' + s.finds + '×' : '') + '</div></div>' +
+      '<button class="btn gold" id="go">I’m standing there, open it</button><div class="err hidden" id="e"></div>' +
+      (s.is_maker ? '<a class="btn" href="/thatspot/?mine=1">Mine</a>' : '<div class="foot">We only read your location when you tap open. Nothing is tracked.</div>'));
+    document.getElementById('go').onclick = function(){ var b = this; b.disabled = true; b.textContent = 'Checking where you are…';
+      locate().then(function(p){ return api({ action: 'open', code: code, lat: p.lat, lng: p.lng, acc: p.acc }); }).then(function(r){ track('open_try', { there: !!r.there, sealed: !!r.sealed, d: r.distance_m }); opened(code, s, r); })
+        .catch(function(e){ var err = document.getElementById('e'); err.textContent = e.message; err.classList.remove('hidden'); b.disabled = false; b.textContent = 'I’m standing there, open it'; }); };
+    track('peek', { role: s.is_maker ? 'maker' : 'finder', vis: s.visibility });
+  }).catch(function(){ $(hdr() + '<h2>Nothing buried here.</h2><p class="lead">The link may be wrong, or the drop was hidden.</p><a class="btn gold" href="/thatspot/">Bury one of your own</a>'); });
+}
+function opened(code, s, r){
+  if (r.sealed) { $(hdr() + '<div class="k">Not yet</div><h2>It opens ' + esc(fmtWhen(r.opens_at)) + '.</h2><p class="lead">Come back then. You’re ' + km(r.distance_m) + ' from the spot.</p><a class="btn" href="/thatspot/?d=' + code + '">Back</a>'); return; }
+  if (!r.there) { $(hdr() + '<div class="k">Not there yet</div><div class="spot"><div class="pin">📍</div><div class="dist">' + km(r.distance_m) + '</div><div class="meta">from the spot</div>' + (s.clue ? '<div class="clue">🧭 ' + esc(s.clue) + '</div>' : '') + '</div><p class="lead">Get within about ' + (s.radius_m || 40) + ' metres and try again. Warmer when the number drops.</p><a class="btn gold" href="/thatspot/?d=' + code + '">Try again</a>'); return; }
+  function render(log){
+    $(hdr() + '<div class="k">You found it</div><div class="spot open"><div class="pin">📍</div><div class="who">' + (r.maker_photo ? '<img src="' + esc(r.maker_photo) + '" alt="">' : '') + esc(r.maker_name || 'Someone') + ' buried this · ' + esc(fmt(r.buried_at)) + '</div><div class="body">' + esc(r.body) + '</div></div>' +
+      '<div class="box"><div class="k">Logbook</div>' + (log.length ? '<div class="log">' + log.map(function(f){ return '<div>' + (f.note ? esc(f.note) : '<i>found it</i>') + '<small>' + esc(f.finder_name || 'Someone') + ' · ' + esc(fmt(f.created_at)) + '</small></div>'; }).join('') + '</div>' : '<div class="muted">You’re the first here.</div>') + '</div>' +
+      (ME ? '<div class="box"><label class="l" for="n">Leave a note here</label><textarea id="n" class="in" maxlength="300" placeholder="I was here. Thank you."></textarea><div class="err hidden" id="e"></div><button class="btn" id="rep">Leave it</button></div>' : signinBox('Sign in to leave a note here')) +
+      '<a class="btn gold" href="/thatspot/">Bury one back</a>');
+    if (ME) { document.getElementById('rep').onclick = function(){ var n = document.getElementById('n').value.trim(), err = document.getElementById('e'); if (!n) return; this.disabled = true;
+      locate().then(function(p){ return api({ action: 'reply', code: code, note: n, lat: p.lat, lng: p.lng, acc: p.acc }); }).then(function(j){ track('reply', {}); toast('Left here.'); render(j.logbook); })
+        .catch(function(e){ err.textContent = e.message; err.classList.remove('hidden'); document.getElementById('rep').disabled = false; }); }; }
+    else wireSignin(function(){ render(log); });
+  }
+  render(r.logbook || []); track('found', { role: r.is_maker ? 'maker' : 'finder' });
+}
+
+// ---------- mine ----------
+function mine(){
+  if (!ME) { $(hdr() + '<h2>Your drops</h2>' + signinBox('Sign in to see what you buried')); wireSignin(mine); return; }
+  $(hdr() + '<div class="k">Mine</div><h2>What you buried.</h2><div class="list" id="l"><div class="muted">Loading…</div></div><a class="btn gold" href="/thatspot/">Bury another</a><button class="lnk" id="out" style="align-self:center">Sign out</button>');
+  document.getElementById('out').onclick = function(){ sb.auth.signOut().then(function(){ location.href = '/thatspot/'; }); };
+  api({ action: 'mine' }).then(function(j){ var l = document.getElementById('l'); if (!j.spots.length) { l.innerHTML = '<div class="muted">Nothing buried yet.</div>'; return; }
+    l.innerHTML = j.spots.map(function(s){ return '<div class="item" style="flex-wrap:wrap"><div style="flex:1;min-width:0"><b>' + esc(s.body.slice(0, 60)) + (s.body.length > 60 ? '…' : '') + '</b><small>' + esc(fmt(s.created_at)) + ' · found ' + s.finds.length + '×' + (s.clue ? ' · ' + esc(s.clue) : '') + '</small></div>' +
+      '<select class="in" data-code="' + s.code + '"><option value="link"' + (s.visibility === 'link' ? ' selected' : '') + '>Link only</option><option value="public"' + (s.visibility === 'public' ? ' selected' : '') + '>Anyone here</option><option value="hidden"' + (s.visibility === 'hidden' ? ' selected' : '') + '>Hidden</option></select>' +
+      '<div style="flex-basis:100%;display:flex;gap:8px;margin-top:4px"><button class="btn" data-share="' + s.code + '" style="min-height:40px;font-size:14px">Share</button><a class="btn" href="/thatspot/?d=' + s.code + '" style="min-height:40px;font-size:14px">Open</a></div>' +
+      (s.finds.length ? '<div class="log" style="flex-basis:100%;margin-top:6px">' + s.finds.slice(0, 5).map(function(f){ return '<div>' + (f.note ? esc(f.note) : '<i>found it</i>') + '<small>' + esc(f.finder_name || 'Someone') + ' · ' + esc(fmt(f.created_at)) + '</small></div>'; }).join('') + '</div>' : '') + '</div>'; }).join('');
+    l.querySelectorAll('select').forEach(function(sel){ sel.onchange = function(){ api({ action: 'toggle', code: sel.dataset.code, visibility: sel.value }).then(function(){ track('toggle', { vis: sel.value }); toast('Now: ' + sel.options[sel.selectedIndex].text); }).catch(function(e){ toast('Could not change: ' + e.message); }); }; });
+    l.querySelectorAll('[data-share]').forEach(function(b){ b.onclick = function(){ share(b.dataset.share, '📍 I buried something for you at a spot. It opens only when you’re standing there:'); }; });
+  }).catch(function(e){ document.getElementById('l').innerHTML = '<div class="err">' + esc(e.message) + '</div>'; });
+  track('mine', {});
+}
+
+// ---------- public drops near me ----------
+function near(){
+  $(hdr() + '<div class="k">Near me</div><h2>What’s buried around here.</h2><p class="lead">Public drops within 2.5 km. Stand at the spot to open one.</p><div class="list" id="l"><div class="muted">Getting your location…</div></div>' + (ME ? '' : '<a class="btn gold" href="/thatspot/">Bury one of your own</a>'));
+  locate().then(function(p){ return api({ action: 'near', lat: p.lat, lng: p.lng }); }).then(function(j){ var l = document.getElementById('l'); if (!j.spots.length) { l.innerHTML = '<div class="muted">Nothing public within 2.5 km yet. Be the first to bury one.</div>'; return; }
+    l.innerHTML = j.spots.map(function(s){ return '<a class="item" href="/thatspot/?d=' + s.code + '"><div style="font-size:22px">📍</div><div style="flex:1;min-width:0"><b>' + km(s.distance_m) + ' away' + (s.clue ? ' · ' + esc(s.clue) : '') + '</b><small>Buried by ' + esc(s.maker_name || 'someone') + ' · ' + esc(fmt(s.created_at)) + (s.finds ? ' · found ' + s.finds + '×' : '') + '</small></div></a>'; }).join('');
+  }).catch(function(e){ document.getElementById('l').innerHTML = '<div class="err">' + esc(e.message) + '</div>'; });
+  track('near', {});
+}
+
+function boot(){ if (!sb) return Promise.resolve(); return sb.auth.getSession().then(function(r){ SESSION = r.data && r.data.session; return (SESSION || QA_TOKEN) ? api({ action: 'me' }).then(function(j){ ME = j.profile; }).catch(function(){ ME = null; }) : null; }); }
+function route(){ var q = new URLSearchParams(location.search); if (q.get('d')) find(q.get('d').replace(/[^a-z0-9]/g, '')); else if (q.get('mine')) mine(); else if (q.get('near')) near(); else home(); }
+window.__spot = { setQA: function(t){ QA_TOKEN = t; return boot().then(route); } };
+boot().then(route);
+</script>
+<script data-goatcounter="https://voterpup.goatcounter.com/count" async src="//gc.zgo.at/count.js"></script>
+</body>
+</html>
