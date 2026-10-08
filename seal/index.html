@@ -173,7 +173,7 @@ function show(s, justMade){
     return;
   }
   if (me === 'friend' || s.has_counter) {
-    $(hdr() + '<div class="k">Both sealed</div><h2>See you ' + esc(fmt(s.opens_at).split(',').slice(0, 2).join(',')) + '.</h2>' + lockedCard(s) + (me === 'friend' ? emailBox(s) : '') + '<a class="btn" href="/seal/">Seal one of your own</a>');
+    $(hdr() + '<div class="k">Both sealed</div><h2>See you ' + esc(fmtWhen(s.opens_at)) + '.</h2>' + lockedCard(s) + (me === 'friend' ? emailBox(s) : '') + '<a class="btn" href="/seal/">Seal one of your own</a>');
     wireEmail(s); track('view', { role: me, countered: true });
     return;
   }
