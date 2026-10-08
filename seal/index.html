@@ -99,7 +99,7 @@ function share(code, text, friend){
   navigator.clipboard.writeText(msg).then(function(){ toast('Copied. Paste it to ' + (friend || 'your friend') + '.'); track('share', { how: 'copy' }); }).catch(function(){ prompt('Copy this', msg); });
 }
 function toast(t){ var e = document.getElementById('toast'); if (!e) { e = document.createElement('div'); e.id = 'toast'; e.style.cssText = 'position:fixed;left:50%;bottom:28px;transform:translateX(-50%);background:#eaf2f8;color:#0c1722;padding:12px 16px;border-radius:999px;font:800 14px Nunito;z-index:9;max-width:90%'; document.body.appendChild(e); } e.textContent = t; e.style.display = 'block'; clearTimeout(e._t); e._t = setTimeout(function(){ e.style.display = 'none'; }, 2600); }
-function top(right){ return '<div class="top"><a class="logo" href="/seal/">VoterPup</a>' + (right || '<a class="lnk" href="/seal/?mine=1">My seals</a>') + '</div>'; }
+function hdr(right){ return '<div class="top"><a class="logo" href="/seal/">VoterPup</a>' + (right || '<a class="lnk" href="/seal/?mine=1">My seals</a>') + '</div>'; }
 function lockedCard(s, mine){   // mine: show my own text; the other side stays blurred until open
   var me = s.role === 'creator', other = me ? (s.counter_name || s.friend_name) : s.creator_name;
   return '<div class="seal"><div class="lock">🔒</div><div class="who">' + esc(s.creator_name) + ' sealed a call with ' + esc(s.friend_name) + '</div>' +
@@ -118,7 +118,7 @@ function openCard(s){
 // ---------- make a seal ----------
 function make(){
   var pre = PRESETS[0], custom = null, chosen = 0;
-  $(top() + '<div class="k">Call it now</div><h1>It opens when it happens.</h1><p class="lead">Seal a prediction with a friend. Nobody sees it until the day comes. Then you both find out who called it.</p>' +
+  $(hdr() + '<div class="k">Call it now</div><h1>It opens when it happens.</h1><p class="lead">Seal a prediction with a friend. Nobody sees it until the day comes. Then you both find out who called it.</p>' +
     '<div class="box"><label class="l" for="t">Your call</label><textarea id="t" class="in" maxlength="280" placeholder="e.g. Ken Sim loses. Maya, you’re going to owe me a coffee."></textarea>' +
     '<label class="l">Sealed until</label><div class="chips" id="chips">' + PRESETS.map(function(p, i){ return '<button type="button" class="chip' + (i === 0 ? ' on' : '') + '" data-i="' + i + '">' + esc(p.l) + '</button>'; }).join('') + '<button type="button" class="chip" data-i="c">Pick a date</button></div>' +
     '<input id="d" type="date" class="in hidden" min="' + new Date(Date.now() + 2 * 864e5).toISOString().slice(0, 10) + '">' +
@@ -149,14 +149,14 @@ function make(){
 
 // ---------- one seal ----------
 function load(code, justMade){
-  $(top() + '<div class="muted">Opening the seal…</div>');
-  api({ action: 'get', code: code }).then(function(s){ show(s, justMade); }).catch(function(){ $(top() + '<h2>No seal here.</h2><p class="lead">The link may be wrong, or the seal was removed.</p><a class="btn gold" href="/seal/">Seal one of your own</a>'); });
+  $(hdr() + '<div class="muted">Opening the seal…</div>');
+  api({ action: 'get', code: code }).then(function(s){ show(s, justMade); }).catch(function(){ $(hdr() + '<h2>No seal here.</h2><p class="lead">The link may be wrong, or the seal was removed.</p><a class="btn gold" href="/seal/">Seal one of your own</a>'); });
 }
 function show(s, justMade){
   var me = s.role, friendName = s.counter_name || s.friend_name;
   if (s.open) {
     var canMark = me === 'creator' || me === 'friend', names = { creator: s.creator_name, friend: friendName };
-    $(top() + '<div class="k">It happened</div><h2>' + (s.marks && s.marks.agreed ? esc({ creator: s.creator_name, friend: friendName, both: 'Both of you', neither: 'Nobody' }[s.marks.agreed]) + ' called it.' : 'Who called it?') + '</h2>' + openCard(s) +
+    $(hdr() + '<div class="k">It happened</div><h2>' + (s.marks && s.marks.agreed ? esc({ creator: s.creator_name, friend: friendName, both: 'Both of you', neither: 'Nobody' }[s.marks.agreed]) + ' called it.' : 'Who called it?') + '</h2>' + openCard(s) +
       (canMark ? '<div class="box"><div class="k">Your verdict</div><div class="marks">' + [['creator', names.creator], ['friend', names.friend], ['both', 'Both'], ['neither', 'Neither']].map(function(x){ return '<button class="btn' + (s.my_mark === x[0] ? ' on' : '') + '" data-m="' + x[0] + '">' + esc(x[1]) + '</button>'; }).join('') + '</div><div class="muted">You each give a verdict. The seal shows when you agree.</div></div>' : '') +
       '<button class="btn gold" id="sh">Share the result</button><a class="btn" href="/seal/">Seal a new one</a><div class="foot">Sealed on ' + esc(fmt(s.created_at)) + '. Nobody could change a word after that.</div>');
     app.querySelectorAll('[data-m]').forEach(function(b){ b.onclick = function(){ api({ action: 'mark', code: s.code, mark: b.dataset.m }).then(function(s2){ track('mark', { m: b.dataset.m }); show(s2); }).catch(function(e){ toast('Could not save: ' + e.message); }); }; });
@@ -165,7 +165,7 @@ function show(s, justMade){
     return;
   }
   if (me === 'creator') {
-    $(top() + '<div class="k">' + (justMade ? 'Sealed' : 'Your seal') + '</div><h2>' + (s.has_counter ? friendName + ' sealed a counter-call. See you ' + esc(fmt(s.opens_at).split(',')[0]) + '.' : 'Now send it to ' + esc(s.friend_name) + '.') + '</h2>' + lockedCard(s) +
+    $(hdr() + '<div class="k">' + (justMade ? 'Sealed' : 'Your seal') + '</div><h2>' + (s.has_counter ? friendName + ' sealed a counter-call. See you ' + esc(fmt(s.opens_at).split(',')[0]) + '.' : 'Now send it to ' + esc(s.friend_name) + '.') + '</h2>' + lockedCard(s) +
       (s.has_counter ? '' : '<button class="btn gold" id="sh">Send to ' + esc(s.friend_name) + '</button><div class="muted" style="text-align:center">They see a locked card and can seal a counter-call. Nobody sees your words until it opens.</div>') +
       emailBox(s) + '<a class="btn" href="/seal/">Seal another</a>');
     var sh = document.getElementById('sh'); if (sh) sh.onclick = function(){ share(s.code, '🔒 I sealed a call with your name on it, ' + s.friend_name + '. Opens ' + fmt(s.opens_at).split(',').slice(0, 2).join(',') + '. Seal yours back:', s.friend_name); };
@@ -173,12 +173,12 @@ function show(s, justMade){
     return;
   }
   if (me === 'friend' || s.has_counter) {
-    $(top() + '<div class="k">Both sealed</div><h2>See you ' + esc(fmt(s.opens_at).split(',').slice(0, 2).join(',')) + '.</h2>' + lockedCard(s) + (me === 'friend' ? emailBox(s) : '') + '<a class="btn" href="/seal/">Seal one of your own</a>');
+    $(hdr() + '<div class="k">Both sealed</div><h2>See you ' + esc(fmt(s.opens_at).split(',').slice(0, 2).join(',')) + '.</h2>' + lockedCard(s) + (me === 'friend' ? emailBox(s) : '') + '<a class="btn" href="/seal/">Seal one of your own</a>');
     wireEmail(s); track('view', { role: me, countered: true });
     return;
   }
   // a stranger-to-us friend, before any counter
-  $(top() + '<div class="k">' + esc(s.creator_name) + ' sealed a call with your name on it</div><h2>Seal your counter-call before it opens.</h2>' + lockedCard(s) +
+  $(hdr() + '<div class="k">' + esc(s.creator_name) + ' sealed a call with your name on it</div><h2>Seal your counter-call before it opens.</h2>' + lockedCard(s) +
     '<div class="box"><label class="l" for="ct">Your call, ' + esc(s.friend_name) + '</label><textarea id="ct" class="in" maxlength="280" placeholder="What do you say happens?"></textarea>' +
     '<label class="l" for="cn">Your name</label><input id="cn" class="in" maxlength="40" value="' + esc(myName() || s.friend_name) + '"><div class="err hidden" id="e"></div><button class="btn gold" id="go">Seal it back</button><div class="muted">' + esc(s.creator_name) + ' can’t read yours either. Both open on ' + esc(fmt(s.opens_at).split(',').slice(0, 2).join(',')) + '.</div></div>' +
     '<div class="foot">No account. Your call stays hidden until it opens.</div>');
@@ -199,7 +199,7 @@ function wireEmail(s){ var b = document.getElementById('emgo'); if (!b) return; 
 
 // ---------- my seals ----------
 function mine(){
-  $(top('<a class="lnk" href="/seal/">New seal</a>') + '<div class="k">My seals</div><h2>Everything you’ve called.</h2><div class="list" id="l"><div class="muted">Loading…</div></div>');
+  $(hdr('<a class="lnk" href="/seal/">New seal</a>') + '<div class="k">My seals</div><h2>Everything you’ve called.</h2><div class="list" id="l"><div class="muted">Loading…</div></div>');
   api({ action: 'mine' }).then(function(j){
     var l = document.getElementById('l'); if (!j.seals.length) { l.innerHTML = '<div class="muted">Nothing sealed on this phone yet.</div><a class="btn gold" href="/seal/">Seal your first call</a>'; return; }
     l.innerHTML = j.seals.map(function(s){ var other = s.role === 'creator' ? (s.counter_name || s.friend_name) : s.creator_name;
