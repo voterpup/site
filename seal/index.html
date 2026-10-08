@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>Seal it · VoterPup</title>
-<meta name="description" content="Call it now. It opens when it happens. Seal a prediction with a friend; the pup keeps it shut until the day comes, then shows who called it.">
+<meta name="description" content="Call it now. It opens when you say. Seal a prediction with a friend; the pup keeps it shut until the moment you pick, then shows who called it.">
 <meta property="og:title" content="🔒 A sealed call is waiting for you">
 <meta property="og:description" content="Someone sealed a prediction with your name on it. It opens when it happens. Seal yours back.">
 <meta property="og:image" content="https://voterpup.com/pup-share.jpg">
@@ -84,14 +84,11 @@ function api(body){ body.dev = devId(); return fetch(SB + '/functions/v1/seal', 
   .then(function(r){ return r.json().then(function(j){ if (!r.ok) throw new Error(j.error || r.status); return j; }); }); }
 function myName(){ return ls('vp.seal.name') || ''; }
 function fmt(iso){ return new Date(iso).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' }); }
-function morningAfter(y, m, d){ var t = new Date(y, m - 1, d + 1, 8, 0, 0); return t; }   // results land the night of the vote; the seal opens the morning after
 function daysLeft(iso){ return Math.max(0, Math.ceil((new Date(iso) - Date.now()) / 864e5)); }
-var PRESETS = [
-  { l: 'Vancouver votes Oct 17', t: morningAfter(2026, 10, 17) },
-  { l: 'BC votes Oct 24', t: morningAfter(2026, 10, 24) },
-  { l: 'US votes Nov 3', t: morningAfter(2026, 11, 3) },
-  { l: 'New Year', t: new Date(2027, 0, 1, 8, 0, 0) }
-].filter(function(p){ return p.t > Date.now() + 36e5; });
+function fmtWhen(iso){ return new Date(iso).toLocaleString(undefined, { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' }); }
+function pad(n){ return (n < 10 ? '0' : '') + n; }
+function localDate(t){ return t.getFullYear() + '-' + pad(t.getMonth() + 1) + '-' + pad(t.getDate()); }
+function localTime(t){ return pad(t.getHours()) + ':' + pad(t.getMinutes()); }
 function sealUrl(code){ return 'https://voterpup.com/seal/?s=' + code; }
 function share(code, text, friend){
   var url = sealUrl(code), msg = text + ' ' + url;
@@ -105,7 +102,7 @@ function lockedCard(s, mine){   // mine: show my own text; the other side stays 
   return '<div class="seal"><div class="lock">🔒</div><div class="who">' + esc(s.creator_name) + ' sealed a call with ' + esc(s.friend_name) + '</div>' +
     (s.call_text ? '<div class="call">“' + esc(s.call_text) + '”</div>' : '<div class="hid">■■■■■ ■■■■■■■ ■■■ ■■■■</div>') +
     (s.has_counter ? '<div class="side"><div class="who">' + esc(s.counter_name || s.friend_name) + '’s counter-call</div>' + (s.counter_text ? '<div class="call">“' + esc(s.counter_text) + '”</div>' : '<div class="hid">■■■■ ■■■■■■ ■■■■■</div>') + '</div>' : '') +
-    '<div class="date">Opens ' + esc(fmt(s.opens_at)) + ' · ' + daysLeft(s.opens_at) + ' days</div></div>';
+    '<div class="date">Opens ' + esc(fmtWhen(s.opens_at)) + (daysLeft(s.opens_at) > 1 ? ' · ' + daysLeft(s.opens_at) + ' days' : '') + '</div></div>';
 }
 function openCard(s){
   var m = s.marks || {}, who = { creator: s.creator_name, friend: s.counter_name || s.friend_name, both: 'Both', neither: 'Nobody' };
@@ -117,30 +114,33 @@ function openCard(s){
 
 // ---------- make a seal ----------
 function make(){
-  var pre = PRESETS[0], custom = null, chosen = 0;
-  $(hdr() + '<div class="k">Call it now</div><h1>It opens when it happens.</h1><p class="lead">Seal a prediction with a friend. Nobody sees it until the day comes. Then you both find out who called it.</p>' +
-    '<div class="box"><label class="l" for="t">Your call</label><textarea id="t" class="in" maxlength="280" placeholder="e.g. Ken Sim loses. Maya, you’re going to owe me a coffee."></textarea>' +
-    '<label class="l">Sealed until</label><div class="chips" id="chips">' + PRESETS.map(function(p, i){ return '<button type="button" class="chip' + (i === 0 ? ' on' : '') + '" data-i="' + i + '">' + esc(p.l) + '</button>'; }).join('') + '<button type="button" class="chip" data-i="c">Pick a date</button></div>' +
-    '<input id="d" type="date" class="in hidden" min="' + new Date(Date.now() + 2 * 864e5).toISOString().slice(0, 10) + '">' +
-    '<div class="muted" id="when">Opens the morning after the vote.</div>' +
+  var dflt = new Date(Date.now() + 7 * 864e5); dflt.setHours(9, 0, 0, 0);
+  $(hdr() + '<div class="k">Call it now</div><h1>It opens when it happens.</h1><p class="lead">Seal a prediction with a friend. Nobody sees it until the moment you choose. Then you both find out who called it.</p>' +
+    '<div class="box"><label class="l" for="t">Your call</label><textarea id="t" class="in" maxlength="280" placeholder="e.g. By then you’ll have quit that job. Coffee’s on you if I’m right."></textarea>' +
+    '<label class="l">Opens on</label><div class="row"><input id="d" type="date" class="in" value="' + localDate(dflt) + '" min="' + localDate(new Date(Date.now() + 864e5)) + '" aria-label="Date"><input id="tm" type="time" class="in" value="' + localTime(dflt) + '" aria-label="Time"></div>' +
+    '<div class="chips" id="chips"><button type="button" class="chip" data-days="1">Tomorrow</button><button type="button" class="chip on" data-days="7">In a week</button><button type="button" class="chip" data-days="30">In a month</button><button type="button" class="chip" data-days="365">In a year</button></div>' +
+    '<div class="muted" id="when"></div>' +
     '<div class="row"><div><label class="l" for="n">Your name</label><input id="n" class="in" maxlength="40" value="' + esc(myName()) + '" placeholder="Aum"></div><div><label class="l" for="f">Sealing it with</label><input id="f" class="in" maxlength="40" placeholder="Maya"></div></div>' +
     '<div class="err hidden" id="e"></div><button class="btn gold" id="go">Seal it</button></div>' +
     '<div class="foot">No account. Your call stays hidden from everyone, including your friend, until it opens.</div>');
-  var dEl = document.getElementById('d');
+  var dEl = document.getElementById('d'), tEl = document.getElementById('tm');
+  function chosen(){ if (!dEl.value || !tEl.value) return null; return new Date(+dEl.value.slice(0, 4), dEl.value.slice(5, 7) - 1, +dEl.value.slice(8, 10), +tEl.value.slice(0, 2), +tEl.value.slice(3, 5), 0); }
+  function note(){ var t = chosen(); document.getElementById('when').textContent = t && !isNaN(t) ? 'Opens ' + fmtWhen(t.toISOString()) + ' (your time).' : ''; }
+  dEl.oninput = tEl.oninput = function(){ app.querySelectorAll('.chip').forEach(function(x){ x.classList.remove('on'); }); note(); };
   document.getElementById('chips').onclick = function(ev){ var b = ev.target.closest('.chip'); if (!b) return; app.querySelectorAll('.chip').forEach(function(x){ x.classList.toggle('on', x === b); });
-    if (b.dataset.i === 'c') { chosen = 'c'; dEl.classList.remove('hidden'); dEl.focus(); document.getElementById('when').textContent = 'Opens at 8 am on that day.'; }
-    else { chosen = +b.dataset.i; dEl.classList.add('hidden'); document.getElementById('when').textContent = 'Opens the morning after the vote.'; } };
+    var t = new Date(Date.now() + (+b.dataset.days) * 864e5); t.setHours(9, 0, 0, 0); dEl.value = localDate(t); tEl.value = localTime(t); note(); };
+  note();
   document.getElementById('go').onclick = function(){
     var text = document.getElementById('t').value.trim(), name = document.getElementById('n').value.trim(), to = document.getElementById('f').value.trim(), err = document.getElementById('e');
-    var t = chosen === 'c' ? (dEl.value ? new Date(dEl.value.slice(0, 4), dEl.value.slice(5, 7) - 1, +dEl.value.slice(8, 10), 8, 0, 0) : null) : PRESETS[chosen].t;
+    var t = chosen();
     err.classList.add('hidden');
     if (!text) { err.textContent = 'Write your call first.'; err.classList.remove('hidden'); return; }
-    if (!t || t < Date.now() + 36e5) { err.textContent = 'Pick a day at least a day away.'; err.classList.remove('hidden'); return; }
+    if (!t || isNaN(t) || t < Date.now() + 36e5) { err.textContent = 'Pick a time at least an hour from now.'; err.classList.remove('hidden'); return; }
     if (!to) { err.textContent = 'Who are you sealing it with?'; err.classList.remove('hidden'); return; }
     ls('vp.seal.name', name); this.disabled = true; this.textContent = 'Sealing…';
     api({ action: 'create', text: text, name: name, to: to, opens_at: t.toISOString(), src: src() }).then(function(j){
       var mine = []; try { mine = JSON.parse(ls('vp.seal.mine') || '[]'); } catch (e) {} mine.unshift(j.code); ls('vp.seal.mine', JSON.stringify(mine.slice(0, 50)));
-      track('create', { days: daysLeft(t.toISOString()), preset: chosen === 'c' ? 'custom' : PRESETS[chosen].l });
+      track('create', { days: daysLeft(t.toISOString()) });
       history.replaceState(null, '', '/seal/?s=' + j.code); load(j.code, true);
     }).catch(function(e){ err.textContent = 'Could not seal it (' + e.message + '). Try again.'; err.classList.remove('hidden'); document.getElementById('go').disabled = false; document.getElementById('go').textContent = 'Seal it'; });
   };
@@ -165,10 +165,10 @@ function show(s, justMade){
     return;
   }
   if (me === 'creator') {
-    $(hdr() + '<div class="k">' + (justMade ? 'Sealed' : 'Your seal') + '</div><h2>' + (s.has_counter ? friendName + ' sealed a counter-call. See you ' + esc(fmt(s.opens_at).split(',')[0]) + '.' : 'Now send it to ' + esc(s.friend_name) + '.') + '</h2>' + lockedCard(s) +
+    $(hdr() + '<div class="k">' + (justMade ? 'Sealed' : 'Your seal') + '</div><h2>' + (s.has_counter ? friendName + ' sealed a counter-call. See you ' + esc(fmtWhen(s.opens_at)) + '.' : 'Now send it to ' + esc(s.friend_name) + '.') + '</h2>' + lockedCard(s) +
       (s.has_counter ? '' : '<button class="btn gold" id="sh">Send to ' + esc(s.friend_name) + '</button><div class="muted" style="text-align:center">They see a locked card and can seal a counter-call. Nobody sees your words until it opens.</div>') +
       emailBox(s) + '<a class="btn" href="/seal/">Seal another</a>');
-    var sh = document.getElementById('sh'); if (sh) sh.onclick = function(){ share(s.code, '🔒 I sealed a call with your name on it, ' + s.friend_name + '. Opens ' + fmt(s.opens_at).split(',').slice(0, 2).join(',') + '. Seal yours back:', s.friend_name); };
+    var sh = document.getElementById('sh'); if (sh) sh.onclick = function(){ share(s.code, '🔒 I sealed a call with your name on it, ' + s.friend_name + '. Opens ' + fmtWhen(s.opens_at) + '. Seal yours back:', s.friend_name); };
     wireEmail(s); track('view', { role: 'creator', countered: s.has_counter });
     return;
   }
@@ -180,7 +180,7 @@ function show(s, justMade){
   // a stranger-to-us friend, before any counter
   $(hdr() + '<div class="k">' + esc(s.creator_name) + ' sealed a call with your name on it</div><h2>Seal your counter-call before it opens.</h2>' + lockedCard(s) +
     '<div class="box"><label class="l" for="ct">Your call, ' + esc(s.friend_name) + '</label><textarea id="ct" class="in" maxlength="280" placeholder="What do you say happens?"></textarea>' +
-    '<label class="l" for="cn">Your name</label><input id="cn" class="in" maxlength="40" value="' + esc(s.friend_name) + '"><div class="err hidden" id="e"></div><button class="btn gold" id="go">Seal it back</button><div class="muted">' + esc(s.creator_name) + ' can’t read yours either. Both open on ' + esc(fmt(s.opens_at).split(',').slice(0, 2).join(',')) + '.</div></div>' +
+    '<label class="l" for="cn">Your name</label><input id="cn" class="in" maxlength="40" value="' + esc(s.friend_name) + '"><div class="err hidden" id="e"></div><button class="btn gold" id="go">Seal it back</button><div class="muted">' + esc(s.creator_name) + ' can’t read yours either. Both open ' + esc(fmtWhen(s.opens_at)) + '.</div></div>' +
     '<div class="foot">No account. Your call stays hidden until it opens.</div>');
   document.getElementById('go').onclick = function(){
     var text = document.getElementById('ct').value.trim(), name = document.getElementById('cn').value.trim(), err = document.getElementById('e');
@@ -203,7 +203,7 @@ function mine(){
   api({ action: 'mine' }).then(function(j){
     var l = document.getElementById('l'); if (!j.seals.length) { l.innerHTML = '<div class="muted">Nothing sealed on this phone yet.</div><a class="btn gold" href="/seal/">Seal your first call</a>'; return; }
     l.innerHTML = j.seals.map(function(s){ var other = s.role === 'creator' ? (s.counter_name || s.friend_name) : s.creator_name;
-      return '<a class="item" href="/seal/?s=' + s.code + '"><div style="font-size:22px">' + (s.open ? '🔓' : '🔒') + '</div><div style="flex:1;min-width:0"><b>With ' + esc(other) + '</b><small>' + (s.open ? 'Opened ' + esc(fmt(s.opens_at)) + (s.marks && s.marks.agreed ? ' · verdict in' : ' · give your verdict') : 'Opens ' + esc(fmt(s.opens_at)) + ' · ' + (s.has_counter ? 'both sealed' : s.role === 'creator' ? 'waiting for ' + esc(s.friend_name) : 'sealed')) + '</small></div></a>'; }).join('');
+      return '<a class="item" href="/seal/?s=' + s.code + '"><div style="font-size:22px">' + (s.open ? '🔓' : '🔒') + '</div><div style="flex:1;min-width:0"><b>With ' + esc(other) + '</b><small>' + (s.open ? 'Opened ' + esc(fmt(s.opens_at)) + (s.marks && s.marks.agreed ? ' · verdict in' : ' · give your verdict') : 'Opens ' + esc(fmtWhen(s.opens_at)) + ' · ' + (s.has_counter ? 'both sealed' : s.role === 'creator' ? 'waiting for ' + esc(s.friend_name) : 'sealed')) + '</small></div></a>'; }).join('');
   }).catch(function(){ document.getElementById('l').innerHTML = '<div class="muted">Could not load.</div>'; });
   track('mine', {});
 }
