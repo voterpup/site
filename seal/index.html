@@ -1,0 +1,215 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Seal it · VoterPup</title>
+<meta name="description" content="Call it now. It opens when it happens. Seal a prediction with a friend; the pup keeps it shut until the day comes, then shows who called it.">
+<meta property="og:title" content="🔒 A sealed call is waiting for you">
+<meta property="og:description" content="Someone sealed a prediction with your name on it. It opens when it happens. Seal yours back.">
+<meta property="og:image" content="https://voterpup.com/pup-share.jpg">
+<meta property="og:url" content="https://voterpup.com/seal/">
+<meta name="theme-color" content="#0c1722">
+<link rel="icon" href="/favicon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Nunito:wght@600;700;800;900&display=swap">
+<style>
+:root{--bg:#0c1722;--card:#142433;--line:#233a4e;--ink:#eaf2f8;--sub:#9fb4c6;--gold:#f5b83d;--gold2:#ffcd5e;--onGold:#1a1304;--good:#2fd39c;--bad:#ff6b80;--field:#0f1d2a;color-scheme:dark}
+@media (prefers-color-scheme: light){:root{--bg:#f6f4ee;--card:#fff;--line:#e2ddd0;--ink:#14202c;--sub:#566778;--gold:#f5b83d;--gold2:#a8740a;--onGold:#1a1304;--good:#12865f;--bad:#c4384f;--field:#efece4;color-scheme:light}}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;min-height:100%;background:var(--bg);color:var(--ink);font:600 17px/1.45 Nunito,system-ui,sans-serif}
+button,input,textarea{font:inherit;color:inherit}
+.app{max-width:480px;margin:0 auto;padding:calc(env(safe-area-inset-top,0px) + 14px) 16px calc(env(safe-area-inset-bottom,0px) + 24px);display:flex;flex-direction:column;gap:14px}
+.top{display:flex;justify-content:space-between;align-items:center;min-height:40px}
+.logo{font:700 21px Fredoka,sans-serif;color:var(--gold);text-decoration:none}
+.lnk{font:800 14px Nunito;color:var(--sub);text-decoration:none;min-height:44px;display:inline-flex;align-items:center;padding:0 6px}
+h1{font:600 34px/1.08 Fredoka,sans-serif;margin:0;text-wrap:balance}
+h2{font:600 25px/1.15 Fredoka,sans-serif;margin:0;text-wrap:balance}
+.lead{color:var(--sub);margin:0}
+.k{font:900 12.5px Nunito;letter-spacing:.1em;text-transform:uppercase;color:var(--gold2)}
+.btn{display:flex;align-items:center;justify-content:center;gap:8px;min-height:52px;border-radius:16px;border:1.5px solid var(--line);background:transparent;font-weight:900;font-size:16.5px;padding:12px 16px;text-decoration:none;color:var(--ink);cursor:pointer;width:100%}
+.btn.gold{background:var(--gold);border-color:var(--gold);color:var(--onGold)}
+.btn:disabled{opacity:.5}
+.box{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:16px;display:flex;flex-direction:column;gap:10px}
+.muted{color:var(--sub);font-size:14px}
+.foot{font-size:12.5px;color:var(--sub);text-align:center}
+label.l{font:900 12.5px Nunito;letter-spacing:.08em;text-transform:uppercase;color:var(--sub)}
+.in{width:100%;background:var(--field);border:1.5px solid var(--line);border-radius:14px;padding:13px;font-size:17px;font-weight:700;outline:none;min-height:52px}
+.in:focus{border-color:var(--gold)}
+textarea.in{min-height:110px;resize:vertical;line-height:1.35}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chip{border:1.5px solid var(--line);border-radius:999px;padding:10px 13px;font:800 14px Nunito;background:transparent;cursor:pointer;min-height:44px}
+.chip.on{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.row{display:flex;gap:10px}
+.row>*{flex:1;min-width:0}
+/* the sealed card */
+.seal{position:relative;border-radius:22px;padding:22px 18px 18px;background:linear-gradient(160deg,#1d3550,#0c1722);border:1px solid #2a4258;color:#eaf2f8;display:flex;flex-direction:column;gap:10px;overflow:hidden}
+.seal.open{background:linear-gradient(160deg,#1f5a46,#0c1722);border-color:#2fd39c}
+.seal .who{font:800 13.5px Nunito;color:#b8cad8}
+.seal .lock{position:absolute;right:16px;top:14px;width:44px;height:44px;border-radius:50%;background:#f5b83d;display:grid;place-items:center;color:#1a1304;font-size:20px}
+.seal .call{font:600 23px/1.25 Fredoka,sans-serif;text-wrap:balance}
+.seal .hid{font:600 23px/1.25 Fredoka,sans-serif;letter-spacing:.14em;color:#4b657d;filter:blur(2px);user-select:none}
+.seal .date{font:900 13px Nunito;letter-spacing:.08em;text-transform:uppercase;color:#ffcd5e}
+.seal .side{border-top:1px dashed #2a4258;padding-top:10px}
+.marks{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.marks .btn{min-height:48px;font-size:15px}
+.marks .btn.on{background:var(--good);border-color:var(--good);color:#05261c}
+.list{display:flex;flex-direction:column;gap:8px}
+.item{display:flex;gap:10px;align-items:center;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:12px;text-decoration:none;color:inherit}
+.item b{display:block;font-size:15px}
+.item small{color:var(--sub);font-size:12.5px}
+.hidden{display:none!important}
+.err{color:var(--bad);font-size:14px;font-weight:800}
+</style>
+</head>
+<body>
+<div class="app" id="app"></div>
+<script>
+// Sealed drops: call it now, it opens when it happens. All reads/writes go through the seal edge function (texts are hidden server-side until opens_at).
+var SB = 'https://setyjmgijsbplgyqynlh.supabase.co', KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNldHlqbWdpanNicGxneXF5bmxoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTA1NDU0NTAsImV4cCI6MjEwNjEyMTQ1MH0.v8tjuc2UZrTw5whfDXtpEPW4CHggusgjq8Mkdh6ZMw8';
+var app = document.getElementById('app');
+function $(h){ app.innerHTML = h; window.scrollTo(0, 0); }
+function esc(s){ var d = document.createElement('div'); d.textContent = s == null ? '' : s; return d.innerHTML; }
+function ls(k, v){ try { if (v === undefined) return localStorage.getItem(k); localStorage.setItem(k, v); } catch (e) { return null; } }
+function devId(){ var d = ls('vp.dev'); if (!d) { d = Array.from(crypto.getRandomValues(new Uint8Array(8))).map(function(b){ return b.toString(16).padStart(2, '0'); }).join(''); ls('vp.dev', d); } return d || 'nostorage'; }
+(function(){ var m = location.search.match(/[?&]src=([a-z0-9_-]{1,24})/i); if (m) { try { sessionStorage.setItem('vp.src', m[1]); if (!ls('vp.src0')) ls('vp.src0', m[1]); } catch (e) {} } })();
+function src(){ try { return sessionStorage.getItem('vp.src') || ls('vp.src0') || 'direct'; } catch (e) { return 'direct'; } }
+function track(step, meta){
+  if (navigator.webdriver || /HeadlessChrome/.test(navigator.userAgent) || ls('vp.internal') === '1') return;
+  var m = meta || {}; m.step = step;
+  fetch(SB + '/rest/v1/rpc/vp_track', { method: 'POST', headers: { 'Content-Type': 'application/json', apikey: KEY, Authorization: 'Bearer ' + KEY },
+    body: JSON.stringify({ p_dev: devId(), p_event: 'seal', p_tail: null, p_src: src(), p_meta: m }) }).catch(function(){});
+}
+function api(body){ body.dev = devId(); return fetch(SB + '/functions/v1/seal', { method: 'POST', headers: { 'Content-Type': 'application/json', apikey: KEY, Authorization: 'Bearer ' + KEY }, body: JSON.stringify(body) })
+  .then(function(r){ return r.json().then(function(j){ if (!r.ok) throw new Error(j.error || r.status); return j; }); }); }
+function myName(){ return ls('vp.seal.name') || ''; }
+function fmt(iso){ return new Date(iso).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' }); }
+function morningAfter(y, m, d){ var t = new Date(y, m - 1, d + 1, 8, 0, 0); return t; }   // results land the night of the vote; the seal opens the morning after
+function daysLeft(iso){ return Math.max(0, Math.ceil((new Date(iso) - Date.now()) / 864e5)); }
+var PRESETS = [
+  { l: 'Vancouver votes Oct 17', t: morningAfter(2026, 10, 17) },
+  { l: 'BC votes Oct 24', t: morningAfter(2026, 10, 24) },
+  { l: 'US votes Nov 3', t: morningAfter(2026, 11, 3) },
+  { l: 'New Year', t: new Date(2027, 0, 1, 8, 0, 0) }
+].filter(function(p){ return p.t > Date.now() + 36e5; });
+function sealUrl(code){ return 'https://voterpup.com/seal/?s=' + code; }
+function share(code, text, friend){
+  var url = sealUrl(code), msg = text + ' ' + url;
+  if (navigator.share) { navigator.share({ text: msg }).then(function(){ track('share', { how: 'share' }); }).catch(function(){}); return; }
+  navigator.clipboard.writeText(msg).then(function(){ toast('Copied. Paste it to ' + (friend || 'your friend') + '.'); track('share', { how: 'copy' }); }).catch(function(){ prompt('Copy this', msg); });
+}
+function toast(t){ var e = document.getElementById('toast'); if (!e) { e = document.createElement('div'); e.id = 'toast'; e.style.cssText = 'position:fixed;left:50%;bottom:28px;transform:translateX(-50%);background:#eaf2f8;color:#0c1722;padding:12px 16px;border-radius:999px;font:800 14px Nunito;z-index:9;max-width:90%'; document.body.appendChild(e); } e.textContent = t; e.style.display = 'block'; clearTimeout(e._t); e._t = setTimeout(function(){ e.style.display = 'none'; }, 2600); }
+function top(right){ return '<div class="top"><a class="logo" href="/seal/">VoterPup</a>' + (right || '<a class="lnk" href="/seal/?mine=1">My seals</a>') + '</div>'; }
+function lockedCard(s, mine){   // mine: show my own text; the other side stays blurred until open
+  var me = s.role === 'creator', other = me ? (s.counter_name || s.friend_name) : s.creator_name;
+  return '<div class="seal"><div class="lock">🔒</div><div class="who">' + esc(s.creator_name) + ' sealed a call with ' + esc(s.friend_name) + '</div>' +
+    (s.call_text ? '<div class="call">“' + esc(s.call_text) + '”</div>' : '<div class="hid">■■■■■ ■■■■■■■ ■■■ ■■■■</div>') +
+    (s.has_counter ? '<div class="side"><div class="who">' + esc(s.counter_name || s.friend_name) + '’s counter-call</div>' + (s.counter_text ? '<div class="call">“' + esc(s.counter_text) + '”</div>' : '<div class="hid">■■■■ ■■■■■■ ■■■■■</div>') + '</div>' : '') +
+    '<div class="date">Opens ' + esc(fmt(s.opens_at)) + ' · ' + daysLeft(s.opens_at) + ' days</div></div>';
+}
+function openCard(s){
+  var m = s.marks || {}, who = { creator: s.creator_name, friend: s.counter_name || s.friend_name, both: 'Both', neither: 'Nobody' };
+  return '<div class="seal open"><div class="lock">🔓</div><div class="who">Sealed ' + esc(fmt(s.created_at)) + ' · opened ' + esc(fmt(s.opens_at)) + '</div>' +
+    '<div class="who" style="color:#ffcd5e">' + esc(s.creator_name) + ' called it:</div><div class="call">“' + esc(s.call_text) + '”</div>' +
+    (s.counter_text ? '<div class="side"><div class="who" style="color:#ffcd5e">' + esc(s.counter_name || s.friend_name) + ' called it:</div><div class="call">“' + esc(s.counter_text) + '”</div></div>' : '<div class="side muted">' + esc(s.friend_name) + ' never sealed a counter-call.</div>') +
+    (m.agreed ? '<div class="date">Both agree: ' + esc(who[m.agreed]) + ' called it</div>' : (m.creator || m.friend) ? '<div class="date">' + (m.creator ? esc(s.creator_name) + ' says ' + esc(who[m.creator]) : '') + (m.creator && m.friend ? ' · ' : '') + (m.friend ? esc(s.counter_name || s.friend_name) + ' says ' + esc(who[m.friend]) : '') + '</div>' : '') + '</div>';
+}
+
+// ---------- make a seal ----------
+function make(){
+  var pre = PRESETS[0], custom = null, chosen = 0;
+  $(top() + '<div class="k">Call it now</div><h1>It opens when it happens.</h1><p class="lead">Seal a prediction with a friend. Nobody sees it until the day comes. Then you both find out who called it.</p>' +
+    '<div class="box"><label class="l" for="t">Your call</label><textarea id="t" class="in" maxlength="280" placeholder="e.g. Ken Sim loses. Maya, you’re going to owe me a coffee."></textarea>' +
+    '<label class="l">Sealed until</label><div class="chips" id="chips">' + PRESETS.map(function(p, i){ return '<button type="button" class="chip' + (i === 0 ? ' on' : '') + '" data-i="' + i + '">' + esc(p.l) + '</button>'; }).join('') + '<button type="button" class="chip" data-i="c">Pick a date</button></div>' +
+    '<input id="d" type="date" class="in hidden" min="' + new Date(Date.now() + 2 * 864e5).toISOString().slice(0, 10) + '">' +
+    '<div class="muted" id="when">Opens the morning after the vote.</div>' +
+    '<div class="row"><div><label class="l" for="n">Your name</label><input id="n" class="in" maxlength="40" value="' + esc(myName()) + '" placeholder="Aum"></div><div><label class="l" for="f">Sealing it with</label><input id="f" class="in" maxlength="40" placeholder="Maya"></div></div>' +
+    '<div class="err hidden" id="e"></div><button class="btn gold" id="go">Seal it</button></div>' +
+    '<div class="foot">No account. Your call stays hidden from everyone, including your friend, until it opens.</div>');
+  var dEl = document.getElementById('d');
+  document.getElementById('chips').onclick = function(ev){ var b = ev.target.closest('.chip'); if (!b) return; app.querySelectorAll('.chip').forEach(function(x){ x.classList.toggle('on', x === b); });
+    if (b.dataset.i === 'c') { chosen = 'c'; dEl.classList.remove('hidden'); dEl.focus(); document.getElementById('when').textContent = 'Opens at 8 am on that day.'; }
+    else { chosen = +b.dataset.i; dEl.classList.add('hidden'); document.getElementById('when').textContent = 'Opens the morning after the vote.'; } };
+  document.getElementById('go').onclick = function(){
+    var text = document.getElementById('t').value.trim(), name = document.getElementById('n').value.trim(), to = document.getElementById('f').value.trim(), err = document.getElementById('e');
+    var t = chosen === 'c' ? (dEl.value ? new Date(dEl.value.slice(0, 4), dEl.value.slice(5, 7) - 1, +dEl.value.slice(8, 10), 8, 0, 0) : null) : PRESETS[chosen].t;
+    err.classList.add('hidden');
+    if (!text) { err.textContent = 'Write your call first.'; err.classList.remove('hidden'); return; }
+    if (!t || t < Date.now() + 36e5) { err.textContent = 'Pick a day at least a day away.'; err.classList.remove('hidden'); return; }
+    if (!to) { err.textContent = 'Who are you sealing it with?'; err.classList.remove('hidden'); return; }
+    ls('vp.seal.name', name); this.disabled = true; this.textContent = 'Sealing…';
+    api({ action: 'create', text: text, name: name, to: to, opens_at: t.toISOString(), src: src() }).then(function(j){
+      var mine = []; try { mine = JSON.parse(ls('vp.seal.mine') || '[]'); } catch (e) {} mine.unshift(j.code); ls('vp.seal.mine', JSON.stringify(mine.slice(0, 50)));
+      track('create', { days: daysLeft(t.toISOString()), preset: chosen === 'c' ? 'custom' : PRESETS[chosen].l });
+      history.replaceState(null, '', '/seal/?s=' + j.code); load(j.code, true);
+    }).catch(function(e){ err.textContent = 'Could not seal it (' + e.message + '). Try again.'; err.classList.remove('hidden'); document.getElementById('go').disabled = false; document.getElementById('go').textContent = 'Seal it'; });
+  };
+  track('open', { mode: 'make' });
+}
+
+// ---------- one seal ----------
+function load(code, justMade){
+  $(top() + '<div class="muted">Opening the seal…</div>');
+  api({ action: 'get', code: code }).then(function(s){ show(s, justMade); }).catch(function(){ $(top() + '<h2>No seal here.</h2><p class="lead">The link may be wrong, or the seal was removed.</p><a class="btn gold" href="/seal/">Seal one of your own</a>'); });
+}
+function show(s, justMade){
+  var me = s.role, friendName = s.counter_name || s.friend_name;
+  if (s.open) {
+    var canMark = me === 'creator' || me === 'friend', names = { creator: s.creator_name, friend: friendName };
+    $(top() + '<div class="k">It happened</div><h2>' + (s.marks && s.marks.agreed ? esc({ creator: s.creator_name, friend: friendName, both: 'Both of you', neither: 'Nobody' }[s.marks.agreed]) + ' called it.' : 'Who called it?') + '</h2>' + openCard(s) +
+      (canMark ? '<div class="box"><div class="k">Your verdict</div><div class="marks">' + [['creator', names.creator], ['friend', names.friend], ['both', 'Both'], ['neither', 'Neither']].map(function(x){ return '<button class="btn' + (s.my_mark === x[0] ? ' on' : '') + '" data-m="' + x[0] + '">' + esc(x[1]) + '</button>'; }).join('') + '</div><div class="muted">You each give a verdict. The seal shows when you agree.</div></div>' : '') +
+      '<button class="btn gold" id="sh">Share the result</button><a class="btn" href="/seal/">Seal a new one</a><div class="foot">Sealed on ' + esc(fmt(s.created_at)) + '. Nobody could change a word after that.</div>');
+    app.querySelectorAll('[data-m]').forEach(function(b){ b.onclick = function(){ api({ action: 'mark', code: s.code, mark: b.dataset.m }).then(function(s2){ track('mark', { m: b.dataset.m }); show(s2); }).catch(function(e){ toast('Could not save: ' + e.message); }); }; });
+    document.getElementById('sh').onclick = function(){ var w = s.marks && s.marks.agreed; share(s.code, (w === 'creator' ? s.creator_name : w === 'friend' ? friendName : w === 'both' ? 'We both' : 'Nobody') + ' called it 🔓 Sealed ' + fmt(s.created_at) + ', opened ' + fmt(s.opens_at) + '.', null); };
+    track('opened_view', { role: me, agreed: !!(s.marks && s.marks.agreed) });
+    return;
+  }
+  if (me === 'creator') {
+    $(top() + '<div class="k">' + (justMade ? 'Sealed' : 'Your seal') + '</div><h2>' + (s.has_counter ? friendName + ' sealed a counter-call. See you ' + esc(fmt(s.opens_at).split(',')[0]) + '.' : 'Now send it to ' + esc(s.friend_name) + '.') + '</h2>' + lockedCard(s) +
+      (s.has_counter ? '' : '<button class="btn gold" id="sh">Send to ' + esc(s.friend_name) + '</button><div class="muted" style="text-align:center">They see a locked card and can seal a counter-call. Nobody sees your words until it opens.</div>') +
+      emailBox(s) + '<a class="btn" href="/seal/">Seal another</a>');
+    var sh = document.getElementById('sh'); if (sh) sh.onclick = function(){ share(s.code, '🔒 I sealed a call with your name on it, ' + s.friend_name + '. Opens ' + fmt(s.opens_at).split(',').slice(0, 2).join(',') + '. Seal yours back:', s.friend_name); };
+    wireEmail(s); track('view', { role: 'creator', countered: s.has_counter });
+    return;
+  }
+  if (me === 'friend' || s.has_counter) {
+    $(top() + '<div class="k">Both sealed</div><h2>See you ' + esc(fmt(s.opens_at).split(',').slice(0, 2).join(',')) + '.</h2>' + lockedCard(s) + (me === 'friend' ? emailBox(s) : '') + '<a class="btn" href="/seal/">Seal one of your own</a>');
+    wireEmail(s); track('view', { role: me, countered: true });
+    return;
+  }
+  // a stranger-to-us friend, before any counter
+  $(top() + '<div class="k">' + esc(s.creator_name) + ' sealed a call with your name on it</div><h2>Seal your counter-call before it opens.</h2>' + lockedCard(s) +
+    '<div class="box"><label class="l" for="ct">Your call, ' + esc(s.friend_name) + '</label><textarea id="ct" class="in" maxlength="280" placeholder="What do you say happens?"></textarea>' +
+    '<label class="l" for="cn">Your name</label><input id="cn" class="in" maxlength="40" value="' + esc(myName() || s.friend_name) + '"><div class="err hidden" id="e"></div><button class="btn gold" id="go">Seal it back</button><div class="muted">' + esc(s.creator_name) + ' can’t read yours either. Both open on ' + esc(fmt(s.opens_at).split(',').slice(0, 2).join(',')) + '.</div></div>' +
+    '<div class="foot">No account. Your call stays hidden until it opens.</div>');
+  document.getElementById('go').onclick = function(){
+    var text = document.getElementById('ct').value.trim(), name = document.getElementById('cn').value.trim(), err = document.getElementById('e');
+    if (!text) { err.textContent = 'Write your call first.'; err.classList.remove('hidden'); return; }
+    ls('vp.seal.name', name); this.disabled = true;
+    api({ action: 'counter', code: s.code, text: text, name: name }).then(function(s2){ var mine = []; try { mine = JSON.parse(ls('vp.seal.mine') || '[]'); } catch (e) {} mine.unshift(s2.code); ls('vp.seal.mine', JSON.stringify(mine.slice(0, 50))); track('counter', {}); show(s2); })
+      .catch(function(e){ err.textContent = 'Could not seal it (' + e.message + ').'; err.classList.remove('hidden'); document.getElementById('go').disabled = false; });
+  };
+  track('view', { role: 'invitee' });
+}
+function emailBox(s){
+  if (s.has_email) return '<div class="muted" style="text-align:center">We’ll email you the moment it opens.</div>';
+  return '<div class="box"><div style="font-weight:900">Tell me when it opens</div><div class="row"><input id="em" class="in" type="email" placeholder="you@email.com" autocomplete="email"><button class="btn" id="emgo" style="flex:0 0 auto;min-width:96px">Email me</button></div><div class="muted">One email, on the day. Nothing else.</div></div>';
+}
+function wireEmail(s){ var b = document.getElementById('emgo'); if (!b) return; b.onclick = function(){ var em = document.getElementById('em').value.trim(); if (!em) return; b.disabled = true; api({ action: 'email', code: s.code, email: em }).then(function(){ track('email', {}); toast('Saved. We’ll email you when it opens.'); s.has_email = true; show(s); }).catch(function(e){ toast('Could not save: ' + e.message); b.disabled = false; }); }; }
+
+// ---------- my seals ----------
+function mine(){
+  $(top('<a class="lnk" href="/seal/">New seal</a>') + '<div class="k">My seals</div><h2>Everything you’ve called.</h2><div class="list" id="l"><div class="muted">Loading…</div></div>');
+  api({ action: 'mine' }).then(function(j){
+    var l = document.getElementById('l'); if (!j.seals.length) { l.innerHTML = '<div class="muted">Nothing sealed on this phone yet.</div><a class="btn gold" href="/seal/">Seal your first call</a>'; return; }
+    l.innerHTML = j.seals.map(function(s){ var other = s.role === 'creator' ? (s.counter_name || s.friend_name) : s.creator_name;
+      return '<a class="item" href="/seal/?s=' + s.code + '"><div style="font-size:22px">' + (s.open ? '🔓' : '🔒') + '</div><div style="flex:1;min-width:0"><b>With ' + esc(other) + '</b><small>' + (s.open ? 'Opened ' + esc(fmt(s.opens_at)) + (s.marks && s.marks.agreed ? ' · verdict in' : ' · give your verdict') : 'Opens ' + esc(fmt(s.opens_at)) + ' · ' + (s.has_counter ? 'both sealed' : s.role === 'creator' ? 'waiting for ' + esc(s.friend_name) : 'sealed')) + '</small></div></a>'; }).join('');
+  }).catch(function(){ document.getElementById('l').innerHTML = '<div class="muted">Could not load.</div>'; });
+  track('mine', {});
+}
+var q = new URLSearchParams(location.search);
+if (q.get('s')) load(q.get('s').replace(/[^a-z0-9]/g, '')); else if (q.get('mine')) mine(); else make();
+</script>
+<script data-goatcounter="https://voterpup.goatcounter.com/count" async src="//gc.zgo.at/count.js"></script>
+</body>
+</html>
