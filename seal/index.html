@@ -180,7 +180,7 @@ function show(s, justMade){
   // a stranger-to-us friend, before any counter
   $(hdr() + '<div class="k">' + esc(s.creator_name) + ' sealed a call with your name on it</div><h2>Seal your counter-call before it opens.</h2>' + lockedCard(s) +
     '<div class="box"><label class="l" for="ct">Your call, ' + esc(s.friend_name) + '</label><textarea id="ct" class="in" maxlength="280" placeholder="What do you say happens?"></textarea>' +
-    '<label class="l" for="cn">Your name</label><input id="cn" class="in" maxlength="40" value="' + esc(myName() || s.friend_name) + '"><div class="err hidden" id="e"></div><button class="btn gold" id="go">Seal it back</button><div class="muted">' + esc(s.creator_name) + ' can’t read yours either. Both open on ' + esc(fmt(s.opens_at).split(',').slice(0, 2).join(',')) + '.</div></div>' +
+    '<label class="l" for="cn">Your name</label><input id="cn" class="in" maxlength="40" value="' + esc(s.friend_name) + '"><div class="err hidden" id="e"></div><button class="btn gold" id="go">Seal it back</button><div class="muted">' + esc(s.creator_name) + ' can’t read yours either. Both open on ' + esc(fmt(s.opens_at).split(',').slice(0, 2).join(',')) + '.</div></div>' +
     '<div class="foot">No account. Your call stays hidden until it opens.</div>');
   document.getElementById('go').onclick = function(){
     var text = document.getElementById('ct').value.trim(), name = document.getElementById('cn').value.trim(), err = document.getElementById('e');
@@ -193,7 +193,7 @@ function show(s, justMade){
 }
 function emailBox(s){
   if (s.has_email) return '<div class="muted" style="text-align:center">We’ll email you the moment it opens.</div>';
-  return '<div class="box"><div style="font-weight:900">Tell me when it opens</div><div class="row"><input id="em" class="in" type="email" placeholder="you@email.com" autocomplete="email"><button class="btn" id="emgo" style="flex:0 0 auto;min-width:96px">Email me</button></div><div class="muted">One email, on the day. Nothing else.</div></div>';
+  return '<div class="box"><div style="font-weight:900">Tell me when it opens</div><div class="row"><input id="em" class="in" type="email" placeholder="you@email.com" autocomplete="email"><button class="btn" id="emgo" style="flex:0 0 auto;width:auto;min-width:110px">Email me</button></div><div class="muted">One email, on the day. Nothing else.</div></div>';
 }
 function wireEmail(s){ var b = document.getElementById('emgo'); if (!b) return; b.onclick = function(){ var em = document.getElementById('em').value.trim(); if (!em) return; b.disabled = true; api({ action: 'email', code: s.code, email: em }).then(function(){ track('email', {}); toast('Saved. We’ll email you when it opens.'); s.has_email = true; show(s); }).catch(function(e){ toast('Could not save: ' + e.message); b.disabled = false; }); }; }
 
