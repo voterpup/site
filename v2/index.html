@@ -1,0 +1,312 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Your feed vs you · VoterPup</title>
+<meta name="description" content="Swipe 24 clips. See what your feed is feeding you, and how far it is from what you want. 60 seconds, no sign-up.">
+<meta property="og:title" content="Your feed vs you">
+<meta property="og:description" content="Swipe 24 clips. See what your feed is feeding you. 60 seconds, no sign-up.">
+<meta property="og:image" content="https://voterpup.com/pup-share.jpg">
+<meta property="og:url" content="https://voterpup.com/v2/">
+<meta name="theme-color" content="#0c1722">
+<link rel="icon" href="/favicon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Nunito:wght@600;700;800;900&display=swap">
+<style>
+:root{--bg:#0c1722;--card:#142433;--line:#233a4e;--ink:#eaf2f8;--sub:#9fb4c6;--gold:#f5b83d;--gold2:#ffcd5e;--onGold:#1a1304;--good:#2fd39c;--bad:#ff6b80;--field:#0f1d2a;color-scheme:dark}
+@media (prefers-color-scheme: light){:root{--bg:#f6f4ee;--card:#ffffff;--line:#e2ddd0;--ink:#14202c;--sub:#566778;--gold:#f5b83d;--gold2:#a8740a;--onGold:#1a1304;--good:#12865f;--bad:#c4384f;--field:#efece4;color-scheme:light}}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;height:100%;background:var(--bg);color:var(--ink);font:600 17px/1.45 Nunito,system-ui,sans-serif;overscroll-behavior:none}
+button{font:inherit;color:inherit;cursor:pointer}
+.app{max-width:480px;margin:0 auto;min-height:100%;padding:calc(env(safe-area-inset-top,0px) + 14px) 16px calc(env(safe-area-inset-bottom,0px) + 18px);display:flex;flex-direction:column;gap:14px}
+.top{display:flex;justify-content:space-between;align-items:center;min-height:36px}
+.logo{font:700 21px Fredoka,sans-serif;color:var(--gold)}
+.step{font:800 13px Nunito;color:var(--sub)}
+h1{font:600 34px/1.08 Fredoka,sans-serif;margin:0;text-wrap:balance}
+h2{font:600 25px/1.15 Fredoka,sans-serif;margin:0;text-wrap:balance}
+.lead{color:var(--sub);margin:0}
+.k{font:900 12.5px Nunito;letter-spacing:.1em;text-transform:uppercase;color:var(--gold2)}
+.btn{display:flex;align-items:center;justify-content:center;gap:8px;min-height:52px;border-radius:16px;border:1.5px solid var(--line);background:transparent;font-weight:900;font-size:16.5px;padding:12px 16px;text-decoration:none;color:var(--ink)}
+.btn.gold{background:var(--gold);border-color:var(--gold);color:var(--onGold)}
+.btn:active{transform:scale(.98)}
+.box{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:16px}
+.muted{color:var(--sub);font-size:14px}
+.grow{flex:1}
+/* swipe */
+.deck{position:relative;flex:1;min-height:440px;display:flex;align-items:center;justify-content:center}
+.clip{position:absolute;width:min(100%,340px);aspect-ratio:9/14;border-radius:24px;overflow:hidden;color:#fff;box-shadow:0 18px 40px rgba(0,0,0,.35);touch-action:pan-y;user-select:none;transition:transform .25s ease,opacity .25s ease}
+.clip.dragging{transition:none}
+.clip .art{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:110px}
+.clip .ov{position:absolute;left:16px;right:58px;top:20%;font:700 27px/1.15 Fredoka,sans-serif;text-shadow:0 2px 0 #000,0 0 12px rgba(0,0,0,.6);text-wrap:balance}
+.clip .who{position:absolute;left:14px;bottom:62px;right:58px;font:800 14.5px Nunito;text-shadow:0 1px 3px rgba(0,0,0,.7)}
+.clip .what{position:absolute;left:0;right:0;bottom:0;background:rgba(0,0,0,.55);padding:11px 14px;font:800 14px Nunito}
+.clip .side{position:absolute;right:12px;bottom:70px;display:flex;flex-direction:column;gap:16px;align-items:center;font:800 11px Nunito;opacity:.9}
+.clip .side i{display:block;width:34px;height:34px;border-radius:50%;background:rgba(255,255,255,.22)}
+.stamp{position:absolute;top:22px;padding:6px 12px;border:4px solid;border-radius:12px;font:900 20px Nunito;opacity:0;transform:rotate(-12deg)}
+.stamp.yes{left:18px;color:var(--good);border-color:var(--good);background:rgba(0,0,0,.35)}
+.stamp.no{right:18px;color:#fff;border-color:#fff;background:rgba(0,0,0,.35);transform:rotate(12deg)}
+.choices{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.bar{height:6px;border-radius:3px;background:var(--line);overflow:hidden}.bar>i{display:block;height:100%;background:var(--gold);transition:width .3s}
+/* wish */
+.wrow{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--line)}
+.wrow:last-child{border-bottom:0}
+.wrow .n{flex:1;min-width:0;font-weight:800}
+.seg{display:flex;background:var(--field);border:1px solid var(--line);border-radius:999px;padding:3px}
+.seg button{border:0;background:transparent;border-radius:999px;min-width:56px;min-height:40px;font-weight:900;font-size:14px;color:var(--sub)}
+.seg button.on{background:var(--ink);color:var(--bg)}
+/* mirror */
+.big{font:600 56px/1 Fredoka,sans-serif}
+.mrow{display:grid;grid-template-columns:112px 1fr 70px;gap:10px;align-items:center;padding:7px 0}
+.mrow .t{font-weight:800;font-size:14.5px}
+.mtrack{height:14px;border-radius:7px;background:var(--field);position:relative;overflow:hidden}
+.mtrack i{position:absolute;left:0;top:0;bottom:0;border-radius:7px;background:var(--gold)}
+.wishtag{font:900 12px Nunito;text-align:right}
+.up{color:var(--good)}.down{color:var(--bad)}.same{color:var(--sub)}
+.gap{display:flex;gap:10px;align-items:flex-start;padding:8px 0}
+.gap b{font-weight:900}
+.dot{width:10px;height:10px;border-radius:50%;margin-top:7px;flex:none}
+.move{display:flex;gap:12px;align-items:flex-start}
+.move .num{width:30px;height:30px;border-radius:50%;background:var(--gold);color:var(--onGold);display:grid;place-items:center;font:900 15px Nunito;flex:none}
+.links{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}
+.links a{border:1.5px solid var(--line);border-radius:999px;padding:9px 13px;font:800 14px Nunito;color:var(--ink);text-decoration:none;min-height:44px;display:inline-flex;align-items:center}
+.cmp{display:grid;grid-template-columns:1fr 1fr;gap:10px;text-align:center}
+.foot{font-size:12.5px;color:var(--sub);text-align:center}
+.hidden{display:none!important}
+</style>
+</head>
+<body>
+<div class="app" id="app"></div>
+<script>
+// "Your feed vs you": measure what the feed shows (A), what the person wants (B), show the gap, then steer their own apps toward B.
+var GROUPS = [
+  {id:'outrage', n:'Politics & outrage', p:'politics and outrage', q:['policy explained both sides','debate highlights calm']},
+  {id:'news', n:'News & world', p:'news', q:['news explained calmly','world news explained']},
+  {id:'learn', n:'Learn something', p:'learning', q:['science explained','history in 60 seconds']},
+  {id:'laugh', n:'Laughs', p:'laughs', q:['funny dogs','sketch comedy']},
+  {id:'calm', n:'Calm & cozy', p:'calm, cozy clips', q:['cozy cooking','satisfying restoration']},
+  {id:'money', n:'Money & hustle', p:'money and hustle', q:['personal finance basics','budgeting tips']},
+  {id:'drama', n:'Drama & gossip', p:'drama and gossip', q:['wholesome stories','feel good news']},
+  {id:'body', n:'Health & looks', p:'health and looks', q:['healthy recipes easy','beginner workout']}
+];
+var GN = {}; GROUPS.forEach(function(g){ GN[g.id] = g; });
+// archetypes: kinds of clips people recognise, not real videos. rage = built to make you angry or scared; side = which political camp it cheers
+var CARDS = [
+  {g:'outrage', rage:1, side:'R', bg:['#7a1020','#1d1d3a'], art:'😤', ov:'They HATE when you say this', who:'@straight.talk.usa', what:'Conservative creator roasting the left'},
+  {g:'outrage', rage:1, side:'L', bg:['#3b1a78','#0e2a4a'], art:'💀', ov:'Watch him get DESTROYED', who:'@receipts.daily', what:'Progressive creator roasting the right'},
+  {g:'learn', bg:['#0f4c5c','#123248'], art:'🧭', ov:'How this policy actually works, in 60 seconds', who:'@plainly.explained', what:'Calm explainer of a political issue'},
+  {g:'outrage', rage:1, bg:['#5c1111','#2a0f0f'], art:'🤡', ov:'The most EMBARRASSING moment of his career', who:'@clip.vault', what:'A politician’s worst moment, on repeat'},
+  {g:'news', rage:1, bg:['#8a0b0b','#120a0a'], art:'🚨', ov:'BREAKING: this changes everything', who:'@news.now.24', what:'Scandal headline over dramatic music'},
+  {g:'calm', bg:['#a2531a','#5c2c0c'], art:'🍝', ov:'3-ingredient pasta you’ll make every week', who:'@tiny.kitchen', what:'30-second recipe'},
+  {g:'laugh', bg:['#c97a1a','#6d3c06'], art:'🐶', ov:'He did NOT expect that', who:'@goodboy.chaos', what:'A dog doing something ridiculous'},
+  {g:'news', bg:['#33404d','#151b22'], art:'🌍', ov:'What happened overnight', who:'@world.desk', what:'War and world news with a commentator'},
+  {g:'drama', bg:['#9b1d63','#3a0d29'], art:'😳', ov:'My partner did WHAT?! (part 3)', who:'@storytime.sam', what:'Relationship drama storytime'},
+  {g:'money', bg:['#16603b','#0b2a1b'], art:'💸', ov:'How I made $10k this month from my phone', who:'@hustle.with.kai', what:'Side-hustle money claims'},
+  {g:'learn', bg:['#1b2f6b','#0c1430'], art:'🔭', ov:'You’ve been wrong about this your whole life', who:'@curious.minds', what:'A science fact you didn’t know'},
+  {g:'news', rage:1, bg:['#2b2b2b','#000000'], art:'👁️', ov:'What they’re NOT telling you', who:'@wake.up.now', what:'“Hidden truth” conspiracy clip'},
+  {g:'laugh', bg:['#e0662b','#7a2a0f'], art:'😂', ov:'Me pretending I understood the meeting', who:'@relatable.ray', what:'Relatable comedy sketch'},
+  {g:'body', bg:['#3d3d3d','#111'], art:'💪', ov:'90 days. No excuses.', who:'@iron.mindset', what:'Gym transformation and motivation'},
+  {g:'drama', bg:['#b0306a','#4d0f2c'], art:'💅', ov:'Everyone is talking about THIS couple', who:'@tea.spilled', what:'Celebrity gossip roundup'},
+  {g:'learn', bg:['#6b4a1b','#2b1d08'], art:'🏛️', ov:'The empire that vanished overnight', who:'@history.in.60', what:'History in 60 seconds'},
+  {g:'outrage', bg:['#2c4a6b','#14243a'], art:'🎤', ov:'I asked strangers ONE question…', who:'@street.asks', what:'Street interviews about politics'},
+  {g:'calm', bg:['#2b7a78','#123c3b'], art:'✨', ov:'Deep cleaning a 20-year-old rug', who:'@so.satisfying', what:'Satisfying cleaning video'},
+  {g:'money', rage:1, bg:['#0b5d1e','#031b09'], art:'🚀', ov:'This stock will 10x. Last chance.', who:'@moon.picks', what:'Crypto and stock hype'},
+  {g:'body', bg:['#c2477a','#5a1736'], art:'💄', ov:'Get ready with me: 5-minute face', who:'@glow.with.mia', what:'Get ready with me'},
+  {g:'calm', bg:['#7a6a4f','#2f281b'], art:'☕', ov:'A slow morning in the city', who:'@soft.days', what:'Day-in-my-life vlog'},
+  {g:'news', rage:1, bg:['#1f2a44','#05070d'], art:'🤖', ov:'AI is coming for YOUR job', who:'@future.shock', what:'Tech doom clip'},
+  {g:'laugh', bg:['#5b2bb5','#22104a'], art:'🙈', ov:'Pranking my roommate (gone wrong)', who:'@prank.bros', what:'Prank and reaction video'},
+  {g:'news', bg:['#24557a','#0d2235'], art:'🏙️', ov:'What’s happening in your city this week', who:'@local.update', what:'Local news from your city'}
+];
+var S = {i:0, feed:{}, wish:{}};
+var app = document.getElementById('app');
+function $(h){ app.innerHTML = h; window.scrollTo(0,0); }
+function esc(s){ var d=document.createElement('div'); d.textContent=s; return d.innerHTML; }
+// ---------- anonymous counts: random device id, no names, no answers that identify anyone ----------
+var SB = 'https://setyjmgijsbplgyqynlh.supabase.co', KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNldHlqbWdpanNicGxneXF5bmxoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTA1NDU0NTAsImV4cCI6MjEwNjEyMTQ1MH0.v8tjuc2UZrTw5whfDXtpEPW4CHggusgjq8Mkdh6ZMw8';
+function ls(k, v){ try { if (v === undefined) return localStorage.getItem(k); localStorage.setItem(k, v); } catch (e) { return null; } }
+function devId(){ var d = ls('vp.dev'); if (!d) { d = Array.from(crypto.getRandomValues(new Uint8Array(8))).map(function(b){ return b.toString(16).padStart(2,'0'); }).join(''); ls('vp.dev', d); } return d || 'nostorage'; }
+(function(){ var m = location.search.match(/[?&]src=([a-z0-9_-]{1,24})/i); if (m) { try { sessionStorage.setItem('vp.src', m[1]); if (!ls('vp.src0')) ls('vp.src0', m[1]); } catch (e) {} } })();
+function src(){ try { return sessionStorage.getItem('vp.src') || ls('vp.src0') || 'direct'; } catch (e) { return 'direct'; } }
+function track(step, meta){
+  if (navigator.webdriver || /HeadlessChrome/.test(navigator.userAgent) || ls('vp.internal') === '1') return;
+  var m = meta || {}; m.step = step;
+  fetch(SB + '/rest/v1/rpc/vp_track', {method:'POST', headers:{'Content-Type':'application/json', apikey:KEY, Authorization:'Bearer ' + KEY},
+    body: JSON.stringify({p_dev: devId(), p_event:'v2', p_tail:null, p_src: src(), p_meta: m})}).catch(function(){});
+}
+function last(){ try { return JSON.parse(ls('vp.v2.last') || 'null'); } catch (e) { return null; } }
+
+// ---------- 0. start ----------
+function start(){
+  var L = last(), back = L && (Date.now() - L.at) > 3 * 864e5;
+  $('<div class="top"><div class="logo">VoterPup</div><div class="step">60 seconds</div></div>' +
+    '<div class="grow" style="display:flex;flex-direction:column;justify-content:center;gap:18px">' +
+    (back ? '<div class="k">Check-in · ' + Math.round((Date.now() - L.at) / 864e5) + ' days since your last one</div><h1>Has your feed moved?</h1><p class="lead">Swipe the same 24 clips again. We’ll compare it with last time.</p>'
+          : '<div class="k">Your feed vs you</div><h1>What is your feed feeding you?</h1><p class="lead">Swipe 24 kinds of clips. Tell us which ones show up in your feed. Then see how far it is from what you actually want.</p>') +
+    '<div class="box" style="display:flex;gap:14px;align-items:center"><img src="/pup-face.jpg" alt="" style="width:56px;height:56px;border-radius:50%;object-fit:cover;border:3px solid var(--gold)"><div class="muted">No sign-up. Your answers stay on this phone; we only count anonymously how many people finish.</div></div>' +
+    '<button class="btn gold" id="go">Start swiping</button></div>' +
+    '<div class="foot">Works for TikTok, Reels, Shorts, or any feed you scroll.</div>');
+  document.getElementById('go').onclick = function(){ S = {i:0, feed:{}, wish:{}}; track(back ? 'return' : 'start'); swipe(); };
+  track('open', {back: !!back});
+}
+
+// ---------- 1. swipe: is this in your feed? ----------
+function swipe(){
+  if (S.i >= CARDS.length) { track('swiped', {n: Object.keys(S.feed).length}); return wish(); }
+  var c = CARDS[S.i];
+  $('<div class="top"><button class="btn" id="back" style="min-height:40px;padding:6px 12px" aria-label="Back">‹</button><div class="step">' + (S.i + 1) + ' of ' + CARDS.length + '</div><div style="width:44px"></div></div>' +
+    '<div class="bar"><i style="width:' + Math.round(S.i / CARDS.length * 100) + '%"></i></div>' +
+    '<div class="k" style="text-align:center">Does this kind of clip show up in your feed?</div>' +
+    '<div class="deck"><div class="clip" id="clip" style="background:linear-gradient(160deg,' + c.bg[0] + ',' + c.bg[1] + ')">' +
+      '<div class="art">' + c.art + '</div><div class="ov">' + esc(c.ov) + '</div>' +
+      '<div class="side"><span><i></i></span><span><i></i></span><span><i></i></span></div>' +
+      '<div class="who">' + esc(c.who) + '</div><div class="what">' + esc(c.what) + '</div>' +
+      '<div class="stamp yes" id="sy">IN MY FEED</div><div class="stamp no" id="sn">NOT MINE</div></div></div>' +
+    '<div class="choices"><button class="btn" id="no">Not in my feed</button><button class="btn gold" id="yes">In my feed</button></div>' +
+    '<div class="foot">Swipe right if it shows up, left if it doesn’t.</div>');
+  var el = document.getElementById('clip'), sy = document.getElementById('sy'), sn = document.getElementById('sn');
+  function decide(v){
+    S.feed[S.i] = v; el.style.transform = 'translateX(' + (v ? 420 : -420) + 'px) rotate(' + (v ? 18 : -18) + 'deg)'; el.style.opacity = 0;
+    setTimeout(function(){ S.i++; swipe(); }, 200);
+  }
+  document.getElementById('yes').onclick = function(){ decide(true); };
+  document.getElementById('no').onclick = function(){ decide(false); };
+  document.getElementById('back').onclick = function(){ if (S.i > 0) { S.i--; delete S.feed[S.i]; swipe(); } else start(); };
+  var x0 = null, dx = 0;
+  el.addEventListener('pointerdown', function(e){ x0 = e.clientX; dx = 0; el.classList.add('dragging'); el.setPointerCapture(e.pointerId); });
+  el.addEventListener('pointermove', function(e){ if (x0 === null) return; dx = e.clientX - x0; el.style.transform = 'translateX(' + dx + 'px) rotate(' + dx / 18 + 'deg)'; sy.style.opacity = Math.max(0, Math.min(1, dx / 90)); sn.style.opacity = Math.max(0, Math.min(1, -dx / 90)); });
+  function up(){ if (x0 === null) return; x0 = null; el.classList.remove('dragging'); if (Math.abs(dx) > 90) decide(dx > 0); else { el.style.transform = ''; sy.style.opacity = sn.style.opacity = 0; } }
+  el.addEventListener('pointerup', up); el.addEventListener('pointercancel', up);
+  document.onkeydown = function(e){ if (e.key === 'ArrowRight') decide(true); if (e.key === 'ArrowLeft') decide(false); };
+}
+
+// ---------- 2. what do you wish your feed had? ----------
+function wish(){
+  document.onkeydown = null;
+  var rows = GROUPS.map(function(g){
+    var v = S.wish[g.id] || 'same';
+    return '<div class="wrow"><div class="n">' + g.n + '</div><div class="seg" data-g="' + g.id + '">' +
+      ['less','same','more'].map(function(o){ return '<button data-v="' + o + '" class="' + (v === o ? 'on' : '') + '">' + o[0].toUpperCase() + o.slice(1) + '</button>'; }).join('') + '</div></div>';
+  }).join('');
+  $('<div class="top"><button class="btn" id="back" style="min-height:40px;padding:6px 12px" aria-label="Back">‹</button><div class="step">Last step</div><div style="width:44px"></div></div>' +
+    '<div class="k">Now the other half</div><h2>If you could choose, what would your feed have?</h2>' +
+    '<div class="box" style="padding:6px 14px">' + rows + '</div>' +
+    '<button class="btn gold" id="go">See my feed vs me</button>');
+  app.querySelectorAll('.seg').forEach(function(seg){ seg.onclick = function(e){ var b = e.target.closest('button'); if (!b) return; S.wish[seg.dataset.g] = b.dataset.v; seg.querySelectorAll('button').forEach(function(x){ x.classList.toggle('on', x === b); }); }; });
+  document.getElementById('back').onclick = function(){ S.i = CARDS.length - 1; delete S.feed[S.i]; swipe(); };
+  document.getElementById('go').onclick = function(){ track('wished', {more: GROUPS.filter(function(g){ return S.wish[g.id] === 'more'; }).length, less: GROUPS.filter(function(g){ return S.wish[g.id] === 'less'; }).length}); mirror(); };
+}
+
+// ---------- 3. the mirror ----------
+function compute(){
+  var inFeed = CARDS.filter(function(c, i){ return S.feed[i]; }), n = inFeed.length || 1;
+  var g = {}; GROUPS.forEach(function(x){ var all = CARDS.filter(function(c){ return c.g === x.id; }); var yes = inFeed.filter(function(c){ return c.g === x.id; }); g[x.id] = {share: yes.length / n, level: yes.length / all.length, yes: yes.length, all: all.length}; });
+  var rage = inFeed.filter(function(c){ return c.rage; }).length / n;
+  var L = S.feed[1], R = S.feed[0], calmPol = S.feed[2];
+  var gaps = [];
+  GROUPS.forEach(function(x){ var w = S.wish[x.id] || 'same', lv = g[x.id].level;
+    if (w === 'more' && lv < .67) gaps.push({id:x.id, dir:'more', size:1 - lv});
+    if (w === 'less' && lv > 0) gaps.push({id:x.id, dir:'less', size:lv}); });
+  gaps.sort(function(a, b){ return b.size - a.size; });
+  var miss = gaps.reduce(function(s, x){ return s + x.size; }, 0);
+  var match = Math.max(0, Math.round(100 - miss / GROUPS.length * 100));
+  return {g:g, rage:rage, n:inFeed.length, L:L, R:R, calmPol:calmPol, gaps:gaps, match:match};
+}
+function headline(m){
+  if (!m.n) return 'Almost none of these show up for you. Lucky, or you barely scroll.';
+  var r = Math.round(m.rage * 100);
+  if (r >= 35) return r + '% of what you said you see is made to make you angry or scared.';
+  if (m.gaps.length && m.gaps[0].dir === 'more') return 'Your feed is missing what you want most: ' + GN[m.gaps[0].id].p + '.';
+  return 'Your feed is closer to you than most. ' + r + '% of it is anger or fear.';
+}
+function politics(m){
+  if (m.L && !m.R) return {t:'Your political clips come from one side only.', c:'var(--bad)'};
+  if (m.R && !m.L) return {t:'Your political clips come from one side only.', c:'var(--bad)'};
+  if (m.L && m.R) return {t:'You see both sides, mostly at their angriest' + (m.calmPol ? '.' : ', and almost never the calm version.'), c:'var(--gold2)'};
+  return {t:'Your feed keeps politics mostly out of sight.', c:'var(--sub)'};
+}
+function mirror(){
+  var m = compute(), p = politics(m), L = last();
+  var rows = GROUPS.map(function(x){ var w = S.wish[x.id] || 'same', s = Math.round(m.g[x.id].share * 100);
+    return '<div class="mrow"><div class="t">' + x.n + '</div><div class="mtrack"><i style="width:' + Math.max(s, 2) + '%"></i></div><div class="wishtag ' + (w === 'more' ? 'up' : w === 'less' ? 'down' : 'same') + '">' + s + '%' + (w === 'more' ? ' ↑' : w === 'less' ? ' ↓' : '') + '</div></div>'; }).join('');
+  var gapHtml = m.gaps.slice(0, 3).map(function(x){ var gg = m.g[x.id];
+    return '<div class="gap"><span class="dot" style="background:' + (x.dir === 'more' ? 'var(--good)' : 'var(--bad)') + '"></span><div>' +
+      (x.dir === 'more' ? 'You want <b>more ' + GN[x.id].p + '</b>; your feed shows ' + gg.yes + ' of ' + gg.all + ' kinds.' : 'You want <b>less ' + GN[x.id].p + '</b>; your feed shows ' + gg.yes + ' of ' + gg.all + ' kinds.') + '</div></div>'; }).join('') || '<div class="muted">No big gaps. Your feed and you mostly agree.</div>';
+  var cmp = '';
+  if (L && L.at && (Date.now() - L.at) > 3 * 864e5) {
+    cmp = '<div class="box"><div class="k">Since last time</div><div class="cmp" style="margin-top:8px"><div><div class="big" style="font-size:34px">' + L.match + '% → ' + m.match + '%</div><div class="muted">feed matches you</div></div><div><div class="big" style="font-size:34px">' + Math.round(L.rage * 100) + '% → ' + Math.round(m.rage * 100) + '%</div><div class="muted">anger and fear</div></div></div></div>';
+  }
+  $('<div class="top"><div class="logo">VoterPup</div><button class="btn" id="redo" style="min-height:40px;padding:6px 12px;font-size:14px">Redo</button></div>' +
+    '<div class="k">Your feed vs you</div>' +
+    '<div style="display:flex;align-items:baseline;gap:12px"><div class="big">' + m.match + '%</div><div class="muted">of your feed matches what you want</div></div>' +
+    '<h2>' + esc(headline(m)) + '</h2>' + cmp +
+    '<div class="box"><div class="k" style="margin-bottom:6px">What your feed is made of</div>' + rows +
+      '<div class="gap" style="border-top:1px solid var(--line);margin-top:8px;padding-top:12px"><span class="dot" style="background:' + p.c + '"></span><div>' + p.t + '</div></div></div>' +
+    '<div class="box"><div class="k" style="margin-bottom:4px">The biggest gaps</div>' + gapHtml + '</div>' +
+    '<button class="btn gold" id="fix">Close the gap</button>' +
+    '<button class="btn" id="share">Share my feed vs me</button>' +
+    '<div class="foot">A rough mirror from 24 swipes, not a scientific measure.</div>');
+  ls('vp.v2.last', JSON.stringify({at: Date.now(), match: m.match, rage: m.rage}));
+  document.getElementById('fix').onclick = function(){ moves(m); };
+  document.getElementById('share').onclick = function(){ shareCard(m); };
+  document.getElementById('redo').onclick = function(){ S = {i:0, feed:{}, wish:{}}; swipe(); };
+  track('mirror', {match: m.match, rage: Math.round(m.rage * 100), n: m.n, pol: m.L && m.R ? 'both' : (m.L || m.R) ? 'one' : 'none', back: !!cmp});
+}
+
+// ---------- share card (an image they can post) ----------
+function shareCard(m){
+  var cv = document.createElement('canvas'); cv.width = 1080; cv.height = 1350; var x = cv.getContext('2d');
+  var gr = x.createLinearGradient(0, 0, 0, 1350); gr.addColorStop(0, '#1d3550'); gr.addColorStop(1, '#0c1722'); x.fillStyle = gr; x.fillRect(0, 0, 1080, 1350);
+  x.fillStyle = '#ffcd5e'; x.font = '900 40px Nunito'; x.fillText('MY FEED VS ME', 80, 140);
+  x.fillStyle = '#ffffff'; x.font = '600 230px Fredoka'; x.fillText(m.match + '%', 70, 380);
+  x.font = '700 44px Nunito'; x.fillStyle = '#c3d2df'; x.fillText('of my feed is what I actually want', 80, 450);
+  var y = 560;
+  GROUPS.forEach(function(g){ var s = m.g[g.id].share, w = S.wish[g.id] || 'same';
+    x.fillStyle = '#eaf2f8'; x.font = '800 36px Nunito'; x.fillText(g.n, 80, y + 30);
+    x.fillStyle = '#233a4e'; x.fillRect(520, y, 380, 36); x.fillStyle = '#f5b83d'; x.fillRect(520, y, Math.max(8, 380 * s), 36);
+    x.fillStyle = w === 'more' ? '#2fd39c' : w === 'less' ? '#ff6b80' : '#7f95a8'; x.font = '900 30px Nunito'; x.fillText(w === 'more' ? 'want ↑' : w === 'less' ? 'want ↓' : '', 920, y + 30);
+    y += 72; });
+  x.fillStyle = '#ffffff'; x.font = '800 40px Nunito'; x.fillText(Math.round(m.rage * 100) + '% made to make me angry or scared', 80, y + 50);
+  x.fillStyle = '#f5b83d'; x.font = '700 48px Fredoka'; x.fillText('What’s yours?  voterpup.com/v2', 80, 1280);
+  cv.toBlob(function(b){
+    var f = new File([b], 'my-feed-vs-me.png', {type:'image/png'}), url = 'https://voterpup.com/v2/?src=share';
+    if (navigator.canShare && navigator.canShare({files:[f]})) { navigator.share({files:[f], text:'My feed vs me: ' + m.match + '%. What’s yours? ' + url}).then(function(){ track('share', {how:'file'}); }).catch(function(){}); }
+    else { var a = document.createElement('a'); a.href = URL.createObjectURL(b); a.download = 'my-feed-vs-me.png'; document.body.appendChild(a); a.click(); a.remove(); track('share', {how:'download'}); }
+  }, 'image/png');
+}
+
+// ---------- 4. three moves, using the apps' own controls ----------
+function moves(m){
+  var list = [], more = m.gaps.filter(function(x){ return x.dir === 'more'; }), less = m.gaps.filter(function(x){ return x.dir === 'less'; });
+  if (m.match < 50) list.push({t:'Start fresh', d:'Both apps can reset what they recommend. TikTok: Settings → Content preferences → Refresh your For You feed. Instagram: Settings → Content preferences → Reset suggested content. (Menu names can differ slightly by version.)'});
+  if (less.length) list.push({t:'Teach it what you don’t want: less ' + less.slice(0, 2).map(function(x){ return GN[x.id].p; }).join(', less '), d:'Next time one shows up, don’t scroll past. Long-press it and tap Not interested (TikTok, Instagram), or ⋮ → Not interested / Don’t recommend channel (YouTube). Scrolling past teaches nothing; telling it does.'});
+  more.slice(0, 2).forEach(function(x){ var q = GN[x.id].q;
+    list.push({t:'Feed it what you want: more ' + GN[x.id].p, d:'Open one of these, watch three clips to the end, and save one. That is the signal the algorithm listens to.', q:q}); });
+  if (list.length < 3 && (m.L !== m.R)) list.push({t:'See the other side at its calmest', d:'Your political clips come from one side. You don’t have to agree with anyone; just let the calm version in. Watch two of these to the end.', q:['policy explained both sides','what the other side actually believes']});
+  if (!list.length) list.push({t:'Keep it this way', d:'Your feed mostly matches you. Keep using Not interested on anything that drags it back.'});
+  list = list.slice(0, 3);
+  var html = list.map(function(mv, i){
+    var links = mv.q ? '<div class="links">' + mv.q.map(function(s){ var e = encodeURIComponent(s); return '<a href="https://www.youtube.com/results?search_query=' + e + '+shorts" target="_blank" rel="noopener" data-l="yt">YouTube: ' + esc(s) + '</a><a href="https://www.tiktok.com/search?q=' + e + '" target="_blank" rel="noopener" data-l="tt">TikTok: ' + esc(s) + '</a>'; }).join('') + '</div>' : '';
+    return '<div class="box move"><div class="num">' + (i + 1) + '</div><div><div style="font-weight:900">' + esc(mv.t) + '</div><div class="muted" style="margin-top:4px">' + esc(mv.d) + '</div>' + links + '</div></div>'; }).join('');
+  $('<div class="top"><button class="btn" id="back" style="min-height:40px;padding:6px 12px" aria-label="Back">‹</button><div class="step">Close the gap</div><div style="width:44px"></div></div>' +
+    '<div class="k">This week</div><h2>' + (list.length === 1 ? 'One move' : list.length === 2 ? 'Two moves' : 'Three moves') + ' to make your feed yours</h2>' +
+    '<p class="lead">You keep the apps you like. We help you steer them.</p>' + html +
+    '<div class="box" style="display:flex;flex-direction:column;gap:10px"><div style="font-weight:900">Check again in 7 days</div><div class="muted">Swipe the same 24 clips and see if your feed moved toward you.</div><button class="btn gold" id="cal">Add a reminder to my calendar</button></div>' +
+    '<div class="foot">VoterPup · we never see your feed, only your 24 taps on this phone.</div>');
+  document.getElementById('back').onclick = mirror;
+  document.getElementById('cal').onclick = remind;
+  app.querySelectorAll('.links a').forEach(function(a){ a.addEventListener('click', function(){ track('steer', {to: a.dataset.l}); }); });
+  track('moves', {n: list.length});
+}
+function remind(){
+  var d = new Date(Date.now() + 7 * 864e5); d.setHours(19, 0, 0, 0);
+  function f(t){ return t.toISOString().replace(/[-:]/g, '').replace(/\.\d{3}/, ''); }
+  var ics = ['BEGIN:VCALENDAR','VERSION:2.0','PRODID:-//VoterPup//v2//EN','BEGIN:VEVENT','UID:' + devId() + '-' + d.getTime() + '@voterpup.com','DTSTAMP:' + f(new Date()),'DTSTART:' + f(d),'DTEND:' + f(new Date(d.getTime() + 15 * 6e4)),
+    'SUMMARY:Has my feed moved? (60 seconds)','DESCRIPTION:Swipe the 24 clips again: https://voterpup.com/v2/?src=remind','URL:https://voterpup.com/v2/?src=remind','END:VEVENT','END:VCALENDAR'].join('\r\n');
+  var a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([ics], {type:'text/calendar'})); a.download = 'feed-check-in.ics'; document.body.appendChild(a); a.click(); a.remove();
+  track('remind');
+}
+start();
+</script>
+<script data-goatcounter="https://voterpup.goatcounter.com/count" async src="//gc.zgo.at/count.js"></script>
+</body>
+</html>
