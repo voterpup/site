@@ -60,7 +60,7 @@ Deno.serve(async (req) => {
   if (a === "create") {
     const text = clean(b.text, 280), name = clean(b.name, 40) || "Someone", to = clean(b.to, 40) || "a friend";
     const opens = new Date(b.opens_at); if (!text || isNaN(opens.getTime())) return json({ error: "missing" }, 400);
-    if (opens.getTime() < Date.now() + 60 * 60 * 1000) return json({ error: "too soon" }, 400);
+    if (opens.getTime() < Date.now() + 10 * 60 * 1000) return json({ error: "too soon" }, 400);
     if (opens.getTime() > Date.now() + 5 * 366 * 86400 * 1000) return json({ error: "too far" }, 400);
     const c = code();
     const { error } = await db.from("seals").insert({ code: c, creator_dev: d || "anon", creator_name: name, friend_name: to, call_text: text, opens_at: opens.toISOString(), src: clean(b.src, 24) || null });

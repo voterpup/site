@@ -117,8 +117,8 @@ function make(){
   var dflt = new Date(Date.now() + 7 * 864e5); dflt.setHours(9, 0, 0, 0);
   $(hdr() + '<div class="k">Call it now</div><h1>It opens when it happens.</h1><p class="lead">Seal a prediction with a friend. Nobody sees it until the moment you choose. Then you both find out who called it.</p>' +
     '<div class="box"><label class="l" for="t">Your call</label><textarea id="t" class="in" maxlength="280" placeholder="e.g. By then you’ll have quit that job. Coffee’s on you if I’m right."></textarea>' +
-    '<label class="l">Opens on</label><div class="row"><input id="d" type="date" class="in" value="' + localDate(dflt) + '" min="' + localDate(new Date(Date.now() + 864e5)) + '" aria-label="Date"><input id="tm" type="time" class="in" value="' + localTime(dflt) + '" aria-label="Time"></div>' +
-    '<div class="chips" id="chips"><button type="button" class="chip" data-days="1">Tomorrow</button><button type="button" class="chip on" data-days="7">In a week</button><button type="button" class="chip" data-days="30">In a month</button><button type="button" class="chip" data-days="365">In a year</button></div>' +
+    '<label class="l">Opens on</label><div class="row"><input id="d" type="date" class="in" value="' + localDate(dflt) + '" min="' + localDate(new Date()) + '" aria-label="Date"><input id="tm" type="time" class="in" value="' + localTime(dflt) + '" aria-label="Time"></div>' +
+    '<div class="chips" id="chips">' + (new Date().getHours() < 20 ? '<button type="button" class="chip" data-days="0">Tonight</button>' : '') + '<button type="button" class="chip" data-days="1">Tomorrow</button><button type="button" class="chip on" data-days="7">In a week</button><button type="button" class="chip" data-days="30">In a month</button><button type="button" class="chip" data-days="365">In a year</button></div>' +
     '<div class="muted" id="when"></div>' +
     '<div class="row"><div><label class="l" for="n">Your name</label><input id="n" class="in" maxlength="40" value="' + esc(myName()) + '" placeholder="Aum"></div><div><label class="l" for="f">Sealing it with</label><input id="f" class="in" maxlength="40" placeholder="Maya"></div></div>' +
     '<div class="err hidden" id="e"></div><button class="btn gold" id="go">Seal it</button></div>' +
@@ -128,14 +128,14 @@ function make(){
   function note(){ var t = chosen(); document.getElementById('when').textContent = t && !isNaN(t) ? 'Opens ' + fmtWhen(t.toISOString()) + ' (your time).' : ''; }
   dEl.oninput = tEl.oninput = function(){ app.querySelectorAll('.chip').forEach(function(x){ x.classList.remove('on'); }); note(); };
   document.getElementById('chips').onclick = function(ev){ var b = ev.target.closest('.chip'); if (!b) return; app.querySelectorAll('.chip').forEach(function(x){ x.classList.toggle('on', x === b); });
-    var t = new Date(Date.now() + (+b.dataset.days) * 864e5); t.setHours(9, 0, 0, 0); dEl.value = localDate(t); tEl.value = localTime(t); note(); };
+    var t = new Date(Date.now() + (+b.dataset.days) * 864e5); t.setHours(+b.dataset.days === 0 ? 21 : 9, 0, 0, 0); dEl.value = localDate(t); tEl.value = localTime(t); note(); };
   note();
   document.getElementById('go').onclick = function(){
     var text = document.getElementById('t').value.trim(), name = document.getElementById('n').value.trim(), to = document.getElementById('f').value.trim(), err = document.getElementById('e');
     var t = chosen();
     err.classList.add('hidden');
     if (!text) { err.textContent = 'Write your call first.'; err.classList.remove('hidden'); return; }
-    if (!t || isNaN(t) || t < Date.now() + 36e5) { err.textContent = 'Pick a time at least an hour from now.'; err.classList.remove('hidden'); return; }
+    if (!t || isNaN(t) || t < Date.now() + 6e5) { err.textContent = 'Pick a time at least 10 minutes from now.'; err.classList.remove('hidden'); return; }
     if (!to) { err.textContent = 'Who are you sealing it with?'; err.classList.remove('hidden'); return; }
     ls('vp.seal.name', name); this.disabled = true; this.textContent = 'Sealing…';
     api({ action: 'create', text: text, name: name, to: to, opens_at: t.toISOString(), src: src() }).then(function(j){
