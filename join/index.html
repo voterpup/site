@@ -294,6 +294,7 @@
   .crh{font-size:13px; font-weight:600} .crh b{font-weight:800}
   .crchips{display:flex; gap:6px; overflow-x:auto; margin-top:6px; scrollbar-width:none} .crchips::-webkit-scrollbar{display:none} .crchips .chip{flex:0 0 auto; cursor:default}
   .crsrc{font-size:12px; color:var(--sub); margin-top:6px}
+  .crsrc a,.srclink{color:inherit; text-decoration:underline; font-weight:700; font-size:12px; white-space:nowrap}
   .crmetro{display:block; font-size:12px; color:var(--sub); font-weight:600}
   .crlatest{margin-top:8px; font-size:12px} .crlatest summary{cursor:pointer; color:#3b6fb6; font-weight:700; font-size:12px}
   .crscroll{max-height:220px; overflow-y:auto; margin-top:4px; -webkit-overflow-scrolling:touch}
@@ -2029,7 +2030,7 @@ function addOffices(el, place){
     if (!list || !list.length || getPlace() !== place) return;
     var html = '<div class="offices">🏛️ Your election offices: ' + list.map(function(o){
       return '<a href="' + esc(o.url) + '" target="_blank" rel="noopener">' + esc(o.label || OFFICE_WORD[o.level]) + ' ↗</a>';
-    }).join('') + '</div>';
+    }).join('') + '<a href="/sources.html" target="_blank" rel="noopener">All sources</a></div>';
     var tries = 0;
     (function put(){
       if (el.querySelector('.offices')) return;
@@ -3499,7 +3500,7 @@ document.addEventListener('click', function(ev){
     (r.topic ? '<div class="chips" style="margin:0 0 12px"><a class="topicchip" href="/pack?t=' + encodeURIComponent(r.topic) + '">#' + esc(r.topic) + '</a></div>' : '') +
     '<a class="btn ghost" href="#" data-sv="' + r.lat + ',' + r.lng + '" data-svl="' + esc((r.area ? r.area + ' · ' : '') + r.type.replace(/ Case$/, '')) + '">🧭 See the spot · Street View</a>' +
     '<button class="btn gold" id="crsnap">📸 Seen it too? Snap it</button>' +
-    '<p class="hint" style="font-size:12px;margin-top:10px">Reported to the city through 3-1-1. City of ' + esc(cp.city || 'Vancouver') + ' open data · Open Government Licence – Vancouver</p></div>';
+    '<p class="hint" style="font-size:12px;margin-top:10px">Reported to the city through 3-1-1. Source: <a href="' + (CITY_URL[String(cp.city || 'vancouver').toLowerCase()] || '/sources.html') + '" target="_blank" rel="noopener">City of ' + esc(cp.city || 'Vancouver') + ' open data ↗</a> · VoterPup is not a government app</p></div>';
   document.getElementById('crsnap').onclick = function(){ close(); if (loadLocal()) startWalk(); else location.href = '/app.html?new=1'; };
 });
 function savePos(la, lo){ try { localStorage.setItem('vp.pos', JSON.stringify({ lat: la, lng: lo, ts: Date.now() })); } catch (e) {} }
@@ -3865,6 +3866,7 @@ function screenFirstDone(l, gripe, url){
       rpc('vp_upcoming', { p_place: place }).then(function(list){
         var el = (list || []).filter(function(x){ return x.kind === 'election'; })[0], v = document.getElementById('fdvote'); if (!v) return;
         v.textContent = el ? 'Next vote: ' + el.name + (el.days != null ? (el.days === 0 ? ', today' : ', in ' + el.days + ' day' + (el.days === 1 ? '' : 's')) : '') : 'No election date found yet; ' + l.name + ' keeps watching.';
+        if (el) v.insertAdjacentHTML('beforeend', ' <a class="srclink" href="/sources.html" target="_blank" rel="noopener">Official source ↗</a>');
       }).catch(function(){ var v = document.getElementById('fdvote'); if (v) v.textContent = ''; });
       rpc('vp_same_issue_count', { p_place: place, p_body: issue }).then(function(n){
         var others = Math.max(0, (+n || 0) - 1), b = document.getElementById('fdsame'), s = document.getElementById('fdsamesub'); if (!b) return;
@@ -4700,6 +4702,8 @@ var CITY_DATA = { vancouver: 'City of Vancouver 3-1-1 open data · Open Governme
   'new york': 'NYC Open Data · 311 Service Requests', chicago: 'City of Chicago Data Portal · 311 Service Requests', 'san francisco': 'DataSF · 311 Cases',
   austin: 'City of Austin Open Data · 311 Service Requests', calgary: 'City of Calgary Open Data · 311 Service Requests · Open Government Licence – City of Calgary',
   edmonton: 'City of Edmonton Open Data · 311 Requests (locations are neighbourhood centres)' };
+var CITY_URL = { vancouver: 'https://opendata.vancouver.ca/explore/dataset/3-1-1-service-requests/', seattle: 'https://data.seattle.gov/d/5ngg-rpne', 'new york': 'https://data.cityofnewyork.us/d/erm2-nwe9',
+  chicago: 'https://data.cityofchicago.org/d/v6vf-nfxy', 'san francisco': 'https://data.sfgov.org/d/vw6y-z8j6', austin: 'https://data.austintexas.gov/d/xwdj-i9he', calgary: 'https://data.calgary.ca/d/iahh-g8bj', edmonton: 'https://data.edmonton.ca/d/q7ua-agfg' };   // the official dataset behind each city's 3-1-1 records (Play policy: link every government source)
 var CITY_ALIAS = { 'city of new york': 'new york', 'new york city': 'new york', manhattan: 'new york', brooklyn: 'new york', queens: 'new york', bronx: 'new york', 'the bronx': 'new york', 'staten island': 'new york', sf: 'san francisco' };
 var _leaf = null;
 function loadMapLib(){
@@ -5079,11 +5083,11 @@ function screenPack(mode, topic0){
       (cp.today ? ' · ' + cp.today + ' today' : '') + (metroNote ? '<span class="crmetro">' + metroNote + '</span>' : '') + '</div><div class="crchips">' +
       (cp.by_topic || []).filter(function(t){ return t.topic !== 'other'; }).slice(0, 8).map(function(t){ return '<span class="chip crtopic" data-crt="' + esc(t.topic) + '">#' + esc(t.topic) + ' <b>' + t.n + '</b></span>'; }).join('') +
       '</div>' + (recent ? '<details class="crlatest"><summary>Latest reports (' + Math.min((cp.pins || []).length, 60) + ')</summary><div class="crscroll">' + recent + '</div></details>' : '') +
-      '<div class="crsrc">' + esc(CITY_DATA[String(cp.city || '').toLowerCase()] || ('City of ' + cp.city + ' open data')) + '</div></div>';
+      '<div class="crsrc">Source: ' + (CITY_URL[String(cp.city || '').toLowerCase()] ? '<a href="' + CITY_URL[String(cp.city || '').toLowerCase()] + '" target="_blank" rel="noopener">' + esc(CITY_DATA[String(cp.city || '').toLowerCase()]) + ' ↗</a>' : esc(CITY_DATA[String(cp.city || '').toLowerCase()] || ('City of ' + cp.city + ' open data'))) + ' · VoterPup is not a government app · <a href="/sources.html" target="_blank" rel="noopener">All sources</a></div></div>';
   }
   if (mode !== 'all' && city && !wall && place) rpc('vp_upcoming', { p_place: place }).then(function(list){
     var el = (list || []).filter(function(x){ return x.kind === 'election' && x.days != null && x.days >= 0; })[0], cv = document.getElementById('cvote'); if (!cv || !el) return;
-    cv.innerHTML = '🗳️ <b>' + esc(el.name) + (el.days === 0 ? ' is today' : ' in ' + el.days + ' day' + (el.days === 1 ? '' : 's')) + '.</b> Your pup brings your list to the ballot.';
+    cv.innerHTML = '🗳️ <b>' + esc(el.name) + (el.days === 0 ? ' is today' : ' in ' + el.days + ' day' + (el.days === 1 ? '' : 's')) + '.</b> Your pup brings your list to the ballot.' + ' <a class="srclink" href="/sources.html" target="_blank" rel="noopener">Official source ↗</a>';
   }).catch(function(){});
   var cityKey = place ? place.split(',')[0].toLowerCase() : null;
   var dataCity = cityKey ? (METRO[cityKey] || CITY_ALIAS[cityKey] || cityKey) : null;   // Surrey, Burnaby… share Metro Vancouver's city data
@@ -5506,7 +5510,7 @@ function screenPack(mode, topic0){
   }).catch(function(e){ var ag = document.getElementById('agenda'); if (ag) ag.hidden = true; var bd = document.getElementById('board'); if (bd) bd.innerHTML = '<div class="hint">Couldn&rsquo;t reach the pack. <a href="#" onclick="location.reload();return false">Try again</a></div>'; });
 }
 
-var APP_VERSION = "20261008013502";
+var APP_VERSION = "20261008030115";
 (function(){
   try {
     fetch('/version.json?t=' + Date.now(), { cache: 'no-store' }).then(function(r){ return r.json(); }).then(function(j){
@@ -5776,7 +5780,7 @@ function screenManage(){
       '<button class="btn ghost mbtn" id="mdel" style="color:#a94b4b;border-color:#e3b3b3">Delete ' + nm + ' and all its data</button>');
     root.innerHTML = nav() + '<div class="mtitle" id="mtitle"><span class="q" style="font-size:20px">' + nm + ' ⚙️</span>' +
       (KIOSK ? '' : '<a href="#" class="mlink" id="mrename">✏️ Rename</a>') + '</div>' + '<div class="mgrid">' + rows + '</div>' +
-      '<footer><a href="/privacy.html">Privacy</a> · <a href="mailto:hi@voterpup.com">hi@voterpup.com</a></footer>' + tabbar('manage');
+      '<footer><a href="/privacy.html">Privacy</a> · <a href="/sources.html">Sources (not a government app)</a> · <a href="mailto:hi@voterpup.com">hi@voterpup.com</a></footer>' + tabbar('manage');
     wireTabs(); wireHero();
     var on = function(id, fn){ var el = document.getElementById(id); if (el) el.onclick = fn; };
     on('mshare', function(){ if (n) showCandidate(tail, L.name); });
