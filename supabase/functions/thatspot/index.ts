@@ -50,7 +50,7 @@ async function photoOk(db: any, path: string): Promise<boolean> {   // fail clos
 }
 async function signedPhoto(db: any, path: string | null) { if (!path) return null; const { data } = await db.storage.from("media").createSignedUrl(path, 3600); return data?.signedUrl ?? null; }
 function pubSpot(s: any, extra: Record<string, unknown> = {}) {
-  return { code: s.code, clue: s.clue, visibility: s.visibility, opens_at: s.opens_at, created_at: s.created_at, radius_m: s.radius_m, has_photo: !!s.photo, maker_name: s.spot_profiles?.name ?? null, maker_photo: s.spot_profiles?.photo ?? null, ...extra };
+  return { code: s.code, kind: s.kind || 'memory', place_name: s.place_name || null, clue: s.clue, visibility: s.visibility, opens_at: s.opens_at, created_at: s.created_at, radius_m: s.radius_m, has_photo: !!s.photo, maker_name: s.spot_profiles?.name ?? null, maker_photo: s.spot_profiles?.photo ?? null, ...extra };
 }
 
 Deno.serve(async (req) => {
@@ -95,12 +95,14 @@ Deno.serve(async (req) => {
   if (a === "bury") {
     const p = await profile(); if (!p) return json({ error: "sign in" }, 401);
     const lat = num(b.lat), lng = num(b.lng), body = clean(b.body, 600), clue = clean(b.clue, 140) || null;
-    const vis = ["personal", "link", "public"].includes(b.visibility) ? b.visibility : "link";
+    const isPlace = b.kind === "place", placeName = clean(b.place_name, 60) || null;
+    if (isPlace && !placeName) return json({ error: "shop name missing" }, 400);
+    const vis = isPlace ? "public" : ["personal", "link", "public"].includes(b.visibility) ? b.visibility : "link";
     if (lat === null || lng === null || Math.abs(lat) > 90 || Math.abs(lng) > 180) return json({ error: "no location" }, 400);
     if (!body && !(typeof b.photo_b64 === "string" && b.photo_b64.length)) return json({ error: "missing" }, 400);
     let opens: string | null = null;
     if (b.opens_at) { const t = new Date(b.opens_at); if (isNaN(t.getTime())) return json({ error: "bad time" }, 400); opens = t.toISOString(); }
-    const chk = await textOk(body + (clue ? "\n" + clue : "")); if (!chk.ok) return json({ error: "That didn't pass our safety check" + (chk.why ? " (" + chk.why + ")" : "") }, 422);
+    const chk = await textOk(body + (clue ? "\n" + clue : "") + (placeName ? "\n" + placeName : "")); if (!chk.ok) return json({ error: "That didn't pass our safety check" + (chk.why ? " (" + chk.why + ")" : "") }, 422);
     const c = code();
     let photoPath: string | null = null;
     if (typeof b.photo_b64 === "string" && b.photo_b64.length) {
@@ -110,7 +112,7 @@ Deno.serve(async (req) => {
       if (up.error) { await logFail("thatspot upload", up.error); return json({ error: "photo upload failed" }, 500); }
       if (!(await photoOk(db, photoPath))) { await db.storage.from("media").remove([photoPath]); return json({ error: "That photo didn't pass our safety check" }, 422); }
     }
-    const { error } = await db.from("spots").insert({ code: c, maker: user.id, lat, lng, body, clue, photo: photoPath, visibility: vis, opens_at: opens, src: clean(b.src, 24) || null });
+    const { error } = await db.from("spots").insert({ code: c, maker: user.id, lat, lng, body, clue, photo: photoPath, visibility: vis, opens_at: opens, kind: isPlace ? "place" : "memory", place_name: placeName, radius_m: isPlace ? 60 : 40, src: clean(b.src, 24) || null });
     if (error) { await logFail("thatspot bury", error); return json({ error: "db: " + error.message }, 500); }
     return json({ code: c });
   }
@@ -137,9 +139,16 @@ Deno.serve(async (req) => {
     return json({ spots: list });
   }
 
+  if (a === "here") {   // memories within 80 m of a point: the place page's list
+    const lat = num(b.lat), lng = num(b.lng); if (lat === null || lng === null) return json({ error: "no location" }, 400);
+    const d = 0.0012;
+    const { data } = await db.from("spots").select("*, spot_profiles(name, photo), spot_finds(id)").eq("visibility", "public").neq("kind", "place").gte("lat", lat - d).lte("lat", lat + d).gte("lng", lng - d * 1.5).lte("lng", lng + d * 1.5).order("created_at", { ascending: false }).limit(60);
+    const list = (data ?? []).map((s: any) => pubSpot(s, { distance_m: Math.round(metres(lat, lng, s.lat, s.lng)), finds: (s.spot_finds ?? []).length })).filter((s: any) => s.distance_m <= 80);
+    return json({ spots: list });
+  }
   if (a === "map") {
     const s0 = num(b.south), w0 = num(b.west), n0 = num(b.north), e0 = num(b.east); if ([s0, w0, n0, e0].some((v) => v === null)) return json({ error: "no bounds" }, 400);
-    const now = Date.now(), pin = (s: any, kind: string) => ({ code: s.code, lat: s.lat, lng: s.lng, kind, clue: s.clue, has_photo: !!s.photo, visibility: s.visibility, finds: (s.spot_finds ?? []).length, maker_name: s.spot_profiles?.name ?? null, created_at: s.created_at, sealed: !!(s.opens_at && new Date(s.opens_at).getTime() > now) });
+    const now = Date.now(), pin = (s: any, kind: string) => ({ code: s.code, lat: s.lat, lng: s.lng, kind, is_place: s.kind === 'place', place_name: s.place_name || null, clue: s.clue, has_photo: !!s.photo, visibility: s.visibility, finds: (s.spot_finds ?? []).length, maker_name: s.spot_profiles?.name ?? null, created_at: s.created_at, sealed: !!(s.opens_at && new Date(s.opens_at).getTime() > now) });
     const q = () => db.from("spots").select("*, spot_profiles(name), spot_finds(id)").gte("lat", s0!).lte("lat", n0!).gte("lng", w0!).lte("lng", e0!).limit(300);
     const { data: pub } = await q().eq("visibility", "public");
     let mine: any[] = [], shared: any[] = [];
