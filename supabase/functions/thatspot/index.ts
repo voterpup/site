@@ -94,12 +94,23 @@ Deno.serve(async (req) => {
 
   if (a === "bury") {
     const p = await profile(); if (!p) return json({ error: "sign in" }, 401);
-    const lat = num(b.lat), lng = num(b.lng), body = clean(b.body, 600), clue = clean(b.clue, 140) || null;
+    const lat = num(b.lat), lng = num(b.lng), clue = clean(b.clue, 140) || null;
     const isPlace = b.kind === "place", placeName = clean(b.place_name, 60) || null;
+    if (isPlace && !body) b.body = "Welcome to " + placeName + ". Leave something here for the next person.";
     if (isPlace && !placeName) return json({ error: "shop name missing" }, 400);
     const vis = isPlace ? "public" : ["personal", "link", "public"].includes(b.visibility) ? b.visibility : "link";
+    const body = clean(b.body, 600);
     if (lat === null || lng === null || Math.abs(lat) > 90 || Math.abs(lng) > 180) return json({ error: "no location" }, 400);
-    if (!body && !(typeof b.photo_b64 === "string" && b.photo_b64.length)) return json({ error: "missing" }, 400);
+    if (!body && !isPlace && !(typeof b.photo_b64 === "string" && b.photo_b64.length)) return json({ error: "missing" }, 400);
+    let placeCode: string | null = null;
+    if (!isPlace && typeof b.place_code === "string" && b.place_code) {
+      const pc = clean(b.place_code, 12).replace(/[^a-z0-9]/g, "");
+      const { data: pl } = await db.from("spots").select("code, lat, lng, radius_m").eq("code", pc).eq("kind", "place").maybeSingle();
+      if (!pl) return json({ error: "no such shop" }, 404);
+      const dpl = metres(lat, lng, pl.lat, pl.lng), accpl = Math.min(Math.max(num(b.acc) ?? 30, 0), SLACK);
+      if (dpl > pl.radius_m + accpl) return json({ error: "You need to be at the shop to post here (you're " + Math.round(dpl) + " m away)" }, 400);
+      placeCode = pl.code;
+    }
     let opens: string | null = null;
     if (b.opens_at) { const t = new Date(b.opens_at); if (isNaN(t.getTime())) return json({ error: "bad time" }, 400); opens = t.toISOString(); }
     const chk = await textOk(body + (clue ? "\n" + clue : "") + (placeName ? "\n" + placeName : "")); if (!chk.ok) return json({ error: "That didn't pass our safety check" + (chk.why ? " (" + chk.why + ")" : "") }, 422);
@@ -112,7 +123,7 @@ Deno.serve(async (req) => {
       if (up.error) { await logFail("thatspot upload", up.error); return json({ error: "photo upload failed" }, 500); }
       if (!(await photoOk(db, photoPath))) { await db.storage.from("media").remove([photoPath]); return json({ error: "That photo didn't pass our safety check" }, 422); }
     }
-    const { error } = await db.from("spots").insert({ code: c, maker: user.id, lat, lng, body, clue, photo: photoPath, visibility: vis, opens_at: opens, kind: isPlace ? "place" : "memory", place_name: placeName, radius_m: isPlace ? 60 : 40, src: clean(b.src, 24) || null });
+    const { error } = await db.from("spots").insert({ code: c, maker: user.id, lat, lng, body, clue, photo: photoPath, visibility: vis, opens_at: opens, kind: isPlace ? "place" : "memory", place_name: placeName, place_code: placeCode, radius_m: isPlace ? 60 : 40, src: clean(b.src, 24) || null });
     if (error) { await logFail("thatspot bury", error); return json({ error: "db: " + error.message }, 500); }
     return json({ code: c });
   }
@@ -139,11 +150,25 @@ Deno.serve(async (req) => {
     return json({ spots: list });
   }
 
+  if (a === "place_admin") {   // founder only: set the owner's email/notes, read the numbers
+    const k = Deno.env.get("QA_KEY"); if (!k || b.key !== k) return json({ error: "no" }, 403);
+    const pc = clean(b.code, 12).replace(/[^a-z0-9]/g, ""); const { data: pl } = await db.from("spots").select("*").eq("code", pc).eq("kind", "place").maybeSingle(); if (!pl) return json({ error: "not found" }, 404);
+    if (b.owner_email !== undefined || b.owner_note !== undefined) await db.from("spots").update({ owner_email: clean(b.owner_email, 120) || pl.owner_email, owner_note: clean(b.owner_note, 300) || pl.owner_note }).eq("id", pl.id);
+    const since = new Date(Date.now() - 7 * 864e5).toISOString();
+    const { data: opens } = await db.from("spot_finds").select("finder_uid, created_at").eq("spot_id", pl.id);
+    const { data: posts } = await db.from("spots").select("code, created_at, maker").eq("place_code", pl.code);
+    const uniq = new Set((opens ?? []).map((o: any) => o.finder_uid || "anon")); const repeat = (opens ?? []).reduce((m: any, o: any) => { if (o.finder_uid) m[o.finder_uid] = (m[o.finder_uid] || 0) + 1; return m; }, {});
+    return json({ place: pl.place_name, owner_email: pl.owner_email, opens_total: (opens ?? []).length, opens_7d: (opens ?? []).filter((o: any) => o.created_at >= since).length, unique_visitors: uniq.size, repeat_visitors: Object.values(repeat).filter((n: any) => n > 1).length, memories_total: (posts ?? []).length, memories_7d: (posts ?? []).filter((p: any) => p.created_at >= since).length });
+  }
   if (a === "here") {   // memories within 80 m of a point: the place page's list
     const lat = num(b.lat), lng = num(b.lng); if (lat === null || lng === null) return json({ error: "no location" }, 400);
     const d = 0.0012;
+    const pcode = clean(b.place_code, 12).replace(/[^a-z0-9]/g, "");
     const { data } = await db.from("spots").select("*, spot_profiles(name, photo), spot_finds(id)").eq("visibility", "public").neq("kind", "place").gte("lat", lat - d).lte("lat", lat + d).gte("lng", lng - d * 1.5).lte("lng", lng + d * 1.5).order("created_at", { ascending: false }).limit(60);
-    const list = (data ?? []).map((s: any) => pubSpot(s, { distance_m: Math.round(metres(lat, lng, s.lat, s.lng)), finds: (s.spot_finds ?? []).length })).filter((s: any) => s.distance_m <= 80);
+    const { data: byCode } = pcode ? await db.from("spots").select("*, spot_profiles(name, photo), spot_finds(id)").eq("visibility", "public").eq("place_code", pcode).order("created_at", { ascending: false }).limit(60) : { data: [] };
+    const seen = new Set<string>(), rows: any[] = [];
+    for (const s of [...(byCode ?? []), ...(data ?? [])]) { if (seen.has(s.code)) continue; seen.add(s.code); const dm = Math.round(metres(lat, lng, s.lat, s.lng)); if (s.place_code === pcode || dm <= 80) rows.push(pubSpot(s, { distance_m: dm, finds: (s.spot_finds ?? []).length })); }
+    const list = rows.sort((x: any, y: any) => x.created_at < y.created_at ? 1 : -1);
     return json({ spots: list });
   }
   if (a === "map") {

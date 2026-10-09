@@ -98,7 +98,7 @@ function $(h){ stopHunt(); app.innerHTML = h; window.scrollTo(0, 0); }
 function esc(s){ var d = document.createElement('div'); d.textContent = s == null ? '' : s; return d.innerHTML; }
 function ls(k, v){ try { if (v === undefined) return localStorage.getItem(k); localStorage.setItem(k, v); } catch (e) { return null; } }
 function devId(){ var d = ls('vp.dev'); if (!d) { d = Array.from(crypto.getRandomValues(new Uint8Array(8))).map(function(b){ return b.toString(16).padStart(2, '0'); }).join(''); ls('vp.dev', d); } return d || 'nostorage'; }
-(function(){ var m = location.search.match(/[?&]src=([a-z0-9_-]{1,24})/i); if (m) { try { sessionStorage.setItem('vp.src', m[1]); if (!ls('vp.src0')) ls('vp.src0', m[1]); } catch (e) {} } })();
+(function(){ if (/[?&]admin=1/.test(location.search)) ls('vp.admin', '1'); var m = location.search.match(/[?&]src=([a-z0-9_-]{1,24})/i); if (m) { try { sessionStorage.setItem('vp.src', m[1]); if (!ls('vp.src0')) ls('vp.src0', m[1]); } catch (e) {} } })();
 function src(){ try { return sessionStorage.getItem('vp.src') || ls('vp.src0') || 'direct'; } catch (e) { return 'direct'; } }
 function track(step, meta){
   if (navigator.webdriver || /HeadlessChrome/.test(navigator.userAgent) || ls('vp.internal') === '1') return;
@@ -155,8 +155,8 @@ function home(){
       '<div class="foot">We never track you. We read a location only the moment you leave or open a memory.</div>');
     wireSignin(home); track('open', { mode: 'home', signed: false }); return;
   }
-  var st = { photo: null, pos: null, vis: 'link', map: null, marker: null };
-  $(hdr() + '<h1>Leave a memory here.</h1>' +
+  var st = { photo: null, pos: null, vis: 'link', map: null, marker: null, at: new URLSearchParams(location.search).get('at') || null, atName: null };
+  $(hdr() + (st.at ? '<div class="k" id="atname">Posting at this shop</div>' : '') + '<h1>Leave a memory here.</h1>' +
     '<div class="box"><div class="step"><div class="n" id="n1">1</div><div><div class="t">Write it, or snap a picture</div>' +
       '<textarea id="t" class="in" maxlength="600" placeholder="Remember this bench? Sit for a minute."></textarea>' +
       '<div class="row"><label class="btn sm" for="ph" style="cursor:pointer">📷 Snap a picture</label><input id="ph" type="file" accept="image/*" capture="environment" class="hidden"><img id="thumb" class="thumb hidden" alt=""><button class="lnk hidden" id="unph">Remove</button></div></div></div></div>' +
@@ -164,10 +164,11 @@ function home(){
     '<div class="box"><div class="step"><div class="n" id="n3">3</div><div><div class="t">Who can find it</div>' +
       '<div class="seg" id="vis"><button type="button" data-v="personal">Personal</button><button type="button" class="on" data-v="link">Private link</button><button type="button" data-v="public">Public</button></div>' +
       '<div class="muted" id="visnote">Only the person you send the link to. They sign in with Google and see the spot on the map.</div>' +
-      '<label class="row" style="gap:10px;cursor:pointer"><input type="checkbox" id="isplace" style="width:22px;height:22px"><span style="font-weight:800">This is my shop or business</span></label><input id="pname" class="in hidden" maxlength="60" placeholder="Shop name, as customers know it">' +
+      (ls('vp.admin') === '1' ? '<label class="row" style="gap:10px;cursor:pointer"><input type="checkbox" id="isplace" style="width:22px;height:22px"><span style="font-weight:800">Create a shop spot (founder)</span></label><input id="pname" class="in hidden" maxlength="60" placeholder="Shop name, as customers know it">' : '') +
       '<input id="c" class="in" maxlength="140" placeholder="Clue for the exact spot (optional)">' +
       '<div class="err hidden" id="e"></div><button class="btn gold" id="go" disabled>Leave it here</button></div></div></div>' +
     '<div class="foot">Checked before anyone can open it. No memories at private homes. Change who can see it any time from Mine.</div>');
+  if (st.at) api({ action: 'peek', code: st.at }).then(function(ps){ st.atName = ps.place_name; var e = document.getElementById('atname'); if (e) e.textContent = 'Posting at ' + (ps.place_name || 'this shop') + ' · you need to be inside'; }).catch(function(){ st.at = null; });
   var notes = { personal: 'Only you. It shows on your map; you open it by standing there.', link: 'Only the person you send the link to. They sign in with Google and see the spot on the map.', public: 'Anyone. It shows on everyone’s map; it opens for whoever stands there.' };
   function ready(){ document.getElementById('go').disabled = !(st.pos && (st.photo || document.getElementById('t').value.trim())); }
   document.getElementById('t').oninput = function(){ document.getElementById('n1').classList.toggle('done', !!this.value.trim() || !!st.photo); ready(); };
@@ -181,15 +182,15 @@ function home(){
       if (!st.map) { st.map = mkMap(el, p.lat, p.lng, 17); st.marker = addPin(st.map, p.lat, p.lng, 'mine'); } else { st.map.setView([p.lat, p.lng], 17); st.marker.setLatLng([p.lat, p.lng]); }
       setTimeout(function(){ st.map.invalidateSize(); }, 50); ready();
     }).catch(function(e){ document.getElementById('where').textContent = e.message; b.textContent = 'Allow location'; b.disabled = false; }); };
-  document.getElementById('isplace').onchange = function(){ st.place = this.checked; document.getElementById('pname').classList.toggle('hidden', !this.checked); if (this.checked) { st.vis = 'public'; app.querySelectorAll('#vis button').forEach(function(x){ x.classList.toggle('on', x.dataset.v === 'public'); }); document.getElementById('visnote').textContent = 'A shop spot is public: it gets its own link and QR, your note opens only inside, and every memory left here shows under your name.'; } };
+  var ip = document.getElementById('isplace'); if (ip) ip.onchange = function(){ st.place = this.checked; document.getElementById('pname').classList.toggle('hidden', !this.checked); if (this.checked) { st.vis = 'public'; app.querySelectorAll('#vis button').forEach(function(x){ x.classList.toggle('on', x.dataset.v === 'public'); }); document.getElementById('visnote').textContent = 'A shop spot is public: it gets its own link and QR, your note opens only inside, and every memory left here shows under your name.'; } };
   document.getElementById('vis').onclick = function(ev){ var b = ev.target.closest('button'); if (!b) return; st.vis = b.dataset.v; app.querySelectorAll('#vis button').forEach(function(x){ x.classList.toggle('on', x === b); }); document.getElementById('visnote').textContent = notes[st.vis]; document.getElementById('n3').classList.add('done'); };
   document.getElementById('go').onclick = function(){
     var body = document.getElementById('t').value.trim(), clue = document.getElementById('c').value.trim(), err = document.getElementById('e'); err.classList.add('hidden');
     this.disabled = true; this.textContent = st.photo ? 'Checking the photo…' : 'Leaving it…';
-    var pname = st.place ? document.getElementById('pname').value.trim() : '';
+    var pname = st.place ? document.getElementById('pname').value.trim() : ''; var isPl = st.place && ls('vp.admin') === '1';
     if (st.place && !pname) { err.textContent = 'What is the shop called?'; err.classList.remove('hidden'); this.disabled = false; this.textContent = 'Leave it here'; return; }
-    api({ action: 'bury', lat: st.pos.lat, lng: st.pos.lng, acc: st.pos.acc, body: body, clue: clue, visibility: st.vis, photo_b64: st.photo, kind: st.place ? 'place' : 'memory', place_name: pname, src: src() })
-      .then(function(j){ track('bury', { vis: st.vis, photo: !!st.photo, clue: !!clue, place: !!st.place }); if (st.place) { history.replaceState(null, '', '/myspot/?at=' + j.code); place(j.code); return; } history.replaceState(null, '', '/myspot/?d=' + j.code); left(j.code, st); })
+    api({ action: 'bury', lat: st.pos.lat, lng: st.pos.lng, acc: st.pos.acc, body: body, clue: clue, visibility: st.vis, photo_b64: st.photo, kind: isPl ? 'place' : 'memory', place_name: pname, place_code: st.at, src: src() })
+      .then(function(j){ track('bury', { vis: st.vis, photo: !!st.photo, clue: !!clue, place: !!isPl, at: !!st.at }); if (isPl) { history.replaceState(null, '', '/myspot/?at=' + j.code); place(j.code); return; } if (st.at && st.vis === 'public') { toast('Left at ' + (st.atName || 'the shop') + '.'); history.replaceState(null, '', '/myspot/?at=' + st.at); place(st.at); return; } history.replaceState(null, '', '/myspot/?d=' + j.code); left(j.code, st); })
       .catch(function(e){ err.textContent = e.message; err.classList.remove('hidden'); document.getElementById('go').disabled = false; document.getElementById('go').textContent = 'Leave it here'; });
   };
   window.__spot.setPhoto = setPhoto;
@@ -262,20 +263,20 @@ function find(code){
 function place(code){
   $(hdr() + '<div class="muted">Opening the spot…</div>');
   api({ action: 'peek', code: code }).then(function(s){
-    $(hdr() + '<div class="k">' + (s.is_maker ? 'Your shop' : 'You’re at') + '</div><h1>' + esc(s.place_name || 'This spot') + '</h1><div class="muted">A note from the owner that only opens inside, and a guestbook that stays here.</div>' +
+    $(hdr() + '<div class="k">You’re at</div><h1>' + esc(s.place_name || 'This spot') + '</h1><div class="muted">Leave a memory here for the next person. It stays at this shop. Anyone standing here can read what people left.</div>' +
+      '<a class="btn gold" href="/myspot/?at=' + code + '&leave=1">Leave a memory here</a>' +
       '<div class="map" id="m" style="height:180px"></div>' +
-      '<div class="spot"><div class="pinbadge">🏪</div><div class="who">' + (s.maker_photo ? '<img src="' + esc(s.maker_photo) + '" alt="">' : '') + 'From ' + esc(s.maker_name || 'the owner') + ' · ' + esc(fmt(s.created_at)) + (s.has_photo ? ' · 📷' : '') + '</div>' + (s.clue ? '<div class="clue">🧭 ' + esc(s.clue) + '</div>' : '') + '<div class="hid">■■■■■ ■■■■■■■ ■■■ ■■■■</div><div class="meta">Opens for anyone standing here' + (s.finds ? ' · opened ' + s.finds + '×' : '') + '</div></div>' +
-      '<button class="btn gold" id="go">I’m here, open the owner’s note</button><div class="err hidden" id="e"></div>' +
+      '<div class="spot"><div class="pinbadge">🏪</div><div class="who">The note at this spot · ' + esc(fmt(s.created_at)) + (s.has_photo ? ' · 📷' : '') + '</div>' + (s.clue ? '<div class="clue">🧭 ' + esc(s.clue) + '</div>' : '') + '<div class="hid">■■■■■ ■■■■■■■ ■■■ ■■■■</div><div class="meta">Opens for anyone standing here' + (s.finds ? ' · opened ' + s.finds + '×' : '') + '</div></div>' +
+      '<button class="btn" id="go">I’m here, open it</button><div class="err hidden" id="e"></div>' +
       '<div class="box"><div class="k">Memories left at ' + esc(s.place_name || 'this spot') + '</div><div class="list" id="here"><div class="muted">Loading…</div></div></div>' +
-      '<a class="btn" href="/myspot/">Leave your memory here</a>' +
-      (s.is_maker ? '<div class="row"><button class="btn" id="sh">Share the place link</button><a class="btn" href="/myspot/?qr=' + code + '">QR for the counter</a></div>' : '<a class="btn" href="' + dirUrl(s.lat, s.lng) + '" target="_blank" rel="noopener">🧭 Get directions</a>') +
+      '<div class="row"><button class="btn" id="sh">Share this spot</button><a class="btn" href="' + dirUrl(s.lat, s.lng) + '" target="_blank" rel="noopener">🧭 Directions</a></div>' + (ls('vp.admin') === '1' ? '<a class="btn" href="/myspot/?qr=' + code + '">QR for the counter</a>' : '') +
       '<div class="foot">We read your location only when you tap open. Nothing is tracked.</div>');
     var m = mkMap(document.getElementById('m'), s.lat, s.lng, 17); addPin(m, s.lat, s.lng, 'place'); setTimeout(function(){ m.invalidateSize(); }, 50);
     document.getElementById('go').onclick = function(){ var b = this; b.disabled = true; b.textContent = 'Checking where you are…';
       locate().then(function(p){ return api({ action: 'open', code: code, lat: p.lat, lng: p.lng, acc: p.acc }); }).then(function(r){ track('open_try', { there: !!r.there, d: r.distance_m, place: true }); opened(code, s, r); })
-        .catch(function(e){ var err = document.getElementById('e'); err.textContent = e.message; err.classList.remove('hidden'); b.disabled = false; b.textContent = 'I’m here, open the owner’s note'; }); };
+        .catch(function(e){ var err = document.getElementById('e'); err.textContent = e.message; err.classList.remove('hidden'); b.disabled = false; b.textContent = 'I’m here, open it'; }); };
     var sh = document.getElementById('sh'); if (sh) sh.onclick = function(){ var msg = '📍 ' + (s.place_name || 'Our spot') + ' is on My spot. A note from us that only opens inside, and a guestbook: ' + placeUrl(code); if (navigator.share) navigator.share({ text: msg }).catch(function(){}); else navigator.clipboard.writeText(msg).then(function(){ toast('Place link copied.'); }); };
-    api({ action: 'here', lat: s.lat, lng: s.lng }).then(function(j){ var l = document.getElementById('here'); if (!j.spots.length) { l.innerHTML = '<div class="muted">No memories yet. Yours could be the first.</div>'; return; }
+    api({ action: 'here', lat: s.lat, lng: s.lng, place_code: code }).then(function(j){ var l = document.getElementById('here'); if (!j.spots.length) { l.innerHTML = '<div class="muted">No memories yet. Yours could be the first.</div>'; return; }
       l.innerHTML = j.spots.map(function(x){ return '<a class="item" href="/myspot/?d=' + x.code + '"><div style="font-size:20px">' + (x.has_photo ? '📷' : '📝') + '</div><div style="flex:1;min-width:0"><b>' + esc(x.maker_name || 'Someone') + '</b><small>' + esc(fmt(x.created_at)) + (x.clue ? ' · ' + esc(x.clue) : '') + (x.finds ? ' · opened ' + x.finds + '×' : '') + '</small></div></a>'; }).join(''); });
     track('place', { role: s.is_maker ? 'owner' : 'visitor' });
   }).catch(function(){ $(hdr() + '<h2>No spot here.</h2><a class="btn gold" href="/myspot/">Leave one of your own</a>'); });
@@ -356,7 +357,7 @@ function tent(code){
     track('tent', {});
   }).catch(function(){ $(hdr() + '<h2>Nothing here.</h2>'); });
 }
-function route(){ var q = new URLSearchParams(location.search); if (q.get('qr')) tent(q.get('qr').replace(/[^a-z0-9]/g, '')); else if (q.get('at')) place(q.get('at').replace(/[^a-z0-9]/g, '')); else if (q.get('d')) find(q.get('d').replace(/[^a-z0-9]/g, '')); else if (q.get('mine')) mine(); else if (q.get('map')) mapView(); else home(); }
+function route(){ var q = new URLSearchParams(location.search); if (q.get('qr')) tent(q.get('qr').replace(/[^a-z0-9]/g, '')); else if (q.get('at') && q.get('leave')) home(); else if (q.get('at')) place(q.get('at').replace(/[^a-z0-9]/g, '')); else if (q.get('d')) find(q.get('d').replace(/[^a-z0-9]/g, '')); else if (q.get('mine')) mine(); else if (q.get('map')) mapView(); else home(); }
 window.__spot = { setQA: function(t){ QA_TOKEN = t; return boot().then(route); } };
 boot().then(route);
 </script>
