@@ -229,6 +229,22 @@ Deno.serve(async (req) => {
     const uniq = new Set((opens ?? []).map((o: any) => o.finder_uid || "anon")); const repeat = (opens ?? []).reduce((m: any, o: any) => { if (o.finder_uid) m[o.finder_uid] = (m[o.finder_uid] || 0) + 1; return m; }, {});
     return json({ place: pl.place_name, owner_email: pl.owner_email, opens_total: (opens ?? []).length, opens_7d: (opens ?? []).filter((o: any) => o.created_at >= since).length, unique_visitors: uniq.size, repeat_visitors: Object.values(repeat).filter((n: any) => n > 1).length, memories_total: (posts ?? []).length, memories_7d: (posts ?? []).filter((p: any) => p.created_at >= since).length });
   }
+  if (a === "wall") {   // the memory wall of a shop: everything left here, in full, for someone standing inside
+    const pc = clean(b.code, 12).replace(/[^a-z0-9]/g, ""); const { data: pl } = await db.from("spots").select("*, spot_profiles(name, photo)").eq("code", pc).eq("kind", "place").maybeSingle(); if (!pl) return json({ error: "not found" }, 404);
+    const lat = num(b.lat), lng = num(b.lng), acc = Math.min(Math.max(num(b.acc) ?? 30, 0), SLACK); if (lat === null || lng === null) return json({ error: "no location" }, 400);
+    const dist = metres(lat, lng, pl.lat, pl.lng); if (dist > pl.radius_m + acc) return json({ there: false, distance_m: Math.round(dist), bearing_deg: Math.round(bearing(lat, lng, pl.lat, pl.lng)) });
+    const d = 0.0012;
+    const { data: near } = await db.from("spots").select("*, spot_profiles(name, photo), spot_finds(id)").eq("visibility", "public").neq("kind", "place").gte("lat", pl.lat - d).lte("lat", pl.lat + d).gte("lng", pl.lng - d * 1.5).lte("lng", pl.lng + d * 1.5).limit(80);
+    const { data: byCode } = await db.from("spots").select("*, spot_profiles(name, photo), spot_finds(id)").eq("visibility", "public").eq("place_code", pl.code).limit(120);
+    const seen = new Set<string>(), rows: any[] = [];
+    for (const s of [...(byCode ?? []), ...(near ?? [])]) { if (seen.has(s.code)) continue; seen.add(s.code); if (s.place_code === pl.code || metres(pl.lat, pl.lng, s.lat, s.lng) <= 80) rows.push(s); }
+    rows.sort((x, y) => x.created_at < y.created_at ? 1 : -1);
+    const cards = []; for (const s of rows) cards.push({ ...pubSpot(s, { finds: (s.spot_finds ?? []).length }), body: s.body, photo_url: await signedPhoto(db, s.photo), mine: !!user && s.maker === user.id });
+    if (user) { const since = new Date(Date.now() - 12 * 3600e3).toISOString(); const { data: recent } = await db.from("spot_finds").select("id").eq("spot_id", pl.id).eq("finder_uid", user.id).gt("created_at", since).limit(1); if (!(recent ?? []).length) { const p = await profile(); await db.from("spot_finds").insert({ spot_id: pl.id, finder_uid: user.id, finder_name: p?.name ?? null, lat, lng }); } }
+    else await db.from("spot_finds").insert({ spot_id: pl.id, finder_uid: null, finder_name: null, lat, lng });
+    const { data: log } = await db.from("spot_finds").select("finder_name, note, created_at").eq("spot_id", pl.id).not("note", "is", null).order("created_at", { ascending: false }).limit(30);
+    return json({ there: true, place: { name: pl.place_name, note: pl.body, created_at: pl.created_at, photo_url: await signedPhoto(db, pl.photo) }, cards, logbook: log ?? [] });
+  }
   if (a === "here") {   // memories within 80 m of a point: the place page's list
     const lat = num(b.lat), lng = num(b.lng); if (lat === null || lng === null) return json({ error: "no location" }, 400);
     const d = 0.0012;

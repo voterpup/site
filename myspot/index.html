@@ -83,6 +83,15 @@ select.in{min-height:44px;padding:8px 10px;font-size:14px;width:auto}
 .tent .big{font:700 22px/1.2 Fredoka,sans-serif}
 .tent .small{font:700 14px Nunito;color:#566778}
 @media print{body{background:#fff}.app{padding:0;max-width:none}.noprint{display:none!important}.tent{border:0;min-height:95vh;justify-content:center}}
+.wall{columns:2;column-gap:10px}
+.card{break-inside:avoid;margin:0 0 10px;background:#fffdf7;color:#1d2433;border-radius:6px;padding:8px 8px 10px;box-shadow:0 6px 16px rgba(0,0,0,.28);transform:rotate(-1.2deg);display:flex;flex-direction:column;gap:6px}
+.card:nth-child(2n){transform:rotate(1.1deg)}.card:nth-child(3n){transform:rotate(-0.4deg)}
+.card.paper{background:#fff4c2}.card.paper.b{background:#dff5ea}.card.paper.c{background:#e8ddff}
+.card img{width:100%;border-radius:3px;display:block}
+.card .tx{font:600 15px/1.3 Fredoka,sans-serif;white-space:pre-wrap;padding:4px 2px}
+.card .by{display:flex;align-items:center;gap:6px;font:800 11.5px Nunito;color:#5a6472}.card .by img{width:20px;height:20px;border-radius:50%}
+.card.blur{filter:blur(3px);opacity:.75;pointer-events:none;min-height:90px}
+.card.add{background:transparent;box-shadow:none;transform:none;border:2px dashed var(--line);color:var(--sub);align-items:center;justify-content:center;min-height:90px;text-decoration:none;font-weight:900}
 .sheet{position:fixed;left:0;right:0;bottom:0;z-index:1000;background:var(--card);border-top:1px solid var(--line);border-radius:22px 22px 0 0;padding:16px 16px calc(env(safe-area-inset-bottom,0px) + 18px);max-width:480px;margin:0 auto;display:flex;flex-direction:column;gap:10px;box-shadow:0 -10px 40px rgba(0,0,0,.4)}
 </style>
 </head>
@@ -297,17 +306,25 @@ function place(code, justLeft){
       (justLeft ? notifyBox('my_memory', justLeft, 'Tell me when someone reads it', 'One email when your memory here is opened or gets a note.') : '') + '<a class="btn gold" href="/myspot/?at=' + code + '&leave=1">Leave a memory here</a>' +
       '<div class="map" id="m" style="height:180px"></div>' +
       '<div class="spot"><div class="pinbadge">🏪</div><div class="who">The note at this spot · ' + esc(fmt(s.created_at)) + (s.has_photo ? ' · 📷' : '') + '</div>' + (s.clue ? '<div class="clue">🧭 ' + esc(s.clue) + '</div>' : '') + '<div class="hid">■■■■■ ■■■■■■■ ■■■ ■■■■</div><div class="meta">Opens for anyone standing here' + (s.finds ? ' · opened ' + s.finds + '×' : '') + '</div></div>' +
-      '<button class="btn" id="go">I’m here, open it</button><div class="err hidden" id="e"></div>' +
-      '<div class="box"><div class="k">Memories left at ' + esc(s.place_name || 'this spot') + '</div><div class="list" id="here"><div class="muted">Loading…</div></div></div>' +
+      '<button class="btn" id="go">I’m inside, open the wall</button><div class="err hidden" id="e"></div>' +
+      '<div class="box"><div class="row" style="justify-content:space-between"><div class="k">The wall at ' + esc(s.place_name || 'this spot') + '</div><div class="muted" id="wallnote">opens when you’re inside</div></div><div class="wall" id="wall"></div></div>' +
       (justLeft ? '' : notifyBox('place_new', code, 'Tell me when new memories appear here', 'So the next visit has something new to read.')) + '<div class="row"><button class="btn" id="sh">Share this spot</button><a class="btn" href="' + dirUrl(s.lat, s.lng) + '" target="_blank" rel="noopener">🧭 Directions</a></div>' + (ls('vp.admin') === '1' ? '<a class="btn" href="/myspot/?qr=' + code + '">QR for the counter</a>' : '') +
       '<div class="foot">We read your location only when you tap open. Nothing is tracked.</div>');
     var m = mkMap(document.getElementById('m'), s.lat, s.lng, 17); addPin(m, s.lat, s.lng, 'place'); setTimeout(function(){ m.invalidateSize(); }, 50);
+    function card(x, i){ var by = '<div class="by">' + (x.maker_photo ? '<img src="' + esc(x.maker_photo) + '" alt="">' : '') + esc(x.maker_name || 'Someone') + ' · ' + esc(fmt(x.created_at)) + (x.finds ? ' · ' + x.finds + '×' : '') + '</div>';
+      if (x.photo_url) return '<div class="card"><img src="' + esc(x.photo_url) + '" alt="">' + (x.body ? '<div class="tx">' + esc(x.body) + '</div>' : '') + by + '</div>';
+      return '<div class="card paper ' + ['', 'b', 'c'][i % 3] + '"><div class="tx">' + esc(x.body || '') + '</div>' + by + '</div>'; }
+    function showWall(w){ document.getElementById('wallnote').textContent = w.cards.length + (w.cards.length === 1 ? ' memory' : ' memories');
+      document.getElementById('wall').innerHTML = w.cards.map(card).join('') + '<a class="card add" href="/myspot/?at=' + code + '&leave=1">+ Add yours</a>';
+      var go = document.getElementById('go'); if (go) go.outerHTML = '<div class="spot open"><div class="pinbadge">🏪</div><div class="who">The note at this spot</div>' + (w.place.photo_url ? '<img class="ph" src="' + esc(w.place.photo_url) + '" alt="">' : '') + '<div class="body">' + esc(w.place.note || '') + '</div></div>' +
+        (w.logbook.length ? '<div class="box"><div class="k">Guestbook</div><div class="log">' + w.logbook.map(function(f){ return '<div>' + esc(f.note) + '<small>' + esc(f.finder_name || 'Someone') + ' · ' + esc(fmt(f.created_at)) + '</small></div>'; }).join('') + '</div></div>' : '');
+      var old = document.querySelector('.spot:not(.open)'); if (old) old.remove(); }
     document.getElementById('go').onclick = function(){ var b = this; b.disabled = true; b.textContent = 'Checking where you are…';
-      locate().then(function(p){ return api({ action: 'open', code: code, lat: p.lat, lng: p.lng, acc: p.acc }); }).then(function(r){ track('open_try', { there: !!r.there, d: r.distance_m, place: true }); opened(code, s, r); })
-        .catch(function(e){ var err = document.getElementById('e'); err.textContent = e.message; err.classList.remove('hidden'); b.disabled = false; b.textContent = 'I’m here, open it'; }); };
+      locate().then(function(p){ return api({ action: 'wall', code: code, lat: p.lat, lng: p.lng, acc: p.acc }); }).then(function(w){ track('open_try', { there: !!w.there, d: w.distance_m, place: true }); if (w.there) { showWall(w); track('wall', { n: w.cards.length }); } else hunt(code, s, { distance_m: w.distance_m, bearing_deg: w.bearing_deg }); })
+        .catch(function(e){ var err = document.getElementById('e'); err.textContent = e.message; err.classList.remove('hidden'); b.disabled = false; b.textContent = 'I’m inside, open the wall'; }); };
     var sh = document.getElementById('sh'); if (sh) sh.onclick = function(){ var msg = '📍 ' + (s.place_name || 'Our spot') + ' is on My spot. A note from us that only opens inside, and a guestbook: ' + placeUrl(code); if (navigator.share) navigator.share({ text: msg }).catch(function(){}); else navigator.clipboard.writeText(msg).then(function(){ toast('Place link copied.'); }); };
-    api({ action: 'here', lat: s.lat, lng: s.lng, place_code: code }).then(function(j){ var l = document.getElementById('here'); if (!j.spots.length) { l.innerHTML = '<div class="muted">No memories yet. Yours could be the first.</div>'; return; }
-      l.innerHTML = j.spots.map(function(x){ return '<a class="item" href="/myspot/?d=' + x.code + '"><div style="font-size:20px">' + (x.has_photo ? '📷' : '📝') + '</div><div style="flex:1;min-width:0"><b>' + esc(x.maker_name || 'Someone') + '</b><small>' + esc(fmt(x.created_at)) + (x.clue ? ' · ' + esc(x.clue) : '') + (x.finds ? ' · opened ' + x.finds + '×' : '') + '</small></div></a>'; }).join(''); });
+    api({ action: 'here', lat: s.lat, lng: s.lng, place_code: code }).then(function(j){ var l = document.getElementById('wall'); if (!document.querySelector('.spot.open')) { document.getElementById('wallnote').textContent = j.spots.length ? j.spots.length + ' here · opens when you’re inside' : 'opens when you’re inside';
+      l.innerHTML = (j.spots.length ? j.spots.slice(0, 8).map(function(x, i){ return '<div class="card blur ' + (x.has_photo ? '' : 'paper ' + ['', 'b', 'c'][i % 3]) + '">' + (x.has_photo ? '<div style="height:90px;background:#cfd6dd;border-radius:3px"></div>' : '<div class="tx">■■■■ ■■■■■■ ■■■ ■■■■■ ■■■■</div>') + '<div class="by">' + esc(x.maker_name || 'Someone') + ' · ' + esc(fmt(x.created_at)) + '</div></div>'; }).join('') : '<div class="muted" style="column-span:all">No memories yet. Yours could be the first.</div>') + '<a class="card add" href="/myspot/?at=' + code + '&leave=1">+ Add yours</a>'; } });
     wireNotify(); track('place', { role: s.is_maker ? 'owner' : 'visitor' });
   }).catch(function(){ $(hdr() + '<h2>No spot here.</h2><a class="btn gold" href="/myspot/">Leave one of your own</a>'); });
 }
