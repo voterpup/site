@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>My spot · VoterPup</title>
-<meta name="description" content="Leave a memory at a spot. It opens only when they’re standing there.">
+<meta name="description" content="Memories have places. Let’s add one more.">
 <meta property="og:title" content="📍 A memory is waiting for you at a spot">
 <meta property="og:description" content="Someone left you something at a real place. It opens only when you’re standing there.">
 <meta property="og:image" content="https://voterpup.com/pup-share.jpg">
@@ -197,7 +197,7 @@ function fallbackCentre(){ return LAST_POS || { lat: 49.2827, lng: -123.1207 }; 
 // ---------- home: one screen, three steps ----------
 function home(){
   if (!ME) {
-    $(hdr() + '<div class="k">My spot</div><h1>Leave a memory at a spot. It opens only when they’re standing there.</h1><p class="lead">A note or a photo, buried where you stand. For yourself, for one person, or for anyone who finds it.</p>' +
+    $(hdr() + '<div class="k">My spot</div><h1>Memories have places.</h1><p class="lead" style="font:600 24px/1.2 Fredoka,sans-serif;color:var(--ink)">Let’s add one more.</p>' +
       signinBox('Sign in to leave one') + '<a class="btn" href="/myspot/?map=1">See the map</a>' +
       '<div class="foot">We never track you. We read a location only the moment you leave or open a memory.</div>');
     wireSignin(home); track('open', { mode: 'home', signed: false }); return;
