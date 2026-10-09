@@ -16,6 +16,7 @@
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.min.js"></script>
 <style>
 :root{--bg:#0c1722;--card:#142433;--line:#233a4e;--ink:#eaf2f8;--sub:#9fb4c6;--gold:#f5b83d;--gold2:#ffcd5e;--onGold:#1a1304;--good:#2fd39c;--bad:#ff6b80;--field:#0f1d2a;--pub:#2fd39c;--mine:#f5b83d;--shared:#b48cff;color-scheme:dark}
 @media (prefers-color-scheme: light){:root{--bg:#f6f4ee;--card:#fff;--line:#e2ddd0;--ink:#14202c;--sub:#566778;--gold:#f5b83d;--gold2:#a8740a;--onGold:#1a1304;--good:#12865f;--bad:#c4384f;--field:#efece4;--pub:#12865f;--mine:#d9961a;--shared:#7a4fd6;color-scheme:light}}
@@ -75,6 +76,11 @@ select.in{min-height:44px;padding:8px 10px;font-size:14px;width:auto}
 .hidden{display:none!important}
 .err{color:var(--bad);font-size:14px;font-weight:800}
 #gslot{min-height:44px;display:flex;justify-content:center}
+.tent{background:#fff;color:#14202c;border-radius:0;padding:28px 24px;display:flex;flex-direction:column;align-items:center;gap:14px;text-align:center;border:1px dashed #999}
+.tent h3{font:700 30px/1.1 Fredoka,sans-serif;margin:0}
+.tent .big{font:700 22px/1.2 Fredoka,sans-serif}
+.tent .small{font:700 14px Nunito;color:#566778}
+@media print{body{background:#fff}.app{padding:0;max-width:none}.noprint{display:none!important}.tent{border:0;min-height:95vh;justify-content:center}}
 .sheet{position:fixed;left:0;right:0;bottom:0;z-index:1000;background:var(--card);border-top:1px solid var(--line);border-radius:22px 22px 0 0;padding:16px 16px calc(env(safe-area-inset-bottom,0px) + 18px);max-width:480px;margin:0 auto;display:flex;flex-direction:column;gap:10px;box-shadow:0 -10px 40px rgba(0,0,0,.4)}
 </style>
 </head>
@@ -300,7 +306,7 @@ function mine(){
   api({ action: 'mine' }).then(function(j){ var l = document.getElementById('l'); if (!j.spots.length) { l.innerHTML = '<div class="muted">Nothing left yet.</div>'; return; }
     l.innerHTML = j.spots.map(function(s){ return '<div class="item" style="flex-wrap:wrap"><div style="flex:1;min-width:0"><b>' + (s.has_photo ? '📷 ' : '') + esc((s.body || 'Photo').slice(0, 60)) + ((s.body || '').length > 60 ? '…' : '') + '</b><small>' + esc(fmt(s.created_at)) + ' · found ' + s.finds.length + '×' + (s.clue ? ' · ' + esc(s.clue) : '') + '</small></div>' +
       '<select class="in" data-code="' + s.code + '"><option value="personal"' + (s.visibility === 'personal' ? ' selected' : '') + '>Personal</option><option value="link"' + (s.visibility === 'link' ? ' selected' : '') + '>Private link</option><option value="public"' + (s.visibility === 'public' ? ' selected' : '') + '>Public</option><option value="hidden"' + (s.visibility === 'hidden' ? ' selected' : '') + '>Hidden</option></select>' +
-      '<div style="flex-basis:100%;display:flex;gap:8px;margin-top:4px"><button class="btn sm" data-share="' + s.code + '" style="flex:1">Share</button><a class="btn sm" href="/thatspot/?d=' + s.code + '" style="flex:1">Open</a></div>' +
+      '<div style="flex-basis:100%;display:flex;gap:8px;margin-top:4px"><button class="btn sm" data-share="' + s.code + '" style="flex:1">Share</button><a class="btn sm" href="/thatspot/?d=' + s.code + '" style="flex:1">Open</a><a class="btn sm" href="/thatspot/?qr=' + s.code + '" style="flex:1">QR tent</a></div>' +
       (s.finds.length ? '<div class="log" style="flex-basis:100%;margin-top:6px">' + s.finds.slice(0, 5).map(function(f){ return '<div>' + (f.note ? esc(f.note) : '<i>found it</i>') + '<small>' + esc(f.finder_name || 'Someone') + ' · ' + esc(fmt(f.created_at)) + '</small></div>'; }).join('') + '</div>' : '') + '</div>'; }).join('');
     l.querySelectorAll('select').forEach(function(sel){ sel.onchange = function(){ api({ action: 'toggle', code: sel.dataset.code, visibility: sel.value }).then(function(){ track('toggle', { vis: sel.value }); toast('Now: ' + sel.options[sel.selectedIndex].text); }).catch(function(e){ toast('Could not change: ' + e.message); }); }; });
     l.querySelectorAll('[data-share]').forEach(function(b){ b.onclick = function(){ share(b.dataset.share, '📍 I left a memory for you at a spot. It opens only when you’re standing there:'); }; });
@@ -309,7 +315,19 @@ function mine(){
 }
 
 function boot(){ if (!sb) return Promise.resolve(); return sb.auth.getSession().then(function(r){ SESSION = r.data && r.data.session; return (SESSION || QA_TOKEN) ? api({ action: 'me' }).then(function(j){ ME = j.profile; }).catch(function(){ ME = null; }) : null; }); }
-function route(){ var q = new URLSearchParams(location.search); if (q.get('d')) find(q.get('d').replace(/[^a-z0-9]/g, '')); else if (q.get('mine')) mine(); else if (q.get('map')) mapView(); else home(); }
+function tent(code){
+  $('<div class="noprint">' + hdr() + '</div><div class="muted noprint">Loading…</div>');
+  api({ action: 'peek', code: code }).then(function(s){
+    var q = qrcode(0, 'M'); q.addData(spotUrl(code)); q.make();
+    $('<div class="noprint">' + hdr() + '<div class="row"><button class="btn gold" id="pr">Print</button><a class="btn" href="/thatspot/?mine=1">Back</a></div><div class="muted">Prints as one page. Fold it, or tape it by the till.</div></div>' +
+      '<div class="tent"><div class="small">A NOTE THAT ONLY OPENS HERE</div><h3>' + esc(s.clue || ('A memory from ' + (s.maker_name || 'the owner'))) + '</h3>' +
+      '<img alt="QR code" style="width:260px;height:260px" src="' + q.createDataURL(8, 0) + '">' +
+      '<div class="big">Scan it. It opens because you’re standing here.</div><div class="small">Read the note, then leave your own in the guestbook.<br>voterpup.com/thatspot · no app needed</div></div>');
+    document.getElementById('pr').onclick = function(){ window.print(); };
+    track('tent', {});
+  }).catch(function(){ $(hdr() + '<h2>Nothing here.</h2>'); });
+}
+function route(){ var q = new URLSearchParams(location.search); if (q.get('qr')) tent(q.get('qr').replace(/[^a-z0-9]/g, '')); else if (q.get('d')) find(q.get('d').replace(/[^a-z0-9]/g, '')); else if (q.get('mine')) mine(); else if (q.get('map')) mapView(); else home(); }
 window.__spot = { setQA: function(t){ QA_TOKEN = t; return boot().then(route); } };
 boot().then(route);
 </script>
