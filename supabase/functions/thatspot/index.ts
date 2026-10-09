@@ -33,8 +33,24 @@ async function textOk(body: string): Promise<{ ok: boolean; why?: string }> {
     return { ok: v.ok === true, why: v.why };
   } catch (e) { await logFail("thatspot moderation", e); return { ok: false, why: "checker unavailable" }; }   // fail closed: nothing unchecked gets buried
 }
+const PHOTO_RULES = `You check one photo that a person is leaving at a real-world place for a friend or for strangers to find.
+Block it if it contains ANY of: nudity or sexual content of anyone; any child (anyone who may be under 18) who is unclothed or partly clothed (including swimwear or underwear) or shown in a sexualised or suggestive way; graphic violence, gore or self-harm; hate symbols or hateful text; a readable private address, phone number or ID document.
+Ordinary everyday photos are fine: places, benches, views, pets, food, people fully clothed, handwritten notes.
+Call report_image exactly once.`;
+async function photoOk(db: any, path: string): Promise<boolean> {   // fail closed
+  try {
+    const { data: su } = await db.storage.from("media").createSignedUrl(path, 120); if (!su?.signedUrl) return false;
+    const anthropic = new Anthropic({ apiKey: Deno.env.get("ANTHROPIC_API_KEY")! });
+    const r = await anthropic.messages.create({ model: "claude-haiku-4-5-20251001", max_tokens: 200, system: PHOTO_RULES,
+      tools: [{ name: "report_image", description: "Report the verdict.", input_schema: { type: "object", properties: { verdict: { type: "string", enum: ["ok", "block"] }, reason: { type: "string" } }, required: ["verdict", "reason"] } }],
+      messages: [{ role: "user", content: [{ type: "image", source: { type: "url", url: su.signedUrl } }, { type: "text", text: "Check this photo and call report_image." }] }] } as any);
+    if (r.stop_reason === "refusal") return false;
+    const call = r.content.find((x: any) => x.type === "tool_use") as any; return call?.input?.verdict === "ok";
+  } catch (e) { await logFail("thatspot photo check", e); return false; }
+}
+async function signedPhoto(db: any, path: string | null) { if (!path) return null; const { data } = await db.storage.from("media").createSignedUrl(path, 3600); return data?.signedUrl ?? null; }
 function pubSpot(s: any, extra: Record<string, unknown> = {}) {
-  return { code: s.code, clue: s.clue, visibility: s.visibility, opens_at: s.opens_at, created_at: s.created_at, radius_m: s.radius_m, maker_name: s.spot_profiles?.name ?? null, maker_photo: s.spot_profiles?.photo ?? null, ...extra };
+  return { code: s.code, clue: s.clue, visibility: s.visibility, opens_at: s.opens_at, created_at: s.created_at, radius_m: s.radius_m, has_photo: !!s.photo, maker_name: s.spot_profiles?.name ?? null, maker_photo: s.spot_profiles?.photo ?? null, ...extra };
 }
 
 Deno.serve(async (req) => {
@@ -79,14 +95,22 @@ Deno.serve(async (req) => {
   if (a === "bury") {
     const p = await profile(); if (!p) return json({ error: "sign in" }, 401);
     const lat = num(b.lat), lng = num(b.lng), body = clean(b.body, 600), clue = clean(b.clue, 140) || null;
-    const vis = ["link", "public"].includes(b.visibility) ? b.visibility : "link";
+    const vis = ["personal", "link", "public"].includes(b.visibility) ? b.visibility : "link";
     if (lat === null || lng === null || Math.abs(lat) > 90 || Math.abs(lng) > 180) return json({ error: "no location" }, 400);
-    if (!body) return json({ error: "missing" }, 400);
+    if (!body && !(typeof b.photo_b64 === "string" && b.photo_b64.length)) return json({ error: "missing" }, 400);
     let opens: string | null = null;
     if (b.opens_at) { const t = new Date(b.opens_at); if (isNaN(t.getTime())) return json({ error: "bad time" }, 400); opens = t.toISOString(); }
     const chk = await textOk(body + (clue ? "\n" + clue : "")); if (!chk.ok) return json({ error: "That didn't pass our safety check" + (chk.why ? " (" + chk.why + ")" : "") }, 422);
     const c = code();
-    const { error } = await db.from("spots").insert({ code: c, maker: user.id, lat, lng, body, clue, visibility: vis, opens_at: opens, src: clean(b.src, 24) || null });
+    let photoPath: string | null = null;
+    if (typeof b.photo_b64 === "string" && b.photo_b64.length) {
+      const m = b.photo_b64.match(/^data:image\/jpeg;base64,([A-Za-z0-9+/=]+)$/); if (!m || m[1].length > 2_200_000) return json({ error: "photo too big" }, 413);
+      const bytes = Uint8Array.from(atob(m[1]), (ch) => ch.charCodeAt(0)); photoPath = "spots/" + c + ".jpg";
+      const up = await db.storage.from("media").upload(photoPath, bytes, { contentType: "image/jpeg", upsert: false });
+      if (up.error) { await logFail("thatspot upload", up.error); return json({ error: "photo upload failed" }, 500); }
+      if (!(await photoOk(db, photoPath))) { await db.storage.from("media").remove([photoPath]); return json({ error: "That photo didn't pass our safety check" }, 422); }
+    }
+    const { error } = await db.from("spots").insert({ code: c, maker: user.id, lat, lng, body, clue, photo: photoPath, visibility: vis, opens_at: opens, src: clean(b.src, 24) || null });
     if (error) { await logFail("thatspot bury", error); return json({ error: "db: " + error.message }, 500); }
     return json({ code: c });
   }
@@ -113,6 +137,20 @@ Deno.serve(async (req) => {
     return json({ spots: list });
   }
 
+  if (a === "map") {
+    const s0 = num(b.south), w0 = num(b.west), n0 = num(b.north), e0 = num(b.east); if ([s0, w0, n0, e0].some((v) => v === null)) return json({ error: "no bounds" }, 400);
+    const now = Date.now(), pin = (s: any, kind: string) => ({ code: s.code, lat: s.lat, lng: s.lng, kind, clue: s.clue, has_photo: !!s.photo, visibility: s.visibility, finds: (s.spot_finds ?? []).length, maker_name: s.spot_profiles?.name ?? null, created_at: s.created_at, sealed: !!(s.opens_at && new Date(s.opens_at).getTime() > now) });
+    const q = () => db.from("spots").select("*, spot_profiles(name), spot_finds(id)").gte("lat", s0!).lte("lat", n0!).gte("lng", w0!).lte("lng", e0!).limit(300);
+    const { data: pub } = await q().eq("visibility", "public");
+    let mine: any[] = [], shared: any[] = [];
+    if (user) { mine = (await q().eq("maker", user.id)).data ?? []; shared = (await q().eq("bound_uid", user.id).neq("visibility", "hidden")).data ?? []; }
+    const seen = new Set<string>(), out: any[] = [];
+    for (const s of mine) { seen.add(s.code); out.push(pin(s, "mine")); }
+    for (const s of shared) if (!seen.has(s.code)) { seen.add(s.code); out.push(pin(s, "shared")); }
+    for (const s of pub ?? []) if (!seen.has(s.code)) { seen.add(s.code); out.push(pin(s, "public")); }
+    return json({ pins: out, counts: { public: (pub ?? []).length, mine: mine.length, shared: shared.length } });
+  }
+
   const c = clean(b.code, 12).replace(/[^a-z0-9]/g, "");
   const { data: s } = c ? await db.from("spots").select("*, spot_profiles(name, photo)").eq("code", c).maybeSingle() : { data: null };
   if (!s) return json({ error: "not found" }, 404);
@@ -120,14 +158,19 @@ Deno.serve(async (req) => {
 
   if (a === "toggle") {
     if (!isMaker) return json({ error: "not yours" }, 403);
-    const vis = ["link", "public", "hidden"].includes(b.visibility) ? b.visibility : null; if (!vis) return json({ error: "bad visibility" }, 400);
+    const vis = ["personal", "link", "public", "hidden"].includes(b.visibility) ? b.visibility : null; if (!vis) return json({ error: "bad visibility" }, 400);
     await db.from("spots").update({ visibility: vis }).eq("id", s.id); return json({ ok: true, visibility: vis });
   }
-  if (s.visibility === "hidden" && !isMaker) return json({ error: "not found" }, 404);
+  if ((s.visibility === "hidden" || s.visibility === "personal") && !isMaker) return json({ error: "not found" }, 404);
+  if (s.visibility === "link" && !isMaker) {
+    if (!user) return json({ error: "sign in", need_signin: true, maker_name: s.spot_profiles?.name ?? null, maker_photo: s.spot_profiles?.photo ?? null }, 401);
+    if (!s.bound_uid) { await db.from("spots").update({ bound_uid: user.id }).eq("id", s.id); s.bound_uid = user.id; }
+    else if (s.bound_uid !== user.id) return json({ error: "This one was buried for someone else" }, 403);
+  }
 
   if (a === "peek") {
     const { count } = await db.from("spot_finds").select("id", { count: "exact", head: true }).eq("spot_id", s.id);
-    return json(pubSpot(s, { finds: count ?? 0, is_maker: isMaker, bound: !!s.bound_uid, mine_bound: !!user && s.bound_uid === user.id }));
+    return json(pubSpot(s, { lat: s.lat, lng: s.lng, finds: count ?? 0, is_maker: isMaker, bound: !!s.bound_uid, mine_bound: !!user && s.bound_uid === user.id }));
   }
 
   // open and reply both need the finder to be standing there
@@ -136,10 +179,6 @@ Deno.serve(async (req) => {
   const dist = metres(lat, lng, s.lat, s.lng), there = isMaker || dist <= s.radius_m + acc;
   if (a === "open") {
     if (s.opens_at && new Date(s.opens_at).getTime() > Date.now()) return json({ sealed: true, opens_at: s.opens_at, distance_m: Math.round(dist) });
-    if (s.visibility === "link" && user && !isMaker) {
-      if (!s.bound_uid) await db.from("spots").update({ bound_uid: user.id }).eq("id", s.id);
-      else if (s.bound_uid !== user.id) return json({ error: "This one was buried for someone else" }, 403);
-    }
     if (!there) return json({ there: false, distance_m: Math.round(dist), bearing_deg: Math.round(bearing(lat, lng, s.lat, s.lng)) });
     if (!isMaker) {
       const p = user ? await profile() : null;
@@ -147,7 +186,7 @@ Deno.serve(async (req) => {
       if (!(already ?? []).length) await db.from("spot_finds").insert({ spot_id: s.id, finder_uid: user?.id ?? null, finder_name: p?.name ?? null, lat, lng });
     }
     const { data: finds } = await db.from("spot_finds").select("finder_name, note, created_at").eq("spot_id", s.id).order("created_at", { ascending: false }).limit(50);
-    return json({ there: true, distance_m: Math.round(dist), body: s.body, buried_at: s.created_at, maker_name: s.spot_profiles?.name ?? null, maker_photo: s.spot_profiles?.photo ?? null, logbook: finds ?? [], is_maker: isMaker });
+    return json({ there: true, distance_m: Math.round(dist), body: s.body, photo_url: await signedPhoto(db, s.photo), buried_at: s.created_at, maker_name: s.spot_profiles?.name ?? null, maker_photo: s.spot_profiles?.photo ?? null, logbook: finds ?? [], is_maker: isMaker });
   }
   if (a === "reply") {
     const p = await profile(); if (!p) return json({ error: "sign in" }, 401);

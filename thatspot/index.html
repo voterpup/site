@@ -4,53 +4,68 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>That spot · VoterPup</title>
-<meta name="description" content="Leave something at a spot. It opens only when they’re standing there.">
-<meta property="og:title" content="📍 Something is buried here for you">
-<meta property="og:description" content="Someone left you a message at a real spot. It opens only when you’re standing there.">
+<meta name="description" content="Leave a memory at a spot. It opens only when they’re standing there.">
+<meta property="og:title" content="📍 A memory is waiting for you at a spot">
+<meta property="og:description" content="Someone left you something at a real place. It opens only when you’re standing there.">
 <meta property="og:image" content="https://voterpup.com/pup-share.jpg">
 <meta property="og:url" content="https://voterpup.com/thatspot/">
 <meta name="theme-color" content="#0c1722">
 <link rel="icon" href="/favicon.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Nunito:wght@600;700;800;900&display=swap">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
-:root{--bg:#0c1722;--card:#142433;--line:#233a4e;--ink:#eaf2f8;--sub:#9fb4c6;--gold:#f5b83d;--gold2:#ffcd5e;--onGold:#1a1304;--good:#2fd39c;--bad:#ff6b80;--field:#0f1d2a;color-scheme:dark}
-@media (prefers-color-scheme: light){:root{--bg:#f6f4ee;--card:#fff;--line:#e2ddd0;--ink:#14202c;--sub:#566778;--gold:#f5b83d;--gold2:#a8740a;--onGold:#1a1304;--good:#12865f;--bad:#c4384f;--field:#efece4;color-scheme:light}}
+:root{--bg:#0c1722;--card:#142433;--line:#233a4e;--ink:#eaf2f8;--sub:#9fb4c6;--gold:#f5b83d;--gold2:#ffcd5e;--onGold:#1a1304;--good:#2fd39c;--bad:#ff6b80;--field:#0f1d2a;--pub:#2fd39c;--mine:#f5b83d;--shared:#b48cff;color-scheme:dark}
+@media (prefers-color-scheme: light){:root{--bg:#f6f4ee;--card:#fff;--line:#e2ddd0;--ink:#14202c;--sub:#566778;--gold:#f5b83d;--gold2:#a8740a;--onGold:#1a1304;--good:#12865f;--bad:#c4384f;--field:#efece4;--pub:#12865f;--mine:#d9961a;--shared:#7a4fd6;color-scheme:light}}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 html,body{margin:0;min-height:100%;background:var(--bg);color:var(--ink);font:600 17px/1.45 Nunito,system-ui,sans-serif}
 button,input,textarea,select{font:inherit;color:inherit}
-.app{max-width:480px;margin:0 auto;padding:calc(env(safe-area-inset-top,0px) + 14px) 16px calc(env(safe-area-inset-bottom,0px) + 24px);display:flex;flex-direction:column;gap:14px}
+.app{max-width:480px;margin:0 auto;padding:calc(env(safe-area-inset-top,0px) + 12px) 16px calc(env(safe-area-inset-bottom,0px) + 24px);display:flex;flex-direction:column;gap:12px}
 .top{display:flex;justify-content:space-between;align-items:center;min-height:40px;gap:8px}
 .logo{font:700 21px Fredoka,sans-serif;color:var(--gold);text-decoration:none}
-.lnk{font:800 14px Nunito;color:var(--sub);text-decoration:none;min-height:44px;display:inline-flex;align-items:center;padding:0 6px;background:none;border:0;cursor:pointer}
-.me{display:flex;align-items:center;gap:8px}.me img{width:30px;height:30px;border-radius:50%;object-fit:cover;border:2px solid var(--gold)}
-h1{font:600 34px/1.08 Fredoka,sans-serif;margin:0;text-wrap:balance}
-h2{font:600 25px/1.15 Fredoka,sans-serif;margin:0;text-wrap:balance}
+.lnk{font:800 14px Nunito;color:var(--sub);text-decoration:none;min-height:44px;display:inline-flex;align-items:center;padding:0 8px;background:none;border:0;cursor:pointer}
+.me{display:flex;align-items:center;gap:4px}.me img{width:30px;height:30px;border-radius:50%;object-fit:cover;border:2px solid var(--gold)}
+h1{font:600 32px/1.08 Fredoka,sans-serif;margin:0;text-wrap:balance}
+h2{font:600 24px/1.15 Fredoka,sans-serif;margin:0;text-wrap:balance}
 .lead{color:var(--sub);margin:0}
 .k{font:900 12.5px Nunito;letter-spacing:.1em;text-transform:uppercase;color:var(--gold2)}
 .btn{display:flex;align-items:center;justify-content:center;gap:8px;min-height:52px;border-radius:16px;border:1.5px solid var(--line);background:transparent;font-weight:900;font-size:16.5px;padding:12px 16px;text-decoration:none;color:var(--ink);cursor:pointer;width:100%}
 .btn.gold{background:var(--gold);border-color:var(--gold);color:var(--onGold)}
+.btn.sm{min-height:44px;font-size:14px;padding:8px 12px;width:auto}
 .btn:disabled{opacity:.5}
-.box{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:16px;display:flex;flex-direction:column;gap:10px}
+.box{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:14px;display:flex;flex-direction:column;gap:10px}
+.step{display:flex;gap:12px;align-items:flex-start}
+.step .n{width:30px;height:30px;border-radius:50%;background:var(--gold);color:var(--onGold);display:grid;place-items:center;font:900 15px Nunito;flex:none;margin-top:2px}
+.step .n.done{background:var(--good);color:#05261c}
+.step>div:last-child{flex:1;min-width:0;display:flex;flex-direction:column;gap:8px}
+.step .t{font-weight:900;font-size:16px}
 .muted{color:var(--sub);font-size:14px}
 .foot{font-size:12.5px;color:var(--sub);text-align:center}
-label.l{font:900 12.5px Nunito;letter-spacing:.08em;text-transform:uppercase;color:var(--sub)}
-.in{width:100%;background:var(--field);border:1.5px solid var(--line);border-radius:14px;padding:13px;font-size:17px;font-weight:700;outline:none;min-height:52px}
+.in{width:100%;background:var(--field);border:1.5px solid var(--line);border-radius:14px;padding:12px;font-size:16.5px;font-weight:700;outline:none;min-height:50px}
 .in:focus{border-color:var(--gold)}
-textarea.in{min-height:110px;resize:vertical;line-height:1.35}
+textarea.in{min-height:96px;resize:vertical;line-height:1.35}
 .seg{display:flex;background:var(--field);border:1px solid var(--line);border-radius:14px;padding:4px;gap:4px}
-.seg button{flex:1;border:0;background:transparent;border-radius:11px;min-height:44px;font-weight:900;font-size:14px;color:var(--sub);cursor:pointer;padding:6px}
+.seg button{flex:1;border:0;background:transparent;border-radius:11px;min-height:44px;font-weight:900;font-size:13.5px;color:var(--sub);cursor:pointer;padding:6px 4px}
 .seg button.on{background:var(--ink);color:var(--bg)}
-.row{display:flex;gap:10px}.row>*{flex:1;min-width:0}
-.spot{position:relative;border-radius:22px;padding:22px 18px 18px;background:linear-gradient(160deg,#1d3550,#0c1722);border:1px solid #2a4258;color:#eaf2f8;display:flex;flex-direction:column;gap:10px}
+.row{display:flex;gap:10px;align-items:center}
+.thumb{width:72px;height:72px;border-radius:12px;object-fit:cover;border:1.5px solid var(--line)}
+.map{width:100%;height:200px;border-radius:14px;border:1px solid var(--line);background:#0f1d2a}
+.map.big{height:calc(100vh - 230px);min-height:380px}
+.leaflet-container{font:inherit}
+.pin{width:18px;height:18px;border-radius:50% 50% 50% 0;transform:rotate(-45deg);border:2px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,.4)}
+.pin.public{background:var(--pub)}.pin.mine{background:var(--mine)}.pin.shared{background:var(--shared)}.pin.here{background:#4ea3ff;border-radius:50%;transform:none;width:16px;height:16px}
+.counts{display:flex;gap:8px;flex-wrap:wrap}.counts span{display:inline-flex;align-items:center;gap:6px;font:800 13px Nunito;color:var(--sub)}.counts i{width:10px;height:10px;border-radius:50%;display:inline-block}
+.spot{position:relative;border-radius:22px;padding:20px 18px 16px;background:linear-gradient(160deg,#1d3550,#0c1722);border:1px solid #2a4258;color:#eaf2f8;display:flex;flex-direction:column;gap:10px}
 .spot.open{background:linear-gradient(160deg,#1f5a46,#0c1722);border-color:#2fd39c}
 .spot .who{display:flex;align-items:center;gap:9px;font:800 13.5px Nunito;color:#b8cad8}.spot .who img{width:34px;height:34px;border-radius:50%;object-fit:cover;border:2px solid #f5b83d}
-.spot .pin{position:absolute;right:16px;top:14px;width:44px;height:44px;border-radius:50%;background:#f5b83d;display:grid;place-items:center;font-size:20px}
-.spot .body{font:600 23px/1.25 Fredoka,sans-serif;text-wrap:balance;white-space:pre-wrap}
-.spot .hid{font:600 23px/1.25 Fredoka,sans-serif;letter-spacing:.14em;color:#4b657d;filter:blur(2px);user-select:none}
-.spot .clue{font:700 15px/1.4 Nunito;color:#eaf2f8;background:rgba(255,255,255,.06);border-radius:12px;padding:10px 12px}
+.spot .pinbadge{position:absolute;right:16px;top:14px;width:44px;height:44px;border-radius:50%;background:#f5b83d;display:grid;place-items:center;font-size:20px}
+.spot .body{font:600 22px/1.25 Fredoka,sans-serif;text-wrap:balance;white-space:pre-wrap}
+.spot .hid{font:600 22px/1.25 Fredoka,sans-serif;letter-spacing:.14em;color:#4b657d;filter:blur(2px);user-select:none}
+.spot .clue{font:700 15px/1.4 Nunito;background:rgba(255,255,255,.06);border-radius:12px;padding:10px 12px}
 .spot .meta{font:900 12.5px Nunito;letter-spacing:.08em;text-transform:uppercase;color:#ffcd5e}
+.spot img.ph{width:100%;border-radius:14px;max-height:360px;object-fit:cover}
 .dist{font:600 44px/1 Fredoka,sans-serif}
 .log{display:flex;flex-direction:column;gap:8px}.log div{background:var(--field);border-radius:12px;padding:10px 12px;font-size:14.5px}.log small{display:block;color:var(--sub);font-size:12px}
 .list{display:flex;flex-direction:column;gap:8px}
@@ -60,17 +75,19 @@ select.in{min-height:44px;padding:8px 10px;font-size:14px;width:auto}
 .hidden{display:none!important}
 .err{color:var(--bad);font-size:14px;font-weight:800}
 #gslot{min-height:44px;display:flex;justify-content:center}
+.sheet{position:fixed;left:0;right:0;bottom:0;z-index:1000;background:var(--card);border-top:1px solid var(--line);border-radius:22px 22px 0 0;padding:16px 16px calc(env(safe-area-inset-bottom,0px) + 18px);max-width:480px;margin:0 auto;display:flex;flex-direction:column;gap:10px;box-shadow:0 -10px 40px rgba(0,0,0,.4)}
 </style>
 </head>
 <body>
 <div class="app" id="app"></div>
 <script>
-// That spot: bury a message where you stand; it opens only for someone standing there. Makers sign in with Google; finding needs nothing.
+// That spot: leave a memory (text or photo) where you stand; it opens only for someone standing there. Makers sign in with Google.
+// Map: public memories (green), yours (gold), shared with you (purple). A shared link needs Google sign-in, then zooms to the pin.
 var SB_URL = 'https://setyjmgijsbplgyqynlh.supabase.co', KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNldHlqbWdpanNicGxneXF5bmxoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTA1NDU0NTAsImV4cCI6MjEwNjEyMTQ1MH0.v8tjuc2UZrTw5whfDXtpEPW4CHggusgjq8Mkdh6ZMw8';
 var GOOGLE_CLIENT_ID = '1084138810740-b2p2ln24ulfnrkb8mofppeist551u8bm.apps.googleusercontent.com';
 var sb = null; try { sb = supabase.createClient(SB_URL, KEY, { auth: { persistSession: true } }); } catch (e) {}
-var app = document.getElementById('app'), ME = null, SESSION = null;
-function $(h){ app.innerHTML = h; window.scrollTo(0, 0); }
+var app = document.getElementById('app'), ME = null, SESSION = null, QA_TOKEN = null, LAST_POS = null;
+function $(h){ stopHunt(); app.innerHTML = h; window.scrollTo(0, 0); }
 function esc(s){ var d = document.createElement('div'); d.textContent = s == null ? '' : s; return d.innerHTML; }
 function ls(k, v){ try { if (v === undefined) return localStorage.getItem(k); localStorage.setItem(k, v); } catch (e) { return null; } }
 function devId(){ var d = ls('vp.dev'); if (!d) { d = Array.from(crypto.getRandomValues(new Uint8Array(8))).map(function(b){ return b.toString(16).padStart(2, '0'); }).join(''); ls('vp.dev', d); } return d || 'nostorage'; }
@@ -81,22 +98,21 @@ function track(step, meta){
   var m = meta || {}; m.step = step;
   fetch(SB_URL + '/rest/v1/rpc/vp_track', { method: 'POST', headers: { 'Content-Type': 'application/json', apikey: KEY, Authorization: 'Bearer ' + KEY }, body: JSON.stringify({ p_dev: devId(), p_event: 'spot', p_tail: null, p_src: src(), p_meta: m }) }).catch(function(){});
 }
-var QA_TOKEN = null;   // headless QA only: a token minted by the function's qa action, set from the test script
 function api(body){
   var tok = QA_TOKEN || (SESSION && SESSION.access_token) || KEY;
   return fetch(SB_URL + '/functions/v1/thatspot', { method: 'POST', headers: { 'Content-Type': 'application/json', apikey: KEY, Authorization: 'Bearer ' + tok }, body: JSON.stringify(body) })
-    .then(function(r){ return r.json().then(function(j){ if (!r.ok) throw new Error(j.error || r.status); return j; }); });
+    .then(function(r){ return r.json().then(function(j){ if (!r.ok) { var e = new Error(j.error || r.status); e.data = j; throw e; } return j; }); });
 }
-function locate(){ return new Promise(function(res, rej){ if (!navigator.geolocation) return rej(new Error('No location on this device')); navigator.geolocation.getCurrentPosition(function(p){ res({ lat: p.coords.latitude, lng: p.coords.longitude, acc: p.coords.accuracy }); }, function(e){ rej(new Error(e.code === 1 ? 'Location permission was denied. Allow it for voterpup.com and try again.' : 'Could not get your location. Try outside, or wait a moment.')); }, { enableHighAccuracy: true, timeout: 20000, maximumAge: 15000 }); }); }
+function locate(){ return new Promise(function(res, rej){ if (!navigator.geolocation) return rej(new Error('No location on this device')); navigator.geolocation.getCurrentPosition(function(p){ LAST_POS = { lat: p.coords.latitude, lng: p.coords.longitude, acc: p.coords.accuracy }; res(LAST_POS); }, function(e){ rej(new Error(e.code === 1 ? 'Location permission was denied. Allow it for voterpup.com and try again.' : 'Could not get your location. Try outside, or wait a moment.')); }, { enableHighAccuracy: true, timeout: 20000, maximumAge: 15000 }); }); }
 function fmt(iso){ return new Date(iso).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' }); }
 function fmtWhen(iso){ return new Date(iso).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }); }
 function km(m){ return m < 1000 ? m + ' m' : (m / 1000).toFixed(1) + ' km'; }
 function spotUrl(code){ return 'https://voterpup.com/thatspot/?d=' + code; }
-function toast(t){ var e = document.getElementById('toast'); if (!e) { e = document.createElement('div'); e.id = 'toast'; e.style.cssText = 'position:fixed;left:50%;bottom:28px;transform:translateX(-50%);background:#eaf2f8;color:#0c1722;padding:12px 16px;border-radius:999px;font:800 14px Nunito;z-index:9;max-width:90%'; document.body.appendChild(e); } e.textContent = t; e.style.display = 'block'; clearTimeout(e._t); e._t = setTimeout(function(){ e.style.display = 'none'; }, 2800); }
-function share(code, text){ var msg = text + ' ' + spotUrl(code); if (navigator.share) { navigator.share({ text: msg }).then(function(){ track('share', { how: 'share' }); }).catch(function(){}); return; } navigator.clipboard.writeText(msg).then(function(){ toast('Copied. Paste it to them.'); track('share', { how: 'copy' }); }).catch(function(){ prompt('Copy this', msg); }); }
-function hdr(){ return '<div class="top"><a class="logo" href="/thatspot/">That spot</a><div class="me">' + (ME ? (ME.photo ? '<img src="' + esc(ME.photo) + '" alt="">' : '') + '<a class="lnk" href="/thatspot/?mine=1">Mine</a>' : '<a class="lnk" href="/thatspot/?near=1">Near me</a>') + '</div></div>'; }
+function toast(t){ var e = document.getElementById('toast'); if (!e) { e = document.createElement('div'); e.id = 'toast'; e.style.cssText = 'position:fixed;left:50%;bottom:28px;transform:translateX(-50%);background:#eaf2f8;color:#0c1722;padding:12px 16px;border-radius:999px;font:800 14px Nunito;z-index:2000;max-width:90%'; document.body.appendChild(e); } e.textContent = t; e.style.display = 'block'; clearTimeout(e._t); e._t = setTimeout(function(){ e.style.display = 'none'; }, 2800); }
+function share(code, text){ var msg = text + ' ' + spotUrl(code); if (navigator.share) { navigator.share({ text: msg }).then(function(){ track('share', { how: 'share' }); }).catch(function(){}); return; } navigator.clipboard.writeText(msg).then(function(){ toast('Link copied. Paste it to them.'); track('share', { how: 'copy' }); }).catch(function(){ prompt('Copy this', msg); }); }
+function hdr(){ return '<div class="top"><a class="logo" href="/thatspot/">That spot</a><div class="me"><a class="lnk" href="/thatspot/?map=1">Map</a>' + (ME ? '<a class="lnk" href="/thatspot/?mine=1">Mine</a>' + (ME.photo ? '<img src="' + esc(ME.photo) + '" alt="">' : '') : '') + '</div></div>'; }
 
-// ---------- Google sign-in (same mechanism as the main app: Google Identity button -> Supabase id-token session) ----------
+// ---------- Google sign-in (Google Identity button -> Supabase id-token session; same client as the main app) ----------
 var _gis = null;
 function loadGIS(){ if (_gis) return _gis; _gis = new Promise(function(res, rej){ var s = document.createElement('script'); s.src = 'https://accounts.google.com/gsi/client'; s.async = true; s.onload = res; s.onerror = function(){ rej(new Error('could not load Google sign-in')); }; document.head.appendChild(s); }); return _gis; }
 function sha256hex(str){ return crypto.subtle.digest('SHA-256', new TextEncoder().encode(str)).then(function(buf){ return Array.prototype.map.call(new Uint8Array(buf), function(b){ return ('0' + b.toString(16)).slice(-2); }).join(''); }); }
@@ -113,89 +129,148 @@ function googleButton(slot, after){
     slot.innerHTML = ''; google.accounts.id.renderButton(slot, { theme: 'outline', size: 'large', text: 'continue_with', shape: 'pill', width: 280 });
   }).catch(function(e){ slot.innerHTML = '<p class="err">' + esc(e.message) + '</p>'; });
 }
-function signinBox(why){ return '<div class="box" id="signin"><div style="font-weight:900">' + esc(why || 'Sign in to bury one') + '</div><div class="muted">A quick profile from your Google account: your name and photo, so people know who buried it. Finding needs no account.</div><div id="gslot"></div></div>'; }
+function signinBox(why, sub){ return '<div class="box" id="signin"><div style="font-weight:900">' + esc(why || 'Sign in with Google') + '</div><div class="muted">' + esc(sub || 'A quick profile from your Google account: your name and photo, so people know who left it.') + '</div><div id="gslot"></div></div>'; }
 function wireSignin(after){ var s = document.getElementById('gslot'); if (s) googleButton(s, after); }
 
-// ---------- home: bury where you stand ----------
+// ---------- map helpers (Leaflet + OpenStreetMap tiles) ----------
+function mkMap(el, lat, lng, zoom){ var m = L.map(el, { zoomControl: false, attributionControl: true }).setView([lat, lng], zoom || 15); L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19, attribution: '© OpenStreetMap' }).addTo(m); return m; }
+function pinIcon(kind){ return L.divIcon({ className: '', html: '<div class="pin ' + kind + '"></div>', iconSize: [18, 18], iconAnchor: [9, 18] }); }
+function addPin(map, lat, lng, kind){ return L.marker([lat, lng], { icon: pinIcon(kind) }).addTo(map); }
+function fallbackCentre(){ return LAST_POS || { lat: 49.2827, lng: -123.1207 }; }
+
+// ---------- home: one screen, three steps ----------
 function home(){
   if (!ME) {
-    $(hdr() + '<div class="k">That spot</div><h1>Leave something at a spot. It opens only when they’re standing there.</h1><p class="lead">A message for one person, or for anyone who finds it. You bury it where you stand. The pup keeps it until someone is there.</p>' +
-      signinBox('Sign in to bury one') + '<a class="btn" href="/thatspot/?near=1">Find what’s buried near me</a>' +
-      '<div class="foot">We never track you. We learn a location only the moment you bury or open something.</div>');
+    $(hdr() + '<div class="k">That spot</div><h1>Leave a memory at a spot. It opens only when they’re standing there.</h1><p class="lead">A note or a photo, buried where you stand. For yourself, for one person, or for anyone who finds it.</p>' +
+      signinBox('Sign in to leave one') + '<a class="btn" href="/thatspot/?map=1">See the map</a>' +
+      '<div class="foot">We never track you. We read a location only the moment you leave or open a memory.</div>');
     wireSignin(home); track('open', { mode: 'home', signed: false }); return;
   }
-  $(hdr() + '<div class="k">Bury it where you stand</div><h1>What should they find here?</h1>' +
-    '<div class="box"><div class="row" style="align-items:center"><div class="muted" id="where">Getting your spot…</div><button class="btn" id="relocate" style="flex:0 0 auto;width:auto;min-height:44px;padding:8px 14px;font-size:14px">Use where I am</button></div>' +
-    '<label class="l" for="t">The message</label><textarea id="t" class="in" maxlength="600" placeholder="Remember this bench? Sit for a minute. Then look under the left armrest."></textarea>' +
-    '<label class="l" for="c">How to find the exact spot (optional)</label><input id="c" class="in" maxlength="140" placeholder="The bench facing the water, third from the pier">' +
-    '<label class="l">Who can open it</label><div class="seg" id="vis"><button type="button" class="on" data-v="link">The person I send the link to</button><button type="button" data-v="public">Anyone who stands here</button></div>' +
-    '<label class="l" for="o">Not before (optional)</label><input id="o" type="datetime-local" class="in">' +
-    '<div class="err hidden" id="e"></div><button class="btn gold" id="go" disabled>Bury it</button></div>' +
-    '<div class="foot">Checked before anyone can open it. No notes at private homes. You can hide or reopen it any time from Mine.</div>');
-  var pos = null, vis = 'link';
-  function getPos(){ document.getElementById('where').textContent = 'Getting your spot…'; document.getElementById('go').disabled = true;
-    locate().then(function(p){ pos = p; document.getElementById('where').textContent = 'Spot set (±' + Math.round(p.acc) + ' m).' + (p.acc > 60 ? ' Weak signal; try outside.' : ''); document.getElementById('go').disabled = false; })
-      .catch(function(e){ document.getElementById('where').textContent = e.message; }); }
-  getPos(); document.getElementById('relocate').onclick = getPos;
-  document.getElementById('vis').onclick = function(ev){ var b = ev.target.closest('button'); if (!b) return; vis = b.dataset.v; app.querySelectorAll('#vis button').forEach(function(x){ x.classList.toggle('on', x === b); }); };
+  var st = { photo: null, pos: null, vis: 'link', map: null, marker: null };
+  $(hdr() + '<h1>Leave a memory here.</h1>' +
+    '<div class="box"><div class="step"><div class="n" id="n1">1</div><div><div class="t">Write it, or snap a picture</div>' +
+      '<textarea id="t" class="in" maxlength="600" placeholder="Remember this bench? Sit for a minute."></textarea>' +
+      '<div class="row"><label class="btn sm" for="ph" style="cursor:pointer">📷 Snap a picture</label><input id="ph" type="file" accept="image/*" capture="environment" class="hidden"><img id="thumb" class="thumb hidden" alt=""><button class="lnk hidden" id="unph">Remove</button></div></div></div></div>' +
+    '<div class="box"><div class="step"><div class="n" id="n2">2</div><div><div class="t">Place it where you stand</div><button class="btn sm" id="loc">Allow location</button><div class="muted" id="where">Your spot goes on the map once you allow it.</div><div class="map hidden" id="mini"></div></div></div></div>' +
+    '<div class="box"><div class="step"><div class="n" id="n3">3</div><div><div class="t">Who can find it</div>' +
+      '<div class="seg" id="vis"><button type="button" data-v="personal">Personal</button><button type="button" class="on" data-v="link">Private link</button><button type="button" data-v="public">Public</button></div>' +
+      '<div class="muted" id="visnote">Only the person you send the link to. They sign in with Google and see the spot on the map.</div>' +
+      '<input id="c" class="in" maxlength="140" placeholder="Clue for the exact spot (optional)">' +
+      '<div class="err hidden" id="e"></div><button class="btn gold" id="go" disabled>Leave it here</button></div></div></div>' +
+    '<div class="foot">Checked before anyone can open it. No memories at private homes. Change who can see it any time from Mine.</div>');
+  var notes = { personal: 'Only you. It shows on your map; you open it by standing there.', link: 'Only the person you send the link to. They sign in with Google and see the spot on the map.', public: 'Anyone. It shows on everyone’s map; it opens for whoever stands there.' };
+  function ready(){ document.getElementById('go').disabled = !(st.pos && (st.photo || document.getElementById('t').value.trim())); }
+  document.getElementById('t').oninput = function(){ document.getElementById('n1').classList.toggle('done', !!this.value.trim() || !!st.photo); ready(); };
+  document.getElementById('ph').onchange = function(){ var f = this.files && this.files[0]; if (!f) return; shrink(f).then(function(d){ setPhoto(d); }).catch(function(){ toast('Could not read that photo.'); }); };
+  function setPhoto(d){ st.photo = d; var th = document.getElementById('thumb'); th.src = d; th.classList.remove('hidden'); document.getElementById('unph').classList.remove('hidden'); document.getElementById('n1').classList.add('done'); ready(); }
+  document.getElementById('unph').onclick = function(){ st.photo = null; document.getElementById('thumb').classList.add('hidden'); this.classList.add('hidden'); document.getElementById('n1').classList.toggle('done', !!document.getElementById('t').value.trim()); ready(); };
+  document.getElementById('loc').onclick = function(){ var b = this; b.disabled = true; b.textContent = 'Finding you…'; document.getElementById('where').textContent = '';
+    locate().then(function(p){ st.pos = p; b.textContent = 'Use where I am now'; b.disabled = false; document.getElementById('n2').classList.add('done');
+      document.getElementById('where').textContent = 'Placed here (±' + Math.round(p.acc) + ' m).' + (p.acc > 60 ? ' Weak signal; try outside.' : '');
+      var el = document.getElementById('mini'); el.classList.remove('hidden');
+      if (!st.map) { st.map = mkMap(el, p.lat, p.lng, 17); st.marker = addPin(st.map, p.lat, p.lng, 'mine'); } else { st.map.setView([p.lat, p.lng], 17); st.marker.setLatLng([p.lat, p.lng]); }
+      setTimeout(function(){ st.map.invalidateSize(); }, 50); ready();
+    }).catch(function(e){ document.getElementById('where').textContent = e.message; b.textContent = 'Allow location'; b.disabled = false; }); };
+  document.getElementById('vis').onclick = function(ev){ var b = ev.target.closest('button'); if (!b) return; st.vis = b.dataset.v; app.querySelectorAll('#vis button').forEach(function(x){ x.classList.toggle('on', x === b); }); document.getElementById('visnote').textContent = notes[st.vis]; document.getElementById('n3').classList.add('done'); };
   document.getElementById('go').onclick = function(){
-    var body = document.getElementById('t').value.trim(), clue = document.getElementById('c').value.trim(), o = document.getElementById('o').value, err = document.getElementById('e');
-    err.classList.add('hidden'); if (!body) { err.textContent = 'Write the message first.'; err.classList.remove('hidden'); return; } if (!pos) { err.textContent = 'We need your spot first.'; err.classList.remove('hidden'); return; }
-    this.disabled = true; this.textContent = 'Burying…';
-    api({ action: 'bury', lat: pos.lat, lng: pos.lng, acc: pos.acc, body: body, clue: clue, visibility: vis, opens_at: o ? new Date(o).toISOString() : null, src: src() })
-      .then(function(j){ track('bury', { vis: vis, clue: !!clue, timed: !!o }); history.replaceState(null, '', '/thatspot/?d=' + j.code); buried(j.code, vis); })
-      .catch(function(e){ err.textContent = e.message; err.classList.remove('hidden'); document.getElementById('go').disabled = false; document.getElementById('go').textContent = 'Bury it'; });
+    var body = document.getElementById('t').value.trim(), clue = document.getElementById('c').value.trim(), err = document.getElementById('e'); err.classList.add('hidden');
+    this.disabled = true; this.textContent = st.photo ? 'Checking the photo…' : 'Leaving it…';
+    api({ action: 'bury', lat: st.pos.lat, lng: st.pos.lng, acc: st.pos.acc, body: body, clue: clue, visibility: st.vis, photo_b64: st.photo, src: src() })
+      .then(function(j){ track('bury', { vis: st.vis, photo: !!st.photo, clue: !!clue }); history.replaceState(null, '', '/thatspot/?d=' + j.code); left(j.code, st); })
+      .catch(function(e){ err.textContent = e.message; err.classList.remove('hidden'); document.getElementById('go').disabled = false; document.getElementById('go').textContent = 'Leave it here'; });
   };
+  window.__spot.setPhoto = setPhoto;
   track('open', { mode: 'home', signed: true });
 }
-function buried(code, vis){
-  $(hdr() + '<div class="k">Buried</div><h2>' + (vis === 'public' ? 'It’s here for whoever finds it.' : 'Now send them the link.') + '</h2>' +
-    '<div class="spot"><div class="pin">📍</div><div class="who">Buried by you · ' + esc(fmt(new Date().toISOString())) + '</div><div class="hid">■■■■■ ■■■■■■■ ■■■ ■■■■</div><div class="meta">' + (vis === 'public' ? 'Opens for anyone standing here' : 'Opens only for them, standing here') + '</div></div>' +
-    (vis === 'public' ? '<button class="btn gold" id="sh">Share the spot</button>' : '<button class="btn gold" id="sh">Send the link</button><div class="muted" style="text-align:center">They’ll see who buried it and your clue. The message opens only when they’re standing here.</div>') +
-    '<a class="btn" href="/thatspot/">Bury another</a><a class="btn" href="/thatspot/?mine=1">Mine</a>');
-  document.getElementById('sh').onclick = function(){ share(code, vis === 'public' ? '📍 I buried something at a spot. Go stand there to open it:' : '📍 I buried something for you at a spot. It opens only when you’re standing there:'); };
+function shrink(file){ return new Promise(function(res, rej){ var img = new Image(), u = URL.createObjectURL(file); img.onload = function(){ var s = Math.min(1, 1280 / Math.max(img.width, img.height)), c = document.createElement('canvas'); c.width = Math.round(img.width * s); c.height = Math.round(img.height * s); c.getContext('2d').drawImage(img, 0, 0, c.width, c.height); URL.revokeObjectURL(u); res(c.toDataURL('image/jpeg', 0.82)); }; img.onerror = function(){ rej(new Error('bad image')); }; img.src = u; }); }
+function left(code, st){
+  var pub = st.vis === 'public', pers = st.vis === 'personal';
+  $(hdr() + '<div class="k">Left here</div><h2>' + (pers ? 'It’s on your map.' : pub ? 'It’s on the map for whoever finds it.' : 'Now send them the link.') + '</h2>' +
+    '<div class="map" id="m"></div>' +
+    (pers ? '' : '<button class="btn gold" id="sh">' + (pub ? 'Share the spot' : 'Send the link') + '</button>') +
+    (pub ? '' : pers ? '' : '<div class="muted" style="text-align:center">They sign in with Google, see the pin on the map, and it opens when they’re standing there.</div>') +
+    '<a class="btn" href="/thatspot/?map=1">See the map</a><a class="btn" href="/thatspot/">Leave another</a>');
+  var m = mkMap(document.getElementById('m'), st.pos.lat, st.pos.lng, 17); addPin(m, st.pos.lat, st.pos.lng, pub ? 'public' : 'mine');
+  var sh = document.getElementById('sh'); if (sh) sh.onclick = function(){ share(code, pub ? '📍 I left a memory at a spot. Go stand there to open it:' : '📍 I left a memory for you at a spot. It opens only when you’re standing there:'); };
 }
 
-// ---------- finder ----------
+// ---------- the map ----------
+var _bigmap = null;
+function mapView(focus){
+  $(hdr() + '<div class="counts" id="counts"><span><i style="background:var(--pub)"></i>public</span><span><i style="background:var(--mine)"></i>yours</span><span><i style="background:var(--shared)"></i>shared with you</span></div><div class="map big" id="big"></div>' + (ME ? '<a class="btn gold" href="/thatspot/">Leave a memory here</a>' : signinBox('Sign in to leave one', 'Finding public memories needs no account; leaving one does.')));
+  if (!ME) wireSignin(function(){ mapView(focus); });
+  var c = focus || fallbackCentre(), map = mkMap(document.getElementById('big'), c.lat, c.lng, focus ? 17 : 14); _bigmap = map;
+  var layer = L.layerGroup().addTo(map), timer = null;
+  function load(){ var b = map.getBounds(); api({ action: 'map', south: b.getSouth(), west: b.getWest(), north: b.getNorth(), east: b.getEast() }).then(function(j){
+    layer.clearLayers(); j.pins.forEach(function(p){ var mk = L.marker([p.lat, p.lng], { icon: pinIcon(p.kind) }).addTo(layer); mk.on('click', function(){ pinSheet(p); }); });
+    document.getElementById('counts').innerHTML = '<span><i style="background:var(--pub)"></i>' + j.counts.public + ' public</span>' + (ME ? '<span><i style="background:var(--mine)"></i>' + j.counts.mine + ' yours</span><span><i style="background:var(--shared)"></i>' + j.counts.shared + ' shared with you</span>' : '') + '<span>in view</span>';
+  }).catch(function(){}); }
+  map.on('moveend', function(){ clearTimeout(timer); timer = setTimeout(load, 250); });
+  if (LAST_POS) addPin(map, LAST_POS.lat, LAST_POS.lng, 'here');
+  if (!focus) locate().then(function(p){ map.setView([p.lat, p.lng], 15); addPin(map, p.lat, p.lng, 'here'); }).catch(function(){ load(); });
+  setTimeout(function(){ map.invalidateSize(); load(); }, 100);
+  if (focus && focus.pin) { addPin(map, focus.lat, focus.lng, focus.pin.kind); setTimeout(function(){ pinSheet(focus.pin); }, 300); }
+  track('map', { signed: !!ME });
+}
+function pinSheet(p){
+  var old = document.getElementById('sheet'); if (old) old.remove();
+  var d = document.createElement('div'); d.className = 'sheet'; d.id = 'sheet';
+  d.innerHTML = '<div class="row" style="justify-content:space-between"><div class="k">' + (p.kind === 'mine' ? 'Yours' : p.kind === 'shared' ? 'Left for you' : 'Public memory') + '</div><button class="lnk" id="x">Close</button></div>' +
+    '<div style="font-weight:900">' + (p.has_photo ? '📷 ' : '📝 ') + esc(p.maker_name || 'Someone') + ' · ' + esc(fmt(p.created_at)) + (p.finds ? ' · found ' + p.finds + '×' : '') + '</div>' + (p.clue ? '<div class="muted">🧭 ' + esc(p.clue) + '</div>' : '') + (p.sealed ? '<div class="muted">Not open yet.</div>' : '') +
+    '<a class="btn gold" href="/thatspot/?d=' + p.code + '">' + (p.kind === 'mine' ? 'Open or share' : 'Go there and open it') + '</a>';
+  document.body.appendChild(d); d.querySelector('#x').onclick = function(){ d.remove(); };
+}
+
+// ---------- a shared link: sign in, then the pin on the map, then stand there ----------
 function find(code){
   $(hdr() + '<div class="muted">Looking for the spot…</div>');
   api({ action: 'peek', code: code }).then(function(s){
-    $(hdr() + '<div class="k">' + (s.is_maker ? 'Your drop' : 'Something is buried here for you') + '</div><h2>' + (s.is_maker ? 'This is yours.' : 'Go stand there to open it.') + '</h2>' +
-      '<div class="spot" id="card"><div class="pin">📍</div><div class="who">' + (s.maker_photo ? '<img src="' + esc(s.maker_photo) + '" alt="">' : '') + 'Buried by ' + esc(s.maker_name || 'someone') + ' · ' + esc(fmt(s.created_at)) + '</div>' +
+    var kind = s.is_maker ? 'mine' : s.visibility === 'public' ? 'public' : 'shared';
+    $(hdr() + '<div class="k">' + (s.is_maker ? 'Yours' : 'A memory is waiting for you') + '</div><h2>' + (s.is_maker ? 'This one is yours.' : 'Go stand there to open it.') + '</h2>' +
+      '<div class="map" id="m" style="height:240px"></div>' +
+      '<div class="spot"><div class="pinbadge">📍</div><div class="who">' + (s.maker_photo ? '<img src="' + esc(s.maker_photo) + '" alt="">' : '') + 'Left by ' + esc(s.maker_name || 'someone') + ' · ' + esc(fmt(s.created_at)) + (s.has_photo ? ' · 📷' : '') + '</div>' +
       (s.clue ? '<div class="clue">🧭 ' + esc(s.clue) + '</div>' : '') + '<div class="hid">■■■■■ ■■■■■■■ ■■■ ■■■■</div>' +
-      '<div class="meta">' + (s.opens_at && new Date(s.opens_at) > Date.now() ? 'Not before ' + esc(fmtWhen(s.opens_at)) + ' · ' : '') + (s.visibility === 'public' ? 'Anyone standing here' : 'Only you, standing there') + (s.finds ? ' · found ' + s.finds + '×' : '') + '</div></div>' +
+      '<div class="meta">' + (s.opens_at && new Date(s.opens_at) > Date.now() ? 'Not before ' + esc(fmtWhen(s.opens_at)) + ' · ' : '') + (s.visibility === 'public' ? 'Anyone standing here' : s.visibility === 'personal' ? 'Only you' : 'Only you, standing there') + (s.finds ? ' · found ' + s.finds + '×' : '') + '</div></div>' +
       '<button class="btn gold" id="go">I’m standing there, open it</button><div class="err hidden" id="e"></div>' +
-      (s.is_maker ? '<a class="btn" href="/thatspot/?mine=1">Mine</a>' : '<div class="foot">We only read your location when you tap open. Nothing is tracked.</div>'));
+      (s.is_maker ? '<div class="row"><button class="btn" id="sh">Share</button><a class="btn" href="/thatspot/?mine=1">Mine</a></div>' : '<div class="foot">We read your location only when you tap open. Nothing is tracked.</div>'));
+    var m = mkMap(document.getElementById('m'), s.lat, s.lng, 17); addPin(m, s.lat, s.lng, kind); setTimeout(function(){ m.invalidateSize(); }, 50);
     document.getElementById('go').onclick = function(){ var b = this; b.disabled = true; b.textContent = 'Checking where you are…';
       locate().then(function(p){ return api({ action: 'open', code: code, lat: p.lat, lng: p.lng, acc: p.acc }); }).then(function(r){ track('open_try', { there: !!r.there, sealed: !!r.sealed, d: r.distance_m }); opened(code, s, r); })
         .catch(function(e){ var err = document.getElementById('e'); err.textContent = e.message; err.classList.remove('hidden'); b.disabled = false; b.textContent = 'I’m standing there, open it'; }); };
+    var sh = document.getElementById('sh'); if (sh) sh.onclick = function(){ share(code, '📍 I left a memory for you at a spot. It opens only when you’re standing there:'); };
     track('peek', { role: s.is_maker ? 'maker' : 'finder', vis: s.visibility });
-  }).catch(function(){ $(hdr() + '<h2>Nothing buried here.</h2><p class="lead">The link may be wrong, or the drop was hidden.</p><a class="btn gold" href="/thatspot/">Bury one of your own</a>'); });
+  }).catch(function(e){
+    if (e.data && e.data.need_signin) { $(hdr() + '<div class="k">A memory is waiting for you</div><h2>' + esc(e.data.maker_name || 'Someone') + ' left something for you at a spot.</h2><p class="lead">Sign in to see where it is on the map. It opens when you’re standing there.</p>' + signinBox('Sign in with Google to see the spot', 'Your name and photo from Google, so ' + (e.data.maker_name || 'they') + ' knows it reached you.')); wireSignin(function(){ find(code); }); track('peek', { role: 'invitee', signin: true }); return; }
+    $(hdr() + '<h2>' + (e.message === 'This one was buried for someone else' ? 'This one was left for someone else.' : 'Nothing here.') + '</h2><p class="lead">The link may be wrong, or the memory was hidden.</p><a class="btn gold" href="/thatspot/">Leave one of your own</a>');
+  });
 }
-// the hunt: live distance and a compass arrow toward the spot (device heading when the phone gives it, else relative to north)
-var _watch = null, _head = null, _headOn = false;
+
+// ---------- the hunt: live distance and a compass arrow ----------
+var _watch = null, _head = null, _bearing = 0;
 function stopHunt(){ if (_watch !== null) { navigator.geolocation.clearWatch(_watch); _watch = null; } window.removeEventListener('deviceorientationabsolute', onHead); window.removeEventListener('deviceorientation', onHead); }
-function onHead(e){ var h = (typeof e.webkitCompassHeading === 'number') ? e.webkitCompassHeading : (e.absolute || e.type === 'deviceorientationabsolute') && typeof e.alpha === 'number' ? (360 - e.alpha) % 360 : null; if (h !== null) { _head = h; _headOn = true; drawArrow(); } }
-var _bearing = 0;
+function onHead(e){ var h = (typeof e.webkitCompassHeading === 'number') ? e.webkitCompassHeading : (e.absolute || e.type === 'deviceorientationabsolute') && typeof e.alpha === 'number' ? (360 - e.alpha) % 360 : null; if (h !== null) { _head = h; drawArrow(); } }
 function drawArrow(){ var a = document.getElementById('arrow'), n = document.getElementById('north'); if (!a) return; var rot = _head === null ? _bearing : (_bearing - _head + 360) % 360; a.style.transform = 'rotate(' + rot + 'deg)'; if (n) n.style.transform = 'rotate(' + (_head === null ? 0 : (360 - _head) % 360) + 'deg)'; var l = document.getElementById('headnote'); if (l) l.textContent = _head === null ? 'Arrow is relative to north (hold the phone flat, top pointing north).' : 'Point the phone where the arrow points.'; }
-function askHeading(){ if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function') { DeviceOrientationEvent.requestPermission().then(function(st){ if (st === 'granted') { window.addEventListener('deviceorientation', onHead); } drawArrow(); }).catch(function(){ drawArrow(); }); } else { window.addEventListener('deviceorientationabsolute', onHead); window.addEventListener('deviceorientation', onHead); drawArrow(); } }
+function askHeading(){ if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function') { DeviceOrientationEvent.requestPermission().then(function(st){ if (st === 'granted') window.addEventListener('deviceorientation', onHead); drawArrow(); }).catch(drawArrow); } else { window.addEventListener('deviceorientationabsolute', onHead); window.addEventListener('deviceorientation', onHead); drawArrow(); } }
 function hunt(code, s, r){
-  stopHunt(); _bearing = r.bearing_deg || 0;
+  _bearing = r.bearing_deg || 0;
   var needsTap = typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function';
-  $(hdr() + '<div class="k">Not there yet</div><div class="spot" style="align-items:center;text-align:center"><div class="pin">📍</div>' +
-    '<div style="position:relative;width:180px;height:180px;margin:6px auto 0"><div style="position:absolute;inset:0;border-radius:50%;border:2px solid #2a4258"></div><div id="north" style="position:absolute;inset:0;transition:transform .3s"><span style="position:absolute;left:50%;top:6px;transform:translateX(-50%);font:900 12px Nunito;color:#93a8ba">N</span></div>' +
-    '<svg id="arrow" viewBox="0 0 100 100" style="position:absolute;inset:16px;width:148px;height:148px;transition:transform .3s"><polygon points="50,6 68,62 50,52 32,62" fill="#f5b83d"/><polygon points="50,52 68,62 50,94 32,62" fill="#a8740a" opacity=".8"/></svg></div>' +
+  $(hdr() + '<div class="k">Not there yet</div><div class="spot" style="align-items:center;text-align:center"><div class="pinbadge">📍</div>' +
+    '<div style="position:relative;width:170px;height:170px;margin:6px auto 0"><div style="position:absolute;inset:0;border-radius:50%;border:2px solid #2a4258"></div><div id="north" style="position:absolute;inset:0;transition:transform .3s"><span style="position:absolute;left:50%;top:6px;transform:translateX(-50%);font:900 12px Nunito;color:#93a8ba">N</span></div>' +
+    '<svg id="arrow" viewBox="0 0 100 100" style="position:absolute;inset:16px;width:138px;height:138px;transition:transform .3s"><polygon points="50,6 68,62 50,52 32,62" fill="#f5b83d"/><polygon points="50,52 68,62 50,94 32,62" fill="#a8740a" opacity=".8"/></svg></div>' +
     '<div class="dist" id="dist">' + km(r.distance_m) + '</div><div class="meta">from the spot</div><div class="muted" id="headnote" style="color:#b8cad8"></div>' + (s.clue ? '<div class="clue" style="text-align:left">🧭 ' + esc(s.clue) + '</div>' : '') + '</div>' +
-    '<p class="lead">Walk toward the arrow. It opens by itself when you’re within about ' + (s.radius_m || 40) + ' metres.</p>' +
+    '<div class="map" id="m" style="height:200px"></div>' +
+    '<p class="lead">Walk toward the arrow. It opens by itself within about ' + (s.radius_m || 40) + ' metres.</p>' +
     (needsTap ? '<button class="btn" id="cmp">Turn on the compass</button>' : '') + '<a class="btn" href="/thatspot/?d=' + code + '">Stop</a>');
+  var m = mkMap(document.getElementById('m'), s.lat, s.lng, 16); addPin(m, s.lat, s.lng, s.visibility === 'public' ? 'public' : 'shared'); var me = LAST_POS ? addPin(m, LAST_POS.lat, LAST_POS.lng, 'here') : null; if (LAST_POS) m.fitBounds([[s.lat, s.lng], [LAST_POS.lat, LAST_POS.lng]], { padding: [30, 30] }); setTimeout(function(){ m.invalidateSize(); }, 50);
   if (needsTap) document.getElementById('cmp').onclick = function(){ this.classList.add('hidden'); askHeading(); }; else askHeading();
   drawArrow();
   var last = 0;
   if (navigator.geolocation) _watch = navigator.geolocation.watchPosition(function(p){
-    var now = Date.now(); if (now - last < 4000) return; last = now;
+    var now = Date.now(); if (now - last < 4000) return; last = now; LAST_POS = { lat: p.coords.latitude, lng: p.coords.longitude, acc: p.coords.accuracy };
+    if (me) me.setLatLng([p.coords.latitude, p.coords.longitude]); else me = addPin(m, p.coords.latitude, p.coords.longitude, 'here');
     api({ action: 'open', code: code, lat: p.coords.latitude, lng: p.coords.longitude, acc: p.coords.accuracy }).then(function(r2){
-      if (r2.there) { stopHunt(); track('open_try', { there: true, d: r2.distance_m, live: true }); opened(code, s, r2); return; }
-      if (r2.sealed) { stopHunt(); opened(code, s, r2); return; }
+      if (r2.there) { track('open_try', { there: true, d: r2.distance_m, live: true }); opened(code, s, r2); return; }
+      if (r2.sealed) { opened(code, s, r2); return; }
       _bearing = r2.bearing_deg || _bearing; var d = document.getElementById('dist'); if (d) d.textContent = km(r2.distance_m); drawArrow();
     }).catch(function(){});
   }, function(){}, { enableHighAccuracy: true, maximumAge: 2000, timeout: 20000 });
@@ -203,11 +278,11 @@ function hunt(code, s, r){
 function opened(code, s, r){
   if (r.sealed) { $(hdr() + '<div class="k">Not yet</div><h2>It opens ' + esc(fmtWhen(r.opens_at)) + '.</h2><p class="lead">Come back then. You’re ' + km(r.distance_m) + ' from the spot.</p><a class="btn" href="/thatspot/?d=' + code + '">Back</a>'); return; }
   if (!r.there) { hunt(code, s, r); return; }
-  function render(log){ stopHunt();
-    $(hdr() + '<div class="k">You found it</div><div class="spot open"><div class="pin">📍</div><div class="who">' + (r.maker_photo ? '<img src="' + esc(r.maker_photo) + '" alt="">' : '') + esc(r.maker_name || 'Someone') + ' buried this · ' + esc(fmt(r.buried_at)) + '</div><div class="body">' + esc(r.body) + '</div></div>' +
+  function render(log){
+    $(hdr() + '<div class="k">You found it</div><div class="spot open"><div class="pinbadge">📍</div><div class="who">' + (r.maker_photo ? '<img src="' + esc(r.maker_photo) + '" alt="">' : '') + esc(r.maker_name || 'Someone') + ' left this · ' + esc(fmt(r.buried_at)) + '</div>' + (r.photo_url ? '<img class="ph" src="' + esc(r.photo_url) + '" alt="">' : '') + (r.body ? '<div class="body">' + esc(r.body) + '</div>' : '') + '</div>' +
       '<div class="box"><div class="k">Logbook</div>' + (log.length ? '<div class="log">' + log.map(function(f){ return '<div>' + (f.note ? esc(f.note) : '<i>found it</i>') + '<small>' + esc(f.finder_name || 'Someone') + ' · ' + esc(fmt(f.created_at)) + '</small></div>'; }).join('') + '</div>' : '<div class="muted">You’re the first here.</div>') + '</div>' +
-      (ME ? '<div class="box"><label class="l" for="n">Leave a note here</label><textarea id="n" class="in" maxlength="300" placeholder="I was here. Thank you."></textarea><div class="err hidden" id="e"></div><button class="btn" id="rep">Leave it</button></div>' : signinBox('Sign in to leave a note here')) +
-      '<a class="btn gold" href="/thatspot/">Bury one back</a>');
+      (ME ? '<div class="box"><div style="font-weight:900">Leave a note here</div><textarea id="n" class="in" maxlength="300" placeholder="I was here. Thank you."></textarea><div class="err hidden" id="e"></div><button class="btn" id="rep">Leave it</button></div>' : signinBox('Sign in to leave a note here')) +
+      '<a class="btn gold" href="/thatspot/">Leave one back</a><a class="btn" href="/thatspot/?map=1">See the map</a>');
     if (ME) { document.getElementById('rep').onclick = function(){ var n = document.getElementById('n').value.trim(), err = document.getElementById('e'); if (!n) return; this.disabled = true;
       locate().then(function(p){ return api({ action: 'reply', code: code, note: n, lat: p.lat, lng: p.lng, acc: p.acc }); }).then(function(j){ track('reply', {}); toast('Left here.'); render(j.logbook); })
         .catch(function(e){ err.textContent = e.message; err.classList.remove('hidden'); document.getElementById('rep').disabled = false; }); }; }
@@ -218,31 +293,22 @@ function opened(code, s, r){
 
 // ---------- mine ----------
 function mine(){
-  if (!ME) { $(hdr() + '<h2>Your drops</h2>' + signinBox('Sign in to see what you buried')); wireSignin(mine); return; }
-  $(hdr() + '<div class="k">Mine</div><h2>What you buried.</h2><div class="list" id="l"><div class="muted">Loading…</div></div><a class="btn gold" href="/thatspot/">Bury another</a><button class="lnk" id="out" style="align-self:center">Sign out</button>');
+  if (!ME) { $(hdr() + '<h2>Your memories</h2>' + signinBox('Sign in to see what you left')); wireSignin(mine); return; }
+  $(hdr() + '<div class="k">Mine</div><h2>What you left.</h2><div class="list" id="l"><div class="muted">Loading…</div></div><a class="btn gold" href="/thatspot/">Leave another</a><button class="lnk" id="out" style="align-self:center">Sign out</button>');
   document.getElementById('out').onclick = function(){ sb.auth.signOut().then(function(){ location.href = '/thatspot/'; }); };
-  api({ action: 'mine' }).then(function(j){ var l = document.getElementById('l'); if (!j.spots.length) { l.innerHTML = '<div class="muted">Nothing buried yet.</div>'; return; }
-    l.innerHTML = j.spots.map(function(s){ return '<div class="item" style="flex-wrap:wrap"><div style="flex:1;min-width:0"><b>' + esc(s.body.slice(0, 60)) + (s.body.length > 60 ? '…' : '') + '</b><small>' + esc(fmt(s.created_at)) + ' · found ' + s.finds.length + '×' + (s.clue ? ' · ' + esc(s.clue) : '') + '</small></div>' +
-      '<select class="in" data-code="' + s.code + '"><option value="link"' + (s.visibility === 'link' ? ' selected' : '') + '>Link only</option><option value="public"' + (s.visibility === 'public' ? ' selected' : '') + '>Anyone here</option><option value="hidden"' + (s.visibility === 'hidden' ? ' selected' : '') + '>Hidden</option></select>' +
-      '<div style="flex-basis:100%;display:flex;gap:8px;margin-top:4px"><button class="btn" data-share="' + s.code + '" style="min-height:40px;font-size:14px">Share</button><a class="btn" href="/thatspot/?d=' + s.code + '" style="min-height:40px;font-size:14px">Open</a></div>' +
+  api({ action: 'mine' }).then(function(j){ var l = document.getElementById('l'); if (!j.spots.length) { l.innerHTML = '<div class="muted">Nothing left yet.</div>'; return; }
+    l.innerHTML = j.spots.map(function(s){ return '<div class="item" style="flex-wrap:wrap"><div style="flex:1;min-width:0"><b>' + (s.has_photo ? '📷 ' : '') + esc((s.body || 'Photo').slice(0, 60)) + ((s.body || '').length > 60 ? '…' : '') + '</b><small>' + esc(fmt(s.created_at)) + ' · found ' + s.finds.length + '×' + (s.clue ? ' · ' + esc(s.clue) : '') + '</small></div>' +
+      '<select class="in" data-code="' + s.code + '"><option value="personal"' + (s.visibility === 'personal' ? ' selected' : '') + '>Personal</option><option value="link"' + (s.visibility === 'link' ? ' selected' : '') + '>Private link</option><option value="public"' + (s.visibility === 'public' ? ' selected' : '') + '>Public</option><option value="hidden"' + (s.visibility === 'hidden' ? ' selected' : '') + '>Hidden</option></select>' +
+      '<div style="flex-basis:100%;display:flex;gap:8px;margin-top:4px"><button class="btn sm" data-share="' + s.code + '" style="flex:1">Share</button><a class="btn sm" href="/thatspot/?d=' + s.code + '" style="flex:1">Open</a></div>' +
       (s.finds.length ? '<div class="log" style="flex-basis:100%;margin-top:6px">' + s.finds.slice(0, 5).map(function(f){ return '<div>' + (f.note ? esc(f.note) : '<i>found it</i>') + '<small>' + esc(f.finder_name || 'Someone') + ' · ' + esc(fmt(f.created_at)) + '</small></div>'; }).join('') + '</div>' : '') + '</div>'; }).join('');
     l.querySelectorAll('select').forEach(function(sel){ sel.onchange = function(){ api({ action: 'toggle', code: sel.dataset.code, visibility: sel.value }).then(function(){ track('toggle', { vis: sel.value }); toast('Now: ' + sel.options[sel.selectedIndex].text); }).catch(function(e){ toast('Could not change: ' + e.message); }); }; });
-    l.querySelectorAll('[data-share]').forEach(function(b){ b.onclick = function(){ share(b.dataset.share, '📍 I buried something for you at a spot. It opens only when you’re standing there:'); }; });
+    l.querySelectorAll('[data-share]').forEach(function(b){ b.onclick = function(){ share(b.dataset.share, '📍 I left a memory for you at a spot. It opens only when you’re standing there:'); }; });
   }).catch(function(e){ document.getElementById('l').innerHTML = '<div class="err">' + esc(e.message) + '</div>'; });
   track('mine', {});
 }
 
-// ---------- public drops near me ----------
-function near(){
-  $(hdr() + '<div class="k">Near me</div><h2>What’s buried around here.</h2><p class="lead">Public drops within 2.5 km. Stand at the spot to open one.</p><div class="list" id="l"><div class="muted">Getting your location…</div></div>' + (ME ? '' : '<a class="btn gold" href="/thatspot/">Bury one of your own</a>'));
-  locate().then(function(p){ return api({ action: 'near', lat: p.lat, lng: p.lng }); }).then(function(j){ var l = document.getElementById('l'); if (!j.spots.length) { l.innerHTML = '<div class="muted">Nothing public within 2.5 km yet. Be the first to bury one.</div>'; return; }
-    l.innerHTML = j.spots.map(function(s){ return '<a class="item" href="/thatspot/?d=' + s.code + '"><div style="font-size:22px">📍</div><div style="flex:1;min-width:0"><b>' + km(s.distance_m) + ' away' + (s.clue ? ' · ' + esc(s.clue) : '') + '</b><small>Buried by ' + esc(s.maker_name || 'someone') + ' · ' + esc(fmt(s.created_at)) + (s.finds ? ' · found ' + s.finds + '×' : '') + '</small></div></a>'; }).join('');
-  }).catch(function(e){ document.getElementById('l').innerHTML = '<div class="err">' + esc(e.message) + '</div>'; });
-  track('near', {});
-}
-
 function boot(){ if (!sb) return Promise.resolve(); return sb.auth.getSession().then(function(r){ SESSION = r.data && r.data.session; return (SESSION || QA_TOKEN) ? api({ action: 'me' }).then(function(j){ ME = j.profile; }).catch(function(){ ME = null; }) : null; }); }
-function route(){ var q = new URLSearchParams(location.search); if (q.get('d')) find(q.get('d').replace(/[^a-z0-9]/g, '')); else if (q.get('mine')) mine(); else if (q.get('near')) near(); else home(); }
+function route(){ var q = new URLSearchParams(location.search); if (q.get('d')) find(q.get('d').replace(/[^a-z0-9]/g, '')); else if (q.get('mine')) mine(); else if (q.get('map')) mapView(); else home(); }
 window.__spot = { setQA: function(t){ QA_TOKEN = t; return boot().then(route); } };
 boot().then(route);
 </script>
