@@ -183,7 +183,7 @@ function home(){
     wireSignin(home); track('open', { mode: 'home', signed: false }); return;
   }
   var st = { photo: null, pos: null, vis: 'link', map: null, marker: null, at: new URLSearchParams(location.search).get('at') || null, atName: null };
-  $(hdr() + (st.at ? '<div class="k" id="atname">Posting at this shop</div>' : '') + '<h1>Leave a memory here.</h1>' +
+  $(hdr() + '<a class="lnk" href="' + (st.at ? '/myspot/?at=' + st.at : '/myspot/?map=1') + '" style="padding:0;margin-top:-6px">‹ ' + (st.at ? 'Back to the shop' : 'Back to the map') + '</a>' + (st.at ? '<div class="k" id="atname">Posting at this shop</div>' : '') + '<h1>Leave a memory here.</h1>' +
     '<div class="box"><div class="step"><div class="n" id="n1">1</div><div><div class="t">Write it, or snap a picture</div>' +
       '<textarea id="t" class="in" maxlength="600" placeholder="Remember this bench? Sit for a minute."></textarea>' +
       '<div class="row"><label class="btn sm" for="ph" style="cursor:pointer">📷 Snap a picture</label><input id="ph" type="file" accept="image/*" capture="environment" class="hidden"><img id="thumb" class="thumb hidden" alt=""><button class="lnk hidden" id="unph">Remove</button></div></div></div></div>' +
@@ -195,7 +195,7 @@ function home(){
       '<input id="c" class="in" maxlength="140" placeholder="Clue for the exact spot (optional)">' +
       '<div class="err hidden" id="e"></div><button class="btn gold" id="go" disabled>Leave it here</button></div></div></div>' +
     '<div class="foot">Checked before anyone can open it. No memories at private homes. Change who can see it any time from Mine.</div>');
-  if (st.at) api({ action: 'peek', code: st.at }).then(function(ps){ st.atName = ps.place_name; var e = document.getElementById('atname'); if (e) e.textContent = 'Posting at ' + (ps.place_name || 'this shop') + ' · you need to be inside'; }).catch(function(){ st.at = null; });
+  if (st.at) api({ action: 'peek', code: st.at }).then(function(ps){ st.atName = ps.place_name; var e = document.getElementById('atname'); if (e) e.textContent = 'Posting at ' + (ps.place_name || 'this shop') + ' · you need to be inside'; var bk = app.querySelector('a.lnk[href*="at="]'); if (bk && ps.place_name) bk.textContent = '‹ Back to ' + ps.place_name; }).catch(function(){ st.at = null; });
   var notes = { personal: 'Only you. It shows on your map; you open it by standing there.', link: 'Only the person you send the link to. They sign in with Google and see the spot on the map.', public: 'Anyone. It shows on everyone’s map; it opens for whoever stands there.' };
   function ready(){ document.getElementById('go').disabled = !(st.pos && (st.photo || document.getElementById('t').value.trim())); }
   document.getElementById('t').oninput = function(){ document.getElementById('n1').classList.toggle('done', !!this.value.trim() || !!st.photo); ready(); };
