@@ -83,6 +83,7 @@ textarea.in{min-height:96px;resize:vertical;line-height:1.35}
 .item{display:flex;gap:10px;align-items:center;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:12px;text-decoration:none;color:inherit}
 .item b{display:block;font-size:15px}.item small{color:var(--sub);font-size:12.5px}
 select.in{min-height:44px;padding:8px 10px;font-size:14px;width:auto}
+.ic{width:1.1em;height:1.1em;vertical-align:-0.18em;display:inline-block}
 .hidden{display:none!important}
 .err{color:var(--bad);font-size:14px;font-weight:800}
 #gslot{min-height:44px;display:flex;justify-content:center}
@@ -98,7 +99,7 @@ select.in{min-height:44px;padding:8px 10px;font-size:14px;width:auto}
 .card img{width:100%;border-radius:3px;display:block}
 .card .tx{font:600 15px/1.3 Fredoka,sans-serif;white-space:pre-wrap;padding:4px 2px}
 .card .by{display:flex;align-items:center;gap:6px;font:800 11.5px Nunito;color:#5a6472}.card .by img{width:20px;height:20px;border-radius:50%}
-.card.blur{filter:blur(3px);opacity:.75;pointer-events:none;min-height:90px}
+.card.blur{pointer-events:none;min-height:90px;position:relative;overflow:hidden}.card.blur .tx,.card.blur .by{filter:blur(4px);opacity:.8}.card.blur .fakeph{height:96px;border-radius:3px;filter:blur(7px) saturate(1.2);transform:scale(1.15)}.card.blur .lockchip{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);background:rgba(12,23,34,.82);color:#fff;border-radius:999px;padding:6px 10px;font:900 11px Nunito;white-space:nowrap;display:flex;align-items:center;gap:5px;filter:none}
 .card.add{background:transparent;box-shadow:none;transform:none;border:2px dashed var(--line);color:var(--sub);align-items:center;justify-content:center;min-height:90px;text-decoration:none;font-weight:900}
 .sheet{position:fixed;left:0;right:0;bottom:0;z-index:1000;background:var(--card);border-top:1px solid var(--line);border-radius:22px 22px 0 0;padding:16px 16px calc(env(safe-area-inset-bottom,0px) + 18px);max-width:480px;margin:0 auto;display:flex;flex-direction:column;gap:10px;box-shadow:0 -10px 40px rgba(0,0,0,.4)}
 </style>
@@ -132,7 +133,15 @@ function locate(){ return new Promise(function(res, rej){ if (!navigator.geoloca
 function fmt(iso){ return new Date(iso).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' }); }
 function fmtWhen(iso){ return new Date(iso).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }); }
 function km(m){ return m < 1000 ? m + ' m' : (m / 1000).toFixed(1) + ' km'; }
-var SITE = 'https://voterpup.com';   // the one line to change when My spot moves to its own domain (old links redirect)
+var SITE = 'https://voterpup.com';
+var I = {   // modern line icons, drawn with the text colour
+  camera: '<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h3l2-3h6l2 3h3a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2v-8a2 2 0 0 1 2-2z"/><circle cx="12" cy="13" r="3.5"/></svg>',
+  note: '<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 3h10l4 4v14H5z"/><path d="M15 3v4h4M8 12h8M8 16h6"/></svg>',
+  pin: '<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s7-6.3 7-12a7 7 0 1 0-14 0c0 5.7 7 12 7 12z"/><circle cx="12" cy="10" r="2.5"/></svg>',
+  shop: '<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l1.5-5h15L21 9M3 9a3 3 0 0 0 6 0 3 3 0 0 0 6 0 3 3 0 0 0 6 0M5 9v11h14V9M10 20v-6h4v6"/></svg>',
+  compass: '<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M15.5 8.5l-2 5-5 2 2-5z"/></svg>',
+  lock: '<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>'
+};   // the one line to change when My spot moves to its own domain (old links redirect)
 function dirUrl(lat, lng){ return 'https://www.google.com/maps/dir/?api=1&destination=' + lat + ',' + lng + '&travelmode=walking'; }
 function spotUrl(code){ return SITE + '/myspot/?d=' + code; }
 function placeUrl(code){ return SITE + '/myspot/?at=' + code; }
@@ -180,7 +189,7 @@ function wireSignin(after){
 
 // ---------- map helpers (Leaflet + OpenStreetMap tiles) ----------
 function mkMap(el, lat, lng, zoom){ var m = L.map(el, { zoomControl: false, attributionControl: true }).setView([lat, lng], zoom || 15); L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19, attribution: '© OpenStreetMap' }).addTo(m); return m; }
-function deckIcon(items){ var n = items.length, top = items[0], kinds = items.map(function(p){ return p.is_place ? 'place' : p.kind; }); var layers = (n >= 3 ? '<i class="c3 ' + (kinds[2]) + '"></i>' : '') + (n >= 2 ? '<i class="c2 ' + (kinds[1]) + '"></i>' : '') + '<i class="c1 ' + kinds[0] + '"></i>'; return L.divIcon({ className: '', html: '<div class="deck">' + layers + (top.has_photo ? '<span class="ph">📷</span>' : '') + (n > 1 ? '<b>' + n + '</b>' : '') + '</div>', iconSize: [34, 34], iconAnchor: [13, 34] }); }
+function deckIcon(items){ var n = items.length, top = items[0], kinds = items.map(function(p){ return p.is_place ? 'place' : p.kind; }); var layers = (n >= 3 ? '<i class="c3 ' + (kinds[2]) + '"></i>' : '') + (n >= 2 ? '<i class="c2 ' + (kinds[1]) + '"></i>' : '') + '<i class="c1 ' + kinds[0] + '"></i>'; return L.divIcon({ className: '', html: '<div class="deck">' + layers + (top.has_photo ? '<span class="ph" style="color:#fff">' + I.camera + '</span>' : '') + (n > 1 ? '<b>' + n + '</b>' : '') + '</div>', iconSize: [34, 34], iconAnchor: [13, 34] }); }
 function pinIcon(kind){ return L.divIcon({ className: '', html: '<div class="pin ' + kind + '"></div>', iconSize: [18, 18], iconAnchor: [9, 18] }); }
 function addPin(map, lat, lng, kind){ return L.marker([lat, lng], { icon: pinIcon(kind) }).addTo(map); }
 function fallbackCentre(){ return LAST_POS || { lat: 49.2827, lng: -123.1207 }; }
@@ -197,7 +206,7 @@ function home(){
   $(hdr() + '<a class="lnk" href="' + (st.at ? '/myspot/?at=' + st.at : '/myspot/?map=1') + '" style="padding:0;margin-top:-6px">‹ ' + (st.at ? 'Back to the shop' : 'Back to the map') + '</a>' + (st.at ? '<div class="k" id="atname">Posting at this shop</div>' : '') + '<h1>Leave a memory here.</h1>' +
     '<div class="box"><div class="step"><div class="n" id="n1">1</div><div><div class="t">Write it, or snap a picture</div>' +
       '<textarea id="t" class="in" maxlength="600" placeholder="Remember this bench? Sit for a minute."></textarea>' +
-      '<div class="row"><label class="btn sm" for="ph" style="cursor:pointer">📷 Snap a picture</label><input id="ph" type="file" accept="image/*" capture="environment" class="hidden"><img id="thumb" class="thumb hidden" alt=""><button class="lnk hidden" id="unph">Remove</button></div></div></div></div>' +
+      '<div class="row"><label class="btn sm" for="ph" style="cursor:pointer">' + I.camera + ' Snap a picture</label><input id="ph" type="file" accept="image/*" capture="environment" class="hidden"><img id="thumb" class="thumb hidden" alt=""><button class="lnk hidden" id="unph">Remove</button></div></div></div></div>' +
     '<div class="box"><div class="step"><div class="n" id="n2">2</div><div><div class="t">Place it where you stand</div><button class="btn sm" id="loc">Allow location</button><div class="muted" id="where">Your spot goes on the map once you allow it.</div><div class="map hidden" id="mini"></div></div></div></div>' +
     '<div class="box"><div class="step"><div class="n" id="n3">3</div><div><div class="t">Who can find it</div>' +
       '<div class="seg" id="vis"><button type="button" data-v="personal">Personal</button><button type="button" class="on" data-v="link">Private link</button><button type="button" data-v="public">Public</button></div>' +
@@ -270,18 +279,18 @@ function deckSheet(items){
   var old = document.getElementById('sheet'); if (old) old.remove();
   var d = document.createElement('div'); d.className = 'sheet'; d.id = 'sheet';
   var place = items.filter(function(p){ return p.is_place; })[0];
-  d.innerHTML = '<div class="row" style="justify-content:space-between"><div class="k">' + (place ? '🏪 ' + esc(place.place_name) + ' · ' : '') + items.length + ' here</div><button class="lnk" id="x">Close</button></div>' +
+  d.innerHTML = '<div class="row" style="justify-content:space-between"><div class="k">' + (place ? I.shop + ' ' + esc(place.place_name) + ' · ' : '') + items.length + ' here</div><button class="lnk" id="x">Close</button></div>' +
     '<div class="list" style="max-height:46vh;overflow:auto">' + items.slice(0, 30).map(function(p){ var kind = p.is_place ? 'place' : p.kind, col = { place: '#ff8c42', public: 'var(--pub)', mine: 'var(--mine)', shared: 'var(--shared)' }[kind];
-      return '<a class="item" href="/myspot/?' + (p.is_place ? 'at=' : 'd=') + p.code + '"><span style="width:12px;height:12px;border-radius:50%;background:' + col + ';flex:none"></span><div style="flex:1;min-width:0"><b>' + (p.is_place ? esc(p.place_name) : (p.has_photo ? '📷 ' : '📝 ') + esc(p.maker_name || 'Someone')) + '</b><small>' + esc(fmt(p.created_at)) + (p.clue ? ' · ' + esc(p.clue) : '') + (p.finds ? ' · opened ' + p.finds + '×' : '') + '</small></div></a>'; }).join('') + '</div>' +
+      return '<a class="item" href="/myspot/?' + (p.is_place ? 'at=' : 'd=') + p.code + '"><span style="width:12px;height:12px;border-radius:50%;background:' + col + ';flex:none"></span><div style="flex:1;min-width:0"><b>' + (p.is_place ? esc(p.place_name) : (p.has_photo ? I.camera + ' ' : I.note + ' ') + esc(p.maker_name || 'Someone')) + '</b><small>' + esc(fmt(p.created_at)) + (p.clue ? ' · ' + esc(p.clue) : '') + (p.finds ? ' · opened ' + p.finds + '×' : '') + '</small></div></a>'; }).join('') + '</div>' +
     (place ? '<a class="btn gold" href="/myspot/?at=' + place.code + '">Open the shop’s spot</a>' : '<div class="muted">Stand there to open any of them.</div>');
   document.body.appendChild(d); d.querySelector('#x').onclick = function(){ d.remove(); };
 }
 function pinSheet(p){
   var old = document.getElementById('sheet'); if (old) old.remove();
   var d = document.createElement('div'); d.className = 'sheet'; d.id = 'sheet';
-  d.innerHTML = '<div class="row" style="justify-content:space-between"><div class="k">' + (p.is_place ? '🏪 ' + esc(p.place_name) : p.kind === 'mine' ? 'Yours' : p.kind === 'shared' ? 'Left for you' : 'Public memory') + '</div><button class="lnk" id="x">Close</button></div>' +
-    '<div style="font-weight:900">' + (p.has_photo ? '📷 ' : '📝 ') + esc(p.maker_name || 'Someone') + ' · ' + esc(fmt(p.created_at)) + (p.finds ? ' · found ' + p.finds + '×' : '') + '</div>' + (p.clue ? '<div class="muted">🧭 ' + esc(p.clue) + '</div>' : '') + (p.sealed ? '<div class="muted">Not open yet.</div>' : '') +
-    '<a class="btn gold" href="/myspot/?' + (p.is_place ? 'at=' : 'd=') + p.code + '">' + (p.is_place ? 'Open the shop’s spot' : p.kind === 'mine' ? 'Open or share' : 'Go there and open it') + '</a><a class="btn" href="' + dirUrl(p.lat, p.lng) + '" target="_blank" rel="noopener">🧭 Get directions</a>';
+  d.innerHTML = '<div class="row" style="justify-content:space-between"><div class="k">' + (p.is_place ? I.shop + ' ' + esc(p.place_name) : p.kind === 'mine' ? 'Yours' : p.kind === 'shared' ? 'Left for you' : 'Public memory') + '</div><button class="lnk" id="x">Close</button></div>' +
+    '<div style="font-weight:900">' + (p.has_photo ? I.camera + ' ' : I.note + ' ') + esc(p.maker_name || 'Someone') + ' · ' + esc(fmt(p.created_at)) + (p.finds ? ' · found ' + p.finds + '×' : '') + '</div>' + (p.clue ? '<div class="muted">' + I.compass + ' ' + esc(p.clue) + '</div>' : '') + (p.sealed ? '<div class="muted">Not open yet.</div>' : '') +
+    '<a class="btn gold" href="/myspot/?' + (p.is_place ? 'at=' : 'd=') + p.code + '">' + (p.is_place ? 'Open the shop’s spot' : p.kind === 'mine' ? 'Open or share' : 'Go there and open it') + '</a><a class="btn" href="' + dirUrl(p.lat, p.lng) + '" target="_blank" rel="noopener">' + I.compass + ' Get directions</a>';
   document.body.appendChild(d); d.querySelector('#x').onclick = function(){ d.remove(); };
 }
 
@@ -292,10 +301,10 @@ function find(code){
     var kind = s.is_maker ? 'mine' : s.visibility === 'public' ? 'public' : 'shared';
     $(hdr() + '<div class="k">' + (s.is_maker ? 'Yours' : 'A memory is waiting for you') + '</div><h2>' + (s.is_maker ? 'This one is yours.' : 'Go stand there to open it.') + '</h2>' +
       '<div class="map" id="m" style="height:240px"></div>' +
-      '<div class="spot"><div class="pinbadge">📍</div><div class="who">' + (s.maker_photo ? '<img src="' + esc(s.maker_photo) + '" alt="">' : '') + 'Left by ' + esc(s.maker_name || 'someone') + ' · ' + esc(fmt(s.created_at)) + (s.has_photo ? ' · 📷' : '') + '</div>' +
-      (s.clue ? '<div class="clue">🧭 ' + esc(s.clue) + '</div>' : '') + '<div class="hid">■■■■■ ■■■■■■■ ■■■ ■■■■</div>' +
+      '<div class="spot"><div class="pinbadge">' + I.pin + '</div><div class="who">' + (s.maker_photo ? '<img src="' + esc(s.maker_photo) + '" alt="">' : '') + 'Left by ' + esc(s.maker_name || 'someone') + ' · ' + esc(fmt(s.created_at)) + (s.has_photo ? ' · ' + I.camera : '') + '</div>' +
+      (s.clue ? '<div class="clue">' + I.compass + ' ' + esc(s.clue) + '</div>' : '') + (s.has_photo ? '<div style="height:120px;border-radius:12px;background:linear-gradient(135deg,#b7c9a8,#e2b07a 55%,#6b8bb5);filter:blur(9px);transform:scale(1.08)"></div>' : '') + '<div class="hid">Something was left for you here</div>' +
       '<div class="meta">' + (s.opens_at && new Date(s.opens_at) > Date.now() ? 'Not before ' + esc(fmtWhen(s.opens_at)) + ' · ' : '') + (s.visibility === 'public' ? 'Anyone standing here' : s.visibility === 'personal' ? 'Only you' : 'Only you, standing there') + (s.finds ? ' · found ' + s.finds + '×' : '') + '</div></div>' +
-      '<button class="btn gold" id="go">I’m standing there, open it</button><a class="btn" href="' + dirUrl(s.lat, s.lng) + '" target="_blank" rel="noopener">🧭 Get directions (Google Maps)</a><div class="err hidden" id="e"></div>' +
+      '<button class="btn gold" id="go">I’m standing there, open it</button><a class="btn" href="' + dirUrl(s.lat, s.lng) + '" target="_blank" rel="noopener">' + I.compass + ' Get directions (Google Maps)</a><div class="err hidden" id="e"></div>' +
       (s.is_maker ? '<div class="row"><button class="btn" id="sh">Share</button><a class="btn" href="/myspot/?mine=1">Mine</a></div>' : '<div class="foot">We read your location only when you tap open. Nothing is tracked.</div>'));
     var m = mkMap(document.getElementById('m'), s.lat, s.lng, 17); addPin(m, s.lat, s.lng, kind); setTimeout(function(){ m.invalidateSize(); }, 50);
     document.getElementById('go').onclick = function(){ var b = this; b.disabled = true; b.textContent = 'Checking where you are…';
@@ -316,10 +325,10 @@ function place(code, justLeft){
     $(hdr() + '<div class="k">You’re at</div><h1>' + esc(s.place_name || 'This spot') + '</h1><div class="muted">Leave a memory here for the next person. It stays at this shop. Anyone standing here can read what people left.</div>' +
       (justLeft ? notifyBox('my_memory', justLeft, 'Tell me when someone reads it', 'One email when your memory here is opened or gets a note.') : '') + '<a class="btn gold" href="/myspot/?at=' + code + '&leave=1">Leave a memory here</a>' +
       '<div class="map" id="m" style="height:180px"></div>' +
-      '<div class="spot"><div class="pinbadge">🏪</div><div class="who">The note at this spot · ' + esc(fmt(s.created_at)) + (s.has_photo ? ' · 📷' : '') + '</div>' + (s.clue ? '<div class="clue">🧭 ' + esc(s.clue) + '</div>' : '') + '<div class="hid">■■■■■ ■■■■■■■ ■■■ ■■■■</div><div class="meta">Opens for anyone standing here' + (s.finds ? ' · opened ' + s.finds + '×' : '') + '</div></div>' +
+      '<div class="spot"><div class="pinbadge">' + I.shop + '</div><div class="who">The note at this spot · ' + esc(fmt(s.created_at)) + (s.has_photo ? ' · ' + I.camera : '') + '</div>' + (s.clue ? '<div class="clue">' + I.compass + ' ' + esc(s.clue) + '</div>' : '') + '<div class="hid">■■■■■ ■■■■■■■ ■■■ ■■■■</div><div class="meta">Opens for anyone standing here' + (s.finds ? ' · opened ' + s.finds + '×' : '') + '</div></div>' +
       '<button class="btn" id="go">I’m inside, open the wall</button><div class="err hidden" id="e"></div>' +
       '<div class="box"><div class="row" style="justify-content:space-between"><div class="k">The wall at ' + esc(s.place_name || 'this spot') + '</div><div class="muted" id="wallnote">opens when you’re inside</div></div><div class="wall" id="wall"></div></div>' +
-      (justLeft ? '' : notifyBox('place_new', code, 'Tell me when new memories appear here', 'So the next visit has something new to read.')) + '<div class="row"><button class="btn" id="sh">Share this spot</button><a class="btn" href="' + dirUrl(s.lat, s.lng) + '" target="_blank" rel="noopener">🧭 Directions</a></div>' + (ls('vp.admin') === '1' ? '<a class="btn" href="/myspot/?qr=' + code + '">QR for the counter</a>' : '') +
+      (justLeft ? '' : notifyBox('place_new', code, 'Tell me when new memories appear here', 'So the next visit has something new to read.')) + '<div class="row"><button class="btn" id="sh">Share this spot</button><a class="btn" href="' + dirUrl(s.lat, s.lng) + '" target="_blank" rel="noopener">' + I.compass + ' Directions</a></div>' + (ls('vp.admin') === '1' ? '<a class="btn" href="/myspot/?qr=' + code + '">QR for the counter</a>' : '') +
       '<div class="foot">We read your location only when you tap open. Nothing is tracked.</div>');
     var m = mkMap(document.getElementById('m'), s.lat, s.lng, 17); addPin(m, s.lat, s.lng, 'place'); setTimeout(function(){ m.invalidateSize(); }, 50);
     function card(x, i){ var by = '<div class="by">' + (x.maker_photo ? '<img src="' + esc(x.maker_photo) + '" alt="">' : '') + esc(x.maker_name || 'Someone') + ' · ' + esc(fmt(x.created_at)) + (x.finds ? ' · ' + x.finds + '×' : '') + '</div>';
@@ -327,7 +336,7 @@ function place(code, justLeft){
       return '<div class="card paper ' + ['', 'b', 'c'][i % 3] + '"><div class="tx">' + esc(x.body || '') + '</div>' + by + '</div>'; }
     function showWall(w){ document.getElementById('wallnote').textContent = w.cards.length + (w.cards.length === 1 ? ' memory' : ' memories');
       document.getElementById('wall').innerHTML = w.cards.map(card).join('') + '<a class="card add" href="/myspot/?at=' + code + '&leave=1">+ Add yours</a>';
-      var go = document.getElementById('go'); if (go) go.outerHTML = '<div class="spot open"><div class="pinbadge">🏪</div><div class="who">The note at this spot</div>' + (w.place.photo_url ? '<img class="ph" src="' + esc(w.place.photo_url) + '" alt="">' : '') + '<div class="body">' + esc(w.place.note || '') + '</div></div>' +
+      var go = document.getElementById('go'); if (go) go.outerHTML = '<div class="spot open"><div class="pinbadge">' + I.shop + '</div><div class="who">The note at this spot</div>' + (w.place.photo_url ? '<img class="ph" src="' + esc(w.place.photo_url) + '" alt="">' : '') + '<div class="body">' + esc(w.place.note || '') + '</div></div>' +
         (w.logbook.length ? '<div class="box"><div class="k">Guestbook</div><div class="log">' + w.logbook.map(function(f){ return '<div>' + esc(f.note) + '<small>' + esc(f.finder_name || 'Someone') + ' · ' + esc(fmt(f.created_at)) + '</small></div>'; }).join('') + '</div></div>' : '');
       var old = document.querySelector('.spot:not(.open)'); if (old) old.remove(); }
     document.getElementById('go').onclick = function(){ var b = this; b.disabled = true; b.textContent = 'Checking where you are…';
@@ -335,7 +344,8 @@ function place(code, justLeft){
         .catch(function(e){ var err = document.getElementById('e'); err.textContent = e.message; err.classList.remove('hidden'); b.disabled = false; b.textContent = 'I’m inside, open the wall'; }); };
     var sh = document.getElementById('sh'); if (sh) sh.onclick = function(){ var msg = '📍 ' + (s.place_name || 'Our spot') + ' is on My spot. A note from us that only opens inside, and a guestbook: ' + placeUrl(code); if (navigator.share) navigator.share({ text: msg }).catch(function(){}); else navigator.clipboard.writeText(msg).then(function(){ toast('Place link copied.'); }); };
     api({ action: 'here', lat: s.lat, lng: s.lng, place_code: code }).then(function(j){ var l = document.getElementById('wall'); if (!document.querySelector('.spot.open')) { document.getElementById('wallnote').textContent = j.spots.length ? j.spots.length + ' here · opens when you’re inside' : 'opens when you’re inside';
-      l.innerHTML = (j.spots.length ? j.spots.slice(0, 8).map(function(x, i){ return '<div class="card blur ' + (x.has_photo ? '' : 'paper ' + ['', 'b', 'c'][i % 3]) + '">' + (x.has_photo ? '<div style="height:90px;background:#cfd6dd;border-radius:3px"></div>' : '<div class="tx">■■■■ ■■■■■■ ■■■ ■■■■■ ■■■■</div>') + '<div class="by">' + esc(x.maker_name || 'Someone') + ' · ' + esc(fmt(x.created_at)) + '</div></div>'; }).join('') : '<div class="muted" style="column-span:all">No memories yet. Yours could be the first.</div>') + '<a class="card add" href="/myspot/?at=' + code + '&leave=1">+ Add yours</a>'; } });
+      var FAKE = ['linear-gradient(135deg,#b7c9a8,#e2b07a 55%,#6b8bb5)','linear-gradient(135deg,#d9a689,#8c6e5a 50%,#f0d7b0)','linear-gradient(135deg,#7fa3c7,#d6e3ef 60%,#c9a26b)','linear-gradient(135deg,#c48b6d,#e8d1b4 50%,#7d9b7a)'], WORDS = ['We came here the night before', 'Ask for the one that is not on the board', 'This corner table, three months, passed', 'First date, still here'];
+      l.innerHTML = (j.spots.length ? j.spots.slice(0, 8).map(function(x, i){ return '<div class="card blur ' + (x.has_photo ? '' : 'paper ' + ['', 'b', 'c'][i % 3]) + '">' + (x.has_photo ? '<div class="fakeph" style="background:' + FAKE[i % 4] + '"></div>' : '<div class="tx">' + WORDS[i % 4] + '</div>') + '<div class="by">' + esc(x.maker_name || 'Someone') + ' · ' + esc(fmt(x.created_at)) + '</div><div class="lockchip">' + I.lock + ' stand here to reveal</div></div>'; }).join('') : '<div class="muted" style="column-span:all">No memories yet. Yours could be the first.</div>') + '<a class="card add" href="/myspot/?at=' + code + '&leave=1">+ Add yours</a>'; } });
     wireNotify(); track('place', { role: s.is_maker ? 'owner' : 'visitor' });
   }).catch(function(){ $(hdr() + '<h2>No spot here.</h2><a class="btn gold" href="/myspot/">Leave one of your own</a>'); });
 }
@@ -349,13 +359,13 @@ function askHeading(){ if (typeof DeviceOrientationEvent !== 'undefined' && type
 function hunt(code, s, r){
   _bearing = r.bearing_deg || 0;
   var needsTap = typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function';
-  $(hdr() + '<div class="k">Not there yet</div><div class="spot" style="align-items:center;text-align:center"><div class="pinbadge">📍</div>' +
+  $(hdr() + '<div class="k">Not there yet</div><div class="spot" style="align-items:center;text-align:center"><div class="pinbadge">' + I.pin + '</div>' +
     '<div style="position:relative;width:170px;height:170px;margin:6px auto 0"><div style="position:absolute;inset:0;border-radius:50%;border:2px solid var(--spotline)"></div><div id="north" style="position:absolute;inset:0;transition:transform .3s"><span style="position:absolute;left:50%;top:6px;transform:translateX(-50%);font:900 12px Nunito;color:var(--sub)">N</span></div>' +
     '<svg id="arrow" viewBox="0 0 100 100" style="position:absolute;inset:16px;width:138px;height:138px;transition:transform .3s"><polygon points="50,6 68,62 50,52 32,62" fill="#f5b83d"/><polygon points="50,52 68,62 50,94 32,62" fill="#a8740a" opacity=".8"/></svg></div>' +
-    '<div class="dist" id="dist">' + km(r.distance_m) + '</div><div class="meta">from the spot</div><div class="muted" id="headnote" style="color:var(--spotsub)"></div>' + (s.clue ? '<div class="clue" style="text-align:left">🧭 ' + esc(s.clue) + '</div>' : '') + '</div>' +
+    '<div class="dist" id="dist">' + km(r.distance_m) + '</div><div class="meta">from the spot</div><div class="muted" id="headnote" style="color:var(--spotsub)"></div>' + (s.clue ? '<div class="clue" style="text-align:left">' + I.compass + ' ' + esc(s.clue) + '</div>' : '') + '</div>' +
     '<div class="map" id="m" style="height:200px"></div>' +
     '<p class="lead">Walk toward the arrow. It opens by itself within about ' + (s.radius_m || 40) + ' metres.</p>' +
-    (needsTap ? '<button class="btn" id="cmp">Turn on the compass</button>' : '') + '<a class="btn" href="' + dirUrl(s.lat, s.lng) + '" target="_blank" rel="noopener">🧭 Get directions (Google Maps)</a><a class="btn" href="/myspot/?d=' + code + '">Stop</a>');
+    (needsTap ? '<button class="btn" id="cmp">Turn on the compass</button>' : '') + '<a class="btn" href="' + dirUrl(s.lat, s.lng) + '" target="_blank" rel="noopener">' + I.compass + ' Get directions (Google Maps)</a><a class="btn" href="/myspot/?d=' + code + '">Stop</a>');
   var m = mkMap(document.getElementById('m'), s.lat, s.lng, 16); addPin(m, s.lat, s.lng, s.visibility === 'public' ? 'public' : 'shared'); var me = LAST_POS ? addPin(m, LAST_POS.lat, LAST_POS.lng, 'here') : null; if (LAST_POS) m.fitBounds([[s.lat, s.lng], [LAST_POS.lat, LAST_POS.lng]], { padding: [30, 30] }); setTimeout(function(){ m.invalidateSize(); }, 50);
   if (needsTap) document.getElementById('cmp').onclick = function(){ this.classList.add('hidden'); askHeading(); }; else askHeading();
   drawArrow();
@@ -374,7 +384,7 @@ function opened(code, s, r){
   if (r.sealed) { $(hdr() + '<div class="k">Not yet</div><h2>It opens ' + esc(fmtWhen(r.opens_at)) + '.</h2><p class="lead">Come back then. You’re ' + km(r.distance_m) + ' from the spot.</p><a class="btn" href="/myspot/?d=' + code + '">Back</a>'); return; }
   if (!r.there) { hunt(code, s, r); return; }
   function render(log){
-    $(hdr() + '<div class="k">You found it</div><div class="spot open"><div class="pinbadge">📍</div><div class="who">' + (r.maker_photo ? '<img src="' + esc(r.maker_photo) + '" alt="">' : '') + esc(r.maker_name || 'Someone') + ' left this · ' + esc(fmt(r.buried_at)) + '</div>' + (r.photo_url ? '<img class="ph" src="' + esc(r.photo_url) + '" alt="">' : '') + (r.body ? '<div class="body">' + esc(r.body) + '</div>' : '') + '</div>' +
+    $(hdr() + '<div class="k">You found it</div><div class="spot open"><div class="pinbadge">' + I.pin + '</div><div class="who">' + (r.maker_photo ? '<img src="' + esc(r.maker_photo) + '" alt="">' : '') + esc(r.maker_name || 'Someone') + ' left this · ' + esc(fmt(r.buried_at)) + '</div>' + (r.photo_url ? '<img class="ph" src="' + esc(r.photo_url) + '" alt="">' : '') + (r.body ? '<div class="body">' + esc(r.body) + '</div>' : '') + '</div>' +
       '<div class="box"><div class="k">Logbook</div>' + (log.length ? '<div class="log">' + log.map(function(f){ return '<div>' + (f.note ? esc(f.note) : '<i>found it</i>') + '<small>' + esc(f.finder_name || 'Someone') + ' · ' + esc(fmt(f.created_at)) + '</small></div>'; }).join('') + '</div>' : '<div class="muted">You’re the first here.</div>') + '</div>' +
       (ME ? '<div class="box"><div style="font-weight:900">Leave a note here</div><textarea id="n" class="in" maxlength="300" placeholder="I was here. Thank you."></textarea><div class="err hidden" id="e"></div><button class="btn" id="rep">Leave it</button></div>' : signinBox('Sign in to leave a note here')) +
       '<a class="btn gold" href="/myspot/">Leave one back</a><a class="btn" href="/myspot/?map=1">See the map</a>');
@@ -392,7 +402,7 @@ function mine(){
   $(hdr() + '<div class="k">Mine</div><h2>What you left.</h2><div class="list" id="l"><div class="muted">Loading…</div></div><a class="btn gold" href="/myspot/">Leave another</a><button class="lnk" id="out" style="align-self:center">Sign out</button>');
   document.getElementById('out').onclick = function(){ sb.auth.signOut().then(function(){ location.href = '/myspot/'; }); };
   api({ action: 'mine' }).then(function(j){ var l = document.getElementById('l'); if (!j.spots.length) { l.innerHTML = '<div class="muted">Nothing left yet.</div>'; return; }
-    l.innerHTML = j.spots.map(function(s){ return '<div class="item" style="flex-wrap:wrap"><div style="flex:1;min-width:0"><b>' + (s.kind === 'place' ? '🏪 ' + esc(s.place_name) + ': ' : '') + (s.has_photo ? '📷 ' : '') + esc((s.body || 'Photo').slice(0, 60)) + ((s.body || '').length > 60 ? '…' : '') + '</b><small>' + esc(fmt(s.created_at)) + ' · found ' + s.finds.length + '×' + (s.clue ? ' · ' + esc(s.clue) : '') + '</small></div>' +
+    l.innerHTML = j.spots.map(function(s){ return '<div class="item" style="flex-wrap:wrap"><div style="flex:1;min-width:0"><b>' + (s.kind === 'place' ? I.shop + ' ' + esc(s.place_name) + ': ' : '') + (s.has_photo ? I.camera + ' ' : '') + esc((s.body || 'Photo').slice(0, 60)) + ((s.body || '').length > 60 ? '…' : '') + '</b><small>' + esc(fmt(s.created_at)) + ' · found ' + s.finds.length + '×' + (s.clue ? ' · ' + esc(s.clue) : '') + '</small></div>' +
       '<select class="in" data-code="' + s.code + '"><option value="personal"' + (s.visibility === 'personal' ? ' selected' : '') + '>Personal</option><option value="link"' + (s.visibility === 'link' ? ' selected' : '') + '>Private link</option><option value="public"' + (s.visibility === 'public' ? ' selected' : '') + '>Public</option><option value="hidden"' + (s.visibility === 'hidden' ? ' selected' : '') + '>Hidden</option></select>' +
       '<div style="flex-basis:100%;display:flex;gap:8px;margin-top:4px"><button class="btn sm" data-share="' + s.code + '" style="flex:1">Share</button><a class="btn sm" href="/myspot/?' + (s.kind === 'place' ? 'at=' : 'd=') + s.code + '" style="flex:1">Open</a><a class="btn sm" href="/myspot/?qr=' + s.code + '" style="flex:1">QR tent</a></div>' +
       (s.finds.length ? '<div class="log" style="flex-basis:100%;margin-top:6px">' + s.finds.slice(0, 5).map(function(f){ return '<div>' + (f.note ? esc(f.note) : '<i>found it</i>') + '<small>' + esc(f.finder_name || 'Someone') + ' · ' + esc(fmt(f.created_at)) + '</small></div>'; }).join('') + '</div>' : '') + '</div>'; }).join('');
