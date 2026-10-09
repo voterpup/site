@@ -124,9 +124,10 @@ function locate(){ return new Promise(function(res, rej){ if (!navigator.geoloca
 function fmt(iso){ return new Date(iso).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' }); }
 function fmtWhen(iso){ return new Date(iso).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }); }
 function km(m){ return m < 1000 ? m + ' m' : (m / 1000).toFixed(1) + ' km'; }
+var SITE = 'https://voterpup.com';   // the one line to change when My spot moves to its own domain (old links redirect)
 function dirUrl(lat, lng){ return 'https://www.google.com/maps/dir/?api=1&destination=' + lat + ',' + lng + '&travelmode=walking'; }
-function spotUrl(code){ return 'https://voterpup.com/myspot/?d=' + code; }
-function placeUrl(code){ return 'https://voterpup.com/myspot/?at=' + code; }
+function spotUrl(code){ return SITE + '/myspot/?d=' + code; }
+function placeUrl(code){ return SITE + '/myspot/?at=' + code; }
 function toast(t){ var e = document.getElementById('toast'); if (!e) { e = document.createElement('div'); e.id = 'toast'; e.style.cssText = 'position:fixed;left:50%;bottom:28px;transform:translateX(-50%);background:#eaf2f8;color:#0c1722;padding:12px 16px;border-radius:999px;font:800 14px Nunito;z-index:2000;max-width:90%'; document.body.appendChild(e); } e.textContent = t; e.style.display = 'block'; clearTimeout(e._t); e._t = setTimeout(function(){ e.style.display = 'none'; }, 2800); }
 function share(code, text){ var msg = text + ' ' + spotUrl(code); if (navigator.share) { navigator.share({ text: msg }).then(function(){ track('share', { how: 'share' }); }).catch(function(){}); return; } navigator.clipboard.writeText(msg).then(function(){ toast('Link copied. Paste it to them.'); track('share', { how: 'copy' }); }).catch(function(){ prompt('Copy this', msg); }); }
 function myEmail(){ try { return (SESSION && SESSION.user && SESSION.user.email) || ''; } catch (e) { return ''; } }
