@@ -142,8 +142,21 @@ function googleButton(slot, after){
     slot.innerHTML = ''; google.accounts.id.renderButton(slot, { theme: 'outline', size: 'large', text: 'continue_with', shape: 'pill', width: 280 });
   }).catch(function(e){ slot.innerHTML = '<p class="err">' + esc(e.message) + '</p>'; });
 }
-function signinBox(why, sub){ return '<div class="box" id="signin"><div style="font-weight:900">' + esc(why || 'Sign in with Google') + '</div><div class="muted">' + esc(sub || 'A quick profile from your Google account: your name and photo, so people know who left it.') + '</div><div id="gslot"></div></div>'; }
-function wireSignin(after){ var s = document.getElementById('gslot'); if (s) googleButton(s, after); }
+function signinBox(why, sub){ return '<div class="box" id="signin"><div style="font-weight:900">' + esc(why || 'Sign in') + '</div><div class="muted">' + esc(sub || 'With Google, or with your email and a 6-digit code. Your name shows on what you leave; nothing else.') + '</div><div id="gslot"></div>' +
+  '<div class="muted" style="text-align:center">or</div><div id="eslot"><div class="row"><input id="oem" class="in" type="email" placeholder="you@email.com" autocomplete="email"><button class="btn" id="osend" style="flex:0 0 auto;width:auto;min-width:110px">Send code</button></div><div class="err hidden" id="oerr"></div></div></div>'; }
+function wireSignin(after){
+  var g = document.getElementById('gslot'); if (g) googleButton(g, after);
+  var b = document.getElementById('osend'); if (!b) return;
+  b.onclick = function(){ var em = document.getElementById('oem').value.trim().toLowerCase(), err = document.getElementById('oerr'); err.classList.add('hidden'); if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(em)) { err.textContent = 'Type your email first.'; err.classList.remove('hidden'); return; }
+    b.disabled = true; b.textContent = 'Sending…';
+    sb.auth.signInWithOtp({ email: em, options: { shouldCreateUser: true } }).then(function(r){ if (r.error) throw new Error(r.error.message);
+      document.getElementById('eslot').innerHTML = '<div class="muted">We emailed a 6-digit code to ' + esc(em) + '.</div><div class="row"><input id="ocode" class="in" inputmode="numeric" autocomplete="one-time-code" placeholder="123456" maxlength="8"><button class="btn gold" id="ogo" style="flex:0 0 auto;width:auto;min-width:110px">Sign in</button></div><div class="err hidden" id="oerr"></div>';
+      document.getElementById('ogo').onclick = function(){ var code = document.getElementById('ocode').value.trim(), e2 = document.getElementById('oerr'); if (!code) return; this.disabled = true;
+        sb.auth.verifyOtp({ email: em, token: code, type: 'email' }).then(function(v){ if (v.error) throw new Error(v.error.message); return boot(); }).then(function(){ track('signin', { how: 'otp' }); after(); })
+          .catch(function(e){ e2.textContent = 'That code didn’t work: ' + e.message; e2.classList.remove('hidden'); document.getElementById('ogo').disabled = false; }); };
+    }).catch(function(e){ err.textContent = 'Could not send the code: ' + e.message; err.classList.remove('hidden'); b.disabled = false; b.textContent = 'Send code'; });
+  };
+}
 
 // ---------- map helpers (Leaflet + OpenStreetMap tiles) ----------
 function mkMap(el, lat, lng, zoom){ var m = L.map(el, { zoomControl: false, attributionControl: true }).setView([lat, lng], zoom || 15); L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19, attribution: '© OpenStreetMap' }).addTo(m); return m; }

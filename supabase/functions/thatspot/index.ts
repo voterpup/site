@@ -221,6 +221,7 @@ Deno.serve(async (req) => {
   if (a === "place_admin") {   // founder only: set the owner's email/notes, read the numbers
     const k = Deno.env.get("QA_KEY"); if (!k || b.key !== k) return json({ error: "no" }, 403);
     const pc = clean(b.code, 12).replace(/[^a-z0-9]/g, ""); const { data: pl } = await db.from("spots").select("*").eq("code", pc).eq("kind", "place").maybeSingle(); if (!pl) return json({ error: "not found" }, 404);
+    if (b.radius_m !== undefined) { const r = Math.min(Math.max(num(b.radius_m) ?? 60, 20), 100000); await db.from("spots").update({ radius_m: r }).eq("id", pl.id); pl.radius_m = r; }
     if (b.owner_email !== undefined || b.owner_note !== undefined) { pl.owner_email = clean(b.owner_email, 120) || pl.owner_email; pl.owner_note = clean(b.owner_note, 300) || pl.owner_note; await db.from("spots").update({ owner_email: pl.owner_email, owner_note: pl.owner_note }).eq("id", pl.id); }
     const since = new Date(Date.now() - 7 * 864e5).toISOString();
     const { data: opens } = await db.from("spot_finds").select("finder_uid, created_at").eq("spot_id", pl.id);
