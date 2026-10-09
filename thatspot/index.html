@@ -172,10 +172,38 @@ function find(code){
     track('peek', { role: s.is_maker ? 'maker' : 'finder', vis: s.visibility });
   }).catch(function(){ $(hdr() + '<h2>Nothing buried here.</h2><p class="lead">The link may be wrong, or the drop was hidden.</p><a class="btn gold" href="/thatspot/">Bury one of your own</a>'); });
 }
+// the hunt: live distance and a compass arrow toward the spot (device heading when the phone gives it, else relative to north)
+var _watch = null, _head = null, _headOn = false;
+function stopHunt(){ if (_watch !== null) { navigator.geolocation.clearWatch(_watch); _watch = null; } window.removeEventListener('deviceorientationabsolute', onHead); window.removeEventListener('deviceorientation', onHead); }
+function onHead(e){ var h = (typeof e.webkitCompassHeading === 'number') ? e.webkitCompassHeading : (e.absolute || e.type === 'deviceorientationabsolute') && typeof e.alpha === 'number' ? (360 - e.alpha) % 360 : null; if (h !== null) { _head = h; _headOn = true; drawArrow(); } }
+var _bearing = 0;
+function drawArrow(){ var a = document.getElementById('arrow'), n = document.getElementById('north'); if (!a) return; var rot = _head === null ? _bearing : (_bearing - _head + 360) % 360; a.style.transform = 'rotate(' + rot + 'deg)'; if (n) n.style.transform = 'rotate(' + (_head === null ? 0 : (360 - _head) % 360) + 'deg)'; var l = document.getElementById('headnote'); if (l) l.textContent = _head === null ? 'Arrow is relative to north (hold the phone flat, top pointing north).' : 'Point the phone where the arrow points.'; }
+function askHeading(){ if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function') { DeviceOrientationEvent.requestPermission().then(function(st){ if (st === 'granted') { window.addEventListener('deviceorientation', onHead); } drawArrow(); }).catch(function(){ drawArrow(); }); } else { window.addEventListener('deviceorientationabsolute', onHead); window.addEventListener('deviceorientation', onHead); drawArrow(); } }
+function hunt(code, s, r){
+  stopHunt(); _bearing = r.bearing_deg || 0;
+  var needsTap = typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function';
+  $(hdr() + '<div class="k">Not there yet</div><div class="spot" style="align-items:center;text-align:center"><div class="pin">📍</div>' +
+    '<div style="position:relative;width:180px;height:180px;margin:6px auto 0"><div style="position:absolute;inset:0;border-radius:50%;border:2px solid #2a4258"></div><div id="north" style="position:absolute;inset:0;transition:transform .3s"><span style="position:absolute;left:50%;top:6px;transform:translateX(-50%);font:900 12px Nunito;color:#93a8ba">N</span></div>' +
+    '<svg id="arrow" viewBox="0 0 100 100" style="position:absolute;inset:16px;width:148px;height:148px;transition:transform .3s"><polygon points="50,6 68,62 50,52 32,62" fill="#f5b83d"/><polygon points="50,52 68,62 50,94 32,62" fill="#a8740a" opacity=".8"/></svg></div>' +
+    '<div class="dist" id="dist">' + km(r.distance_m) + '</div><div class="meta">from the spot</div><div class="muted" id="headnote" style="color:#b8cad8"></div>' + (s.clue ? '<div class="clue" style="text-align:left">🧭 ' + esc(s.clue) + '</div>' : '') + '</div>' +
+    '<p class="lead">Walk toward the arrow. It opens by itself when you’re within about ' + (s.radius_m || 40) + ' metres.</p>' +
+    (needsTap ? '<button class="btn" id="cmp">Turn on the compass</button>' : '') + '<a class="btn" href="/thatspot/?d=' + code + '">Stop</a>');
+  if (needsTap) document.getElementById('cmp').onclick = function(){ this.classList.add('hidden'); askHeading(); }; else askHeading();
+  drawArrow();
+  var last = 0;
+  if (navigator.geolocation) _watch = navigator.geolocation.watchPosition(function(p){
+    var now = Date.now(); if (now - last < 4000) return; last = now;
+    api({ action: 'open', code: code, lat: p.coords.latitude, lng: p.coords.longitude, acc: p.coords.accuracy }).then(function(r2){
+      if (r2.there) { stopHunt(); track('open_try', { there: true, d: r2.distance_m, live: true }); opened(code, s, r2); return; }
+      if (r2.sealed) { stopHunt(); opened(code, s, r2); return; }
+      _bearing = r2.bearing_deg || _bearing; var d = document.getElementById('dist'); if (d) d.textContent = km(r2.distance_m); drawArrow();
+    }).catch(function(){});
+  }, function(){}, { enableHighAccuracy: true, maximumAge: 2000, timeout: 20000 });
+}
 function opened(code, s, r){
   if (r.sealed) { $(hdr() + '<div class="k">Not yet</div><h2>It opens ' + esc(fmtWhen(r.opens_at)) + '.</h2><p class="lead">Come back then. You’re ' + km(r.distance_m) + ' from the spot.</p><a class="btn" href="/thatspot/?d=' + code + '">Back</a>'); return; }
-  if (!r.there) { $(hdr() + '<div class="k">Not there yet</div><div class="spot"><div class="pin">📍</div><div class="dist">' + km(r.distance_m) + '</div><div class="meta">from the spot</div>' + (s.clue ? '<div class="clue">🧭 ' + esc(s.clue) + '</div>' : '') + '</div><p class="lead">Get within about ' + (s.radius_m || 40) + ' metres and try again. Warmer when the number drops.</p><a class="btn gold" href="/thatspot/?d=' + code + '">Try again</a>'); return; }
-  function render(log){
+  if (!r.there) { hunt(code, s, r); return; }
+  function render(log){ stopHunt();
     $(hdr() + '<div class="k">You found it</div><div class="spot open"><div class="pin">📍</div><div class="who">' + (r.maker_photo ? '<img src="' + esc(r.maker_photo) + '" alt="">' : '') + esc(r.maker_name || 'Someone') + ' buried this · ' + esc(fmt(r.buried_at)) + '</div><div class="body">' + esc(r.body) + '</div></div>' +
       '<div class="box"><div class="k">Logbook</div>' + (log.length ? '<div class="log">' + log.map(function(f){ return '<div>' + (f.note ? esc(f.note) : '<i>found it</i>') + '<small>' + esc(f.finder_name || 'Someone') + ' · ' + esc(fmt(f.created_at)) + '</small></div>'; }).join('') + '</div>' : '<div class="muted">You’re the first here.</div>') + '</div>' +
       (ME ? '<div class="box"><label class="l" for="n">Leave a note here</label><textarea id="n" class="in" maxlength="300" placeholder="I was here. Thank you."></textarea><div class="err hidden" id="e"></div><button class="btn" id="rep">Leave it</button></div>' : signinBox('Sign in to leave a note here')) +

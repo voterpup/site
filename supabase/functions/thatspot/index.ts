@@ -14,6 +14,10 @@ function metres(aLat: number, aLng: number, bLat: number, bLng: number) {
   const h = Math.sin(dLat / 2) ** 2 + Math.cos(aLat * r) * Math.cos(bLat * r) * Math.sin(dLng / 2) ** 2;
   return 2 * R * Math.asin(Math.sqrt(h));
 }
+function bearing(aLat: number, aLng: number, bLat: number, bLng: number) {   // degrees from north, finder -> spot
+  const r = Math.PI / 180, y = Math.sin((bLng - aLng) * r) * Math.cos(bLat * r), x = Math.cos(aLat * r) * Math.sin(bLat * r) - Math.sin(aLat * r) * Math.cos(bLat * r) * Math.cos((bLng - aLng) * r);
+  return (Math.atan2(y, x) * 180 / Math.PI + 360) % 360;
+}
 const SLACK = 60;   // metres of GPS error we forgive, capped
 async function logFail(svc: string, msg: unknown) {
   try { const db = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!); await db.from("svc_errors").insert({ svc, msg: String((msg as any)?.message ?? msg).slice(0, 400) }); } catch (_) { /* nothing */ }
@@ -136,7 +140,7 @@ Deno.serve(async (req) => {
       if (!s.bound_uid) await db.from("spots").update({ bound_uid: user.id }).eq("id", s.id);
       else if (s.bound_uid !== user.id) return json({ error: "This one was buried for someone else" }, 403);
     }
-    if (!there) return json({ there: false, distance_m: Math.round(dist) });
+    if (!there) return json({ there: false, distance_m: Math.round(dist), bearing_deg: Math.round(bearing(lat, lng, s.lat, s.lng)) });
     if (!isMaker) {
       const p = user ? await profile() : null;
       const { data: already } = user ? await db.from("spot_finds").select("id").eq("spot_id", s.id).eq("finder_uid", user.id).limit(1) : { data: [] };
