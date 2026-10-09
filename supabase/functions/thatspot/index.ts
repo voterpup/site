@@ -237,7 +237,7 @@ Deno.serve(async (req) => {
     const { data: near } = await db.from("spots").select("*, spot_profiles(name, photo), spot_finds(id)").eq("visibility", "public").neq("kind", "place").gte("lat", pl.lat - d).lte("lat", pl.lat + d).gte("lng", pl.lng - d * 1.5).lte("lng", pl.lng + d * 1.5).limit(80);
     const { data: byCode } = await db.from("spots").select("*, spot_profiles(name, photo), spot_finds(id)").eq("visibility", "public").eq("place_code", pl.code).limit(120);
     const seen = new Set<string>(), rows: any[] = [];
-    for (const s of [...(byCode ?? []), ...(near ?? [])]) { if (seen.has(s.code)) continue; seen.add(s.code); if (s.place_code === pl.code || metres(pl.lat, pl.lng, s.lat, s.lng) <= 80) rows.push(s); }
+    for (const s of [...(byCode ?? []), ...(near ?? [])]) { if (seen.has(s.code)) continue; seen.add(s.code); if (s.place_code === pl.code || metres(pl.lat, pl.lng, s.lat, s.lng) <= 30) rows.push(s); }
     rows.sort((x, y) => x.created_at < y.created_at ? 1 : -1);
     const cards = []; for (const s of rows) cards.push({ ...pubSpot(s, { finds: (s.spot_finds ?? []).length }), body: s.body, photo_url: await signedPhoto(db, s.photo), mine: !!user && s.maker === user.id });
     if (user) { const since = new Date(Date.now() - 12 * 3600e3).toISOString(); const { data: recent } = await db.from("spot_finds").select("id").eq("spot_id", pl.id).eq("finder_uid", user.id).gt("created_at", since).limit(1); if (!(recent ?? []).length) { const p = await profile(); await db.from("spot_finds").insert({ spot_id: pl.id, finder_uid: user.id, finder_name: p?.name ?? null, lat, lng }); } }
@@ -252,7 +252,7 @@ Deno.serve(async (req) => {
     const { data } = await db.from("spots").select("*, spot_profiles(name, photo), spot_finds(id)").eq("visibility", "public").neq("kind", "place").gte("lat", lat - d).lte("lat", lat + d).gte("lng", lng - d * 1.5).lte("lng", lng + d * 1.5).order("created_at", { ascending: false }).limit(60);
     const { data: byCode } = pcode ? await db.from("spots").select("*, spot_profiles(name, photo), spot_finds(id)").eq("visibility", "public").eq("place_code", pcode).order("created_at", { ascending: false }).limit(60) : { data: [] };
     const seen = new Set<string>(), rows: any[] = [];
-    for (const s of [...(byCode ?? []), ...(data ?? [])]) { if (seen.has(s.code)) continue; seen.add(s.code); const dm = Math.round(metres(lat, lng, s.lat, s.lng)); if (s.place_code === pcode || dm <= 80) rows.push(pubSpot(s, { distance_m: dm, finds: (s.spot_finds ?? []).length })); }
+    for (const s of [...(byCode ?? []), ...(data ?? [])]) { if (seen.has(s.code)) continue; seen.add(s.code); const dm = Math.round(metres(lat, lng, s.lat, s.lng)); if (s.place_code === pcode || dm <= 30) rows.push(pubSpot(s, { distance_m: dm, finds: (s.spot_finds ?? []).length })); }
     const list = rows.sort((x: any, y: any) => x.created_at < y.created_at ? 1 : -1);
     return json({ spots: list });
   }
