@@ -96,7 +96,7 @@ Deno.serve(async (req) => {
     const p = await profile(); if (!p) return json({ error: "sign in" }, 401);
     const lat = num(b.lat), lng = num(b.lng), clue = clean(b.clue, 140) || null;
     const isPlace = b.kind === "place", placeName = clean(b.place_name, 60) || null;
-    if (isPlace && !body) b.body = "Welcome to " + placeName + ". Leave something here for the next person.";
+    if (isPlace && !clean(b.body, 600)) b.body = "Welcome to " + placeName + ". Leave something here for the next person.";
     if (isPlace && !placeName) return json({ error: "shop name missing" }, 400);
     const vis = isPlace ? "public" : ["personal", "link", "public"].includes(b.visibility) ? b.visibility : "link";
     const body = clean(b.body, 600);
@@ -153,7 +153,7 @@ Deno.serve(async (req) => {
   if (a === "place_admin") {   // founder only: set the owner's email/notes, read the numbers
     const k = Deno.env.get("QA_KEY"); if (!k || b.key !== k) return json({ error: "no" }, 403);
     const pc = clean(b.code, 12).replace(/[^a-z0-9]/g, ""); const { data: pl } = await db.from("spots").select("*").eq("code", pc).eq("kind", "place").maybeSingle(); if (!pl) return json({ error: "not found" }, 404);
-    if (b.owner_email !== undefined || b.owner_note !== undefined) await db.from("spots").update({ owner_email: clean(b.owner_email, 120) || pl.owner_email, owner_note: clean(b.owner_note, 300) || pl.owner_note }).eq("id", pl.id);
+    if (b.owner_email !== undefined || b.owner_note !== undefined) { pl.owner_email = clean(b.owner_email, 120) || pl.owner_email; pl.owner_note = clean(b.owner_note, 300) || pl.owner_note; await db.from("spots").update({ owner_email: pl.owner_email, owner_note: pl.owner_note }).eq("id", pl.id); }
     const since = new Date(Date.now() - 7 * 864e5).toISOString();
     const { data: opens } = await db.from("spot_finds").select("finder_uid, created_at").eq("spot_id", pl.id);
     const { data: posts } = await db.from("spots").select("code, created_at, maker").eq("place_code", pl.code);
