@@ -241,7 +241,7 @@ Deno.serve(async (req) => {
   }
   if (a === "map") {
     const s0 = num(b.south), w0 = num(b.west), n0 = num(b.north), e0 = num(b.east); if ([s0, w0, n0, e0].some((v) => v === null)) return json({ error: "no bounds" }, 400);
-    const now = Date.now(), pin = (s: any, kind: string) => ({ code: s.code, lat: s.lat, lng: s.lng, kind, is_place: s.kind === 'place', place_name: s.place_name || null, clue: s.clue, has_photo: !!s.photo, visibility: s.visibility, finds: (s.spot_finds ?? []).length, maker_name: s.spot_profiles?.name ?? null, created_at: s.created_at, sealed: !!(s.opens_at && new Date(s.opens_at).getTime() > now) });
+    const now = Date.now(), pin = (s: any, kind: string) => ({ code: s.code, lat: s.lat, lng: s.lng, kind, is_place: s.kind === 'place', place_name: s.place_name || null, place_code: s.place_code || null, clue: s.clue, has_photo: !!s.photo, visibility: s.visibility, finds: (s.spot_finds ?? []).length, maker_name: s.spot_profiles?.name ?? null, created_at: s.created_at, sealed: !!(s.opens_at && new Date(s.opens_at).getTime() > now) });
     const q = () => db.from("spots").select("*, spot_profiles(name), spot_finds(id)").gte("lat", s0!).lte("lat", n0!).gte("lng", w0!).lte("lng", e0!).limit(300);
     const { data: pub } = await q().eq("visibility", "public");
     let mine: any[] = [], shared: any[] = [];
