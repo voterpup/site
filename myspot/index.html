@@ -205,7 +205,7 @@ function home(){
   var st = { photo: null, pos: null, vis: 'link', map: null, marker: null, at: new URLSearchParams(location.search).get('at') || null, atName: null };
   $(hdr() + '<a class="lnk" href="' + (st.at ? '/myspot/?at=' + st.at : '/myspot/?map=1') + '" style="padding:0;margin-top:-6px">‹ ' + (st.at ? 'Back to the shop' : 'Back to the map') + '</a>' + (st.at ? '<div class="k" id="atname">Posting at this shop</div>' : '') + '<h1>Leave a memory here.</h1>' +
     '<div class="box"><div class="step"><div class="n" id="n1">1</div><div><div class="t">Write it, or snap a picture</div>' +
-      '<textarea id="t" class="in" maxlength="600" placeholder="Remember this bench? Sit for a minute."></textarea>' +
+      '<textarea id="t" class="in" maxlength="600" placeholder="Memories have places. Let’s add one more."></textarea>' +
       '<div class="row"><label class="btn sm" for="ph" style="cursor:pointer">' + I.camera + ' Snap a picture</label><input id="ph" type="file" accept="image/*" capture="environment" class="hidden"><img id="thumb" class="thumb hidden" alt=""><button class="lnk hidden" id="unph">Remove</button></div></div></div></div>' +
     '<div class="box"><div class="step"><div class="n" id="n2">2</div><div><div class="t">Place it where you stand</div><button class="btn sm" id="loc">Allow location</button><div class="muted" id="where">Your spot goes on the map once you allow it.</div><div class="map hidden" id="mini"></div></div></div></div>' +
     '<div class="box"><div class="step"><div class="n" id="n3">3</div><div><div class="t">Who can find it</div>' +
