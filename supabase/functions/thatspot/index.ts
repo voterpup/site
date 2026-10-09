@@ -49,6 +49,16 @@ async function photoOk(db: any, path: string): Promise<boolean> {   // fail clos
   } catch (e) { await logFail("thatspot photo check", e); return false; }
 }
 async function signedPhoto(db: any, path: string | null) { if (!path) return null; const { data } = await db.storage.from("media").createSignedUrl(path, 3600); return data?.signedUrl ?? null; }
+const SITE = "https://voterpup.com";
+async function mail(to: string, subject: string, body: string, cta: string, url: string, unsub: string) {
+  const key = Deno.env.get("RESEND_API_KEY"); if (!key) throw new Error("no RESEND_API_KEY");
+  const esc = (s: string) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]!));
+  const html = `<div style="font-family:system-ui,sans-serif;max-width:480px;margin:0 auto;padding:20px;color:#1d2433"><p style="font-size:22px;margin:0 0 6px">📍 My spot</p><p style="font-size:16px;line-height:1.5;white-space:pre-line">${esc(body)}</p><p><a href="${url}" style="display:inline-block;background:#e8b84b;color:#2a2418;font-weight:800;padding:12px 18px;border-radius:999px;text-decoration:none">${esc(cta)}</a></p><p style="font-size:12px;color:#6b7387;margin-top:28px">You asked for this at voterpup.com/myspot. <a href="${unsub}" style="color:#6b7387">Unsubscribe</a> · <a href="${SITE}/privacy.html" style="color:#6b7387">Privacy</a></p></div>`;
+  const r = await fetch("https://api.resend.com/emails", { method: "POST", headers: { Authorization: "Bearer " + key, "content-type": "application/json" },
+    body: JSON.stringify({ from: "VoterPup <pup@voterpup.com>", to: [to], subject, html, text: `${body}\n\n${cta}: ${url}\n\nUnsubscribe: ${unsub}`, headers: { "List-Unsubscribe": `<${unsub}>` } }) });
+  if (!r.ok) throw new Error("resend " + r.status + " " + (await r.text()).slice(0, 160));
+}
+const tokenOf = () => Array.from(crypto.getRandomValues(new Uint8Array(16)), (x) => x.toString(16).padStart(2, "0")).join("");
 function pubSpot(s: any, extra: Record<string, unknown> = {}) {
   return { code: s.code, kind: s.kind || 'memory', place_name: s.place_name || null, clue: s.clue, visibility: s.visibility, opens_at: s.opens_at, created_at: s.created_at, radius_m: s.radius_m, has_photo: !!s.photo, maker_name: s.spot_profiles?.name ?? null, maker_photo: s.spot_profiles?.photo ?? null, ...extra };
 }
@@ -57,8 +67,56 @@ Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: CORS });
   const url = Deno.env.get("SUPABASE_URL")!, anon = Deno.env.get("SUPABASE_ANON_KEY")!;
   const db = createClient(url, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
+  if (req.method === "GET") {
+    const tok = (new URL(req.url).searchParams.get("unsub") || "").replace(/[^a-f0-9]/g, "");
+    if (tok) await db.from("spot_subs").update({ unsub_at: new Date().toISOString() }).eq("token", tok);
+    return new Response("<!doctype html><meta charset=utf-8><meta name=viewport content=width=device-width><body style=font-family:system-ui;padding:40px;text-align:center><h2>Unsubscribed</h2><p>No more emails about that spot.</p>", { headers: { "content-type": "text/html" } });
+  }
   let b: any = {}; try { b = await req.json(); } catch (_) { return json({ error: "bad json" }, 400); }
   const a = String(b.action || "");
+  const FN = url + "/functions/v1/thatspot";
+
+  if (a === "cron") {   // the daily reasons to come back
+    const now = new Date(), nowIso = now.toISOString(); let sent = 0, failed = 0;
+    const { data: subs } = await db.from("spot_subs").select("*").is("unsub_at", null).limit(2000);
+    for (const sub of subs ?? []) {
+      const since = sub.last_sent || sub.created_at; let text: string | null = null, cta = "", link = "";
+      try {
+        if (sub.kind === "my_memory") {
+          const { data: sp } = await db.from("spots").select("id, code, body, place_code, place_name").eq("code", sub.spot_code).maybeSingle(); if (!sp) continue;
+          const { data: f } = await db.from("spot_finds").select("finder_name, note, created_at").eq("spot_id", sp.id).gt("created_at", since).neq("finder_uid", sub.uid ?? "00000000-0000-0000-0000-000000000000");
+          const opens = (f ?? []).length, notes = (f ?? []).filter((x: any) => x.note);
+          if (!opens) continue;
+          text = `${opens === 1 ? "Someone" : opens + " people"} opened your memory "${String(sp.body || "").slice(0, 60)}"` + (notes.length ? `, and ${notes.length === 1 ? "one left a note" : notes.length + " left notes"}: "${String(notes[0].note).slice(0, 80)}"` : "") + ".";
+          cta = "See it"; link = `${SITE}/myspot/?d=${sp.code}`;
+        } else {
+          const { data: pl } = await db.from("spots").select("code, place_name, lat, lng").eq("code", sub.spot_code).maybeSingle(); if (!pl) continue;
+          const { data: nw } = await db.from("spots").select("code").eq("place_code", pl.code).eq("visibility", "public").gt("created_at", since);
+          if (!(nw ?? []).length) continue;
+          text = `${(nw ?? []).length === 1 ? "A new memory was" : (nw ?? []).length + " new memories were"} left at ${pl.place_name} since you were there. They open when you're standing inside.`;
+          cta = "See what's new"; link = `${SITE}/myspot/?at=${pl.code}`;
+        }
+        await mail(sub.email, "📍 " + (sub.kind === "my_memory" ? "Someone opened your memory" : "New at " + text.split(" at ")[1]?.split(" since")[0]), text, cta, link, `${FN}?unsub=${sub.token}`); sent++;
+        await db.from("spot_subs").update({ last_sent: nowIso }).eq("id", sub.id);
+      } catch (e) { failed++; await logFail("myspot mail", e); }
+    }
+    let owners = 0;
+    if (now.getUTCDay() === 1) {   // Monday: the shops' weekly numbers
+      const { data: places } = await db.from("spots").select("*").eq("kind", "place").not("owner_email", "is", null);
+      const since = new Date(Date.now() - 7 * 864e5).toISOString();
+      for (const pl of places ?? []) {
+        try {
+          const { data: opens } = await db.from("spot_finds").select("finder_uid, created_at").eq("spot_id", pl.id);
+          const { data: posts } = await db.from("spots").select("code, created_at").eq("place_code", pl.code).eq("visibility", "public");
+          const wk = (opens ?? []).filter((o: any) => o.created_at >= since).length, pw = (posts ?? []).filter((p: any) => p.created_at >= since).length;
+          const uniq = new Set((opens ?? []).map((o: any) => o.finder_uid || "anon")).size, rep = Object.values((opens ?? []).reduce((m: any, o: any) => { if (o.finder_uid) m[o.finder_uid] = (m[o.finder_uid] || 0) + 1; return m; }, {})).filter((n: any) => n > 1).length;
+          const text = `${pl.place_name}, this week: ${wk} ${wk === 1 ? "person" : "people"} opened the spot and ${pw} ${pw === 1 ? "memory was" : "memories were"} left.\nSince the start: ${(opens ?? []).length} opens, ${(posts ?? []).length} memories, ${uniq} different visitors, ${rep} came back more than once.`;
+          await mail(pl.owner_email, "📍 " + pl.place_name + ": your week on My spot", text, "See the spot", `${SITE}/myspot/?at=${pl.code}`, `${FN}?unsub=none`); owners++;
+        } catch (e) { await logFail("myspot owner mail", e); }
+      }
+    }
+    return json({ sent, failed, owners });
+  }
 
   // who is calling: a signed-in profile, or nobody
   let user: any = null;
@@ -150,6 +208,16 @@ Deno.serve(async (req) => {
     return json({ spots: list });
   }
 
+  if (a === "notify") {   // "tell me when someone reads it" / "tell me when new memories appear here"
+    const kind = b.kind === "place_new" ? "place_new" : "my_memory", sc = clean(b.spot_code, 12).replace(/[^a-z0-9]/g, "");
+    const em = (clean(b.email, 120) || user?.email || "").toLowerCase(); if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(em)) return json({ error: "bad email" }, 400);
+    const { data: sp } = await db.from("spots").select("code, kind, maker").eq("code", sc).maybeSingle(); if (!sp) return json({ error: "not found" }, 404);
+    if (kind === "my_memory" && (!user || sp.maker !== user.id)) return json({ error: "not yours" }, 403);
+    if (kind === "place_new" && sp.kind !== "place") return json({ error: "not a shop" }, 400);
+    const { error } = await db.from("spot_subs").upsert({ email: em, uid: user?.id ?? null, kind, spot_code: sc, token: tokenOf(), unsub_at: null }, { onConflict: "email,kind,spot_code" });
+    if (error) return json({ error: "db: " + error.message }, 500);
+    return json({ ok: true, email: em });
+  }
   if (a === "place_admin") {   // founder only: set the owner's email/notes, read the numbers
     const k = Deno.env.get("QA_KEY"); if (!k || b.key !== k) return json({ error: "no" }, 403);
     const pc = clean(b.code, 12).replace(/[^a-z0-9]/g, ""); const { data: pl } = await db.from("spots").select("*").eq("code", pc).eq("kind", "place").maybeSingle(); if (!pl) return json({ error: "not found" }, 404);
