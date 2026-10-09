@@ -61,7 +61,8 @@ textarea.in{min-height:96px;resize:vertical;line-height:1.35}
 .row{display:flex;gap:10px;align-items:center}
 .thumb{width:72px;height:72px;border-radius:12px;object-fit:cover;border:1.5px solid var(--line)}
 .map{width:100%;height:200px;border-radius:14px;border:1px solid var(--line);background:#0f1d2a}
-.map.big{height:calc(100vh - 230px);min-height:380px}
+.map.big{height:calc(100vh - 230px);min-height:380px;position:relative}
+.locbtn{position:absolute;right:12px;bottom:28px;z-index:800;width:48px;height:48px;border-radius:50%;background:var(--card);border:1.5px solid var(--line);color:var(--ink);display:grid;place-items:center;box-shadow:0 4px 14px rgba(0,0,0,.3);cursor:pointer}.locbtn.on{color:#4ea3ff;border-color:#4ea3ff}.locbtn svg{width:22px;height:22px}
 .leaflet-container{font:inherit}
 .pin{width:18px;height:18px;border-radius:50% 50% 50% 0;transform:rotate(-45deg);border:2px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,.4)}
 .deck{position:relative;width:34px;height:34px}.deck i{position:absolute;left:0;top:0;width:26px;height:34px;border-radius:5px;border:1.5px solid #fff;box-shadow:0 2px 5px rgba(0,0,0,.35);background:var(--pub)}.deck i.c2{transform:translate(4px,-3px) rotate(6deg);opacity:.9}.deck i.c3{transform:translate(8px,-6px) rotate(12deg);opacity:.8}.deck i.public{background:var(--pub)}.deck i.mine{background:var(--mine)}.deck i.shared{background:var(--shared)}.deck i.place{background:#ff8c42}.deck b{position:absolute;right:-8px;bottom:-6px;min-width:20px;height:20px;border-radius:10px;background:var(--badge);color:#fff;border:2px solid #fff;font:900 11px/16px Nunito;text-align:center;padding:0 4px}.deck .ph{position:absolute;left:5px;top:9px;font-size:13px}
@@ -259,7 +260,7 @@ function left(code, st){
 // ---------- the map ----------
 var _bigmap = null;
 function mapView(focus){
-  $(hdr() + '<div class="counts" id="counts"><span><i style="background:#ff8c42"></i>shops</span><span><i style="background:var(--pub)"></i>public</span><span><i style="background:var(--mine)"></i>yours</span><span><i style="background:var(--shared)"></i>shared with you</span></div><div class="map big" id="big"></div>' + (ME ? '<a class="btn gold" href="/myspot/">Leave a memory here</a>' : signinBox('Sign in to leave one', 'Finding public memories needs no account; leaving one does.')));
+  $(hdr() + '<div class="counts" id="counts"><span><i style="background:#ff8c42"></i>shops</span><span><i style="background:var(--pub)"></i>public</span><span><i style="background:var(--mine)"></i>yours</span><span><i style="background:var(--shared)"></i>shared with you</span></div><div class="map big" id="big"><button class="locbtn" id="locbtn" aria-label="My location"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="7"/><circle cx="12" cy="12" r="2.5" fill="currentColor"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/></svg></button></div>' + (ME ? '<a class="btn gold" href="/myspot/">Leave a memory here</a>' : signinBox('Sign in to leave one', 'Finding public memories needs no account; leaving one does.')));
   if (!ME) wireSignin(function(){ mapView(focus); });
   var c = focus || fallbackCentre(), map = mkMap(document.getElementById('big'), c.lat, c.lng, focus ? 17 : 14); _bigmap = map;
   var layer = L.layerGroup().addTo(map), timer = null;
@@ -269,8 +270,12 @@ function mapView(focus){
     document.getElementById('counts').innerHTML = '<span><i style="background:var(--pub)"></i>' + j.counts.public + ' public</span>' + (ME ? '<span><i style="background:var(--mine)"></i>' + j.counts.mine + ' yours</span><span><i style="background:var(--shared)"></i>' + j.counts.shared + ' shared with you</span>' : '') + '<span>in view</span>';
   }).catch(function(){}); }
   map.on('moveend', function(){ clearTimeout(timer); timer = setTimeout(load, 250); });
-  if (LAST_POS) addPin(map, LAST_POS.lat, LAST_POS.lng, 'here');
-  if (!focus) locate().then(function(p){ map.setView([p.lat, p.lng], 15); addPin(map, p.lat, p.lng, 'here'); }).catch(function(){ load(); });
+  var here = LAST_POS ? addPin(map, LAST_POS.lat, LAST_POS.lng, 'here') : null;
+  function goHere(zoom){ var b = document.getElementById('locbtn'); if (b) b.classList.add('on');
+    locate().then(function(p){ map.setView([p.lat, p.lng], zoom || 16); if (here) here.setLatLng([p.lat, p.lng]); else here = addPin(map, p.lat, p.lng, 'here'); })
+      .catch(function(e){ if (b) b.classList.remove('on'); toast(e.message.indexOf('denied') >= 0 ? 'Location is off for this site. Allow it in your phone settings for voterpup.com, then tap again.' : e.message); load(); }); }
+  document.getElementById('locbtn').onclick = function(){ goHere(16); track('map_locate', {}); };
+  if (!focus) goHere(15);
   setTimeout(function(){ map.invalidateSize(); load(); }, 100);
   if (focus && focus.pin) { addPin(map, focus.lat, focus.lng, focus.pin.kind); setTimeout(function(){ pinSheet(focus.pin); }, 300); }
   track('map', { signed: !!ME });
