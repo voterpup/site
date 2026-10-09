@@ -107,6 +107,7 @@ function locate(){ return new Promise(function(res, rej){ if (!navigator.geoloca
 function fmt(iso){ return new Date(iso).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' }); }
 function fmtWhen(iso){ return new Date(iso).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }); }
 function km(m){ return m < 1000 ? m + ' m' : (m / 1000).toFixed(1) + ' km'; }
+function dirUrl(lat, lng){ return 'https://www.google.com/maps/dir/?api=1&destination=' + lat + ',' + lng + '&travelmode=walking'; }
 function spotUrl(code){ return 'https://voterpup.com/thatspot/?d=' + code; }
 function toast(t){ var e = document.getElementById('toast'); if (!e) { e = document.createElement('div'); e.id = 'toast'; e.style.cssText = 'position:fixed;left:50%;bottom:28px;transform:translateX(-50%);background:#eaf2f8;color:#0c1722;padding:12px 16px;border-radius:999px;font:800 14px Nunito;z-index:2000;max-width:90%'; document.body.appendChild(e); } e.textContent = t; e.style.display = 'block'; clearTimeout(e._t); e._t = setTimeout(function(){ e.style.display = 'none'; }, 2800); }
 function share(code, text){ var msg = text + ' ' + spotUrl(code); if (navigator.share) { navigator.share({ text: msg }).then(function(){ track('share', { how: 'share' }); }).catch(function(){}); return; } navigator.clipboard.writeText(msg).then(function(){ toast('Link copied. Paste it to them.'); track('share', { how: 'copy' }); }).catch(function(){ prompt('Copy this', msg); }); }
@@ -217,7 +218,7 @@ function pinSheet(p){
   var d = document.createElement('div'); d.className = 'sheet'; d.id = 'sheet';
   d.innerHTML = '<div class="row" style="justify-content:space-between"><div class="k">' + (p.kind === 'mine' ? 'Yours' : p.kind === 'shared' ? 'Left for you' : 'Public memory') + '</div><button class="lnk" id="x">Close</button></div>' +
     '<div style="font-weight:900">' + (p.has_photo ? '📷 ' : '📝 ') + esc(p.maker_name || 'Someone') + ' · ' + esc(fmt(p.created_at)) + (p.finds ? ' · found ' + p.finds + '×' : '') + '</div>' + (p.clue ? '<div class="muted">🧭 ' + esc(p.clue) + '</div>' : '') + (p.sealed ? '<div class="muted">Not open yet.</div>' : '') +
-    '<a class="btn gold" href="/thatspot/?d=' + p.code + '">' + (p.kind === 'mine' ? 'Open or share' : 'Go there and open it') + '</a>';
+    '<a class="btn gold" href="/thatspot/?d=' + p.code + '">' + (p.kind === 'mine' ? 'Open or share' : 'Go there and open it') + '</a><a class="btn" href="' + dirUrl(p.lat, p.lng) + '" target="_blank" rel="noopener">🧭 Get directions</a>';
   document.body.appendChild(d); d.querySelector('#x').onclick = function(){ d.remove(); };
 }
 
@@ -231,7 +232,7 @@ function find(code){
       '<div class="spot"><div class="pinbadge">📍</div><div class="who">' + (s.maker_photo ? '<img src="' + esc(s.maker_photo) + '" alt="">' : '') + 'Left by ' + esc(s.maker_name || 'someone') + ' · ' + esc(fmt(s.created_at)) + (s.has_photo ? ' · 📷' : '') + '</div>' +
       (s.clue ? '<div class="clue">🧭 ' + esc(s.clue) + '</div>' : '') + '<div class="hid">■■■■■ ■■■■■■■ ■■■ ■■■■</div>' +
       '<div class="meta">' + (s.opens_at && new Date(s.opens_at) > Date.now() ? 'Not before ' + esc(fmtWhen(s.opens_at)) + ' · ' : '') + (s.visibility === 'public' ? 'Anyone standing here' : s.visibility === 'personal' ? 'Only you' : 'Only you, standing there') + (s.finds ? ' · found ' + s.finds + '×' : '') + '</div></div>' +
-      '<button class="btn gold" id="go">I’m standing there, open it</button><div class="err hidden" id="e"></div>' +
+      '<button class="btn gold" id="go">I’m standing there, open it</button><a class="btn" href="' + dirUrl(s.lat, s.lng) + '" target="_blank" rel="noopener">🧭 Get directions (Google Maps)</a><div class="err hidden" id="e"></div>' +
       (s.is_maker ? '<div class="row"><button class="btn" id="sh">Share</button><a class="btn" href="/thatspot/?mine=1">Mine</a></div>' : '<div class="foot">We read your location only when you tap open. Nothing is tracked.</div>'));
     var m = mkMap(document.getElementById('m'), s.lat, s.lng, 17); addPin(m, s.lat, s.lng, kind); setTimeout(function(){ m.invalidateSize(); }, 50);
     document.getElementById('go').onclick = function(){ var b = this; b.disabled = true; b.textContent = 'Checking where you are…';
@@ -260,7 +261,7 @@ function hunt(code, s, r){
     '<div class="dist" id="dist">' + km(r.distance_m) + '</div><div class="meta">from the spot</div><div class="muted" id="headnote" style="color:#b8cad8"></div>' + (s.clue ? '<div class="clue" style="text-align:left">🧭 ' + esc(s.clue) + '</div>' : '') + '</div>' +
     '<div class="map" id="m" style="height:200px"></div>' +
     '<p class="lead">Walk toward the arrow. It opens by itself within about ' + (s.radius_m || 40) + ' metres.</p>' +
-    (needsTap ? '<button class="btn" id="cmp">Turn on the compass</button>' : '') + '<a class="btn" href="/thatspot/?d=' + code + '">Stop</a>');
+    (needsTap ? '<button class="btn" id="cmp">Turn on the compass</button>' : '') + '<a class="btn" href="' + dirUrl(s.lat, s.lng) + '" target="_blank" rel="noopener">🧭 Get directions (Google Maps)</a><a class="btn" href="/thatspot/?d=' + code + '">Stop</a>');
   var m = mkMap(document.getElementById('m'), s.lat, s.lng, 16); addPin(m, s.lat, s.lng, s.visibility === 'public' ? 'public' : 'shared'); var me = LAST_POS ? addPin(m, LAST_POS.lat, LAST_POS.lng, 'here') : null; if (LAST_POS) m.fitBounds([[s.lat, s.lng], [LAST_POS.lat, LAST_POS.lng]], { padding: [30, 30] }); setTimeout(function(){ m.invalidateSize(); }, 50);
   if (needsTap) document.getElementById('cmp').onclick = function(){ this.classList.add('hidden'); askHeading(); }; else askHeading();
   drawArrow();
