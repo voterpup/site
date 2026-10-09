@@ -29,5 +29,13 @@ else fetch(F + '?json=1&days=14&key=' + encodeURIComponent(key)).then(function(r
     days.map(function(r){ return '<tr>' + cols.map(function(c){ var v = r[c[0]]; return '<td>' + (c[0] === 'day' ? String(v).slice(5) : (v == null ? '–' : v)) + '</td>'; }).join('') + '</tr>'; }).join('') + '</table></div>';
   h += '<p class="sub" style="margin-top:14px">AI spend, last 7 days: $' + (d.spend7 || 0).toFixed(2) + '</p>';
   document.getElementById('out').innerHTML = h;
+  return fetch(F + '?myspot=1&days=14&key=' + encodeURIComponent(key)).then(function(r){ return r.json(); }).then(function(m){
+    var t = m.totals || {}, dd = m.days || [], s2 = function(k){ return dd.reduce(function(a, r){ return a + (+r[k] || 0); }, 0); };
+    var h2 = '<h2 style="margin-top:28px">My spot</h2><div class="kpis"><div class="k"><b>' + (t.memories || 0) + '</b><span>memories (' + (t.public || 0) + ' public)</span></div><div class="k"><b>' + (t.shops || 0) + '</b><span>shops</span></div><div class="k"><b>' + s2('opens') + '</b><span>opens (14 days)</span></div><div class="k"><b>' + (t.subs_active || 0) + '</b><span>email opt-ins (' + (t.subs_place || 0) + ' shops · ' + (t.subs_memory || 0) + ' memories)</span></div></div>';
+    var mc = [['day', 'Day'], ['visitors', 'Visitors'], ['map', 'Map'], ['peeks', 'Links'], ['places_viewed', 'Shop pages'], ['opens', 'Opens'], ['memories', 'Left'], ['shops', 'Shops'], ['signins', 'Sign-ins'], ['subs', 'Emails'], ['shares', 'Shares']];
+    h2 += '<h2>By day</h2><div class="wrap"><table><tr>' + mc.map(function(c){ return '<th>' + c[1] + '</th>'; }).join('') + '</tr>' + dd.map(function(r){ return '<tr>' + mc.map(function(c){ var v = r[c[0]]; return '<td>' + (c[0] === 'day' ? String(v).slice(5) : (v == null ? '–' : v)) + '</td>'; }).join('') + '</tr>'; }).join('') + '</table></div>';
+    h2 += '<h2>By shop</h2><div class="wrap"><table class="pup"><tr><th>Shop</th><th>Opens</th><th>14 d</th><th>Unique</th><th>Repeat</th><th>Memories</th><th>14 d</th><th>Owner email</th></tr>' + (m.shops || []).map(function(x){ return '<tr><td><b>' + esc(x.shop) + '</b><br><small><a href="/myspot/?at=' + x.code + '">open</a> · <a href="/myspot/?qr=' + x.code + '">tent</a></small></td><td>' + x.opens_total + '</td><td>' + x.opens_period + '</td><td>' + x.unique + '</td><td>' + x.repeat + '</td><td>' + x.memories + '</td><td>' + x.memories_period + '</td><td>' + (x.owner_email ? '✓' : '–') + '</td></tr>'; }).join('') + '</table></div>';
+    document.getElementById('out').insertAdjacentHTML('beforeend', h2);
+  });
 }).catch(function(e){ document.getElementById('out').innerHTML = '<div class="err">' + esc(e.message) + '</div>'; });
 </script></body></html>

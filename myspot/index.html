@@ -56,6 +56,7 @@ textarea.in{min-height:96px;resize:vertical;line-height:1.35}
 .map.big{height:calc(100vh - 230px);min-height:380px}
 .leaflet-container{font:inherit}
 .pin{width:18px;height:18px;border-radius:50% 50% 50% 0;transform:rotate(-45deg);border:2px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,.4)}
+.deck{position:relative;width:34px;height:34px}.deck i{position:absolute;left:0;top:0;width:26px;height:34px;border-radius:5px;border:1.5px solid #fff;box-shadow:0 2px 5px rgba(0,0,0,.35);background:var(--pub)}.deck i.c2{transform:translate(4px,-3px) rotate(6deg);opacity:.9}.deck i.c3{transform:translate(8px,-6px) rotate(12deg);opacity:.8}.deck i.public{background:var(--pub)}.deck i.mine{background:var(--mine)}.deck i.shared{background:var(--shared)}.deck i.place{background:#ff8c42}.deck b{position:absolute;right:-8px;bottom:-6px;min-width:20px;height:20px;border-radius:10px;background:#0c1722;color:#fff;border:2px solid #fff;font:900 11px/16px Nunito;text-align:center;padding:0 4px}.deck .ph{position:absolute;left:5px;top:9px;font-size:13px}
 .pin.place{background:#ff8c42;border-radius:6px;transform:rotate(45deg);width:20px;height:20px}
 .pin.public{background:var(--pub)}.pin.mine{background:var(--mine)}.pin.shared{background:var(--shared)}.pin.here{background:#4ea3ff;border-radius:50%;transform:none;width:16px;height:16px}
 .counts{display:flex;gap:8px;flex-wrap:wrap}.counts span{display:inline-flex;align-items:center;gap:6px;font:800 13px Nunito;color:var(--sub)}.counts i{width:10px;height:10px;border-radius:50%;display:inline-block}
@@ -146,6 +147,7 @@ function wireSignin(after){ var s = document.getElementById('gslot'); if (s) goo
 
 // ---------- map helpers (Leaflet + OpenStreetMap tiles) ----------
 function mkMap(el, lat, lng, zoom){ var m = L.map(el, { zoomControl: false, attributionControl: true }).setView([lat, lng], zoom || 15); L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19, attribution: '© OpenStreetMap' }).addTo(m); return m; }
+function deckIcon(items){ var n = items.length, top = items[0], kinds = items.map(function(p){ return p.is_place ? 'place' : p.kind; }); var layers = (n >= 3 ? '<i class="c3 ' + (kinds[2]) + '"></i>' : '') + (n >= 2 ? '<i class="c2 ' + (kinds[1]) + '"></i>' : '') + '<i class="c1 ' + kinds[0] + '"></i>'; return L.divIcon({ className: '', html: '<div class="deck">' + layers + (top.has_photo ? '<span class="ph">📷</span>' : '') + (n > 1 ? '<b>' + n + '</b>' : '') + '</div>', iconSize: [34, 34], iconAnchor: [13, 34] }); }
 function pinIcon(kind){ return L.divIcon({ className: '', html: '<div class="pin ' + kind + '"></div>', iconSize: [18, 18], iconAnchor: [9, 18] }); }
 function addPin(map, lat, lng, kind){ return L.marker([lat, lng], { icon: pinIcon(kind) }).addTo(map); }
 function fallbackCentre(){ return LAST_POS || { lat: 49.2827, lng: -123.1207 }; }
@@ -220,7 +222,8 @@ function mapView(focus){
   var c = focus || fallbackCentre(), map = mkMap(document.getElementById('big'), c.lat, c.lng, focus ? 17 : 14); _bigmap = map;
   var layer = L.layerGroup().addTo(map), timer = null;
   function load(){ var b = map.getBounds(); api({ action: 'map', south: b.getSouth(), west: b.getWest(), north: b.getNorth(), east: b.getEast() }).then(function(j){
-    layer.clearLayers(); j.pins.forEach(function(p){ var mk = L.marker([p.lat, p.lng], { icon: pinIcon(p.is_place ? 'place' : p.kind) }).addTo(layer); mk.on('click', function(){ pinSheet(p); }); });
+    layer.clearLayers(); var groups = {}; j.pins.forEach(function(p){ var k = p.place_code || (p.is_place ? p.code : null) || (p.lat.toFixed(4) + ',' + p.lng.toFixed(4)); (groups[k] = groups[k] || []).push(p); });
+    Object.keys(groups).forEach(function(k){ var items = groups[k].sort(function(a, b){ return (b.is_place ? 1 : 0) - (a.is_place ? 1 : 0) || (a.created_at < b.created_at ? 1 : -1); }); var mk = L.marker([items[0].lat, items[0].lng], { icon: deckIcon(items) }).addTo(layer); mk.on('click', function(){ items.length === 1 ? pinSheet(items[0]) : deckSheet(items); }); });
     document.getElementById('counts').innerHTML = '<span><i style="background:var(--pub)"></i>' + j.counts.public + ' public</span>' + (ME ? '<span><i style="background:var(--mine)"></i>' + j.counts.mine + ' yours</span><span><i style="background:var(--shared)"></i>' + j.counts.shared + ' shared with you</span>' : '') + '<span>in view</span>';
   }).catch(function(){}); }
   map.on('moveend', function(){ clearTimeout(timer); timer = setTimeout(load, 250); });
@@ -229,6 +232,16 @@ function mapView(focus){
   setTimeout(function(){ map.invalidateSize(); load(); }, 100);
   if (focus && focus.pin) { addPin(map, focus.lat, focus.lng, focus.pin.kind); setTimeout(function(){ pinSheet(focus.pin); }, 300); }
   track('map', { signed: !!ME });
+}
+function deckSheet(items){
+  var old = document.getElementById('sheet'); if (old) old.remove();
+  var d = document.createElement('div'); d.className = 'sheet'; d.id = 'sheet';
+  var place = items.filter(function(p){ return p.is_place; })[0];
+  d.innerHTML = '<div class="row" style="justify-content:space-between"><div class="k">' + (place ? '🏪 ' + esc(place.place_name) + ' · ' : '') + items.length + ' here</div><button class="lnk" id="x">Close</button></div>' +
+    '<div class="list" style="max-height:46vh;overflow:auto">' + items.slice(0, 30).map(function(p){ var kind = p.is_place ? 'place' : p.kind, col = { place: '#ff8c42', public: 'var(--pub)', mine: 'var(--mine)', shared: 'var(--shared)' }[kind];
+      return '<a class="item" href="/myspot/?' + (p.is_place ? 'at=' : 'd=') + p.code + '"><span style="width:12px;height:12px;border-radius:50%;background:' + col + ';flex:none"></span><div style="flex:1;min-width:0"><b>' + (p.is_place ? esc(p.place_name) : (p.has_photo ? '📷 ' : '📝 ') + esc(p.maker_name || 'Someone')) + '</b><small>' + esc(fmt(p.created_at)) + (p.clue ? ' · ' + esc(p.clue) : '') + (p.finds ? ' · opened ' + p.finds + '×' : '') + '</small></div></a>'; }).join('') + '</div>' +
+    (place ? '<a class="btn gold" href="/myspot/?at=' + place.code + '">Open the shop’s spot</a>' : '<div class="muted">Stand there to open any of them.</div>');
+  document.body.appendChild(d); d.querySelector('#x').onclick = function(){ d.remove(); };
 }
 function pinSheet(p){
   var old = document.getElementById('sheet'); if (old) old.remove();
