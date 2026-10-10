@@ -59,6 +59,7 @@ async function mail(to: string, subject: string, body: string, cta: string, url:
   if (!r.ok) throw new Error("resend " + r.status + " " + (await r.text()).slice(0, 160));
 }
 const tokenOf = () => Array.from(crypto.getRandomValues(new Uint8Array(16)), (x) => x.toString(16).padStart(2, "0")).join("");
+function isOwner(s: any, user: any) { return !!user && s.owner_status === "approved" && ((s.owner_uid && s.owner_uid === user.id) || (s.owner_email && user.email && s.owner_email.toLowerCase() === String(user.email).toLowerCase())); }
 function pubSpot(s: any, extra: Record<string, unknown> = {}) {
   return { code: s.code, kind: s.kind || 'memory', place_name: s.place_name || null, clue: s.clue, visibility: s.visibility, opens_at: s.opens_at, created_at: s.created_at, radius_m: s.radius_m, has_photo: !!s.photo, maker_name: s.spot_profiles?.name ?? null, maker_photo: s.spot_profiles?.photo ?? null, ...extra };
 }
@@ -227,16 +228,38 @@ Deno.serve(async (req) => {
     if (error) return json({ error: "db: " + error.message }, 500);
     return json({ ok: true, email: em });
   }
+  if (a === "claim") {   // an owner asks for their shop; the founder verifies and approves
+    const pc = clean(b.code, 12).replace(/[^a-z0-9]/g, ""); const { data: pl } = await db.from("spots").select("*").eq("code", pc).eq("kind", "place").maybeSingle(); if (!pl) return json({ error: "not found" }, 404);
+    const em = (clean(b.email, 120) || user?.email || "").toLowerCase(), name = clean(b.name, 60), note = clean(b.note, 300);
+    if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(em) || !name) return json({ error: "name and email needed" }, 400);
+    if (pl.owner_status === "approved") return json({ error: "This shop already has a verified owner. Email hi@voterpup.com if that's wrong." }, 409);
+    await db.from("spots").update({ owner_email: em, owner_uid: user?.id ?? null, owner_status: "pending", claim_note: name + " · " + note }).eq("id", pl.id);
+    try { await mail("hi@voterpup.com", "Shop claim: " + pl.place_name, `${name} <${em}> claims ${pl.place_name} (code ${pl.code}).\n\n${note}\n\nApprove with place_admin approve:true once verified.`, "Open the shop", SITE + "/myspot/?at=" + pl.code, SITE + "/privacy.html"); } catch (e) { await logFail("claim mail", e); }
+    return json({ ok: true, status: "pending" });
+  }
+  if (a === "owner_stats" || a === "owner_hide" || a === "owner_note") {
+    const pc = clean(b.code, 12).replace(/[^a-z0-9]/g, ""); const { data: pl } = await db.from("spots").select("*").eq("code", pc).eq("kind", "place").maybeSingle(); if (!pl) return json({ error: "not found" }, 404);
+    if (!isOwner(pl, user)) return json({ error: "not the owner" }, 403);
+    if (a === "owner_note") { const body = clean(b.body, 600); if (!body) return json({ error: "missing" }, 400); const chk = await textOk(body); if (!chk.ok) return json({ error: "That didn't pass our safety check" }, 422); await db.from("spots").update({ body }).eq("id", pl.id); return json({ ok: true }); }
+    if (a === "owner_hide") { const mc = clean(b.memory, 12).replace(/[^a-z0-9]/g, ""); const { data: m } = await db.from("spots").select("id, place_code").eq("code", mc).maybeSingle(); if (!m || m.place_code !== pl.code) return json({ error: "not on your wall" }, 400); await db.from("spots").update({ hidden_by_owner: b.hidden !== false }).eq("id", m.id); return json({ ok: true }); }
+    const since = new Date(Date.now() - 7 * 864e5).toISOString();
+    const { data: opens } = await db.from("spot_finds").select("finder_uid, created_at").eq("spot_id", pl.id);
+    const { data: posts } = await db.from("spots").select("code, created_at, body, photo, hidden_by_owner, spot_profiles(name)").eq("place_code", pl.code).eq("visibility", "public").order("created_at", { ascending: false }).limit(100);
+    const uniq = new Set((opens ?? []).map((o: any) => o.finder_uid || "anon")).size, cnt: Record<string, number> = {}; for (const o of opens ?? []) if (o.finder_uid) cnt[o.finder_uid] = (cnt[o.finder_uid] || 0) + 1;
+    return json({ place: pl.place_name, note: pl.body, opens_total: (opens ?? []).length, opens_7d: (opens ?? []).filter((o: any) => o.created_at >= since).length, unique: uniq, repeat: Object.values(cnt).filter((n) => n > 1).length, memories: (posts ?? []).map((p: any) => ({ code: p.code, created_at: p.created_at, body: p.body, has_photo: !!p.photo, hidden: p.hidden_by_owner, by: p.spot_profiles?.name ?? null })) });
+  }
   if (a === "place_admin") {   // founder only: set the owner's email/notes, read the numbers
     const k = Deno.env.get("QA_KEY"); if (!k || b.key !== k) return json({ error: "no" }, 403);
     const pc = clean(b.code, 12).replace(/[^a-z0-9]/g, ""); const { data: pl } = await db.from("spots").select("*").eq("code", pc).eq("kind", "place").maybeSingle(); if (!pl) return json({ error: "not found" }, 404);
+    if (b.approve === true) { await db.from("spots").update({ owner_status: "approved" }).eq("id", pl.id); pl.owner_status = "approved"; }
+    if (b.approve === false) { await db.from("spots").update({ owner_status: "rejected" }).eq("id", pl.id); pl.owner_status = "rejected"; }
     if (b.radius_m !== undefined) { const r = Math.min(Math.max(num(b.radius_m) ?? 60, 20), 100000); await db.from("spots").update({ radius_m: r }).eq("id", pl.id); pl.radius_m = r; }
     if (b.owner_email !== undefined || b.owner_note !== undefined) { pl.owner_email = clean(b.owner_email, 120) || pl.owner_email; pl.owner_note = clean(b.owner_note, 300) || pl.owner_note; await db.from("spots").update({ owner_email: pl.owner_email, owner_note: pl.owner_note }).eq("id", pl.id); }
     const since = new Date(Date.now() - 7 * 864e5).toISOString();
     const { data: opens } = await db.from("spot_finds").select("finder_uid, created_at").eq("spot_id", pl.id);
     const { data: posts } = await db.from("spots").select("code, created_at, maker").eq("place_code", pl.code);
     const uniq = new Set((opens ?? []).map((o: any) => o.finder_uid || "anon")); const repeat = (opens ?? []).reduce((m: any, o: any) => { if (o.finder_uid) m[o.finder_uid] = (m[o.finder_uid] || 0) + 1; return m; }, {});
-    return json({ place: pl.place_name, owner_email: pl.owner_email, opens_total: (opens ?? []).length, opens_7d: (opens ?? []).filter((o: any) => o.created_at >= since).length, unique_visitors: uniq.size, repeat_visitors: Object.values(repeat).filter((n: any) => n > 1).length, memories_total: (posts ?? []).length, memories_7d: (posts ?? []).filter((p: any) => p.created_at >= since).length });
+    return json({ place: pl.place_name, owner_email: pl.owner_email, owner_status: pl.owner_status, claim_note: pl.claim_note, opens_total: (opens ?? []).length, opens_7d: (opens ?? []).filter((o: any) => o.created_at >= since).length, unique_visitors: uniq.size, repeat_visitors: Object.values(repeat).filter((n: any) => n > 1).length, memories_total: (posts ?? []).length, memories_7d: (posts ?? []).filter((p: any) => p.created_at >= since).length });
   }
   if (a === "wall") {   // the memory wall of a shop: everything left here, in full, for someone standing inside
     const pc = clean(b.code, 12).replace(/[^a-z0-9]/g, ""); const { data: pl } = await db.from("spots").select("*, spot_profiles(name, photo)").eq("code", pc).eq("kind", "place").maybeSingle(); if (!pl) return json({ error: "not found" }, 404);
@@ -246,7 +269,7 @@ Deno.serve(async (req) => {
     const { data: near } = await db.from("spots").select("*, spot_profiles(name, photo), spot_finds(id)").eq("visibility", "public").neq("kind", "place").gte("lat", pl.lat - d).lte("lat", pl.lat + d).gte("lng", pl.lng - d * 1.5).lte("lng", pl.lng + d * 1.5).limit(80);
     const { data: byCode } = await db.from("spots").select("*, spot_profiles(name, photo), spot_finds(id)").eq("visibility", "public").eq("place_code", pl.code).limit(120);
     const seen = new Set<string>(), rows: any[] = [];
-    for (const s of [...(byCode ?? []), ...(near ?? [])]) { if (seen.has(s.code)) continue; seen.add(s.code); if (s.place_code === pl.code || metres(pl.lat, pl.lng, s.lat, s.lng) <= 30) rows.push(s); }
+    for (const s of [...(byCode ?? []), ...(near ?? [])]) { if (seen.has(s.code) || s.hidden_by_owner) continue; seen.add(s.code); if (s.place_code === pl.code || metres(pl.lat, pl.lng, s.lat, s.lng) <= 30) rows.push(s); }
     rows.sort((x, y) => x.created_at < y.created_at ? 1 : -1);
     const cards = []; for (const s of rows) cards.push({ ...pubSpot(s, { finds: (s.spot_finds ?? []).length }), body: s.body, photo_url: await signedPhoto(db, s.photo), mine: !!user && s.maker === user.id });
     if (user) { const since = new Date(Date.now() - 12 * 3600e3).toISOString(); const { data: recent } = await db.from("spot_finds").select("id").eq("spot_id", pl.id).eq("finder_uid", user.id).gt("created_at", since).limit(1); if (!(recent ?? []).length) { const p = await profile(); await db.from("spot_finds").insert({ spot_id: pl.id, finder_uid: user.id, finder_name: p?.name ?? null, lat, lng }); } }
@@ -261,7 +284,7 @@ Deno.serve(async (req) => {
     const { data } = await db.from("spots").select("*, spot_profiles(name, photo), spot_finds(id)").eq("visibility", "public").neq("kind", "place").gte("lat", lat - d).lte("lat", lat + d).gte("lng", lng - d * 1.5).lte("lng", lng + d * 1.5).order("created_at", { ascending: false }).limit(60);
     const { data: byCode } = pcode ? await db.from("spots").select("*, spot_profiles(name, photo), spot_finds(id)").eq("visibility", "public").eq("place_code", pcode).order("created_at", { ascending: false }).limit(60) : { data: [] };
     const seen = new Set<string>(), rows: any[] = [];
-    for (const s of [...(byCode ?? []), ...(data ?? [])]) { if (seen.has(s.code)) continue; seen.add(s.code); const dm = Math.round(metres(lat, lng, s.lat, s.lng)); if (s.place_code === pcode || dm <= 30) rows.push(pubSpot(s, { distance_m: dm, finds: (s.spot_finds ?? []).length })); }
+    for (const s of [...(byCode ?? []), ...(data ?? [])]) { if (seen.has(s.code) || s.hidden_by_owner) continue; seen.add(s.code); const dm = Math.round(metres(lat, lng, s.lat, s.lng)); if (s.place_code === pcode || dm <= 30) rows.push(pubSpot(s, { distance_m: dm, finds: (s.spot_finds ?? []).length })); }
     const list = rows.sort((x: any, y: any) => x.created_at < y.created_at ? 1 : -1);
     return json({ spots: list });
   }
@@ -298,7 +321,7 @@ Deno.serve(async (req) => {
 
   if (a === "peek") {
     const { count } = await db.from("spot_finds").select("id", { count: "exact", head: true }).eq("spot_id", s.id);
-    return json(pubSpot(s, { lat: s.lat, lng: s.lng, finds: count ?? 0, is_maker: isMaker, bound: !!s.bound_uid, mine_bound: !!user && s.bound_uid === user.id }));
+    return json(pubSpot(s, { lat: s.lat, lng: s.lng, finds: count ?? 0, is_maker: isMaker, is_owner: isOwner(s, user), claim_status: s.owner_status || null, bound: !!s.bound_uid, mine_bound: !!user && s.bound_uid === user.id }));
   }
 
   // open and reply both need the finder to be standing there
