@@ -133,7 +133,15 @@ function api(body){
   return fetch(SB_URL + '/functions/v1/thatspot', { method: 'POST', headers: { 'Content-Type': 'application/json', apikey: KEY, Authorization: 'Bearer ' + tok }, body: JSON.stringify(body) })
     .then(function(r){ return r.json().then(function(j){ if (!r.ok) { var e = new Error(j.error || r.status); e.data = j; throw e; } return j; }); });
 }
-function locate(){ return new Promise(function(res, rej){ if (!navigator.geolocation) return rej(new Error('No location on this device')); navigator.geolocation.getCurrentPosition(function(p){ LAST_POS = { lat: p.coords.latitude, lng: p.coords.longitude, acc: p.coords.accuracy }; res(LAST_POS); }, function(e){ rej(new Error(e.code === 1 ? 'Location permission was denied. Allow it for voterpup.com and try again.' : 'Could not get your location. Try outside, or wait a moment.')); }, { enableHighAccuracy: true, timeout: 20000, maximumAge: 15000 }); }); }
+var IOS = /iPhone|iPad|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+var LOC_HELP = IOS ? 'Location is off for Safari. On your iPhone: Settings → Privacy & Security → Location Services → Safari Websites → “While Using the App”, and turn on Precise Location. Then in Safari tap “aA” → Website Settings → Location → Allow, and try again.' : 'Location is off for this site. Tap the lock or ⓘ next to the address, allow Location, and try again. If it is still blocked: phone Settings → Location → on.';
+function locOnce(high, timeout){ return new Promise(function(res, rej){ navigator.geolocation.getCurrentPosition(function(p){ res({ lat: p.coords.latitude, lng: p.coords.longitude, acc: p.coords.accuracy }); }, rej, { enableHighAccuracy: high, timeout: timeout, maximumAge: 10000 }); }); }
+function locate(){ if (!navigator.geolocation) return Promise.reject(new Error('This browser can’t share location. Try Chrome or Safari.'));
+  return locOnce(true, 15000).catch(function(e){ if (e && e.code === 1) throw e; return locOnce(false, 20000); })   // GPS timed out indoors: fall back to network location
+    .then(function(p){ LAST_POS = p;
+      if (p.acc > 800) { var w = new Error(IOS ? 'Your iPhone is sharing only an approximate location (about ' + Math.round(p.acc / 1000) + ' km). Turn on Precise Location: Settings → Privacy & Security → Location Services → Safari Websites → Precise Location.' : 'Your phone is sharing only an approximate location (about ' + Math.round(p.acc / 1000) + ' km). Turn on precise / high-accuracy location in your phone settings and try again.'); w.coarse = true; w.pos = p; throw w; }
+      return p; })
+    .catch(function(e){ if (e && e.coarse) throw e; if (e && e.code === 1) throw new Error(LOC_HELP); throw new Error('Couldn’t get your location. Step outside or near a window and try again.'); }); }
 function fmt(iso){ return new Date(iso).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' }); }
 function fmtWhen(iso){ return new Date(iso).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }); }
 function km(m){ return m < 1000 ? m + ' m' : (m / 1000).toFixed(1) + ' km'; }
@@ -165,7 +173,7 @@ function linkFor(code){ var k = keys()[code]; return spotUrl(code) + (k ? '#k=' 
 function dirUrl(lat, lng){ return 'https://www.google.com/maps/dir/?api=1&destination=' + lat + ',' + lng + '&travelmode=walking'; }
 function spotUrl(code){ return SITE + '/myspot/?d=' + code; }
 function placeUrl(code){ return SITE + '/myspot/?at=' + code; }
-function toast(t){ var e = document.getElementById('toast'); if (!e) { e = document.createElement('div'); e.id = 'toast'; e.style.cssText = 'position:fixed;left:50%;bottom:28px;transform:translateX(-50%);background:var(--toastbg);color:var(--toastfg);padding:12px 16px;border-radius:999px;font:800 14px Nunito;z-index:2000;max-width:90%'; document.body.appendChild(e); } e.textContent = t; e.style.display = 'block'; clearTimeout(e._t); e._t = setTimeout(function(){ e.style.display = 'none'; }, 2800); }
+function toast(t){ var e = document.getElementById('toast'); if (!e) { e = document.createElement('div'); e.id = 'toast'; e.style.cssText = 'position:fixed;left:50%;bottom:28px;transform:translateX(-50%);background:var(--toastbg);color:var(--toastfg);padding:12px 16px;border-radius:999px;font:800 14px Nunito;z-index:2000;max-width:90%'; document.body.appendChild(e); } e.textContent = t; e.style.display = 'block'; e.style.borderRadius = t.length > 60 ? '16px' : '999px'; clearTimeout(e._t); e._t = setTimeout(function(){ e.style.display = 'none'; }, Math.max(2800, t.length * 60)); }
 function share(code, text){ var msg = text + ' ' + linkFor(code); if (navigator.share) { navigator.share({ text: msg }).then(function(){ track('share', { how: 'share' }); }).catch(function(){}); return; } navigator.clipboard.writeText(msg).then(function(){ toast('Link copied. Paste it to them.'); track('share', { how: 'copy' }); }).catch(function(){ prompt('Copy this', msg); }); }
 function myEmail(){ try { return (SESSION && SESSION.user && SESSION.user.email) || ''; } catch (e) { return ''; } }
 function notifyBox(kind, code, title, sub){ return '<div class="box" id="nbox"><div style="font-weight:900">' + esc(title) + '</div><div class="muted">' + esc(sub) + '</div><div class="row"><input id="nem" class="in" type="email" placeholder="you@email.com" autocomplete="email" value="' + esc(myEmail()) + '"><button class="btn" id="ngo" style="flex:0 0 auto;width:auto;min-width:110px" data-kind="' + kind + '" data-code="' + code + '">Email me</button></div><div class="muted">Only when something happens. Unsubscribe in one tap.</div></div>'; }
@@ -296,7 +304,7 @@ function mapView(focus){
   var here = LAST_POS ? addPin(map, LAST_POS.lat, LAST_POS.lng, 'here') : null;
   function goHere(zoom){ var b = document.getElementById('locbtn'); if (b) b.classList.add('on');
     locate().then(function(p){ map.setView([p.lat, p.lng], zoom || 16); if (here) here.setLatLng([p.lat, p.lng]); else here = addPin(map, p.lat, p.lng, 'here'); })
-      .catch(function(e){ if (b) b.classList.remove('on'); toast(e.message.indexOf('denied') >= 0 ? 'Location is off for this site. Allow it in your phone settings for voterpup.com, then tap again.' : e.message); load(); }); }
+      .catch(function(e){ if (b) b.classList.remove('on'); toast(e.message); load(); }); }
   document.getElementById('locbtn').onclick = function(){ goHere(16); track('map_locate', {}); };
   if (!focus) goHere(15);
   setTimeout(function(){ map.invalidateSize(); load(); }, 100);
