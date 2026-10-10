@@ -225,7 +225,7 @@ function home(){
     wireSignin(home); track('open', { mode: 'home', signed: false }); return;
   }
   var st = { photo: null, pos: null, vis: 'link', map: null, marker: null, at: new URLSearchParams(location.search).get('at') || null, atName: null };
-  $(hdr() + '<a class="lnk" href="' + (st.at ? '/myspot/?at=' + st.at : '/myspot/?map=1') + '" style="padding:0;margin-top:-6px">‹ ' + (st.at ? 'Back to the shop' : 'Back to the map') + '</a>' + (st.at ? '<div class="k" id="atname">Posting at this shop</div>' : '') + '<h1>Leave a memory here.</h1>' +
+  $(hdr() + '<a class="lnk" href="' + (st.at ? '/myspot/?at=' + st.at : '/myspot/?map=1') + '" style="padding:0;margin-top:-6px">‹ ' + (st.at ? 'Back to the shop' : 'Back to the map') + '</a>' + (st.at ? '<div class="k" id="atname">Posting at this shop</div>' : '') + '<h1>Add a memory here.</h1>' +
     '<div class="box"><div class="step"><div class="n" id="n1">1</div><div><div class="t">Write it, or snap a picture</div>' +
       '<textarea id="t" class="in" maxlength="600" placeholder="Memories have places. Let’s add one more."></textarea>' +
       '<div class="row"><label class="btn sm" for="ph" style="cursor:pointer">' + I.camera + ' Snap a picture</label><input id="ph" type="file" accept="image/*" capture="environment" class="hidden"><img id="thumb" class="thumb hidden" alt=""><button class="lnk hidden" id="unph">Remove</button></div></div></div></div>' +
@@ -283,7 +283,7 @@ function left(code, st){
 // ---------- the map ----------
 var _bigmap = null;
 function mapView(focus){
-  $(hdr() + '<div class="counts" id="counts"><span><i style="background:#ff8c42"></i>shops</span><span><i style="background:var(--pub)"></i>public</span><span><i style="background:var(--mine)"></i>yours</span><span><i style="background:var(--shared)"></i>shared with you</span></div><div class="map big" id="big"><button class="locbtn" id="locbtn" aria-label="My location"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="7"/><circle cx="12" cy="12" r="2.5" fill="currentColor"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/></svg></button></div>' + (ME ? '<a class="btn gold" href="/myspot/">Leave a memory here</a>' : signinBox('Sign in to leave one', 'Finding public memories needs no account; leaving one does.')));
+  $(hdr() + '<div class="counts" id="counts"><span><i style="background:#ff8c42"></i>shops</span><span><i style="background:var(--pub)"></i>public</span><span><i style="background:var(--mine)"></i>yours</span><span><i style="background:var(--shared)"></i>shared with you</span></div><div class="map big" id="big"><button class="locbtn" id="locbtn" aria-label="My location"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="7"/><circle cx="12" cy="12" r="2.5" fill="currentColor"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/></svg></button></div>' + (ME ? '<a class="btn gold" href="/myspot/">Add a memory here</a>' : signinBox('Sign in to leave one', 'Finding public memories needs no account; leaving one does.')));
   if (!ME) wireSignin(function(){ mapView(focus); });
   var c = focus || fallbackCentre(), map = mkMap(document.getElementById('big'), c.lat, c.lng, focus ? 17 : 14); _bigmap = map;
   var layer = L.layerGroup().addTo(map), timer = null;
@@ -353,7 +353,7 @@ function place(code, justLeft){
   $(hdr() + '<div class="muted">Opening the spot…</div>');
   api({ action: 'peek', code: code }).then(function(s){
     $(hdr() + '<div class="k">You’re at</div><div class="row">' + (s.logo_url ? '<img class="shoplogo" src="' + esc(s.logo_url) + '" alt="">' : '') + '<h1 style="flex:1">' + esc(s.place_name || 'This spot') + '</h1></div><div class="muted">Leave something here for the next person.</div>' +
-      (justLeft ? notifyBox('my_memory', justLeft, 'Tell me when someone reads it', 'One email when your memory here is opened or gets a note.') : '') + '<a class="btn gold" href="/myspot/?at=' + code + '&leave=1">Leave a memory here</a><div class="secure" style="font-size:11.5px">' + I.lock + ' Opens only here. Never sold.</div>' +
+      (justLeft ? notifyBox('my_memory', justLeft, 'Tell me when someone reads it', 'One email when your memory here is opened or gets a note.') : '') + '<a class="btn gold" href="/myspot/?at=' + code + '&leave=1">Add a memory here</a><div class="secure" style="font-size:11.5px">' + I.lock + ' Opens only here. Never sold.</div>' +
       '<div class="map" id="m" style="height:180px"></div>' +
       '<div class="spot"><div class="pinbadge">' + I.shop + '</div><div class="who">The note at this spot · ' + esc(fmt(s.created_at)) + (s.has_photo ? ' · ' + I.camera : '') + '</div>' + (s.clue ? '<div class="clue">' + I.compass + ' ' + esc(s.clue) + '</div>' : '') + '<div class="hid">■■■■■ ■■■■■■■ ■■■ ■■■■</div><div class="meta">Opens for anyone standing here' + (s.finds ? ' · opened ' + s.finds + '×' : '') + '</div></div>' +
       '<button class="btn" id="go">I’m inside, open the wall</button><div class="err hidden" id="e"></div>' +
