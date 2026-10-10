@@ -61,7 +61,7 @@ async function mail(to: string, subject: string, body: string, cta: string, url:
 const tokenOf = () => Array.from(crypto.getRandomValues(new Uint8Array(16)), (x) => x.toString(16).padStart(2, "0")).join("");
 function isOwner(s: any, user: any) { return !!user && s.owner_status === "approved" && ((s.owner_uid && s.owner_uid === user.id) || (s.owner_email && user.email && s.owner_email.toLowerCase() === String(user.email).toLowerCase())); }
 function pubSpot(s: any, extra: Record<string, unknown> = {}) {
-  return { code: s.code, kind: s.kind || 'memory', place_name: s.place_name || null, clue: s.clue, visibility: s.visibility, opens_at: s.opens_at, created_at: s.created_at, radius_m: s.radius_m, has_photo: !!s.photo, maker_name: s.spot_profiles?.name ?? null, maker_photo: s.spot_profiles?.photo ?? null, ...extra };
+  return { code: s.code, kind: s.kind || 'memory', place_name: s.place_name || null, enc: !!s.enc, clue: s.clue, visibility: s.visibility, opens_at: s.opens_at, created_at: s.created_at, radius_m: s.radius_m, has_photo: !!s.photo, maker_name: s.spot_profiles?.name ?? null, maker_photo: s.spot_profiles?.photo ?? null, ...extra };
 }
 
 Deno.serve(async (req) => {
@@ -84,11 +84,11 @@ Deno.serve(async (req) => {
       const since = sub.last_sent || sub.created_at; let text: string | null = null, cta = "", link = "";
       try {
         if (sub.kind === "my_memory") {
-          const { data: sp } = await db.from("spots").select("id, code, body, place_code, place_name").eq("code", sub.spot_code).maybeSingle(); if (!sp) continue;
+          const { data: sp } = await db.from("spots").select("id, code, body, enc, place_code, place_name").eq("code", sub.spot_code).maybeSingle(); if (!sp) continue;
           const { data: f } = await db.from("spot_finds").select("finder_name, note, created_at").eq("spot_id", sp.id).gt("created_at", since).neq("finder_uid", sub.uid ?? "00000000-0000-0000-0000-000000000000");
           const opens = (f ?? []).length, notes = (f ?? []).filter((x: any) => x.note);
           if (!opens) continue;
-          text = `${opens === 1 ? "Someone" : opens + " people"} opened your memory "${String(sp.body || "").slice(0, 60)}"` + (notes.length ? `, and ${notes.length === 1 ? "one left a note" : notes.length + " left notes"}: "${String(notes[0].note).slice(0, 80)}"` : "") + ".";
+          text = `${opens === 1 ? "Someone" : opens + " people"} opened your ${sp.enc ? "private memory" : "memory \"" + String(sp.body || "").slice(0, 60) + "\""}` + (notes.length ? `, and ${notes.length === 1 ? "one left a note" : notes.length + " left notes"}: "${String(notes[0].note).slice(0, 80)}"` : "") + ".";
           cta = "See it"; link = `${SITE}/myspot/?d=${sp.code}`;
         } else {
           const { data: pl } = await db.from("spots").select("code, place_name, lat, lng").eq("code", sub.spot_code).maybeSingle(); if (!pl) continue;
@@ -163,11 +163,12 @@ Deno.serve(async (req) => {
   if (a === "bury") {
     const p = await profile(); if (!p) return json({ error: "sign in" }, 401);
     const lat = num(b.lat), lng = num(b.lng), clue = clean(b.clue, 140) || null;
+    if (b.enc === true && (b.visibility === "public" || b.kind === "place")) return json({ error: "public memories are not encrypted" }, 400);
     const isPlace = b.kind === "place", placeName = clean(b.place_name, 60) || null;
     if (isPlace && !clean(b.body, 600)) b.body = "Welcome to " + placeName + ". Leave something here for the next person.";
     if (isPlace && !placeName) return json({ error: "shop name missing" }, 400);
     const vis = isPlace ? "public" : ["personal", "link", "public"].includes(b.visibility) ? b.visibility : "link";
-    const body = clean(b.body, 600);
+    const body = b.enc === true ? String(b.body ?? "").replace(/[^A-Za-z0-9+/=:]/g, "").slice(0, 4000) : clean(b.body, 600);
     if (lat === null || lng === null || Math.abs(lat) > 90 || Math.abs(lng) > 180) return json({ error: "no location" }, 400);
     if (!body && !isPlace && !(typeof b.photo_b64 === "string" && b.photo_b64.length)) return json({ error: "missing" }, 400);
     let placeCode: string | null = null;
@@ -181,17 +182,23 @@ Deno.serve(async (req) => {
     }
     let opens: string | null = null;
     if (b.opens_at) { const t = new Date(b.opens_at); if (isNaN(t.getTime())) return json({ error: "bad time" }, 400); opens = t.toISOString(); }
-    const chk = await textOk(body + (clue ? "\n" + clue : "") + (placeName ? "\n" + placeName : "")); if (!chk.ok) return json({ error: "That didn't pass our safety check" + (chk.why ? " (" + chk.why + ")" : "") }, 422);
+    const enc = b.enc === true && !isPlace && (vis === "personal" || vis === "link");   // ciphertext: nothing to check except the plaintext clue
+    const chk = await textOk((enc ? "" : body) + (clue ? "\n" + clue : "") + (placeName ? "\n" + placeName : "")); if (!chk.ok) return json({ error: "That didn't pass our safety check" + (chk.why ? " (" + chk.why + ")" : "") }, 422);
     const c = code();
     let photoPath: string | null = null;
-    if (typeof b.photo_b64 === "string" && b.photo_b64.length) {
+    if (enc && typeof b.photo_enc_b64 === "string" && b.photo_enc_b64.length) {
+      if (!/^[A-Za-z0-9+/=]+$/.test(b.photo_enc_b64) || b.photo_enc_b64.length > 2_300_000) return json({ error: "photo too big" }, 413);
+      const bytes = Uint8Array.from(atob(b.photo_enc_b64), (ch) => ch.charCodeAt(0)); photoPath = "spots/" + c + ".bin";
+      const up = await db.storage.from("media").upload(photoPath, bytes, { contentType: "application/octet-stream", upsert: false });
+      if (up.error) { await logFail("thatspot upload", up.error); return json({ error: "photo upload failed" }, 500); }
+    } else if (typeof b.photo_b64 === "string" && b.photo_b64.length) {
       const m = b.photo_b64.match(/^data:image\/jpeg;base64,([A-Za-z0-9+/=]+)$/); if (!m || m[1].length > 2_200_000) return json({ error: "photo too big" }, 413);
       const bytes = Uint8Array.from(atob(m[1]), (ch) => ch.charCodeAt(0)); photoPath = "spots/" + c + ".jpg";
       const up = await db.storage.from("media").upload(photoPath, bytes, { contentType: "image/jpeg", upsert: false });
       if (up.error) { await logFail("thatspot upload", up.error); return json({ error: "photo upload failed" }, 500); }
       if (!(await photoOk(db, photoPath))) { await db.storage.from("media").remove([photoPath]); return json({ error: "That photo didn't pass our safety check" }, 422); }
     }
-    const { error } = await db.from("spots").insert({ code: c, maker: user.id, lat, lng, body, clue, photo: photoPath, visibility: vis, opens_at: opens, kind: isPlace ? "place" : "memory", place_name: placeName, place_code: placeCode, radius_m: isPlace ? 60 : 40, src: clean(b.src, 24) || null });
+    const { error } = await db.from("spots").insert({ code: c, maker: user.id, lat, lng, body, clue, photo: photoPath, visibility: vis, opens_at: opens, kind: isPlace ? "place" : "memory", place_name: placeName, place_code: placeCode, radius_m: isPlace ? 60 : 40, enc, src: clean(b.src, 24) || null });
     if (error) { await logFail("thatspot bury", error); return json({ error: "db: " + error.message }, 500); }
     return json({ code: c });
   }
@@ -310,6 +317,7 @@ Deno.serve(async (req) => {
   if (a === "toggle") {
     if (!isMaker) return json({ error: "not yours" }, 403);
     const vis = ["personal", "link", "public", "hidden"].includes(b.visibility) ? b.visibility : null; if (!vis) return json({ error: "bad visibility" }, 400);
+    if (s.enc && vis === "public") return json({ error: "An encrypted memory can't be made public. Leave a new public one instead." }, 400);
     await db.from("spots").update({ visibility: vis }).eq("id", s.id); return json({ ok: true, visibility: vis });
   }
   if ((s.visibility === "hidden" || s.visibility === "personal") && !isMaker) return json({ error: "not found" }, 404);
@@ -337,7 +345,7 @@ Deno.serve(async (req) => {
       if (!(already ?? []).length) await db.from("spot_finds").insert({ spot_id: s.id, finder_uid: user?.id ?? null, finder_name: p?.name ?? null, lat, lng });
     }
     const { data: finds } = await db.from("spot_finds").select("finder_name, note, created_at").eq("spot_id", s.id).order("created_at", { ascending: false }).limit(50);
-    return json({ there: true, distance_m: Math.round(dist), body: s.body, photo_url: await signedPhoto(db, s.photo), buried_at: s.created_at, maker_name: s.spot_profiles?.name ?? null, maker_photo: s.spot_profiles?.photo ?? null, logbook: finds ?? [], is_maker: isMaker });
+    return json({ there: true, distance_m: Math.round(dist), enc: !!s.enc, body: s.body, photo_url: await signedPhoto(db, s.photo), buried_at: s.created_at, maker_name: s.spot_profiles?.name ?? null, maker_photo: s.spot_profiles?.photo ?? null, logbook: finds ?? [], is_maker: isMaker });
   }
   if (a === "reply") {
     const p = await profile(); if (!p) return json({ error: "sign in" }, 401);
