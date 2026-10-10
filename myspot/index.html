@@ -85,6 +85,7 @@ textarea.in{min-height:96px;resize:vertical;line-height:1.35}
 .item b{display:block;font-size:15px}.item small{color:var(--sub);font-size:12.5px}
 select.in{min-height:44px;padding:8px 10px;font-size:14px;width:auto}
 .ic{width:1.1em;height:1.1em;vertical-align:-0.18em;display:inline-block}
+.secure{font:800 12px Nunito;color:var(--good);display:flex;align-items:center;gap:5px;justify-content:center}
 .hidden{display:none!important}
 .err{color:var(--bad);font-size:14px;font-weight:800}
 #gslot{min-height:44px;display:flex;justify-content:center}
@@ -216,7 +217,7 @@ function home(){
       (ls('vp.admin') === '1' ? '<label class="row" style="gap:10px;cursor:pointer"><input type="checkbox" id="isplace" style="width:22px;height:22px"><span style="font-weight:800">Create a shop spot (founder)</span></label><input id="pname" class="in hidden" maxlength="60" placeholder="Shop name, as customers know it">' : '') +
       '<input id="c" class="in" maxlength="140" placeholder="Clue for the exact spot (optional)">' +
       '<div class="err hidden" id="e"></div><button class="btn gold" id="go" disabled>Leave it here</button></div></div></div>' +
-    '<div class="foot">Checked before anyone can open it. No memories at private homes. Change who can see it any time from Mine.</div>');
+    '<div class="secure">' + I.lock + ' Encrypted in transit and at rest. Opens only where it was left. Never sold.</div><div class="foot">Checked before anyone can open it. No memories at private homes. Change who can see it any time from Mine.</div>');
   if (st.at) api({ action: 'peek', code: st.at }).then(function(ps){ st.atName = ps.place_name; var e = document.getElementById('atname'); if (e) e.textContent = 'Posting at ' + (ps.place_name || 'this shop') + ' · you need to be inside'; var bk = app.querySelector('a.lnk[href*="at="]'); if (bk && ps.place_name) bk.textContent = '‹ Back to ' + ps.place_name; }).catch(function(){ st.at = null; });
   var notes = { personal: 'Only you. It shows on your map; you open it by standing there.', link: 'Only the person you send the link to. They sign in with Google and see the spot on the map.', public: 'Anyone. It shows on everyone’s map; it opens for whoever stands there.' };
   function ready(){ document.getElementById('go').disabled = !(st.pos && (st.photo || document.getElementById('t').value.trim())); }
@@ -335,7 +336,7 @@ function place(code, justLeft){
       '<button class="btn" id="go">I’m inside, open the wall</button><div class="err hidden" id="e"></div>' +
       '<div class="box"><div class="row" style="justify-content:space-between"><div class="k">The wall at ' + esc(s.place_name || 'this spot') + '</div><div class="muted" id="wallnote">opens when you’re inside</div></div><div class="wall" id="wall"></div></div>' +
       (justLeft ? '' : notifyBox('place_new', code, 'Tell me when new memories appear here', 'So the next visit has something new to read.')) + '<div class="row"><button class="btn" id="sh">Share this spot</button><a class="btn" href="' + dirUrl(s.lat, s.lng) + '" target="_blank" rel="noopener">' + I.compass + ' Directions</a></div>' + '<a class="lnk" href="/myspot/?qr=' + code + '" style="align-self:center">QR code &amp; link for this spot</a>' +
-      '<div class="foot">We read your location only when you tap open. Nothing is tracked.</div>');
+      '<div class="secure">' + I.lock + ' Encrypted in transit and at rest. Opens only here. Never sold.</div><div class="foot">We read your location only when you tap open. Nothing is tracked.</div>');
     var m = mkMap(document.getElementById('m'), s.lat, s.lng, 17); addPin(m, s.lat, s.lng, 'place'); setTimeout(function(){ m.invalidateSize(); }, 50);
     function card(x, i){ var by = '<div class="by">' + (x.maker_photo ? '<img src="' + esc(x.maker_photo) + '" alt="">' : '') + esc(x.maker_name || 'Someone') + ' · ' + esc(fmt(x.created_at)) + (x.finds ? ' · ' + x.finds + '×' : '') + '</div>';
       if (x.photo_url) return '<div class="card"><img src="' + esc(x.photo_url) + '" alt="">' + (x.body ? '<div class="tx">' + esc(x.body) + '</div>' : '') + by + '</div>';
