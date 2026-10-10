@@ -114,7 +114,7 @@ var SB_URL = 'https://setyjmgijsbplgyqynlh.supabase.co', KEY = 'eyJhbGciOiJIUzI1
 var GOOGLE_CLIENT_ID = '1084138810740-b2p2ln24ulfnrkb8mofppeist551u8bm.apps.googleusercontent.com';
 var sb = null; try { sb = supabase.createClient(SB_URL, KEY, { auth: { persistSession: true } }); } catch (e) {}
 var app = document.getElementById('app'), ME = null, SESSION = null, QA_TOKEN = null, LAST_POS = null;
-function $(h){ stopHunt(); app.innerHTML = h; window.scrollTo(0, 0); }
+function $(h){ stopHunt(); app.innerHTML = h + (h.indexOf('qr=site') < 0 && h.indexOf('class="tent"') < 0 ? siteFoot() : ''); window.scrollTo(0, 0); }
 function esc(s){ var d = document.createElement('div'); d.textContent = s == null ? '' : s; return d.innerHTML; }
 function ls(k, v){ try { if (v === undefined) return localStorage.getItem(k); localStorage.setItem(k, v); } catch (e) { return null; } }
 function devId(){ var d = ls('vp.dev'); if (!d) { d = Array.from(crypto.getRandomValues(new Uint8Array(8))).map(function(b){ return b.toString(16).padStart(2, '0'); }).join(''); ls('vp.dev', d); } return d || 'nostorage'; }
@@ -153,6 +153,7 @@ function notifyBox(kind, code, title, sub){ return '<div class="box" id="nbox"><
 function wireNotify(){ var b = document.getElementById('ngo'); if (!b) return; b.onclick = function(){ var em = document.getElementById('nem').value.trim(); if (!em) return; b.disabled = true; api({ action: 'notify', kind: b.dataset.kind, spot_code: b.dataset.code, email: em }).then(function(){ track('notify', { kind: b.dataset.kind }); document.getElementById('nbox').innerHTML = '<div style="font-weight:900">✓ We’ll email ' + esc(em) + ' when it happens.</div>'; }).catch(function(e){ toast('Could not save: ' + e.message); b.disabled = false; }); }; }
 function isDark(){ var t = document.documentElement.getAttribute('data-theme'); return t ? t === 'dark' : !window.matchMedia('(prefers-color-scheme: light)').matches; }
 function toggleTheme(){ var next = isDark() ? 'light' : 'dark'; document.documentElement.setAttribute('data-theme', next); ls('ms.theme', next); var b = document.getElementById('themebtn'); if (b) b.textContent = next === 'dark' ? '☀' : '☾'; }
+function siteFoot(){ return '<a class="lnk" href="/myspot/?qr=site" style="align-self:center;font-size:12.5px;opacity:.8">Share this site</a>'; }
 function hdr(){ return '<div class="top"><a class="logo" href="/myspot/">My spot</a><div class="me"><button class="lnk" id="themebtn" onclick="toggleTheme()" aria-label="Switch light or dark" style="font-size:18px">' + (isDark() ? '☀' : '☾') + '</button><a class="lnk" href="/myspot/?map=1">Map</a>' + (ME ? '<a class="lnk" href="/myspot/?mine=1">Mine</a>' + (ME.photo ? '<img src="' + esc(ME.photo) + '" alt="">' : '') : '') + '</div></div>'; }
 
 // ---------- Google sign-in (Google Identity button -> Supabase id-token session; same client as the main app) ----------
@@ -333,7 +334,7 @@ function place(code, justLeft){
       '<div class="spot"><div class="pinbadge">' + I.shop + '</div><div class="who">The note at this spot · ' + esc(fmt(s.created_at)) + (s.has_photo ? ' · ' + I.camera : '') + '</div>' + (s.clue ? '<div class="clue">' + I.compass + ' ' + esc(s.clue) + '</div>' : '') + '<div class="hid">■■■■■ ■■■■■■■ ■■■ ■■■■</div><div class="meta">Opens for anyone standing here' + (s.finds ? ' · opened ' + s.finds + '×' : '') + '</div></div>' +
       '<button class="btn" id="go">I’m inside, open the wall</button><div class="err hidden" id="e"></div>' +
       '<div class="box"><div class="row" style="justify-content:space-between"><div class="k">The wall at ' + esc(s.place_name || 'this spot') + '</div><div class="muted" id="wallnote">opens when you’re inside</div></div><div class="wall" id="wall"></div></div>' +
-      (justLeft ? '' : notifyBox('place_new', code, 'Tell me when new memories appear here', 'So the next visit has something new to read.')) + '<div class="row"><button class="btn" id="sh">Share this spot</button><a class="btn" href="' + dirUrl(s.lat, s.lng) + '" target="_blank" rel="noopener">' + I.compass + ' Directions</a></div>' + (ls('vp.admin') === '1' ? '<a class="btn" href="/myspot/?qr=' + code + '">QR for the counter</a>' : '') +
+      (justLeft ? '' : notifyBox('place_new', code, 'Tell me when new memories appear here', 'So the next visit has something new to read.')) + '<div class="row"><button class="btn" id="sh">Share this spot</button><a class="btn" href="' + dirUrl(s.lat, s.lng) + '" target="_blank" rel="noopener">' + I.compass + ' Directions</a></div>' + '<a class="lnk" href="/myspot/?qr=' + code + '" style="align-self:center">QR code &amp; link for this spot</a>' +
       '<div class="foot">We read your location only when you tap open. Nothing is tracked.</div>');
     var m = mkMap(document.getElementById('m'), s.lat, s.lng, 17); addPin(m, s.lat, s.lng, 'place'); setTimeout(function(){ m.invalidateSize(); }, 50);
     function card(x, i){ var by = '<div class="by">' + (x.maker_photo ? '<img src="' + esc(x.maker_photo) + '" alt="">' : '') + esc(x.maker_name || 'Someone') + ' · ' + esc(fmt(x.created_at)) + (x.finds ? ' · ' + x.finds + '×' : '') + '</div>';
@@ -419,14 +420,18 @@ function mine(){
 
 function boot(){ if (!sb) return Promise.resolve(); return sb.auth.getSession().then(function(r){ SESSION = r.data && r.data.session; return (SESSION || QA_TOKEN) ? api({ action: 'me' }).then(function(j){ ME = j.profile; }).catch(function(){ ME = null; }) : null; }); }
 function tent(code){
+  if (code === 'site') { var qs = qrcode(0, 'M'); qs.addData(SITE + '/myspot/'); qs.make();
+    $('<div class="noprint">' + hdr() + '<div class="row"><button class="btn gold" id="pr">Print</button><button class="btn" id="cp">Copy link</button></div></div>' +
+      '<div class="tent"><div class="small">MEMORIES HAVE PLACES</div><h3>Memspots</h3><img alt="QR code" style="width:260px;height:260px" src="' + qs.createDataURL(8, 0) + '"><div class="big">Leave a memory where you stand. It opens only for someone standing there.</div><div class="small">voterpup.com/myspot · no app needed</div></div>');
+    document.getElementById('pr').onclick = function(){ window.print(); }; document.getElementById('cp').onclick = function(){ navigator.clipboard.writeText(SITE + '/myspot/').then(function(){ toast('Link copied.'); }); }; track('tent', { site: true }); return; }
   $('<div class="noprint">' + hdr() + '</div><div class="muted noprint">Loading…</div>');
   api({ action: 'peek', code: code }).then(function(s){
     var isPlace = s.kind === 'place'; var q = qrcode(0, 'M'); q.addData(isPlace ? placeUrl(code) : spotUrl(code)); q.make();
-    $('<div class="noprint">' + hdr() + '<div class="row"><button class="btn gold" id="pr">Print</button><a class="btn" href="/myspot/?mine=1">Back</a></div><div class="muted">Prints as one page. Fold it, or tape it by the till.</div></div>' +
+    $('<div class="noprint">' + hdr() + '<div class="row"><button class="btn gold" id="pr">Print</button><button class="btn" id="cp">Copy link</button></div><div class="muted">Show it on your phone, or print it.</div></div>' +
       '<div class="tent"><div class="small">' + (isPlace ? 'A NOTE FROM THE OWNER THAT ONLY OPENS HERE' : 'A NOTE THAT ONLY OPENS HERE') + '</div><h3>' + esc(isPlace ? s.place_name : (s.clue || ('A memory from ' + (s.maker_name || 'the owner')))) + '</h3>' +
       '<img alt="QR code" style="width:260px;height:260px" src="' + q.createDataURL(8, 0) + '">' +
-      '<div class="big">Scan it. It opens because you’re standing here.</div><div class="small">Read the note, then leave your own in the guestbook.<br>voterpup.com/myspot · no app needed</div></div>');
-    document.getElementById('pr').onclick = function(){ window.print(); };
+      '<div class="big">Scan it. It opens because you’re standing here.</div><div class="small">Read the note, then leave your own in the guestbook.<br>' + esc((isPlace ? placeUrl(code) : spotUrl(code)).replace('https://', '')) + '</div></div>');
+    document.getElementById('pr').onclick = function(){ window.print(); }; document.getElementById('cp').onclick = function(){ navigator.clipboard.writeText(isPlace ? placeUrl(code) : spotUrl(code)).then(function(){ toast('Link copied.'); }); };
     track('tent', {});
   }).catch(function(){ $(hdr() + '<h2>Nothing here.</h2>'); });
 }
