@@ -314,6 +314,14 @@ Deno.serve(async (req) => {
   if (!s) return json({ error: "not found" }, 404);
   const isMaker = !!user && user.id === s.maker;
 
+  if (a === "delete") {   // the maker deletes a memory for good: photo, finds, email opt-ins, row
+    if (!isMaker) return json({ error: "not yours" }, 403);
+    if (s.kind === "place") return json({ error: "A shop spot is removed by hi@voterpup.com, not deleted here." }, 400);
+    if (s.photo) await db.storage.from("media").remove([s.photo]);
+    await db.from("spot_subs").delete().eq("spot_code", s.code);
+    await db.from("spots").delete().eq("id", s.id);   // spot_finds cascade
+    return json({ ok: true });
+  }
   if (a === "toggle") {
     if (!isMaker) return json({ error: "not yours" }, 403);
     const vis = ["personal", "link", "public", "hidden"].includes(b.visibility) ? b.visibility : null; if (!vis) return json({ error: "bad visibility" }, 400);
