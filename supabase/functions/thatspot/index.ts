@@ -147,6 +147,15 @@ Deno.serve(async (req) => {
     return json({ token: data.session?.access_token });
   }
 
+  if (a === "otp") {   // sign-in code sent by us through Resend, so Supabase's built-in mailer and its hourly limit are never in the way
+    const em = clean(b.email, 120).toLowerCase(); if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(em)) return json({ error: "bad email" }, 400);
+    const { data: g, error } = await db.auth.admin.generateLink({ type: "magiclink", email: em, options: { redirectTo: SITE + "/myspot/" } } as any);
+    if (error || !g?.properties?.email_otp) { await logFail("thatspot otp", error || "no otp"); return json({ error: "could not make a code" + (error ? ": " + error.message : "") }, 500); }
+    try {
+      await mail(em, "Your Memspots code: " + g.properties.email_otp, "Your sign-in code is " + g.properties.email_otp + ". It works for a few minutes. If you didn't ask for it, ignore this email.", "Open Memspots", SITE + "/myspot/", SITE + "/privacy.html");
+    } catch (e) { await logFail("thatspot otp mail", e); return json({ error: "could not send the email" }, 500); }
+    return json({ ok: true });
+  }
   if (a === "me") { const p = await profile(); return json({ profile: p ? { name: p.name, photo: p.photo } : null }); }
   if (a === "rename") { const p = await profile(); if (!p) return json({ error: "sign in" }, 401); const name = clean(b.name, 40); if (!name) return json({ error: "missing" }, 400); await db.from("spot_profiles").update({ name }).eq("uid", user.id); return json({ ok: true }); }
 
