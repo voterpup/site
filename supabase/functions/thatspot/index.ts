@@ -188,8 +188,8 @@ Deno.serve(async (req) => {
     let photoPath: string | null = null;
     if (enc && typeof b.photo_enc_b64 === "string" && b.photo_enc_b64.length) {
       if (!/^[A-Za-z0-9+/=]+$/.test(b.photo_enc_b64) || b.photo_enc_b64.length > 2_300_000) return json({ error: "photo too big" }, 413);
-      const bytes = Uint8Array.from(atob(b.photo_enc_b64), (ch) => ch.charCodeAt(0)); photoPath = "spots/" + c + ".bin";
-      const up = await db.storage.from("media").upload(photoPath, bytes, { contentType: "application/octet-stream", upsert: false });
+      const bytes = Uint8Array.from(atob(b.photo_enc_b64), (ch) => ch.charCodeAt(0)); photoPath = "spots/" + c + ".enc.jpg";   // ciphertext; the bucket only accepts image types, and nobody can render it anyway
+      const up = await db.storage.from("media").upload(photoPath, bytes, { contentType: "image/jpeg", upsert: false });
       if (up.error) { await logFail("thatspot upload", up.error); return json({ error: "photo upload failed" }, 500); }
     } else if (typeof b.photo_b64 === "string" && b.photo_b64.length) {
       const m = b.photo_b64.match(/^data:image\/jpeg;base64,([A-Za-z0-9+/=]+)$/); if (!m || m[1].length > 2_200_000) return json({ error: "photo too big" }, 413);
