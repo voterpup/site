@@ -60,6 +60,14 @@ async function mail(to: string, subject: string, body: string, cta: string, url:
 }
 const tokenOf = () => Array.from(crypto.getRandomValues(new Uint8Array(16)), (x) => x.toString(16).padStart(2, "0")).join("");
 function isOwner(s: any, user: any) { return !!user && s.owner_status === "approved" && ((s.owner_uid && s.owner_uid === user.id) || (s.owner_email && user.email && s.owner_email.toLowerCase() === String(user.email).toLowerCase())); }
+async function setLogo(db: any, pl: any, b64: unknown) {
+  const m = typeof b64 === "string" ? b64.match(/^data:image\/jpeg;base64,([A-Za-z0-9+/=]+)$/) : null; if (!m || m[1].length > 1_200_000) return "logo too big";
+  const bytes = Uint8Array.from(atob(m[1]), (ch) => ch.charCodeAt(0)), path = "spots/" + pl.code + ".logo." + Date.now() + ".jpg";
+  const up = await db.storage.from("media").upload(path, bytes, { contentType: "image/jpeg", upsert: false }); if (up.error) return "upload failed";
+  if (!(await photoOk(db, path))) { await db.storage.from("media").remove([path]); return "That picture didn't pass our safety check"; }
+  if (pl.logo) await db.storage.from("media").remove([pl.logo]);
+  await db.from("spots").update({ logo: path }).eq("id", pl.id); return null;
+}
 function pubSpot(s: any, extra: Record<string, unknown> = {}) {
   return { code: s.code, kind: s.kind || 'memory', place_name: s.place_name || null, enc: !!s.enc, clue: s.clue, visibility: s.visibility, opens_at: s.opens_at, created_at: s.created_at, radius_m: s.radius_m, has_photo: !!s.photo, maker_name: s.spot_profiles?.name ?? null, maker_photo: s.spot_profiles?.photo ?? null, ...extra };
 }
@@ -244,9 +252,10 @@ Deno.serve(async (req) => {
     try { await mail("hi@voterpup.com", "Shop claim: " + pl.place_name, `${name} <${em}> claims ${pl.place_name} (code ${pl.code}).\n\n${note}\n\nApprove with place_admin approve:true once verified.`, "Open the shop", SITE + "/myspot/?at=" + pl.code, SITE + "/privacy.html"); } catch (e) { await logFail("claim mail", e); }
     return json({ ok: true, status: "pending" });
   }
-  if (a === "owner_stats" || a === "owner_hide" || a === "owner_note") {
+  if (a === "owner_stats" || a === "owner_hide" || a === "owner_note" || a === "owner_logo") {
     const pc = clean(b.code, 12).replace(/[^a-z0-9]/g, ""); const { data: pl } = await db.from("spots").select("*").eq("code", pc).eq("kind", "place").maybeSingle(); if (!pl) return json({ error: "not found" }, 404);
     if (!isOwner(pl, user)) return json({ error: "not the owner" }, 403);
+    if (a === "owner_logo") { const err = await setLogo(db, pl, b.photo_b64); return err ? json({ error: err }, 422) : json({ ok: true }); }
     if (a === "owner_note") { const body = clean(b.body, 600); if (!body) return json({ error: "missing" }, 400); const chk = await textOk(body); if (!chk.ok) return json({ error: "That didn't pass our safety check" }, 422); await db.from("spots").update({ body }).eq("id", pl.id); return json({ ok: true }); }
     if (a === "owner_hide") { const mc = clean(b.memory, 12).replace(/[^a-z0-9]/g, ""); const { data: m } = await db.from("spots").select("id, place_code").eq("code", mc).maybeSingle(); if (!m || m.place_code !== pl.code) return json({ error: "not on your wall" }, 400); await db.from("spots").update({ hidden_by_owner: b.hidden !== false }).eq("id", m.id); return json({ ok: true }); }
     const since = new Date(Date.now() - 7 * 864e5).toISOString();
@@ -258,6 +267,7 @@ Deno.serve(async (req) => {
   if (a === "place_admin") {   // founder only: set the owner's email/notes, read the numbers
     const k = Deno.env.get("QA_KEY"); if (!k || b.key !== k) return json({ error: "no" }, 403);
     const pc = clean(b.code, 12).replace(/[^a-z0-9]/g, ""); const { data: pl } = await db.from("spots").select("*").eq("code", pc).eq("kind", "place").maybeSingle(); if (!pl) return json({ error: "not found" }, 404);
+    if (b.logo_b64) { const err = await setLogo(db, pl, b.logo_b64); if (err) return json({ error: err }, 422); }
     if (b.approve === true) { await db.from("spots").update({ owner_status: "approved" }).eq("id", pl.id); pl.owner_status = "approved"; }
     if (b.approve === false) { await db.from("spots").update({ owner_status: "rejected" }).eq("id", pl.id); pl.owner_status = "rejected"; }
     if (b.radius_m !== undefined) { const r = Math.min(Math.max(num(b.radius_m) ?? 60, 20), 100000); await db.from("spots").update({ radius_m: r }).eq("id", pl.id); pl.radius_m = r; }
@@ -282,7 +292,7 @@ Deno.serve(async (req) => {
     if (user) { const since = new Date(Date.now() - 12 * 3600e3).toISOString(); const { data: recent } = await db.from("spot_finds").select("id").eq("spot_id", pl.id).eq("finder_uid", user.id).gt("created_at", since).limit(1); if (!(recent ?? []).length) { const p = await profile(); await db.from("spot_finds").insert({ spot_id: pl.id, finder_uid: user.id, finder_name: p?.name ?? null, lat, lng }); } }
     else await db.from("spot_finds").insert({ spot_id: pl.id, finder_uid: null, finder_name: null, lat, lng });
     const { data: log } = await db.from("spot_finds").select("finder_name, note, created_at").eq("spot_id", pl.id).not("note", "is", null).order("created_at", { ascending: false }).limit(30);
-    return json({ there: true, place: { name: pl.place_name, note: pl.body, created_at: pl.created_at, photo_url: await signedPhoto(db, pl.photo) }, cards, logbook: log ?? [] });
+    return json({ there: true, place: { name: pl.place_name, note: pl.body, created_at: pl.created_at, photo_url: await signedPhoto(db, pl.photo), logo_url: await signedPhoto(db, pl.logo) }, cards, logbook: log ?? [] });
   }
   if (a === "here") {   // memories within 80 m of a point: the place page's list
     const lat = num(b.lat), lng = num(b.lng); if (lat === null || lng === null) return json({ error: "no location" }, 400);
@@ -306,6 +316,8 @@ Deno.serve(async (req) => {
     for (const s of mine) { seen.add(s.code); out.push(pin(s, "mine")); }
     for (const s of shared) if (!seen.has(s.code)) { seen.add(s.code); out.push(pin(s, "shared")); }
     for (const s of pub ?? []) if (!seen.has(s.code)) { seen.add(s.code); out.push(pin(s, "public")); }
+    const logoPaths = [...mine, ...shared, ...(pub ?? [])].filter((s: any) => s.kind === "place" && s.logo).map((s: any) => s.logo);
+    if (logoPaths.length) { const { data: signed } = await db.storage.from("media").createSignedUrls([...new Set(logoPaths)], 3600); const byPath = new Map((signed ?? []).map((x: any) => [x.path, x.signedUrl])); const byCode = new Map([...mine, ...shared, ...(pub ?? [])].filter((s: any) => s.logo).map((s: any) => [s.code, byPath.get(s.logo)])); for (const p of out) if (p.is_place && byCode.get(p.code)) p.logo_url = byCode.get(p.code); }
     return json({ pins: out, counts: { public: (pub ?? []).length, mine: mine.length, shared: shared.length } });
   }
 
@@ -337,7 +349,7 @@ Deno.serve(async (req) => {
 
   if (a === "peek") {
     const { count } = await db.from("spot_finds").select("id", { count: "exact", head: true }).eq("spot_id", s.id);
-    return json(pubSpot(s, { lat: s.lat, lng: s.lng, finds: count ?? 0, is_maker: isMaker, is_owner: isOwner(s, user), claim_status: s.owner_status || null, bound: !!s.bound_uid, mine_bound: !!user && s.bound_uid === user.id }));
+    return json(pubSpot(s, { lat: s.lat, lng: s.lng, logo_url: s.kind === "place" ? await signedPhoto(db, s.logo) : null, finds: count ?? 0, is_maker: isMaker, is_owner: isOwner(s, user), claim_status: s.owner_status || null, bound: !!s.bound_uid, mine_bound: !!user && s.bound_uid === user.id }));
   }
 
   // open and reply both need the finder to be standing there
