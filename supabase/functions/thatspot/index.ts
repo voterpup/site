@@ -165,7 +165,7 @@ Deno.serve(async (req) => {
     } catch (e) { await logFail("thatspot otp mail", e); return json({ error: "could not send the email" }, 500); }
     return json({ ok: true });
   }
-  if (a === "me") { const p = await profile(); return json({ profile: p ? { name: p.name, photo: p.photo } : null }); }
+  if (a === "me") { const p = await profile(); let h = 0; for (const ch of String(user?.id || "")) h = (h * 31 + ch.charCodeAt(0)) >>> 0; return json({ profile: p ? { name: p.name, photo: p.photo, color: h % 12 } : null }); }
   if (a === "rename") { const p = await profile(); if (!p) return json({ error: "sign in" }, 401); const name = clean(b.name, 40); if (!name) return json({ error: "missing" }, 400); await db.from("spot_profiles").update({ name }).eq("uid", user.id); return json({ ok: true }); }
 
   if (a === "bury") {
@@ -264,6 +264,25 @@ Deno.serve(async (req) => {
     const uniq = new Set((opens ?? []).map((o: any) => o.finder_uid || "anon")).size, cnt: Record<string, number> = {}; for (const o of opens ?? []) if (o.finder_uid) cnt[o.finder_uid] = (cnt[o.finder_uid] || 0) + 1;
     return json({ place: pl.place_name, note: pl.body, opens_total: (opens ?? []).length, opens_7d: (opens ?? []).filter((o: any) => o.created_at >= since).length, unique: uniq, repeat: Object.values(cnt).filter((n) => n > 1).length, memories: (posts ?? []).map((p: any) => ({ code: p.code, created_at: p.created_at, body: p.body, has_photo: !!p.photo, hidden: p.hidden_by_owner, by: p.spot_profiles?.name ?? null })) });
   }
+  if (a === "activity") {   // founder only: who did what in My spot (QA accounts excluded)
+    const k = Deno.env.get("QA_KEY"); if (!k || b.key !== k) return json({ error: "no" }, 403);
+    const since = b.since || new Date(Date.now() - 7 * 864e5).toISOString();
+    const { data: users } = await db.auth.admin.listUsers({ perPage: 500 });
+    const emailOf = new Map((users?.users ?? []).map((u: any) => [u.id, u.email]));
+    const isQa = (uid: string | null) => !!uid && String(emailOf.get(uid) || "").endsWith("@voterpup.test");
+    const { data: profs } = await db.from("spot_profiles").select("uid, name, created_at").order("created_at", { ascending: false });
+    const { data: made } = await db.from("spots").select("code, kind, place_name, visibility, enc, created_at, maker, place_code, src").gt("created_at", since).order("created_at", { ascending: false }).limit(200);
+    const { data: finds } = await db.from("spot_finds").select("spot_id, finder_uid, finder_name, note, created_at").gt("created_at", since).order("created_at", { ascending: false }).limit(300);
+    const { data: ev } = await db.from("events").select("ts, dev, meta, src").eq("event", "spot").gt("ts", since).order("ts", { ascending: false }).limit(3000);
+    const { data: subs } = await db.from("spot_subs").select("email, kind, spot_code, created_at").gt("created_at", since);
+    const steps: Record<string, number> = {}; const devs = new Set<string>(); for (const e of ev ?? []) { steps[e.meta?.step] = (steps[e.meta?.step] || 0) + 1; devs.add(e.dev); }
+    return json({
+      profiles: (profs ?? []).filter((p: any) => !isQa(p.uid)).map((p: any) => ({ name: p.name, email: emailOf.get(p.uid), joined: p.created_at })),
+      made: (made ?? []).filter((s: any) => !isQa(s.maker)).map((s: any) => ({ when: s.created_at, by: emailOf.get(s.maker), kind: s.kind, place: s.place_name, vis: s.visibility, enc: s.enc, at_shop: s.place_code, src: s.src })),
+      opens: (finds ?? []).filter((f: any) => !isQa(f.finder_uid)).map((f: any) => ({ when: f.created_at, by: f.finder_uid ? emailOf.get(f.finder_uid) : "anonymous", note: f.note })),
+      subs: subs ?? [], devices: devs.size, steps,
+    });
+  }
   if (a === "place_admin") {   // founder only: set the owner's email/notes, read the numbers
     const k = Deno.env.get("QA_KEY"); if (!k || b.key !== k) return json({ error: "no" }, 403);
     const pc = clean(b.code, 12).replace(/[^a-z0-9]/g, ""); const { data: pl } = await db.from("spots").select("*").eq("code", pc).eq("kind", "place").maybeSingle(); if (!pl) return json({ error: "not found" }, 404);
@@ -307,7 +326,8 @@ Deno.serve(async (req) => {
   }
   if (a === "map") {
     const s0 = num(b.south), w0 = num(b.west), n0 = num(b.north), e0 = num(b.east); if ([s0, w0, n0, e0].some((v) => v === null)) return json({ error: "no bounds" }, 400);
-    const now = Date.now(), pin = (s: any, kind: string) => ({ code: s.code, lat: s.lat, lng: s.lng, kind, is_place: s.kind === 'place', place_name: s.place_name || null, place_code: s.place_code || null, clue: s.clue, has_photo: !!s.photo, visibility: s.visibility, finds: (s.spot_finds ?? []).length, maker_name: s.spot_profiles?.name ?? null, created_at: s.created_at, sealed: !!(s.opens_at && new Date(s.opens_at).getTime() > now) });
+    const colorOf = (uid: string) => { let h = 0; for (const ch of String(uid || "")) h = (h * 31 + ch.charCodeAt(0)) >>> 0; return h % 12; };   // each person gets a stable colour, without exposing who they are
+    const now = Date.now(), pin = (s: any, kind: string) => ({ code: s.code, lat: s.lat, lng: s.lng, kind, color: colorOf(s.maker), is_place: s.kind === 'place', place_name: s.place_name || null, place_code: s.place_code || null, clue: s.clue, has_photo: !!s.photo, visibility: s.visibility, finds: (s.spot_finds ?? []).length, maker_name: s.spot_profiles?.name ?? null, created_at: s.created_at, sealed: !!(s.opens_at && new Date(s.opens_at).getTime() > now) });
     const q = () => db.from("spots").select("*, spot_profiles(name), spot_finds(id)").gte("lat", s0!).lte("lat", n0!).gte("lng", w0!).lte("lng", e0!).limit(300);
     const { data: pub } = await q().eq("visibility", "public");
     let mine: any[] = [], shared: any[] = [];
