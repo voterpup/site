@@ -73,6 +73,7 @@ textarea.in{min-height:96px;resize:vertical;line-height:1.35}
 .shoppin{width:44px;height:44px;border-radius:50%;border:3px solid #ff8c42;background:#fff;box-shadow:0 3px 10px rgba(0,0,0,.4);overflow:hidden;display:grid;place-items:center;color:#ff8c42}.shoppin img,.leaflet-container .leaflet-marker-pane .shoppin img{width:44px!important;height:44px!important;max-width:none;object-fit:cover;display:block}.shoppin svg{width:22px;height:22px}
 .shoplogo{width:56px;height:56px;border-radius:14px;object-fit:cover;border:2px solid #ff8c42;flex:none}
 .deck .shp{position:absolute;left:0;top:0;border:1.5px solid #fff;box-shadow:0 2px 5px rgba(0,0,0,.35)}.deck .shp.card{width:26px;height:34px;border-radius:5px}.deck .shp.coin{width:28px;height:28px;border-radius:50%;top:4px}.deck .shp.env{width:32px;height:24px;border-radius:4px;top:8px;overflow:hidden}.deck .shp.env span{position:absolute;left:-1px;right:-1px;top:-14px;height:26px;border-bottom:1.5px solid rgba(255,255,255,.9);transform:skewY(0);clip-path:polygon(0 0,100% 0,50% 100%);background:rgba(0,0,0,.15)}.deck .shp.d1{transform:translate(4px,-3px) rotate(6deg);opacity:.9}.deck .shp.d2{transform:translate(8px,-6px) rotate(12deg);opacity:.8}
+.deck{transform:scale(var(--ms,1));transform-origin:13px 34px;transition:transform .15s}.shoppin{transform:scale(calc(var(--ms,1) + .15));transform-origin:22px 44px;transition:transform .15s}.far .deck b,.far .deck .ph{display:none}
 .pin.place{background:#ff8c42;border-radius:6px;transform:rotate(45deg);width:20px;height:20px}
 .pin.public{background:var(--pub)}.pin.mine{background:var(--mine)}.pin.shared{background:var(--shared)}.pin.here{background:#4ea3ff;border-radius:50%;transform:none;width:16px;height:16px}
 .counts{display:flex;gap:8px;flex-wrap:wrap}.counts span{display:inline-flex;align-items:center;gap:6px;font:800 13px Nunito;color:var(--sub)}.counts i{width:10px;height:10px;border-radius:50%;display:inline-block}
@@ -227,6 +228,8 @@ function tileUrl(){ return 'https://tile.openstreetmap.org/{z}/{x}/{y}.png'; }  
 function mkMap(el, lat, lng, zoom){ var m = L.map(el, { zoomControl: false, attributionControl: true }).setView([lat, lng], zoom || 15);
   var t = L.tileLayer(tileUrl(), { maxZoom: 19, attribution: '© OpenStreetMap' }).addTo(m);
   if (!el.querySelector('.vignette')) { var v = document.createElement('div'); v.className = 'vignette'; el.appendChild(v); }
+  function sz(){ var z = m.getZoom(), k = z >= 17 ? 1 : z >= 16 ? .85 : z >= 15 ? .7 : z >= 14 ? .55 : z >= 13 ? .45 : .35; el.style.setProperty('--ms', k); el.classList.toggle('far', z < 14); }
+  m.on('zoomend', sz); sz();
   MAPS.push({ m: m, t: t }); return m; }
 function refreshTiles(){ MAPS.forEach(function(x){ if (x.m && x.m._container && document.body.contains(x.m._container)) x.t.setUrl(tileUrl()); }); }
 function shopIcon(p){ return L.divIcon({ className: '', html: '<div class="shoppin">' + (p.logo_url ? '<img src="' + esc(p.logo_url) + '" alt="">' : I.shop) + '</div>', iconSize: [44, 44], iconAnchor: [22, 44] }); }
