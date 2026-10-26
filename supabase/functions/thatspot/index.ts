@@ -54,7 +54,7 @@ const SITE = "https://voterpup.com";
 async function mail(to: string, subject: string, body: string, cta: string, url: string, unsub: string) {
   const key = Deno.env.get("RESEND_API_KEY"); if (!key) throw new Error("no RESEND_API_KEY");
   const esc = (s: string) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]!));
-  const html = `<div style="font-family:system-ui,sans-serif;max-width:480px;margin:0 auto;padding:20px;color:#1d2433"><p style="font-size:22px;margin:0 0 6px">📍 My spot</p><p style="font-size:16px;line-height:1.5;white-space:pre-line">${esc(body)}</p><p><a href="${url}" style="display:inline-block;background:#e8b84b;color:#2a2418;font-weight:800;padding:12px 18px;border-radius:999px;text-decoration:none">${esc(cta)}</a></p><p style="font-size:12px;color:#6b7387;margin-top:28px">You asked for this at voterpup.com/myspot. <a href="${unsub}" style="color:#6b7387">Unsubscribe</a> · <a href="${SITE}/privacy.html" style="color:#6b7387">Privacy</a></p></div>`;
+  const html = `<div style="font-family:system-ui,sans-serif;max-width:480px;margin:0 auto;padding:20px;color:#1d2433"><p style="font-size:22px;margin:0 0 6px">📍 My spot</p><p style="font-size:16px;line-height:1.5;white-space:pre-line">${esc(body)}</p><p><a href="${url}" style="display:inline-block;background:#e8b84b;color:#2a2418;font-weight:800;padding:12px 18px;border-radius:999px;text-decoration:none">${esc(cta)}</a></p><p style="font-size:12px;color:#6b7387;margin-top:28px">You asked for this at voterpup.com/myspot. <a href="${unsub}" style="color:#6b7387">Unsubscribe</a> · <a href="${SITE}/myspot/privacy.html" style="color:#6b7387">Privacy</a></p></div>`;
   await mailRaw(to, subject, html, `${body}\n\n${cta}: ${url}\n\nUnsubscribe: ${unsub}`, unsub);
 }
 async function mailRaw(to: string, subject: string, html: string, text: string, unsub: string) {
@@ -95,7 +95,7 @@ async function weekReport(db: any, pl: any): Promise<WeekReport | null> {
     photos_7d: wk(p, s7).filter((m: any) => m.photo).length, hearts_7d: wk(hearts ?? [], s7).length,
     opens_total: o.length, memories_total: p.length, unique_total: new Set(o.map((x: any) => x.finder_uid || "anon")).size, repeat_total: Object.values(cnt).filter((n) => n > 1).length,
     top: week.map((m: any) => ({ body: m.body || null, has_photo: !!m.photo, by: m.spot_profiles?.name ?? null, hearts: hc[m.id] || 0, created_at: m.created_at })),
-    wall_url: `${SITE}/myspot/?at=${pl.code}`, unsub_url: `${Deno.env.get("SUPABASE_URL")}/functions/v1/thatspot?unsub=${sub.token}`, privacy_url: `${SITE}/privacy.html` };
+    wall_url: `${SITE}/myspot/?at=${pl.code}`, unsub_url: `${Deno.env.get("SUPABASE_URL")}/functions/v1/thatspot?unsub=${sub.token}`, privacy_url: `${SITE}/myspot/privacy.html` };
 }
 const tokenOf = () => Array.from(crypto.getRandomValues(new Uint8Array(16)), (x) => x.toString(16).padStart(2, "0")).join("");
 function isOwner(s: any, user: any) { return !!user && s.owner_status === "approved" && ((s.owner_uid && s.owner_uid === user.id) || (s.owner_email && user.email && s.owner_email.toLowerCase() === String(user.email).toLowerCase())); }
@@ -195,7 +195,7 @@ Deno.serve(async (req) => {
     const { data: g, error } = await db.auth.admin.generateLink({ type: "magiclink", email: em, options: { redirectTo: SITE + "/myspot/" } } as any);
     if (error || !g?.properties?.email_otp) { await logFail("thatspot otp", error || "no otp"); return json({ error: "could not make a code" + (error ? ": " + error.message : "") }, 500); }
     try {
-      await mail(em, "Your Memspots code: " + g.properties.email_otp, "Your sign-in code is " + g.properties.email_otp + ". It works for a few minutes. If you didn't ask for it, ignore this email.", "Open Memspots", SITE + "/myspot/", SITE + "/privacy.html");
+      await mail(em, "Your Memspots code: " + g.properties.email_otp, "Your sign-in code is " + g.properties.email_otp + ". It works for a few minutes. If you didn't ask for it, ignore this email.", "Open Memspots", SITE + "/myspot/", SITE + "/myspot/privacy.html");
     } catch (e) { await logFail("thatspot otp mail", e); return json({ error: "could not send the email" }, 500); }
     return json({ ok: true });
   }
@@ -283,7 +283,7 @@ Deno.serve(async (req) => {
     if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(em) || !name) return json({ error: "name and email needed" }, 400);
     if (pl.owner_status === "approved") return json({ error: "This shop already has a verified owner. Email hi@voterpup.com if that's wrong." }, 409);
     await db.from("spots").update({ owner_email: em, owner_uid: user?.id ?? null, owner_status: "pending", claim_note: name + " · " + note }).eq("id", pl.id);
-    try { await mail("hi@voterpup.com", "Shop claim: " + pl.place_name, `${name} <${em}> claims ${pl.place_name} (code ${pl.code}).\n\n${note}\n\nApprove with place_admin approve:true once verified.`, "Open the shop", SITE + "/myspot/?at=" + pl.code, SITE + "/privacy.html"); } catch (e) { await logFail("claim mail", e); }
+    try { await mail("hi@voterpup.com", "Shop claim: " + pl.place_name, `${name} <${em}> claims ${pl.place_name} (code ${pl.code}).\n\n${note}\n\nApprove with place_admin approve:true once verified.`, "Open the shop", SITE + "/myspot/?at=" + pl.code, SITE + "/myspot/privacy.html"); } catch (e) { await logFail("claim mail", e); }
     return json({ ok: true, status: "pending" });
   }
   if (a === "owner_stats" || a === "owner_hide" || a === "owner_pin" || a === "owner_note" || a === "owner_logo") {

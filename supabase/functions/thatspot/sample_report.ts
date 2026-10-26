@@ -12,6 +12,6 @@ const r: WeekReport = {
     { body: "Date night. She picked the pink ball and still won.", has_photo: false, by: "Sam", hearts: 19, created_at: "2026-11-05T19:30:00Z" },
     { body: "Three generations on one lane tonight.", has_photo: false, by: "Linda", hearts: 14, created_at: "2026-11-08T01:15:00Z" },
   ],
-  wall_url, unsub_url: "https://voterpup.com/myspot/", privacy_url: "https://voterpup.com/privacy.html", sample: true,
+  wall_url, unsub_url: "https://voterpup.com/myspot/", privacy_url: "https://voterpup.com/myspot/privacy.html", sample: true,
 };
 console.log(ownerReportHtml(r));
