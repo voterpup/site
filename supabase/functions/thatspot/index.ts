@@ -342,17 +342,17 @@ Deno.serve(async (req) => {
     const d = 0.0012;
     const { data: near } = await db.from("spots").select("*, spot_profiles(name, photo), spot_finds(id)").eq("visibility", "public").neq("kind", "place").gte("lat", pl.lat - d).lte("lat", pl.lat + d).gte("lng", pl.lng - d * 1.5).lte("lng", pl.lng + d * 1.5).limit(80);
     const { data: byCode } = await db.from("spots").select("*, spot_profiles(name, photo), spot_finds(id)").eq("visibility", "public").eq("place_code", pl.code).limit(120);
-    const seen = new Set<string>(), rows: any[] = [];
-    for (const s of [...(byCode ?? []), ...(near ?? [])]) { if (seen.has(s.code) || s.hidden_by_owner) continue; seen.add(s.code); if (s.place_code === pl.code || metres(pl.lat, pl.lng, s.lat, s.lng) <= 30) rows.push(s); }
+    const owner = isOwner(pl, user), seen = new Set<string>(), rows: any[] = [];   // the owner also sees what they hid, marked, so they can bring it back from the wall itself
+    for (const s of [...(byCode ?? []), ...(near ?? [])]) { if (seen.has(s.code) || (s.hidden_by_owner && !owner)) continue; seen.add(s.code); if (s.place_code === pl.code || metres(pl.lat, pl.lng, s.lat, s.lng) <= 30) rows.push(s); }
     rows.sort((x, y) => (y.pinned_by_owner ? 1 : 0) - (x.pinned_by_owner ? 1 : 0) || (x.created_at < y.created_at ? 1 : -1));   // pinned first, then newest
     const who = await heartWho(user, b.dev), hearts = await heartsFor(db, rows.map((s) => s.id), who);
-    const cards = []; for (const s of rows) cards.push({ ...pubSpot(s, { finds: (s.spot_finds ?? []).length }), body: s.body, photo_url: await signedPhoto(db, s.photo), mine: !!user && s.maker === user.id, hearts: hearts.count[s.id] || 0, hearted: hearts.mine.has(s.id) });
+    const cards = []; for (const s of rows) cards.push({ ...pubSpot(s, { finds: (s.spot_finds ?? []).length }), body: s.body, photo_url: await signedPhoto(db, s.photo), mine: !!user && s.maker === user.id, hearts: hearts.count[s.id] || 0, hearted: hearts.mine.has(s.id), hidden: owner && !!s.hidden_by_owner });
     // an open is counted, never located: no coordinates are stored (the finder's position was only compared, above)
     if (user) { const since = new Date(Date.now() - 12 * 3600e3).toISOString(); const { data: recent } = await db.from("spot_finds").select("id").eq("spot_id", pl.id).eq("finder_uid", user.id).gt("created_at", since).limit(1); if (!(recent ?? []).length) { const p = await profile(); await db.from("spot_finds").insert({ spot_id: pl.id, finder_uid: user.id, finder_name: p?.name ?? null }); } }
     else await db.from("spot_finds").insert({ spot_id: pl.id, finder_uid: null, finder_name: null });
     const { data: log } = await db.from("spot_finds").select("finder_name, note, created_at").eq("spot_id", pl.id).not("note", "is", null).order("created_at", { ascending: false }).limit(30);
     const { count: visitors } = await db.from("spot_finds").select("id", { count: "exact", head: true }).eq("spot_id", pl.id);
-    return json({ there: true, place: { name: pl.place_name, note: pl.body, created_at: pl.created_at, photo_url: await signedPhoto(db, pl.photo), logo_url: await signedPhoto(db, pl.logo), opens: visitors ?? 0, is_owner: isOwner(pl, user) }, cards, logbook: log ?? [] });
+    return json({ there: true, place: { name: pl.place_name, note: pl.body, created_at: pl.created_at, photo_url: await signedPhoto(db, pl.photo), logo_url: await signedPhoto(db, pl.logo), opens: visitors ?? 0, is_owner: owner }, cards, logbook: log ?? [] });
   }
   if (a === "here") {   // memories within 80 m of a point: the place page's list
     const lat = num(b.lat), lng = num(b.lng); if (lat === null || lng === null) return json({ error: "no location" }, 400);
