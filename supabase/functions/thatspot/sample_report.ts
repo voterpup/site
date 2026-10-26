@@ -8,9 +8,9 @@ const r: WeekReport = {
   opens_7d: 31, opens_prev: 19, memories_7d: 9, memories_prev: 5, photos_7d: 6, hearts_7d: 44,
   opens_total: 112, memories_total: 27, unique_total: 86, repeat_total: 14,
   top: [
-    { body: "My son bowled his first 300 game here tonight. I have watched him bowl since he was six.", has_photo: true, by: "Denise", hearts: 23, created_at: "2026-11-07T20:10:00Z" },
-    { body: "Bowling was our family’s thing as far back as I can remember. Dad started bringing me when I was two.", has_photo: false, by: "Paul", hearts: 19, created_at: "2026-11-05T19:30:00Z" },
-    { body: "On Friday nights my grandmother would send an envelope home with my dad, with the money to pay for my bowling.", has_photo: false, by: "Matt", hearts: 14, created_at: "2026-11-08T01:15:00Z" },
+    { body: "Strike on the very last frame. Nobody saw it, so here is the proof.", has_photo: true, by: "Denise", hearts: 23, created_at: "2026-11-07T20:10:00Z" },
+    { body: "Date night. She picked the pink ball and still won.", has_photo: false, by: "Sam", hearts: 19, created_at: "2026-11-05T19:30:00Z" },
+    { body: "Three generations on one lane tonight.", has_photo: false, by: "Linda", hearts: 14, created_at: "2026-11-08T01:15:00Z" },
   ],
   wall_url, unsub_url: "https://voterpup.com/myspot/", privacy_url: "https://voterpup.com/privacy.html", sample: true,
 };

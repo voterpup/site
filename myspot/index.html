@@ -110,6 +110,8 @@ select.in{min-height:44px;padding:8px 10px;font-size:14px;width:auto}
 .hero h1{font-size:28px}
 .chips{display:flex;gap:6px;flex-wrap:wrap}.chip{display:inline-flex;align-items:center;gap:5px;font:800 12.5px Nunito;color:var(--sub);background:var(--field);border:1px solid var(--line);border-radius:999px;padding:5px 10px}.chip b{color:var(--ink)}
 .hint{color:var(--sub);font:600 14.5px/1.45 Nunito}.hint .lnk{font-size:14.5px}.note.ph{border:1.5px dashed var(--spotline);background:transparent}.note.ph .body{color:var(--sub);font-weight:500}
+.note video,.lb .stage video{width:100%;border-radius:12px;max-height:360px;background:#000}.lb .stage video{max-height:70vh;border-radius:14px}.mc video.p{width:100%;display:block;background:#000;max-height:360px;object-fit:cover}.mc .play{position:absolute;right:10px;top:10px;z-index:2;width:30px;height:30px;border-radius:50%;background:rgba(0,0,0,.55);color:#fff;display:grid;place-items:center;font-size:13px;padding-left:2px}
+.addbox{column-span:all;break-inside:avoid;margin:0 0 10px;background:var(--card);border:1.5px solid var(--gold);border-radius:18px;padding:12px;display:flex;flex-direction:column;gap:8px}.addbox .in{min-height:80px}.addbox .row{gap:6px}
 .note{background:var(--spotclue);border-radius:16px;padding:12px 14px;display:flex;flex-direction:column;gap:6px}.note .k{font-size:11.5px}.note .body{font:600 19px/1.3 Fredoka,sans-serif;white-space:pre-wrap}.note img{width:100%;border-radius:12px;max-height:280px;object-fit:cover}
 .tabs{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;padding:2px 0}.tabs::-webkit-scrollbar{display:none}
 .tab{flex:none;border:1.5px solid var(--line);background:transparent;border-radius:999px;padding:8px 14px;font:900 13.5px Nunito;color:var(--sub);cursor:pointer;min-height:40px}.tab.on{background:var(--ink);color:var(--bg);border-color:var(--ink)}
@@ -428,13 +430,14 @@ function ownerStrip(c){ return '<div class="oact"><button class="icb' + (c.pinne
 function cardHtml(c, i, owner){   // owner: Pin and Hide sit on every card, and hidden posts stay visible to the owner, dimmed
   var by = '<div class="ft">' + (c.maker_photo ? '<img src="' + esc(c.maker_photo) + '" alt="">' : '') + '<span class="nm">' + esc(c.maker_name || 'Someone') + ' · ' + esc(fmt(c.created_at)) + '</span>' + heartBtn(c) + '</div>';
   var pin = (c.pinned ? '<div class="pinbadge2">Pinned</div>' : '') + (c.hidden ? '<div class="pinbadge2 hid">Hidden</div>' : ''), oa = owner ? ownerStrip(c) : '', cls = c.hidden ? ' hid' : '';
-  if (c.photo_url) return '<div class="mc' + cls + '" data-open="' + c.code + '">' + pin + '<img class="p" src="' + esc(c.photo_url) + '" alt="" loading="lazy">' + (c.body ? '<div class="cap">' + esc(c.body) + '</div>' : '') + by + oa + '</div>';
+  if (c.photo_url || c.video_url) return '<div class="mc' + cls + '" data-open="' + c.code + '">' + pin + (c.photo_url ? '<img class="p" src="' + esc(c.photo_url) + '" alt="" loading="lazy">' : '<video class="p" src="' + esc(c.video_url) + '" preload="metadata" muted playsinline></video><div class="play">▶</div>') + (c.body ? '<div class="cap">' + esc(c.body) + '</div>' : '') + by + oa + '</div>';
   return '<div class="mc paper ' + PAPER[i % 4] + cls + '" data-open="' + c.code + '">' + pin + '<div class="tx">' + esc(c.body || '') + '</div>' + by + oa + '</div>';
 }
 function orderCards(cards, filter){   // pinned first, then by month, newest first; the flat list is the lightbox order
-  var list = cards.filter(function(c){ return filter === 'photos' ? !!c.photo_url : filter === 'notes' ? !c.photo_url : true; });
+  var list = cards.filter(function(c){ var med = !!(c.photo_url || c.video_url); return filter === 'photos' ? med : filter === 'notes' ? !med : true; });
   var groups = [], byKey = {};
   list.forEach(function(c){ var k = c.pinned ? 'Pinned by the shop' : monthOf(c.created_at); if (!byKey[k]) { byKey[k] = []; groups.push({ k: k, items: byKey[k] }); } byKey[k].push(c); });
+  groups.sort(function(a, b){ return (b.k === 'Pinned by the shop') - (a.k === 'Pinned by the shop'); });   // pinned first, whatever order the cards came in
   return { groups: groups, flat: [].concat.apply([], groups.map(function(g){ return g.items; })) };
 }
 function wallHtml(cards, filter, addUrl, owner){
@@ -453,13 +456,14 @@ function lightbox(cards, idx, send){   // full-screen viewer: swipe or arrow key
   var i = idx;
   function draw(){ var c = cards[i];
     el.innerHTML = '<div class="bar"><span>' + (i + 1) + ' / ' + cards.length + (c.pinned ? ' · pinned' : '') + '</span><button class="x" id="lbx" aria-label="Close">×</button></div>' +
-      '<div class="stage" id="lbs">' + (c.photo_url ? '<img src="' + esc(c.photo_url) + '" alt="">' : '<div class="paper2">' + esc(c.body || '') + '</div>') + (cards.length > 1 ? '<button class="nav l" id="lbl" aria-label="Previous">‹</button><button class="nav r" id="lbr" aria-label="Next">›</button>' : '') + '</div>' +
-      '<div class="info">' + (c.photo_url && c.body ? '<div class="cap">' + esc(c.body) + '</div>' : '') + '<div class="ft">' + (c.maker_photo ? '<img src="' + esc(c.maker_photo) + '" alt="">' : '') + '<span class="nm">' + esc(c.maker_name || 'Someone') + ' · ' + esc(fmtWhen(c.created_at)) + '</span>' + heartBtn(c) + '</div></div>';
+      '<div class="stage" id="lbs">' + (c.photo_url ? '<img src="' + esc(c.photo_url) + '" alt="">' : c.video_url ? '<video src="' + esc(c.video_url) + '" controls autoplay playsinline></video>' : '<div class="paper2">' + esc(c.body || '') + '</div>') + (cards.length > 1 ? '<button class="nav l" id="lbl" aria-label="Previous">‹</button><button class="nav r" id="lbr" aria-label="Next">›</button>' : '') + '</div>' +
+      '<div class="info">' + ((c.photo_url || c.video_url) && c.body ? '<div class="cap">' + esc(c.body) + '</div>' : '') + '<div class="ft">' + (c.maker_photo ? '<img src="' + esc(c.maker_photo) + '" alt="">' : '') + '<span class="nm">' + esc(c.maker_name || 'Someone') + ' · ' + esc(fmtWhen(c.created_at)) + '</span>' + heartBtn(c) + '</div></div>';
     document.body.style.overflow = 'hidden';
     document.getElementById('lbx').onclick = close; var l = document.getElementById('lbl'), r = document.getElementById('lbr'); if (l) { l.onclick = function(ev){ ev.stopPropagation(); go(-1); }; r.onclick = function(ev){ ev.stopPropagation(); go(1); }; }
     el.querySelector('[data-heart]').onclick = function(ev){ ev.stopPropagation(); toggleHeart(c, send); };
     var st = document.getElementById('lbs'), x0 = null; st.ontouchstart = function(e){ x0 = e.touches[0].clientX; }; st.ontouchend = function(e){ if (x0 === null) return; var dx = e.changedTouches[0].clientX - x0; x0 = null; if (Math.abs(dx) > 50) go(dx < 0 ? 1 : -1); };
     st.onclick = function(e){ if (e.target === st) close(); };
+    var v = st.querySelector('video'); if (v) v.onclick = function(e){ e.stopPropagation(); };
   }
   function go(d){ i = (i + d + cards.length) % cards.length; draw(); }
   function close(){ el.remove(); document.body.style.overflow = ''; document.removeEventListener('keydown', key); }
@@ -496,7 +500,7 @@ function renderPlace(s, o){   // o: { code, justLeft, demo, owner, wall } — de
   function byCode(k){ return state.cards.filter(function(c){ return c.code === k; })[0]; }
   function ownerAct(c, pin){   // Pin or Hide from a card or from the panel; the demo only changes the page, the real wall saves it
     var next = pin ? !c.pinned : !c.hidden;
-    function apply(){ if (pin) c.pinned = next; else c.hidden = next; toast(pin ? (next ? 'Pinned to the top of your wall.' : 'Unpinned.') : (next ? 'Hidden. Guests no longer see it; you still do, dimmed.' : 'Back on the wall.')); draw(); if (state.panel) state.panel(); }
+    function apply(){ if (pin) c.pinned = next; else c.hidden = next; toast(pin ? (next ? 'Pinned to the top of your wall.' : 'Unpinned.') : (next ? 'Hidden. Guests no longer see it; you still do, dimmed.' : 'Back on the wall.')); draw(); if (state.panel) state.panel(); if (o.save) o.save(state); }
     if (demo) return apply();
     api({ action: pin ? 'owner_pin' : 'owner_hide', code: code, memory: c.code, pinned: next, hidden: next }).then(apply).catch(function(e){ toast(e.message); });
   }
@@ -505,16 +509,25 @@ function renderPlace(s, o){   // o: { code, justLeft, demo, owner, wall } — de
     root.querySelectorAll('[data-opin],[data-ohide]').forEach(function(b){ b.onclick = function(ev){ ev.stopPropagation(); var pin = 'opin' in b.dataset, c = byCode(pin ? b.dataset.opin : b.dataset.ohide); if (c) ownerAct(c, pin); }; });
     root.querySelectorAll('.mc[data-open]').forEach(function(el){ el.onclick = function(){ var idx = -1; flat.forEach(function(x, i){ if (x.code === el.dataset.open) idx = i; }); if (idx >= 0) lightbox(flat, idx, send(flat[idx])); }; }); }
   function draw(){ document.getElementById('wall').innerHTML = wallHtml(visible(), state.filter, addUrl, ownerFirst); document.getElementById('nmem').textContent = state.cards.filter(function(c){ return !c.hidden; }).length; wire(); }
-  function paintNote(){ var w = state.w; document.getElementById('note').innerHTML = w.place.note || w.place.photo_url ? '<div class="note"><div class="k">A note from ' + esc(w.place.name || s.place_name) + '</div>' + (w.place.photo_url ? '<img src="' + esc(w.place.photo_url) + '" alt="">' : '') + '<div class="body">' + esc(w.place.note || '') + '</div></div>' : demo && o.owner ? '<div class="note ph"><div class="k">A note from ' + esc(w.place.name) + '</div><div class="body">Your welcome note goes here. Example: Welcome to ' + esc(w.place.name) + '. Leave a memory for the next bowler.</div></div>' : ''; }
+  function paintNote(){ var w = state.w; document.getElementById('note').innerHTML = w.place.note || w.place.photo_url || w.place.video_url ? '<div class="note"><div class="k">A note from ' + esc(w.place.name || s.place_name) + '</div>' + (w.place.photo_url ? '<img src="' + esc(w.place.photo_url) + '" alt="">' : w.place.video_url ? '<video src="' + esc(w.place.video_url) + '" controls playsinline></video>' : '') + (w.place.note ? '<div class="body">' + esc(w.place.note) + '</div>' : '') + '</div>' : demo && o.owner ? '<div class="note ph"><div class="k">A note from ' + esc(w.place.name) + '</div><div class="body">Your welcome note goes here. Example: Welcome to ' + esc(w.place.name) + '. Leave a memory for the next bowler.</div></div>' : ''; }
   function showWall(w){ state.w = w; state.cards = w.cards; if (typeof w.place.opens === 'number') document.getElementById('nvis').textContent = w.place.opens;
     var g = document.getElementById('gate'); if (g) g.remove();
     paintNote(); draw();
     document.getElementById('guest').innerHTML = w.logbook && w.logbook.length ? '<div class="box"><div class="k">Guestbook</div><div class="log">' + w.logbook.map(function(f){ return '<div>' + esc(f.note) + '<small>' + esc(f.finder_name || 'Someone') + ' · ' + esc(fmt(f.created_at)) + '</small></div>'; }).join('') + '</div></div>' : '';
   }
   document.getElementById('tabs').onclick = function(ev){ var b = ev.target.closest('.tab'); if (!b) return; state.filter = b.dataset.f; app.querySelectorAll('.tab').forEach(function(x){ x.classList.toggle('on', x === b); }); if (state.cards) draw(); else document.getElementById('wall').querySelectorAll('.mc.blur').forEach(function(c){ c.style.display = state.filter === 'all' || (state.filter === 'photos') === !!c.dataset.photo ? '' : 'none'; }); };
-  var fab = document.getElementById('fab'); if (demo) fab.onclick = function(ev){ ev.preventDefault(); toast('On a real wall this adds your memory, from inside the shop.'); };
+  function addForm(){   // demo only: a memory with a note, a photo or a video, added to this page (photos are kept on this device, videos until the page closes)
+    if (document.getElementById('addbox')) { document.getElementById('addbox').scrollIntoView({ behavior: 'smooth', block: 'center' }); return; }
+    var root = document.getElementById('wall'); root.insertAdjacentHTML('afterbegin', '<div class="addbox" id="addbox"><div class="k">Add a memory</div><textarea id="abody" class="in" maxlength="600" placeholder="A score, a night, a face you miss…"></textarea><div class="row"><label class="btn sm" for="afile" style="cursor:pointer">' + I.camera + ' Photo or video</label><input id="afile" type="file" accept="image/*,video/*" class="hidden"><span class="hint" id="afname">Optional</span></div><div class="row"><button class="btn gold sm" id="apost">Post it</button><button class="btn sm" id="acancel">Cancel</button></div></div>');
+    document.getElementById('addbox').scrollIntoView({ behavior: 'smooth', block: 'center' });
+    document.getElementById('afile').onchange = function(){ var f = this.files && this.files[0]; document.getElementById('afname').textContent = f ? f.name : 'Optional'; };
+    document.getElementById('acancel').onclick = function(){ document.getElementById('addbox').remove(); };
+    document.getElementById('apost').onclick = function(){ var b = this, body = document.getElementById('abody').value.trim(), f = document.getElementById('afile').files[0]; if (!body && !f) return toast('Write something or add a picture.'); b.disabled = true;
+      var med = !f ? Promise.resolve({}) : /^video\//.test(f.type) ? Promise.resolve({ video_url: URL.createObjectURL(f) }) : shrink(f).then(function(d){ return { photo_url: d }; });
+      med.then(function(m){ var c = { code: 'u' + Date.now(), body: body, photo_url: m.photo_url || null, video_url: m.video_url || null, maker_name: ownerFirst ? (state.w.place.name || 'The shop') : 'You', created_at: new Date().toISOString(), hearts: 0, added: true }; state.cards.unshift(c); draw(); if (o.save) o.save(state); toast(m.video_url ? 'Added. Videos stay until you close this page in the example.' : 'Added to the wall.'); }).catch(function(e){ toast(e.message); b.disabled = false; }); }; }
+  var fab = document.getElementById('fab'); if (demo) fab.onclick = function(ev){ ev.preventDefault(); addForm(); };
   var sh = document.getElementById('sh'); sh.onclick = function(){ var msg = demo ? '📍 An example memory wall, by Memspots: ' + SITE + '/myspot/?demo=1' : '📍 ' + (s.place_name || 'Our spot') + ' has a memory wall. It opens only inside, and anyone can leave one: ' + placeUrl(code); if (navigator.share) navigator.share({ text: msg }).catch(function(){}); else navigator.clipboard.writeText(msg).then(function(){ toast('Link copied.'); }); track('share', { place: true, demo: demo }); };
-  if (demo) { showWall(o.wall); if (o.owner) demoOwnerPanel(state, ownerAct, function(){ paintNote(); draw(); }); track('demo', { owner: !!o.owner }); return; }
+  if (demo) { showWall(o.wall); if (o.owner) demoOwnerPanel(state, ownerAct, function(){ paintNote(); draw(); }, o.save); track('demo', { owner: !!o.owner }); return; }
   document.getElementById('go').onclick = function(){ var b = this; b.disabled = true; b.textContent = 'Checking where you are…';
     locate().then(function(p){ state.pos = p; return api({ action: 'wall', code: code, lat: p.lat, lng: p.lng, acc: p.acc, dev: devId() }); }).then(function(w){ track('open_try', { there: !!w.there, d: w.distance_m, place: true }); if (w.there) { showWall(w); track('wall', { n: w.cards.length }); } else hunt(code, s, { distance_m: w.distance_m, bearing_deg: w.bearing_deg }); })
       .catch(function(e){ var err = document.getElementById('e'); err.textContent = e.message; err.classList.remove('hidden'); b.disabled = false; b.innerHTML = I.lock + ' I’m here, open the wall'; }); };
@@ -542,45 +555,57 @@ function ownerPanel(code){
     el.querySelectorAll('[data-pin]').forEach(function(b){ b.onclick = function(){ var pin = b.dataset.now !== '1'; api({ action: 'owner_pin', code: code, memory: b.dataset.pin, pinned: pin }).then(function(){ toast(pin ? 'Pinned to the top.' : 'Unpinned.'); ownerPanel(code); }).catch(function(e){ toast(e.message); }); }; });
   }).catch(function(e){ var el = document.getElementById('owner'); if (el) el.innerHTML = '<div class="err">' + esc(e.message) + '</div>'; });
 }
-function demoOwnerPanel(state, ownerAct, redraw){   // the owner's panel with sample numbers; grey text shows what goes where; Pin, Hide and the note change the wall below, nothing is saved
+function demoOwnerPanel(state, ownerAct, redraw, save){   // the owner fills in whatever they like: name, picture, welcome note with a photo or a video; kept on this device, not sent anywhere
   var el = document.getElementById('owner'); if (!el) return;
   function byCode(k){ return state.cards.filter(function(c){ return c.code === k; })[0]; }
+  function hero(){ var w = state.w; document.querySelector('.hero h1').textContent = w.place.name; var lg = document.querySelector('.hero .lg'); if (w.place.logo_url) lg.outerHTML = '<img class="lg" src="' + esc(w.place.logo_url) + '" alt="">'; }
   state.panel = paint;
   function paint(){ var w = state.w;
-    el.innerHTML = '<div class="k">Owner panel · ' + esc(w.place.name) + '</div><div class="hint">Your panel, on the same link as the wall. Try the buttons. Nothing here is saved.</div>' + ownerStats({ opens_7d: 31, opens_total: 112, unique: 86, repeat: 14 }) +
-      '<div class="row"><button class="btn sm" id="ologo">' + I.camera + ' Shop picture</button><span class="hint">Your logo or storefront photo goes here.</span></div>' +
-      '<label class="l" for="onote">Welcome note</label><textarea id="onote" class="in" maxlength="600" placeholder="What guests read when they arrive. Example: Welcome to ' + esc(w.place.name) + '. Leave a memory for the next bowler.">' + esc(w.place.note || '') + '</textarea><button class="btn sm" id="osave">Save note</button>' +
-      '<div class="hint">Pin keeps a post on top. Hide takes it off the wall.</div><details class="olist-wrap"><summary class="k">Manage all posts · ' + state.cards.length + '</summary><div class="olist">' + ownerRows(state.cards.map(function(c){ return { code: c.code, body: c.body, has_photo: !!c.photo_url, by: c.maker_name, created_at: c.created_at, hearts: c.hearts, pinned: !!c.pinned, hidden: !!c.hidden }; })) + '</div></details>' +
+    el.innerHTML = '<div class="k">Owner panel · ' + esc(w.place.name) + '</div><div class="hint">Your panel, on the same link as the wall. Fill it in; it stays on this phone only.</div>' + ownerStats({ opens_7d: 31, opens_total: 112, unique: 86, repeat: 14 }) +
+      '<label class="l" for="oname">Shop name</label><input id="oname" class="in" maxlength="60" value="' + esc(w.place.name) + '">' +
+      '<div class="row"><label class="btn sm" for="ologo" style="cursor:pointer">' + I.camera + ' Shop picture</label><input id="ologo" type="file" accept="image/*" class="hidden"><span class="hint">' + (w.place.logo_url ? 'Set. Tap to change.' : 'Your logo or storefront photo goes here.') + '</span></div>' +
+      '<label class="l" for="onote">Welcome note</label><textarea id="onote" class="in" maxlength="600" placeholder="What guests read when they arrive. Example: Welcome to ' + esc(w.place.name) + '. Leave a memory for the next bowler.">' + esc(w.place.note || '') + '</textarea>' +
+      '<div class="row"><label class="btn sm" for="omedia" style="cursor:pointer">' + I.camera + ' Welcome photo or video</label><input id="omedia" type="file" accept="image/*,video/*" class="hidden"><span class="hint">' + (w.place.video_url ? 'Video set.' : w.place.photo_url ? 'Photo set.' : 'Shows above your note. A short video of the lanes works well.') + '</span></div>' +
+      '<button class="btn gold sm" id="osave">Save</button>' +
+      '<div class="hint">Pin keeps a post on top. Hide takes it off the wall.</div><details class="olist-wrap"><summary class="k">Manage all posts · ' + state.cards.length + '</summary><div class="olist">' + ownerRows(state.cards.map(function(c){ return { code: c.code, body: c.body, has_photo: !!(c.photo_url || c.video_url), by: c.maker_name, created_at: c.created_at, hearts: c.hearts, pinned: !!c.pinned, hidden: !!c.hidden }; })) + '</div></details>' +
       '<div class="hint">Weekly report by email, every Monday. <a class="lnk" href="/thatspot/demo/report.html" target="_blank" rel="noopener" style="min-height:0;padding:0">See a sample →</a></div>' +
       '<div class="hint">Coming later: edit the whole wall page yourself.</div>';
-    document.getElementById('ologo').onclick = function(){ toast('On your real panel this uploads your logo or a storefront photo.'); };
-    document.getElementById('osave').onclick = function(){ w.place.note = document.getElementById('onote').value.trim(); toast('Saved. Guests see it the next time they open the wall.'); redraw(); };
+    document.getElementById('ologo').onchange = function(){ var f = this.files && this.files[0]; if (!f) return; shrink(f).then(function(d){ w.place.logo_url = d; hero(); paint(); save(state); toast('Shop picture set.'); }).catch(function(e){ toast(e.message); }); };
+    document.getElementById('omedia').onchange = function(){ var f = this.files && this.files[0]; if (!f) return;
+      if (/^video\//.test(f.type)) { w.place.video_url = URL.createObjectURL(f); w.place.photo_url = null; redraw(); paint(); toast('Welcome video set. In the example it stays until you close the page.'); }
+      else shrink(f).then(function(d){ w.place.photo_url = d; w.place.video_url = null; redraw(); paint(); save(state); toast('Welcome photo set.'); }).catch(function(e){ toast(e.message); }); };
+    document.getElementById('osave').onclick = function(){ w.place.name = document.getElementById('oname').value.trim() || w.place.name; w.place.note = document.getElementById('onote').value.trim(); hero(); redraw(); paint(); save(state); toast('Saved. Guests see it the next time they open the wall.'); };
     el.querySelectorAll('[data-pin]').forEach(function(b){ b.onclick = function(){ ownerAct(byCode(b.dataset.pin), true); }; });
     el.querySelectorAll('[data-hide]').forEach(function(b){ b.onclick = function(){ ownerAct(byCode(b.dataset.hide), false); }; });
   }
-  paint();
+  hero(); paint();
 }
-function demo(owner){   // the example wall for PoCo Bowl, sample content, no location needed; owner=true shows the shop's panel first
-  // The memories are things real people have written about their own bowling alleys (local-news comment threads, nostalgia blogs, review sites), lightly trimmed, first names changed.
+function demo(owner){   // the example wall for PoCo Bowl: sample memories, no location needed; owner=true shows the panel first. What the owner fills in is kept in this browser.
   // Photos: Pexels (Pavel Danilyuk, shvetsa, cottonbro, Boys in Bristol) and Unsplash (Karla Rivera), both free licences.
-  var now = Date.now(), d = function(days, h){ return new Date(now - days * 864e5 - (h || 0) * 3600e3).toISOString(); }, P = '/thatspot/demo/';
+  var now = Date.now(), d = function(days, h){ return new Date(now - days * 864e5 - (h || 0) * 3600e3).toISOString(); }, P = '/thatspot/demo/', KEY = 'memspots_demo';
   var cards = [
-    { code: 'd1', body: 'My son bowled his first 300 game here tonight. I have watched him bowl since he was six.', photo_url: P + 'pins.jpg', maker_name: 'Denise', created_at: d(2, 3), hearts: 23, pinned: true },
-    { code: 'd2', body: 'Over 20 years coming here. My whole family and most of my friends have ended up on these lanes at some point.', photo_url: P + 'friends.jpg', maker_name: 'Marcus', created_at: d(5, 1), hearts: 11 },
-    { code: 'd3', body: 'On Friday nights my grandmother would send an envelope home with my dad, with the money to pay for my bowling.', photo_url: null, maker_name: 'Matt', created_at: d(7, 4), hearts: 14 },
-    { code: 'd4', body: 'Bowling was our family’s thing as far back as I can remember. Dad started bringing me when I was two.', photo_url: null, maker_name: 'Paul', created_at: d(9), hearts: 19 },
-    { code: 'd5', body: 'Established myself as a mediocre bowler in middle school, rarely over 140. Still rarely over 140.', photo_url: P + 'shoes.jpg', maker_name: 'Kate', created_at: d(12, 2), hearts: 7 },
-    { code: 'd6', body: 'Brings me back to my childhood: running around while my dad bowled and handed me quarters.', photo_url: null, maker_name: 'Rachel', created_at: d(16), hearts: 9 },
-    { code: 'd7', body: 'Later on we’d come for fries at night and not even bowl.', photo_url: P + 'night.jpg', maker_name: 'Jess', created_at: d(19, 5), hearts: 8 },
-    { code: 'd8', body: 'My first job was here, behind the shoe counter. Friday nights were chaos and I loved every one.', photo_url: null, maker_name: 'Mike', created_at: d(24), hearts: 16 },
-    { code: 'd9', body: 'The man behind the counter told me she had been here over 40 years. Once a week, more than half her life.', photo_url: null, maker_name: 'Dan', created_at: d(31), hearts: 12 },
-    { code: 'd10', body: 'One of my favourite memories of all time: my eighth birthday party here.', photo_url: P + 'lanes.jpg', maker_name: 'Neal', created_at: d(37, 3), hearts: 10 },
-    { code: 'd11', body: 'I used to take my kids here once or twice a week. Now they bring theirs.', photo_url: null, maker_name: 'Linda', created_at: d(45), hearts: 13 },
-    { code: 'd12', body: 'Mom’s record game was a 266. They gave her a brooch with a bowling pin on it and she wore it to church.', photo_url: null, maker_name: 'Sue', created_at: d(52), hearts: 6 }
+    { code: 'd1', body: 'Strike on the very last frame. Nobody saw it, so here is the proof.', photo_url: P + 'pins.jpg', maker_name: 'Denise', created_at: d(2, 3), hearts: 23, pinned: true },
+    { code: 'd2', body: 'Work night out. Turns out accounting can bowl.', photo_url: P + 'friends.jpg', maker_name: 'Marcus', created_at: d(5, 1), hearts: 11 },
+    { code: 'd3', body: 'Bumpers up, scores down, nobody cared. The kids’ first time.', photo_url: null, maker_name: 'Rachel', created_at: d(7, 4), hearts: 14 },
+    { code: 'd4', body: 'Date night. She picked the pink ball and still won.', photo_url: null, maker_name: 'Sam', created_at: d(9), hearts: 19 },
+    { code: 'd5', body: 'Size 9, lane 3, every Friday.', photo_url: P + 'shoes.jpg', maker_name: 'Priya', created_at: d(12, 2), hearts: 7 },
+    { code: 'd6', body: 'Three generations on one lane tonight.', photo_url: null, maker_name: 'Linda', created_at: d(16), hearts: 9 },
+    { code: 'd7', body: 'Came for one game, stayed for three.', photo_url: P + 'night.jpg', maker_name: 'Jess', created_at: d(19, 5), hearts: 8 },
+    { code: 'd8', body: 'Birthday here again. Same lane, same friends, more candles.', photo_url: null, maker_name: 'Noor', created_at: d(24), hearts: 16 },
+    { code: 'd9', body: 'Gutter, gutter, strike. The whole story of my year.', photo_url: null, maker_name: 'Lena', created_at: d(31), hearts: 12 },
+    { code: 'd10', body: 'League night. We lost, but the fries won.', photo_url: P + 'lanes.jpg', maker_name: 'Dev', created_at: d(37, 3), hearts: 10 },
+    { code: 'd11', body: 'Grandpa still bowls better than all of us.', photo_url: null, maker_name: 'Tom', created_at: d(45), hearts: 13 },
+    { code: 'd12', body: 'First time back in years. Still smells like wax and popcorn.', photo_url: null, maker_name: 'Ana', created_at: d(52), hearts: 6 }
   ];
-  var s = { kind: 'place', place_name: 'PoCo Bowl', finds: 112, created_at: d(60), lat: 49.2625, lng: -122.7811, logo_url: null };
-  renderPlace(s, { code: 'demo', demo: true, owner: !!owner, wall: { place: { name: 'PoCo Bowl', note: owner ? '' : 'Leave a memory for the next bowler: a score, a night, a face you miss. It stays on our wall for good.', photo_url: null, opens: 112 }, cards: cards,
-    logbook: [{ note: 'First time back since 2009. Nothing has changed, thank goodness.', finder_name: 'Ana', created_at: d(3) }, { note: 'Saturday youth league. Loud. Perfect.', finder_name: 'Marcus', created_at: d(8) }, { note: 'Lane 4, three strikes, no witnesses.', finder_name: 'Kai', created_at: d(15) }] } });
+  var saved = {}; try { saved = JSON.parse(localStorage.getItem(KEY) || '{}') || {}; } catch (e) {}
+  var place = { name: saved.name || 'PoCo Bowl', note: saved.note || '', photo_url: saved.photo_url || null, video_url: null, logo_url: saved.logo_url || null, opens: 112 };
+  cards.forEach(function(c){ var f = (saved.flags || {})[c.code]; if (f) { c.pinned = !!f.pinned; c.hidden = !!f.hidden; } });
+  cards = (saved.added || []).concat(cards);
+  function save(state){ var flags = {}, added = []; state.cards.forEach(function(c){ if (c.added) { if (!c.video_url) added.push(c); } else if (c.pinned || c.hidden) flags[c.code] = { pinned: !!c.pinned, hidden: !!c.hidden }; });
+    try { localStorage.setItem(KEY, JSON.stringify({ name: state.w.place.name, note: state.w.place.note, photo_url: state.w.place.photo_url, logo_url: state.w.place.logo_url, flags: flags, added: added })); } catch (e) { toast('Could not keep that on this device (storage full or private mode).'); } }
+  var s = { kind: 'place', place_name: place.name, finds: 112, created_at: d(60), lat: 49.2625, lng: -122.7811, logo_url: place.logo_url };
+  renderPlace(s, { code: 'demo', demo: true, owner: !!owner, save: save, wall: { place: place, cards: cards,
+    logbook: [{ note: 'Good night. Lane 6 again next week.', finder_name: 'Ana', created_at: d(3) }, { note: 'Nachos still the best.', finder_name: 'Kai', created_at: d(15) }] } });
 }
 
 // ---------- the hunt: live distance and a compass arrow ----------
