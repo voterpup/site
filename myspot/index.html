@@ -102,15 +102,51 @@ select.in{min-height:44px;padding:8px 10px;font-size:14px;width:auto}
 .tent .big{font:700 22px/1.2 Fredoka,sans-serif}
 .tent .small{font:700 14px Nunito;color:#566778}
 @media print{body{background:#fff}.app{padding:0;max-width:none}.noprint{display:none!important}.tent{border:0;min-height:95vh;justify-content:center}}
-.wall{columns:2;column-gap:10px}
-.card{break-inside:avoid;margin:0 0 10px;background:#fffdf7;color:#1d2433;border-radius:6px;padding:8px 8px 10px;box-shadow:0 6px 16px rgba(0,0,0,.28);transform:rotate(-1.2deg);display:flex;flex-direction:column;gap:6px}
-.card:nth-child(2n){transform:rotate(1.1deg)}.card:nth-child(3n){transform:rotate(-0.4deg)}
-.card.paper{background:#fff4c2}.card.paper.b{background:#dff5ea}.card.paper.c{background:#e8ddff}
-.card img{width:100%;border-radius:3px;display:block}
-.card .tx{font:600 15px/1.3 Fredoka,sans-serif;white-space:pre-wrap;padding:4px 2px}
-.card .by{display:flex;align-items:center;gap:6px;font:800 11.5px Nunito;color:#5a6472}.card .by img{width:20px;height:20px;border-radius:50%}
-.card.blur{pointer-events:none;min-height:90px;position:relative;overflow:hidden}.card.blur .tx,.card.blur .by{filter:blur(4px);opacity:.8}.card.blur .fakeph{height:96px;border-radius:3px;filter:blur(7px) saturate(1.2);transform:scale(1.15)}.card.blur .lockchip{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);background:rgba(12,23,34,.82);color:#fff;border-radius:999px;padding:6px 10px;font:900 11px Nunito;white-space:nowrap;display:flex;align-items:center;gap:5px;filter:none}
-.card.add{background:transparent;box-shadow:none;transform:none;border:2px dashed var(--line);color:var(--sub);align-items:center;justify-content:center;min-height:90px;text-decoration:none;font-weight:900}
+/* ---- the memory wall ---- */
+.hero{position:relative;overflow:hidden;border-radius:24px;padding:18px 18px 16px;background:linear-gradient(160deg,var(--spot1),var(--spot2));border:1px solid var(--spotline);display:flex;flex-direction:column;gap:10px}
+.hero .top2{display:flex;gap:12px;align-items:center}
+.hero .lg{width:64px;height:64px;border-radius:18px;object-fit:cover;border:2px solid var(--gold);flex:none;background:var(--field)}
+.hero .lg.ph{display:grid;place-items:center;color:var(--gold)}.hero .lg.ph svg{width:30px;height:30px}
+.hero h1{font-size:28px}
+.chips{display:flex;gap:6px;flex-wrap:wrap}.chip{display:inline-flex;align-items:center;gap:5px;font:800 12.5px Nunito;color:var(--sub);background:var(--field);border:1px solid var(--line);border-radius:999px;padding:5px 10px}.chip b{color:var(--ink)}
+.note{background:var(--spotclue);border-radius:16px;padding:12px 14px;display:flex;flex-direction:column;gap:6px}.note .k{font-size:11.5px}.note .body{font:600 19px/1.3 Fredoka,sans-serif;white-space:pre-wrap}.note img{width:100%;border-radius:12px;max-height:280px;object-fit:cover}
+.tabs{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;padding:2px 0}.tabs::-webkit-scrollbar{display:none}
+.tab{flex:none;border:1.5px solid var(--line);background:transparent;border-radius:999px;padding:8px 14px;font:900 13.5px Nunito;color:var(--sub);cursor:pointer;min-height:40px}.tab.on{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.sec{display:flex;align-items:baseline;justify-content:space-between;margin-top:6px}.sec .k{font-size:12px}.sec small{color:var(--sub);font-weight:800;font-size:12px}
+.wall{columns:2;column-gap:10px}.wall.one{columns:1}
+.app.hasfab{padding-bottom:calc(env(safe-area-inset-bottom,0px) + 96px)}
+.mc{break-inside:avoid;margin:0 0 10px;position:relative;border-radius:18px;overflow:hidden;background:var(--card);border:1px solid var(--line);display:flex;flex-direction:column;cursor:pointer;box-shadow:0 6px 18px rgba(0,0,0,.14);animation:rise .35s ease both}
+.mc:active{transform:scale(.985)}
+@keyframes rise{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+.mc img.p{width:100%;display:block;background:var(--field);min-height:90px}
+.mc .cap{font:600 14.5px/1.35 Nunito;padding:10px 12px 0;white-space:pre-wrap}
+.mc.paper{background:#fff4c2;color:#1d2433;border:0}.mc.paper.b{background:#dff5ea}.mc.paper.c{background:#e8ddff}.mc.paper.d{background:#ffe1d6}
+.mc.paper .tx{font:600 18px/1.28 Fredoka,sans-serif;padding:16px 14px 4px;white-space:pre-wrap;text-wrap:pretty}
+.mc .ft{display:flex;align-items:center;gap:6px;padding:8px 10px 10px;font:800 11.5px Nunito;color:var(--sub);min-width:0}.mc.paper .ft{color:#5a6472}
+.mc .ft img{width:20px;height:20px;border-radius:50%;flex:none}.mc .ft .nm{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.heart{display:inline-flex;align-items:center;gap:4px;border:0;background:transparent;color:inherit;font:900 12.5px Nunito;padding:4px 6px;border-radius:999px;cursor:pointer;flex:none;min-height:30px}.heart svg{width:18px;height:18px;transition:transform .2s}.heart.on{color:#ff4d6d}.heart.on svg{fill:#ff4d6d;stroke:#ff4d6d}.heart.pop svg{animation:pop .35s ease}
+@keyframes pop{0%{transform:scale(1)}40%{transform:scale(1.45)}100%{transform:scale(1)}}
+.pinbadge2{position:absolute;left:8px;top:8px;z-index:2;background:var(--gold);color:var(--onGold);font:900 10.5px Nunito;letter-spacing:.06em;text-transform:uppercase;border-radius:999px;padding:4px 8px;box-shadow:0 2px 8px rgba(0,0,0,.25)}
+.mc.blur{pointer-events:none;min-height:96px}.mc.blur .tx,.mc.blur .cap,.mc.blur .ft{filter:blur(4px);opacity:.75}.mc.blur .fakeph{height:110px;filter:blur(8px) saturate(1.2);transform:scale(1.15)}.mc.blur .lockchip{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);background:rgba(12,23,34,.85);color:#fff;border-radius:999px;padding:6px 10px;font:900 11px Nunito;white-space:nowrap;display:inline-flex;align-items:center;gap:5px;z-index:2}
+.mc.add{background:transparent;box-shadow:none;border:2px dashed var(--line);color:var(--sub);align-items:center;justify-content:center;min-height:96px;text-decoration:none;font-weight:900;animation:none}
+.sk{break-inside:avoid;margin:0 0 10px;border-radius:18px;background:linear-gradient(90deg,var(--field) 25%,var(--card) 50%,var(--field) 75%);background-size:200% 100%;animation:sh 1.2s infinite;height:140px}.sk.t{height:96px}
+@keyframes sh{from{background-position:200% 0}to{background-position:-200% 0}}
+.empty{column-span:all;text-align:center;color:var(--sub);padding:28px 12px;border:2px dashed var(--line);border-radius:18px;margin-bottom:10px}
+.fab{position:fixed;right:max(16px,calc(50% - 224px));bottom:calc(env(safe-area-inset-bottom,0px) + 18px);z-index:900;display:inline-flex;align-items:center;gap:8px;background:var(--gold);color:var(--onGold);font:900 15px Nunito;padding:14px 18px;border-radius:999px;text-decoration:none;box-shadow:0 10px 28px rgba(0,0,0,.35);border:0;cursor:pointer}
+.fab svg{width:20px;height:20px}
+.lb{position:fixed;inset:0;z-index:1200;background:rgba(6,12,20,.92);backdrop-filter:blur(10px);display:flex;flex-direction:column;color:#fff}
+.lb .bar{display:flex;justify-content:space-between;align-items:center;padding:calc(env(safe-area-inset-top,0px) + 10px) 14px 6px;font:800 13px Nunito;color:#b8cad8}.lb .x{background:rgba(255,255,255,.12);border:0;color:#fff;width:40px;height:40px;border-radius:50%;font-size:20px;cursor:pointer}
+.lb .stage{position:relative;flex:1;display:flex;align-items:center;justify-content:center;padding:0 12px;min-height:0;touch-action:pan-y}
+.lb .stage img{max-width:100%;max-height:100%;border-radius:14px;object-fit:contain;box-shadow:0 20px 60px rgba(0,0,0,.6)}
+.lb .stage .paper2{background:#fff4c2;color:#1d2433;border-radius:18px;padding:26px 22px;font:600 26px/1.25 Fredoka,sans-serif;max-width:400px;width:100%;white-space:pre-wrap;text-wrap:pretty;transform:rotate(-1deg)}
+.lb .info{padding:12px 16px calc(env(safe-area-inset-bottom,0px) + 16px);display:flex;flex-direction:column;gap:8px;max-width:480px;width:100%;margin:0 auto}
+.lb .cap{font:600 16px/1.4 Nunito;white-space:pre-wrap}.lb .ft{display:flex;align-items:center;gap:8px;font:800 13px Nunito;color:#b8cad8}.lb .ft img{width:26px;height:26px;border-radius:50%}.lb .ft .nm{flex:1}
+.lb .nav{position:absolute;top:50%;transform:translateY(-50%);width:44px;height:44px;border-radius:50%;background:rgba(255,255,255,.12);border:0;color:#fff;font-size:22px;cursor:pointer}.lb .nav.l{left:8px}.lb .nav.r{right:8px}
+.lb .heart{color:#fff;font-size:14px}.lb .heart svg{width:22px;height:22px}
+.demo{background:var(--ink);color:var(--bg);border-radius:14px;padding:10px 14px;font:900 12.5px Nunito;letter-spacing:.06em;text-transform:uppercase;text-align:center}
+.olist{display:flex;flex-direction:column;gap:8px}.oitem{display:flex;gap:10px;align-items:center;background:var(--field);border-radius:14px;padding:10px 12px}.oitem b{display:block;font-size:14.5px}.oitem small{color:var(--sub);font-size:12px}.oitem .acts{display:flex;gap:6px;flex:none}
+.icb{border:1.5px solid var(--line);background:transparent;color:var(--ink);border-radius:12px;min-width:40px;min-height:40px;padding:0 10px;font:900 12.5px Nunito;cursor:pointer;display:inline-flex;align-items:center;gap:4px}.icb.on{background:var(--gold);color:var(--onGold);border-color:var(--gold)}
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}.stats div{background:var(--field);border-radius:14px;padding:10px 4px;text-align:center}.stats b{display:block;font:600 24px Fredoka}.stats small{color:var(--sub);font-size:11px;font-weight:800}
 .sheet{position:fixed;left:0;right:0;bottom:0;z-index:1000;background:var(--card);border-top:1px solid var(--line);border-radius:22px 22px 0 0;padding:16px 16px calc(env(safe-area-inset-bottom,0px) + 18px);max-width:480px;margin:0 auto;display:flex;flex-direction:column;gap:10px;box-shadow:0 -10px 40px rgba(0,0,0,.4)}
 </style>
 </head>
@@ -123,7 +159,7 @@ var SB_URL = 'https://setyjmgijsbplgyqynlh.supabase.co', KEY = 'eyJhbGciOiJIUzI1
 var GOOGLE_CLIENT_ID = '1084138810740-b2p2ln24ulfnrkb8mofppeist551u8bm.apps.googleusercontent.com';
 var sb = null; try { sb = supabase.createClient(SB_URL, KEY, { auth: { persistSession: true } }); } catch (e) {}
 var app = document.getElementById('app'), ME = null, SESSION = null, QA_TOKEN = null, LAST_POS = null;
-function $(h){ stopHunt(); app.innerHTML = h + (h.indexOf('qr=site') < 0 && h.indexOf('class="tent"') < 0 ? siteFoot() : ''); window.scrollTo(0, 0); }
+function $(h){ stopHunt(); app.classList.toggle('hasfab', h.indexOf('class="fab"') >= 0); app.innerHTML = h + (h.indexOf('qr=site') < 0 && h.indexOf('class="tent"') < 0 ? siteFoot() : ''); window.scrollTo(0, 0); }
 function esc(s){ var d = document.createElement('div'); d.textContent = s == null ? '' : s; return d.innerHTML; }
 function ls(k, v){ try { if (v === undefined) return localStorage.getItem(k); localStorage.setItem(k, v); } catch (e) { return null; } }
 function devId(){ var d = ls('vp.dev'); if (!d) { d = Array.from(crypto.getRandomValues(new Uint8Array(8))).map(function(b){ return b.toString(16).padStart(2, '0'); }).join(''); ls('vp.dev', d); } return d || 'nostorage'; }
@@ -378,51 +414,143 @@ function find(code){
 }
 
 // ---------- a shop's spot: its link and QR attach here ----------
-function place(code, justLeft){
-  $(hdr() + '<div class="muted">Opening the spot…</div>');
-  api({ action: 'peek', code: code }).then(function(s){
-    $(hdr() + '<div class="k">You’re at</div><div class="row">' + (s.logo_url ? '<img class="shoplogo" src="' + esc(s.logo_url) + '" alt="">' : '') + '<h1 style="flex:1">' + esc(s.place_name || 'This spot') + '</h1></div><div class="muted">Leave something here for the next person.</div>' +
-      (justLeft ? notifyBox('my_memory', justLeft, 'Tell me when someone reads it', 'One email when your memory here is opened or gets a note.') : '') + '<a class="btn gold" href="/myspot/?at=' + code + '&leave=1">Add a memory here</a><div class="secure" style="font-size:11.5px">' + I.lock + ' Opens only here. Never sold.</div>' +
-      '<div class="map" id="m" style="height:180px"></div>' +
-      '<div class="spot"><div class="pinbadge">' + I.shop + '</div><div class="who">The note at this spot · ' + esc(fmt(s.created_at)) + (s.has_photo ? ' · ' + I.camera : '') + '</div>' + (s.clue ? '<div class="clue">' + I.compass + ' ' + esc(s.clue) + '</div>' : '') + '<div class="hid">■■■■■ ■■■■■■■ ■■■ ■■■■</div><div class="meta">Opens for anyone standing here' + (s.finds ? ' · opened ' + s.finds + '×' : '') + '</div></div>' +
-      '<button class="btn" id="go">I’m inside, open the wall</button><div class="err hidden" id="e"></div>' +
-      '<div class="box"><div class="row" style="justify-content:space-between"><div class="k">The wall at ' + esc(s.place_name || 'this spot') + '</div><div class="muted" id="wallnote">opens when you’re inside</div></div><div class="wall" id="wall"></div></div>' +
-      (justLeft ? '' : notifyBox('place_new', code, 'Tell me when new memories appear here', 'So the next visit has something new to read.')) + '<div class="row"><button class="btn" id="sh">Share this spot</button><a class="btn" href="' + dirUrl(s.lat, s.lng) + '" target="_blank" rel="noopener">' + I.compass + ' Directions</a></div>' + '<a class="lnk" href="/myspot/?qr=' + code + '" style="align-self:center">QR code &amp; link for this spot</a>' + (s.is_owner ? '<div class="box" id="owner"><div class="k">Owner panel</div><div class="muted">Loading your numbers…</div></div>' : s.claim_status === 'pending' ? '<div class="muted" style="text-align:center">An owner claim is being verified.</div>' : '<button class="lnk" id="claim" style="align-self:center">Are you the owner? Claim this shop</button>') +
-      '<div class="foot">Location is read only when you tap open.</div>');
-    var m = mkMap(document.getElementById('m'), s.lat, s.lng, 17); L.marker([s.lat, s.lng], { icon: shopIcon(s) }).addTo(m); setTimeout(function(){ m.invalidateSize(); }, 50);
-    function card(x, i){ var by = '<div class="by">' + (x.maker_photo ? '<img src="' + esc(x.maker_photo) + '" alt="">' : '') + esc(x.maker_name || 'Someone') + ' · ' + esc(fmt(x.created_at)) + (x.finds ? ' · ' + x.finds + '×' : '') + '</div>';
-      if (x.photo_url) return '<div class="card"><img src="' + esc(x.photo_url) + '" alt="">' + (x.body ? '<div class="tx">' + esc(x.body) + '</div>' : '') + by + '</div>';
-      return '<div class="card paper ' + ['', 'b', 'c'][i % 3] + '"><div class="tx">' + esc(x.body || '') + '</div>' + by + '</div>'; }
-    function showWall(w){ document.getElementById('wallnote').textContent = w.cards.length + (w.cards.length === 1 ? ' memory' : ' memories');
-      document.getElementById('wall').innerHTML = w.cards.map(card).join('') + '<a class="card add" href="/myspot/?at=' + code + '&leave=1">+ Add yours</a>';
-      var go = document.getElementById('go'); if (go) go.outerHTML = '<div class="spot open"><div class="pinbadge">' + I.shop + '</div><div class="who">The note at this spot</div>' + (w.place.photo_url ? '<img class="ph" src="' + esc(w.place.photo_url) + '" alt="">' : '') + '<div class="body">' + esc(w.place.note || '') + '</div></div>' +
-        (w.logbook.length ? '<div class="box"><div class="k">Guestbook</div><div class="log">' + w.logbook.map(function(f){ return '<div>' + esc(f.note) + '<small>' + esc(f.finder_name || 'Someone') + ' · ' + esc(fmt(f.created_at)) + '</small></div>'; }).join('') + '</div></div>' : '');
-      var old = document.querySelector('.spot:not(.open)'); if (old) old.remove(); }
-    document.getElementById('go').onclick = function(){ var b = this; b.disabled = true; b.textContent = 'Checking where you are…';
-      locate().then(function(p){ return api({ action: 'wall', code: code, lat: p.lat, lng: p.lng, acc: p.acc }); }).then(function(w){ track('open_try', { there: !!w.there, d: w.distance_m, place: true }); if (w.there) { showWall(w); track('wall', { n: w.cards.length }); } else hunt(code, s, { distance_m: w.distance_m, bearing_deg: w.bearing_deg }); })
-        .catch(function(e){ var err = document.getElementById('e'); err.textContent = e.message; err.classList.remove('hidden'); b.disabled = false; b.textContent = 'I’m inside, open the wall'; }); };
-    var sh = document.getElementById('sh'); if (sh) sh.onclick = function(){ var msg = '📍 ' + (s.place_name || 'Our spot') + ' is on My spot. A note from us that only opens inside, and a guestbook: ' + placeUrl(code); if (navigator.share) navigator.share({ text: msg }).catch(function(){}); else navigator.clipboard.writeText(msg).then(function(){ toast('Place link copied.'); }); };
-    api({ action: 'here', lat: s.lat, lng: s.lng, place_code: code }).then(function(j){ var l = document.getElementById('wall'); if (!document.querySelector('.spot.open')) { document.getElementById('wallnote').textContent = j.spots.length ? j.spots.length + ' here · opens when you’re inside' : 'opens when you’re inside';
-      var FAKE = ['linear-gradient(135deg,#b7c9a8,#e2b07a 55%,#6b8bb5)','linear-gradient(135deg,#d9a689,#8c6e5a 50%,#f0d7b0)','linear-gradient(135deg,#7fa3c7,#d6e3ef 60%,#c9a26b)','linear-gradient(135deg,#c48b6d,#e8d1b4 50%,#7d9b7a)'], WORDS = ['We came here the night before', 'Ask for the one that is not on the board', 'This corner table, three months, passed', 'First date, still here'];
-      l.innerHTML = (j.spots.length ? j.spots.slice(0, 8).map(function(x, i){ return '<div class="card blur ' + (x.has_photo ? '' : 'paper ' + ['', 'b', 'c'][i % 3]) + '">' + (x.has_photo ? '<div class="fakeph" style="background:' + FAKE[i % 4] + '"></div>' : '<div class="tx">' + WORDS[i % 4] + '</div>') + '<div class="by">' + esc(x.maker_name || 'Someone') + ' · ' + esc(fmt(x.created_at)) + '</div><div class="lockchip">' + I.lock + ' stand here to reveal</div></div>'; }).join('') : '<div class="muted" style="column-span:all">No memories yet. Yours could be the first.</div>') + '<a class="card add" href="/myspot/?at=' + code + '&leave=1">+ Add yours</a>'; } });
-    var cl = document.getElementById('claim'); if (cl) cl.onclick = function(){ cl.outerHTML = '<div class="box" id="claimbox"><div style="font-weight:900">Claim ' + esc(s.place_name || 'this shop') + '</div><div class="muted">We verify every claim in person or by phone, then you get the owner panel: your numbers, your welcome note, and the power to hide anything on your wall.</div><input id="cn" class="in" maxlength="60" placeholder="Your name"><input id="ce" class="in" type="email" placeholder="Your email" value="' + esc(myEmail()) + '"><input id="cr" class="in" maxlength="300" placeholder="Your role, and the shop phone number"><div class="err hidden" id="cerr"></div><button class="btn gold" id="cgo">Send the claim</button></div>';
-      document.getElementById('cgo').onclick = function(){ var b = this, err = document.getElementById('cerr'); b.disabled = true; api({ action: 'claim', code: code, name: document.getElementById('cn').value.trim(), email: document.getElementById('ce').value.trim(), note: document.getElementById('cr').value.trim() }).then(function(){ track('claim', {}); document.getElementById('claimbox').innerHTML = '<div style="font-weight:900">✓ Claim sent.</div><div class="muted">Aum will verify it and email you. Sign in with that email afterwards to see your panel.</div>'; }).catch(function(e){ err.textContent = e.message; err.classList.remove('hidden'); b.disabled = false; }); }; };
-    if (s.is_owner) ownerPanel(code);
-    wireNotify(); track('place', { role: s.is_owner ? 'owner' : s.is_maker ? 'founder' : 'visitor' });
-  }).catch(function(){ $(hdr() + '<h2>No spot here.</h2><a class="btn gold" href="/myspot/">Leave one of your own</a>'); });
+// ---------- the memory wall of a shop ----------
+// One renderer for the live wall and the example wall (?demo=1): cards, filters, pinned-first, month groups, hearts, a lightbox.
+var HEART = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s-7.5-4.6-9.5-9.2C1.2 8.6 3.3 5 6.8 5c2 0 3.4 1.1 4.2 2.3C11.8 6.1 13.2 5 15.2 5c3.5 0 5.6 3.6 4.3 6.8C17.5 16.4 12 21 12 21z"/></svg>';
+var PLUS = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>';
+var PAPER = ['', 'b', 'c', 'd'];
+function monthOf(iso){ return new Date(iso).toLocaleDateString(undefined, { month: 'long', year: 'numeric' }); }
+function heartBtn(c){ return '<button class="heart' + (c.hearted ? ' on' : '') + '" data-heart="' + c.code + '" aria-label="Love this">' + HEART + '<span>' + (c.hearts || '') + '</span></button>'; }
+function cardHtml(c, i){
+  var by = '<div class="ft">' + (c.maker_photo ? '<img src="' + esc(c.maker_photo) + '" alt="">' : '') + '<span class="nm">' + esc(c.maker_name || 'Someone') + ' · ' + esc(fmt(c.created_at)) + '</span>' + heartBtn(c) + '</div>';
+  var pin = c.pinned ? '<div class="pinbadge2">Pinned</div>' : '', delay = '';
+  if (c.photo_url) return '<div class="mc" data-open="' + c.code + '"' + delay + '>' + pin + '<img class="p" src="' + esc(c.photo_url) + '" alt="" loading="lazy">' + (c.body ? '<div class="cap">' + esc(c.body) + '</div>' : '') + by + '</div>';
+  return '<div class="mc paper ' + PAPER[i % 4] + '" data-open="' + c.code + '"' + delay + '>' + pin + '<div class="tx">' + esc(c.body || '') + '</div>' + by + '</div>';
+}
+function orderCards(cards, filter){   // pinned first, then by month, newest first; the flat list is the lightbox order
+  var list = cards.filter(function(c){ return filter === 'photos' ? !!c.photo_url : filter === 'notes' ? !c.photo_url : true; });
+  var groups = [], byKey = {};
+  list.forEach(function(c){ var k = c.pinned ? 'Pinned by the shop' : monthOf(c.created_at); if (!byKey[k]) { byKey[k] = []; groups.push({ k: k, items: byKey[k] }); } byKey[k].push(c); });
+  return { groups: groups, flat: [].concat.apply([], groups.map(function(g){ return g.items; })) };
+}
+function wallHtml(cards, filter, addUrl){
+  var o = orderCards(cards, filter);
+  if (!o.flat.length) return '<div class="wall"><div class="empty">' + (cards.length ? 'Nothing here under this filter.' : 'No memories yet. Yours could be the first.') + '</div>' + (addUrl ? '<a class="mc add" href="' + addUrl + '">+ Add yours</a>' : '') + '</div>';
+  return o.groups.map(function(g, gi){ return '<div class="sec"><div class="k">' + esc(g.k) + '</div><small>' + g.items.length + '</small></div><div class="wall' + (g.items.length === 1 ? ' one' : '') + '">' + g.items.map(cardHtml).join('') + (gi === o.groups.length - 1 && addUrl ? '<a class="mc add" href="' + addUrl + '">+ Add yours</a>' : '') + '</div>'; }).join('');
+}
+function toggleHeart(c, send){   // optimistic; `send(on)` does the real call and resolves {hearts}
+  var on = !c.hearted; c.hearted = on; c.hearts = Math.max(0, (c.hearts || 0) + (on ? 1 : -1));
+  function paint(){ document.querySelectorAll('[data-heart="' + c.code + '"]').forEach(function(b){ b.classList.toggle('on', !!c.hearted); b.querySelector('span').textContent = c.hearts || ''; }); }
+  paint(); document.querySelectorAll('[data-heart="' + c.code + '"]').forEach(function(b){ b.classList.add('pop'); setTimeout(function(){ b.classList.remove('pop'); }, 400); });
+  send(on).then(function(r){ if (r && typeof r.hearts === 'number') { c.hearts = r.hearts; paint(); } }).catch(function(e){ c.hearted = !on; c.hearts = Math.max(0, c.hearts + (on ? -1 : 1)); paint(); toast(e.message); });
+}
+function lightbox(cards, idx, send){   // full-screen viewer: swipe or arrow keys between memories, heart from here too
+  var el = document.getElementById('lb'); if (!el) { el = document.createElement('div'); el.id = 'lb'; el.className = 'lb'; document.body.appendChild(el); }
+  var i = idx;
+  function draw(){ var c = cards[i];
+    el.innerHTML = '<div class="bar"><span>' + (i + 1) + ' / ' + cards.length + (c.pinned ? ' · pinned' : '') + '</span><button class="x" id="lbx" aria-label="Close">×</button></div>' +
+      '<div class="stage" id="lbs">' + (c.photo_url ? '<img src="' + esc(c.photo_url) + '" alt="">' : '<div class="paper2">' + esc(c.body || '') + '</div>') + (cards.length > 1 ? '<button class="nav l" id="lbl" aria-label="Previous">‹</button><button class="nav r" id="lbr" aria-label="Next">›</button>' : '') + '</div>' +
+      '<div class="info">' + (c.photo_url && c.body ? '<div class="cap">' + esc(c.body) + '</div>' : '') + '<div class="ft">' + (c.maker_photo ? '<img src="' + esc(c.maker_photo) + '" alt="">' : '') + '<span class="nm">' + esc(c.maker_name || 'Someone') + ' · ' + esc(fmtWhen(c.created_at)) + '</span>' + heartBtn(c) + '</div></div>';
+    document.body.style.overflow = 'hidden';
+    document.getElementById('lbx').onclick = close; var l = document.getElementById('lbl'), r = document.getElementById('lbr'); if (l) { l.onclick = function(ev){ ev.stopPropagation(); go(-1); }; r.onclick = function(ev){ ev.stopPropagation(); go(1); }; }
+    el.querySelector('[data-heart]').onclick = function(ev){ ev.stopPropagation(); toggleHeart(c, send); };
+    var st = document.getElementById('lbs'), x0 = null; st.ontouchstart = function(e){ x0 = e.touches[0].clientX; }; st.ontouchend = function(e){ if (x0 === null) return; var dx = e.changedTouches[0].clientX - x0; x0 = null; if (Math.abs(dx) > 50) go(dx < 0 ? 1 : -1); };
+    st.onclick = function(e){ if (e.target === st) close(); };
+  }
+  function go(d){ i = (i + d + cards.length) % cards.length; draw(); }
+  function close(){ el.remove(); document.body.style.overflow = ''; document.removeEventListener('keydown', key); }
+  function key(e){ if (e.key === 'Escape') close(); else if (e.key === 'ArrowLeft') go(-1); else if (e.key === 'ArrowRight') go(1); }
+  document.addEventListener('keydown', key); draw(); track('lightbox', { photo: !!cards[idx].photo_url });
 }
 
+function place(code, justLeft){
+  $(hdr() + '<div class="muted">Opening the spot…</div>');
+  api({ action: 'peek', code: code }).then(function(s){ renderPlace(s, { code: code, justLeft: justLeft }); })
+    .catch(function(){ $(hdr() + '<h2>No spot here.</h2><a class="btn gold" href="/myspot/">Leave one of your own</a>'); });
+}
+function renderPlace(s, o){   // o: { code, justLeft, demo, wall } — demo passes the wall straight in, no location, no API
+  var code = o.code, demo = !!o.demo, addUrl = demo ? null : '/myspot/?at=' + code + '&leave=1', state = { filter: 'all', cards: null, pos: null, w: null };
+  $(hdr() + (demo ? '<div class="demo">Example wall · sample content, not a real business</div>' : '') +
+    '<div class="hero"><div class="top2">' + (s.logo_url ? '<img class="lg" src="' + esc(s.logo_url) + '" alt="">' : '<div class="lg ph">' + I.shop + '</div>') + '<div style="flex:1;min-width:0"><div class="k">Memory wall</div><h1>' + esc(s.place_name || 'This spot') + '</h1></div></div>' +
+      '<div class="chips"><span class="chip">' + I.note + ' <b id="nmem">…</b> memories</span><span class="chip">' + I.compass + ' <b id="nvis">' + (s.finds || 0) + '</b> visits</span>' + (s.created_at ? '<span class="chip">since ' + esc(fmt(s.created_at)) + '</span>' : '') + '</div>' +
+      '<div id="note"></div>' +
+      '<div id="gate"><button class="btn gold" id="go">' + I.lock + ' I’m here, open the wall</button><div class="muted" style="text-align:center;font-size:12.5px">Memories open only when you’re here. Location is read once, when you tap, and never stored.</div><div class="err hidden" id="e"></div></div></div>' +
+    (o.justLeft ? notifyBox('my_memory', o.justLeft, 'Tell me when someone reads it', 'One email when your memory here is opened or gets a heart or a note.') : '') +
+    '<div class="tabs" id="tabs"><button class="tab on" data-f="all">All</button><button class="tab" data-f="photos">' + I.camera + ' Photos</button><button class="tab" data-f="notes">' + I.note + ' Notes</button></div>' +
+    '<div id="wall"><div class="wall"><div class="sk"></div><div class="sk t"></div><div class="sk t"></div><div class="sk"></div></div></div>' +
+    '<div id="guest"></div>' +
+    '<div class="map" id="m" style="height:160px"></div>' +
+    (o.justLeft || demo ? '' : notifyBox('place_new', code, 'Tell me when new memories appear here', 'So the next visit has something new to read.')) +
+    '<div class="row"><button class="btn" id="sh">Share this wall</button><a class="btn" href="' + dirUrl(s.lat, s.lng) + '" target="_blank" rel="noopener">' + I.compass + ' Directions</a></div>' +
+    (demo ? '<div class="box" id="owner"></div><a class="btn gold" href="/myspot/?at=gyqhv23hkr">See it on a real wall</a>' : '<a class="lnk" href="/myspot/?qr=' + code + '" style="align-self:center">QR code &amp; link for this spot</a>' + (s.is_owner ? '<div class="box" id="owner"><div class="k">Owner panel</div><div class="muted">Loading your numbers…</div></div>' : s.claim_status === 'pending' ? '<div class="muted" style="text-align:center">An owner claim is being verified.</div>' : '<button class="lnk" id="claim" style="align-self:center">Are you the owner? Claim this shop</button>')) +
+    '<div class="foot">Visitors are counted, never located. Nobody can pay to be seen here.</div>' +
+    '<a class="fab" id="fab" href="' + (addUrl || '#') + '">' + PLUS + ' Add a memory</a>');
+  var m = mkMap(document.getElementById('m'), s.lat, s.lng, 16); L.marker([s.lat, s.lng], { icon: shopIcon(s) }).addTo(m); setTimeout(function(){ m.invalidateSize(); }, 50);
+  function send(c){ return function(on){ return demo ? Promise.resolve({ hearts: c.hearts }) : api({ action: 'heart', code: c.code, on: on, dev: devId(), lat: state.pos.lat, lng: state.pos.lng, acc: state.pos.acc }).then(function(r){ track('heart', { on: on }); return r; }); }; }
+  function wire(){ var root = document.getElementById('wall'), flat = orderCards(state.cards, state.filter).flat;
+    root.querySelectorAll('[data-heart]').forEach(function(b){ b.onclick = function(ev){ ev.stopPropagation(); var c = flat.filter(function(x){ return x.code === b.dataset.heart; })[0]; if (c) toggleHeart(c, send(c)); }; });
+    root.querySelectorAll('.mc[data-open]').forEach(function(el){ el.onclick = function(){ var idx = -1; flat.forEach(function(x, i){ if (x.code === el.dataset.open) idx = i; }); if (idx >= 0) lightbox(flat, idx, send(flat[idx])); }; }); }
+  function draw(){ document.getElementById('wall').innerHTML = wallHtml(state.cards, state.filter, addUrl); wire(); }
+  function showWall(w){ state.w = w; state.cards = w.cards; document.getElementById('nmem').textContent = w.cards.length; if (typeof w.place.opens === 'number') document.getElementById('nvis').textContent = w.place.opens;
+    var g = document.getElementById('gate'); if (g) g.remove();
+    document.getElementById('note').innerHTML = '<div class="note"><div class="k">A note from ' + esc(w.place.name || s.place_name) + '</div>' + (w.place.photo_url ? '<img src="' + esc(w.place.photo_url) + '" alt="">' : '') + '<div class="body">' + esc(w.place.note || '') + '</div></div>';
+    draw();
+    document.getElementById('guest').innerHTML = w.logbook && w.logbook.length ? '<div class="box"><div class="k">Guestbook</div><div class="log">' + w.logbook.map(function(f){ return '<div>' + esc(f.note) + '<small>' + esc(f.finder_name || 'Someone') + ' · ' + esc(fmt(f.created_at)) + '</small></div>'; }).join('') + '</div></div>' : '';
+  }
+  document.getElementById('tabs').onclick = function(ev){ var b = ev.target.closest('.tab'); if (!b) return; state.filter = b.dataset.f; app.querySelectorAll('.tab').forEach(function(x){ x.classList.toggle('on', x === b); }); if (state.cards) draw(); else document.getElementById('wall').querySelectorAll('.mc.blur').forEach(function(c){ c.style.display = state.filter === 'all' || (state.filter === 'photos') === !!c.dataset.photo ? '' : 'none'; }); };
+  var fab = document.getElementById('fab'); if (demo) fab.onclick = function(ev){ ev.preventDefault(); toast('On a real wall this adds your memory, from inside the shop.'); };
+  var sh = document.getElementById('sh'); sh.onclick = function(){ var msg = demo ? '📍 An example memory wall, by Memspots: ' + SITE + '/myspot/?demo=1' : '📍 ' + (s.place_name || 'Our spot') + ' has a memory wall. It opens only inside, and anyone can leave one: ' + placeUrl(code); if (navigator.share) navigator.share({ text: msg }).catch(function(){}); else navigator.clipboard.writeText(msg).then(function(){ toast('Link copied.'); }); track('share', { place: true, demo: demo }); };
+  if (demo) { showWall(o.wall); demoOwnerPanel(o.wall); track('demo', {}); return; }
+  document.getElementById('go').onclick = function(){ var b = this; b.disabled = true; b.textContent = 'Checking where you are…';
+    locate().then(function(p){ state.pos = p; return api({ action: 'wall', code: code, lat: p.lat, lng: p.lng, acc: p.acc, dev: devId() }); }).then(function(w){ track('open_try', { there: !!w.there, d: w.distance_m, place: true }); if (w.there) { showWall(w); track('wall', { n: w.cards.length }); } else hunt(code, s, { distance_m: w.distance_m, bearing_deg: w.bearing_deg }); })
+      .catch(function(e){ var err = document.getElementById('e'); err.textContent = e.message; err.classList.remove('hidden'); b.disabled = false; b.innerHTML = I.lock + ' I’m here, open the wall'; }); };
+  // the locked preview: how many are waiting, blurred, until you're inside
+  api({ action: 'here', lat: s.lat, lng: s.lng, place_code: code }).then(function(j){ if (state.cards) return; document.getElementById('nmem').textContent = j.spots.length;
+    var FAKE = ['linear-gradient(135deg,#b7c9a8,#e2b07a 55%,#6b8bb5)','linear-gradient(135deg,#d9a689,#8c6e5a 50%,#f0d7b0)','linear-gradient(135deg,#7fa3c7,#d6e3ef 60%,#c9a26b)','linear-gradient(135deg,#c48b6d,#e8d1b4 50%,#7d9b7a)'], WORDS = ['We came here the night before', 'Ask for the one that is not on the board', 'This corner table, three months, passed', 'First time here, not the last'];
+    document.getElementById('wall').innerHTML = '<div class="wall">' + (j.spots.length ? j.spots.slice(0, 8).map(function(x, i){ return '<div class="mc blur ' + (x.has_photo ? '' : 'paper ' + PAPER[i % 4]) + '"' + (x.has_photo ? ' data-photo="1"' : '') + '>' + (x.has_photo ? '<div class="fakeph" style="background:' + FAKE[i % 4] + '"></div>' : '<div class="tx">' + WORDS[i % 4] + '</div>') + '<div class="ft"><span class="nm">' + esc(x.maker_name || 'Someone') + ' · ' + esc(fmt(x.created_at)) + '</span></div><div class="lockchip">' + I.lock + ' stand here to reveal</div></div>'; }).join('') : '<div class="empty">No memories yet. Yours could be the first.</div>') + '<a class="mc add" href="' + addUrl + '">+ Add yours</a></div>'; }).catch(function(){ document.getElementById('wall').innerHTML = ''; });
+  var cl = document.getElementById('claim'); if (cl) cl.onclick = function(){ cl.outerHTML = '<div class="box" id="claimbox"><div style="font-weight:900">Claim ' + esc(s.place_name || 'this shop') + '</div><div class="muted">We verify every claim in person or by phone, then you get the owner panel: your numbers, your welcome note, and the power to pin or hide anything on your wall.</div><input id="cn" class="in" maxlength="60" placeholder="Your name"><input id="ce" class="in" type="email" placeholder="Your email" value="' + esc(myEmail()) + '"><input id="cr" class="in" maxlength="300" placeholder="Your role, and the shop phone number"><div class="err hidden" id="cerr"></div><button class="btn gold" id="cgo">Send the claim</button></div>';
+    document.getElementById('cgo').onclick = function(){ var b = this, err = document.getElementById('cerr'); b.disabled = true; api({ action: 'claim', code: code, name: document.getElementById('cn').value.trim(), email: document.getElementById('ce').value.trim(), note: document.getElementById('cr').value.trim() }).then(function(){ track('claim', {}); document.getElementById('claimbox').innerHTML = '<div style="font-weight:900">✓ Claim sent.</div><div class="muted">Aum will verify it and email you. Sign in with that email afterwards to see your panel.</div>'; }).catch(function(e){ err.textContent = e.message; err.classList.remove('hidden'); b.disabled = false; }); }; };
+  if (s.is_owner) ownerPanel(code);
+  wireNotify(); track('place', { role: s.is_owner ? 'owner' : s.is_maker ? 'founder' : 'visitor' });
+}
+
+function ownerStats(o){ return '<div class="stats"><div><b>' + o.opens_7d + '</b><small>opens, 7 days</small></div><div><b>' + o.opens_total + '</b><small>opens, all time</small></div><div><b>' + o.unique + '</b><small>people</small></div><div><b>' + o.repeat + '</b><small>came back</small></div></div>'; }
+function ownerRows(mem, live){ return mem.length ? mem.map(function(m){ return '<div class="oitem"><div style="flex:1;min-width:0"><b>' + (m.has_photo ? I.camera + ' ' : '') + esc((m.body || 'Photo').slice(0, 60)) + '</b><small>' + esc(m.by || 'Someone') + ' · ' + esc(fmt(m.created_at)) + (m.hearts ? ' · ♥ ' + m.hearts : '') + (m.hidden ? ' · hidden' : '') + '</small></div><div class="acts"><button class="icb' + (m.pinned ? ' on' : '') + '" data-pin="' + m.code + '" data-now="' + (m.pinned ? '1' : '0') + '" title="Pin to the top">' + I.pin + (m.pinned ? ' Pinned' : ' Pin') + '</button><button class="icb" data-hide="' + m.code + '" data-now="' + (m.hidden ? '1' : '0') + '">' + (m.hidden ? 'Show' : 'Hide') + '</button></div></div>'; }).join('') : '<div class="muted">Nothing on the wall yet.</div>'; }
 function ownerPanel(code){
   api({ action: 'owner_stats', code: code }).then(function(o){ var el = document.getElementById('owner'); if (!el) return;
-    el.innerHTML = '<div class="k">Owner panel · ' + esc(o.place) + '</div>' +
-      '<div class="row" style="text-align:center"><div class="box" style="flex:1;padding:10px"><div style="font:600 26px Fredoka">' + o.opens_7d + '</div><div class="muted">opens, 7 days</div></div><div class="box" style="flex:1;padding:10px"><div style="font:600 26px Fredoka">' + o.opens_total + '</div><div class="muted">opens, all time</div></div><div class="box" style="flex:1;padding:10px"><div style="font:600 26px Fredoka">' + o.unique + '</div><div class="muted">people</div></div><div class="box" style="flex:1;padding:10px"><div style="font:600 26px Fredoka">' + o.repeat + '</div><div class="muted">came back</div></div></div>' +
+    el.innerHTML = '<div class="k">Owner panel · ' + esc(o.place) + '</div>' + ownerStats(o) +
       '<div class="row"><label class="btn sm" for="ologo" style="cursor:pointer">' + I.camera + ' Shop picture</label><input id="ologo" type="file" accept="image/*" class="hidden"><span class="muted">Logo or storefront; shows on the map and this page.</span></div>' +
       '<label class="l" for="onote">Your welcome note (opens only inside)</label><textarea id="onote" class="in" maxlength="600">' + esc(o.note || '') + '</textarea><button class="btn sm" id="osave">Save note</button>' +
-      '<div class="k" style="margin-top:6px">On your wall · ' + o.memories.length + '</div><div class="list">' + (o.memories.length ? o.memories.map(function(m){ return '<div class="item"><div style="flex:1;min-width:0"><b>' + (m.has_photo ? I.camera + ' ' : '') + esc((m.body || 'Photo').slice(0, 70)) + '</b><small>' + esc(m.by || 'Someone') + ' · ' + esc(fmt(m.created_at)) + (m.hidden ? ' · hidden' : '') + '</small></div><button class="btn sm" data-hide="' + m.code + '" data-now="' + (m.hidden ? '1' : '0') + '">' + (m.hidden ? 'Show' : 'Hide') + '</button></div>'; }).join('') : '<div class="muted">Nothing on the wall yet.</div>') + '</div>';
+      '<div class="k" style="margin-top:6px">On your wall · ' + o.memories.length + '</div><div class="muted" style="font-size:12.5px">Every post passed an automatic safety check before it appeared. Pin keeps one at the top; Hide takes it off the wall (you can undo). Your weekly report arrives on Mondays.</div><div class="olist">' + ownerRows(o.memories, true) + '</div>';
     document.getElementById('ologo').onchange = function(){ var f = this.files && this.files[0]; if (!f) return; toast('Checking the picture…'); shrink(f).then(function(d){ return api({ action: 'owner_logo', code: code, photo_b64: d }); }).then(function(){ toast('Shop picture saved.'); location.reload(); }).catch(function(e){ toast(e.message); }); };
     document.getElementById('osave').onclick = function(){ var b = this; b.disabled = true; api({ action: 'owner_note', code: code, body: document.getElementById('onote').value.trim() }).then(function(){ toast('Saved.'); b.disabled = false; }).catch(function(e){ toast(e.message); b.disabled = false; }); };
     el.querySelectorAll('[data-hide]').forEach(function(b){ b.onclick = function(){ var hide = b.dataset.now !== '1'; api({ action: 'owner_hide', code: code, memory: b.dataset.hide, hidden: hide }).then(function(){ toast(hide ? 'Hidden from your wall.' : 'Back on the wall.'); ownerPanel(code); }).catch(function(e){ toast(e.message); }); }; });
+    el.querySelectorAll('[data-pin]').forEach(function(b){ b.onclick = function(){ var pin = b.dataset.now !== '1'; api({ action: 'owner_pin', code: code, memory: b.dataset.pin, pinned: pin }).then(function(){ toast(pin ? 'Pinned to the top.' : 'Unpinned.'); ownerPanel(code); }).catch(function(e){ toast(e.message); }); }; });
   }).catch(function(e){ var el = document.getElementById('owner'); if (el) el.innerHTML = '<div class="err">' + esc(e.message) + '</div>'; });
+}
+function demoOwnerPanel(w){   // what the shop sees, with the sample numbers; buttons explain themselves instead of acting
+  var el = document.getElementById('owner'); if (!el) return;
+  el.innerHTML = '<div class="k">What the owner sees</div><div class="muted" style="font-size:12.5px">Your own panel, on the same link, after you claim the shop and we verify it by phone.</div>' + ownerStats({ opens_7d: 31, opens_total: 112, unique: 86, repeat: 14 }) +
+    '<div class="k" style="margin-top:6px">On your wall · ' + w.cards.length + '</div><div class="olist">' + ownerRows(w.cards.slice(0, 4).map(function(c){ return { code: c.code, body: c.body, has_photo: !!c.photo_url, by: c.maker_name, created_at: c.created_at, hearts: c.hearts, pinned: c.pinned, hidden: false }; })) + '</div>' +
+    '<div class="muted" style="font-size:12.5px">Also here: your logo, your welcome note, and the weekly report every Monday.</div>';
+  el.querySelectorAll('.icb').forEach(function(b){ b.onclick = function(){ toast(b.dataset.pin ? 'Pin keeps a memory at the top of your wall.' : 'Hide takes a memory off your wall. You can undo it.'); }; });
+}
+function demo(){   // the example wall: a made-up bowling alley, sample memories, no location needed
+  var now = Date.now(), d = function(days, h){ return new Date(now - days * 864e5 - (h || 0) * 3600e3).toISOString(); }, P = '/thatspot/demo/';
+  var cards = [
+    { code: 'd1', body: 'Three strikes in a row and lane 6 lost it. Thanks for the birthday song!', photo_url: P + 'strike.jpg', maker_name: 'Maya', created_at: d(2, 3), hearts: 12, pinned: true },
+    { code: 'd2', body: 'Grandpa bowled here in 1962. Tonight he beat me by 40 pins.', photo_url: null, maker_name: 'Chris', created_at: d(4, 1), hearts: 9 },
+    { code: 'd3', body: 'Winner of the Saturday league, finally.', photo_url: P + 'lanes.jpg', maker_name: 'Dev', created_at: d(1, 6), hearts: 7 },
+    { code: 'd4', body: 'First date. She picked the pink ball and still won.', photo_url: null, maker_name: 'Sam', created_at: d(6), hearts: 15 },
+    { code: 'd5', body: 'Size 9, lane 3, every Friday since March.', photo_url: P + 'shoes.jpg', maker_name: 'Priya', created_at: d(9), hearts: 4 },
+    { code: 'd6', body: 'Mum’s 70th. Five candles because that is what the kitchen had.', photo_url: P + 'birthday.jpg', maker_name: 'Jordan', created_at: d(13), hearts: 11 },
+    { code: 'd7', body: 'Gutter ball, gutter ball, strike. That is the whole story of my year.', photo_url: null, maker_name: 'Lena', created_at: d(21), hearts: 6 },
+    { code: 'd8', body: 'The kids’ first time. Bumpers up, scores down, nobody cared.', photo_url: null, maker_name: 'Noor', created_at: d(38), hearts: 8 },
+    { code: 'd9', body: 'Came back after 11 years. Same smell of wax. Same seat by the window.', photo_url: null, maker_name: 'Tom', created_at: d(44), hearts: 10 }
+  ];
+  var s = { kind: 'place', place_name: 'Riverside Lanes', finds: 112, created_at: d(48), lat: 49.2827, lng: -123.1207, logo_url: null };
+  renderPlace(s, { code: 'demo', demo: true, wall: { place: { name: 'Riverside Lanes', note: 'Family-run since 1954. Leave a memory for the next bowler: a score, a night, a face you miss. It stays on our wall for good.', photo_url: null, opens: 112 }, cards: cards,
+    logbook: [{ note: 'Best night out in years.', finder_name: 'Ana', created_at: d(3) }, { note: 'Thanks for finding my ring under lane 2!', finder_name: 'Marcus', created_at: d(8) }, { note: 'The nachos. Enough said.', finder_name: 'Kai', created_at: d(15) }] } });
 }
 
 // ---------- the hunt: live distance and a compass arrow ----------
@@ -521,7 +649,7 @@ function tent(code){
     track('tent', {});
   }).catch(function(){ $(hdr() + '<h2>Nothing here.</h2>'); });
 }
-function route(){ var q = new URLSearchParams(location.search); if (q.get('qr')) tent(q.get('qr').replace(/[^a-z0-9]/g, '')); else if (q.get('at') && q.get('leave')) home(); else if (q.get('at')) place(q.get('at').replace(/[^a-z0-9]/g, '')); else if (q.get('d')) find(q.get('d').replace(/[^a-z0-9]/g, '')); else if (q.get('mine')) mine(); else if (q.get('map')) mapView(); else home(); }
+function route(){ var q = new URLSearchParams(location.search); if (q.get('qr')) tent(q.get('qr').replace(/[^a-z0-9]/g, '')); else if (q.get('demo')) demo(); else if (q.get('at') && q.get('leave')) home(); else if (q.get('at')) place(q.get('at').replace(/[^a-z0-9]/g, '')); else if (q.get('d')) find(q.get('d').replace(/[^a-z0-9]/g, '')); else if (q.get('mine')) mine(); else if (q.get('map')) mapView(); else home(); }
 window.__spot = { setQA: function(t){ QA_TOKEN = t; return boot().then(route); } };
 boot().then(route);
 if ('serviceWorker' in navigator && location.pathname.indexOf('/myspot/') === 0) navigator.serviceWorker.register('/myspot/sw.js', { scope: '/myspot/' }).catch(function(){});
