@@ -109,6 +109,7 @@ select.in{min-height:44px;padding:8px 10px;font-size:14px;width:auto}
 .hero .lg.ph{display:grid;place-items:center;color:var(--gold)}.hero .lg.ph svg{width:30px;height:30px}
 .hero h1{font-size:28px}
 .chips{display:flex;gap:6px;flex-wrap:wrap}.chip{display:inline-flex;align-items:center;gap:5px;font:800 12.5px Nunito;color:var(--sub);background:var(--field);border:1px solid var(--line);border-radius:999px;padding:5px 10px}.chip b{color:var(--ink)}
+.hint{color:var(--sub);font:600 14.5px/1.45 Nunito}.hint .lnk{font-size:14.5px}.note.ph{border:1.5px dashed var(--spotline);background:transparent}.note.ph .body{color:var(--sub);font-weight:500}
 .note{background:var(--spotclue);border-radius:16px;padding:12px 14px;display:flex;flex-direction:column;gap:6px}.note .k{font-size:11.5px}.note .body{font:600 19px/1.3 Fredoka,sans-serif;white-space:pre-wrap}.note img{width:100%;border-radius:12px;max-height:280px;object-fit:cover}
 .tabs{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;padding:2px 0}.tabs::-webkit-scrollbar{display:none}
 .tab{flex:none;border:1.5px solid var(--line);background:transparent;border-radius:999px;padding:8px 14px;font:900 13.5px Nunito;color:var(--sub);cursor:pointer;min-height:40px}.tab.on{background:var(--ink);color:var(--bg);border-color:var(--ink)}
@@ -473,7 +474,7 @@ function place(code, justLeft){
 }
 function renderPlace(s, o){   // o: { code, justLeft, demo, owner, wall } — demo passes the wall straight in, no location, no API; owner shows the panel first
   var code = o.code, demo = !!o.demo, ownerFirst = demo ? !!o.owner : !!s.is_owner, addUrl = demo ? null : '/myspot/?at=' + code + '&leave=1', state = { filter: 'all', cards: null, pos: null, w: null };
-  $(hdr() + (demo ? '<div class="demo">' + (o.owner ? 'Example · what the owner sees · sample content' : 'Example wall · sample content, not a real business') + '</div>' : '') +
+  $(hdr() + (demo ? '<div class="demo">' + (o.owner ? 'Example · what the owner sees' : 'Example · what guests see') + ' · sample content</div>' : '') +
     '<div class="hero"><div class="top2">' + (s.logo_url ? '<img class="lg" src="' + esc(s.logo_url) + '" alt="">' : '<div class="lg ph">' + I.shop + '</div>') + '<div style="flex:1;min-width:0"><div class="k">Memory wall</div><h1>' + esc(s.place_name || 'This spot') + '</h1></div></div>' +
       '<div class="chips"><span class="chip">' + I.note + ' <b id="nmem">…</b> memories</span><span class="chip">' + I.compass + ' <b id="nvis">' + (s.finds || 0) + '</b> visits</span>' + (s.created_at ? '<span class="chip">since ' + esc(fmt(s.created_at)) + '</span>' : '') + '</div>' +
       '<div id="note"></div>' +
@@ -504,7 +505,7 @@ function renderPlace(s, o){   // o: { code, justLeft, demo, owner, wall } — de
     root.querySelectorAll('[data-opin],[data-ohide]').forEach(function(b){ b.onclick = function(ev){ ev.stopPropagation(); var pin = 'opin' in b.dataset, c = byCode(pin ? b.dataset.opin : b.dataset.ohide); if (c) ownerAct(c, pin); }; });
     root.querySelectorAll('.mc[data-open]').forEach(function(el){ el.onclick = function(){ var idx = -1; flat.forEach(function(x, i){ if (x.code === el.dataset.open) idx = i; }); if (idx >= 0) lightbox(flat, idx, send(flat[idx])); }; }); }
   function draw(){ document.getElementById('wall').innerHTML = wallHtml(visible(), state.filter, addUrl, ownerFirst); document.getElementById('nmem').textContent = state.cards.filter(function(c){ return !c.hidden; }).length; wire(); }
-  function paintNote(){ var w = state.w; document.getElementById('note').innerHTML = w.place.note || w.place.photo_url ? '<div class="note"><div class="k">A note from ' + esc(w.place.name || s.place_name) + '</div>' + (w.place.photo_url ? '<img src="' + esc(w.place.photo_url) + '" alt="">' : '') + '<div class="body">' + esc(w.place.note || '') + '</div></div>' : ''; }
+  function paintNote(){ var w = state.w; document.getElementById('note').innerHTML = w.place.note || w.place.photo_url ? '<div class="note"><div class="k">A note from ' + esc(w.place.name || s.place_name) + '</div>' + (w.place.photo_url ? '<img src="' + esc(w.place.photo_url) + '" alt="">' : '') + '<div class="body">' + esc(w.place.note || '') + '</div></div>' : demo && o.owner ? '<div class="note ph"><div class="k">A note from ' + esc(w.place.name) + '</div><div class="body">Your welcome note goes here. Example: Welcome to ' + esc(w.place.name) + '. Leave a memory for the next bowler.</div></div>' : ''; }
   function showWall(w){ state.w = w; state.cards = w.cards; if (typeof w.place.opens === 'number') document.getElementById('nvis').textContent = w.place.opens;
     var g = document.getElementById('gate'); if (g) g.remove();
     paintNote(); draw();
@@ -541,25 +542,25 @@ function ownerPanel(code){
     el.querySelectorAll('[data-pin]').forEach(function(b){ b.onclick = function(){ var pin = b.dataset.now !== '1'; api({ action: 'owner_pin', code: code, memory: b.dataset.pin, pinned: pin }).then(function(){ toast(pin ? 'Pinned to the top.' : 'Unpinned.'); ownerPanel(code); }).catch(function(e){ toast(e.message); }); }; });
   }).catch(function(e){ var el = document.getElementById('owner'); if (el) el.innerHTML = '<div class="err">' + esc(e.message) + '</div>'; });
 }
-function demoOwnerPanel(state, ownerAct, redraw){   // the owner's dashboard with sample numbers; Pin, Hide and the note really change the wall below, nothing is saved
+function demoOwnerPanel(state, ownerAct, redraw){   // the owner's panel with sample numbers; grey text shows what goes where; Pin, Hide and the note change the wall below, nothing is saved
   var el = document.getElementById('owner'); if (!el) return;
   function byCode(k){ return state.cards.filter(function(c){ return c.code === k; })[0]; }
   state.panel = paint;
   function paint(){ var w = state.w;
-    el.innerHTML = '<div class="k">Owner panel · ' + esc(w.place.name) + '</div><div class="muted" style="font-size:12.5px">Your dashboard. It opens on the same link as the wall, after you claim the shop and we verify it by phone. Pin and Hide work here and on every card below; nothing you do on this example is saved.</div>' + ownerStats({ opens_7d: 31, opens_total: 112, unique: 86, repeat: 14 }) +
-      '<div class="row"><button class="btn sm" id="ologo">' + I.camera + ' Shop picture</button><span class="muted">Logo or storefront; shows on the map and at the top of the wall.</span></div>' +
-      '<label class="l" for="onote">Your welcome note (opens only inside)</label><textarea id="onote" class="in" maxlength="600">' + esc(w.place.note || '') + '</textarea><button class="btn sm" id="osave">Save note</button>' +
-      '<div class="muted" style="font-size:12.5px">Every post passed an automatic safety check before it appeared. Pin and Hide sit on every card of your wall; the list below manages them from anywhere, even away from the shop.</div><details class="olist-wrap"><summary class="k">Manage all posts · ' + state.cards.length + '</summary><div class="olist">' + ownerRows(state.cards.map(function(c){ return { code: c.code, body: c.body, has_photo: !!c.photo_url, by: c.maker_name, created_at: c.created_at, hearts: c.hearts, pinned: !!c.pinned, hidden: !!c.hidden }; })) + '</div></details>' +
-      '<div class="k" style="margin-top:6px">Every Monday</div><div class="muted" style="font-size:12.5px">A short email: who opened the wall this week, memories and photos left, hearts given, the memories of the week, totals since the start. <a class="lnk" href="/thatspot/demo/report.html" target="_blank" rel="noopener" style="min-height:0;padding:0">See a sample report →</a></div>' +
-      '<div class="muted" style="font-size:12.5px">Coming later: edit the whole wall page yourself.</div>';
+    el.innerHTML = '<div class="k">Owner panel · ' + esc(w.place.name) + '</div><div class="hint">Your panel, on the same link as the wall. Try the buttons. Nothing here is saved.</div>' + ownerStats({ opens_7d: 31, opens_total: 112, unique: 86, repeat: 14 }) +
+      '<div class="row"><button class="btn sm" id="ologo">' + I.camera + ' Shop picture</button><span class="hint">Your logo or storefront photo goes here.</span></div>' +
+      '<label class="l" for="onote">Welcome note</label><textarea id="onote" class="in" maxlength="600" placeholder="What guests read when they arrive. Example: Welcome to ' + esc(w.place.name) + '. Leave a memory for the next bowler.">' + esc(w.place.note || '') + '</textarea><button class="btn sm" id="osave">Save note</button>' +
+      '<div class="hint">Pin keeps a post on top. Hide takes it off the wall.</div><details class="olist-wrap"><summary class="k">Manage all posts · ' + state.cards.length + '</summary><div class="olist">' + ownerRows(state.cards.map(function(c){ return { code: c.code, body: c.body, has_photo: !!c.photo_url, by: c.maker_name, created_at: c.created_at, hearts: c.hearts, pinned: !!c.pinned, hidden: !!c.hidden }; })) + '</div></details>' +
+      '<div class="hint">Weekly report by email, every Monday. <a class="lnk" href="/thatspot/demo/report.html" target="_blank" rel="noopener" style="min-height:0;padding:0">See a sample →</a></div>' +
+      '<div class="hint">Coming later: edit the whole wall page yourself.</div>';
     document.getElementById('ologo').onclick = function(){ toast('On your real panel this uploads your logo or a storefront photo.'); };
-    document.getElementById('osave').onclick = function(){ w.place.note = document.getElementById('onote').value.trim(); toast('Saved. Guests see the new note the next time they open the wall.'); redraw(); };
+    document.getElementById('osave').onclick = function(){ w.place.note = document.getElementById('onote').value.trim(); toast('Saved. Guests see it the next time they open the wall.'); redraw(); };
     el.querySelectorAll('[data-pin]').forEach(function(b){ b.onclick = function(){ ownerAct(byCode(b.dataset.pin), true); }; });
     el.querySelectorAll('[data-hide]').forEach(function(b){ b.onclick = function(){ ownerAct(byCode(b.dataset.hide), false); }; });
   }
   paint();
 }
-function demo(owner){   // the example wall: a made-up alley, no location needed; owner=true shows the shop's dashboard first
+function demo(owner){   // the example wall for PoCo Bowl, sample content, no location needed; owner=true shows the shop's panel first
   // The memories are things real people have written about their own bowling alleys (local-news comment threads, nostalgia blogs, review sites), lightly trimmed, first names changed.
   // Photos: Pexels (Pavel Danilyuk, shvetsa, cottonbro, Boys in Bristol) and Unsplash (Karla Rivera), both free licences.
   var now = Date.now(), d = function(days, h){ return new Date(now - days * 864e5 - (h || 0) * 3600e3).toISOString(); }, P = '/thatspot/demo/';
@@ -567,18 +568,18 @@ function demo(owner){   // the example wall: a made-up alley, no location needed
     { code: 'd1', body: 'My son bowled his first 300 game here tonight. I have watched him bowl since he was six.', photo_url: P + 'pins.jpg', maker_name: 'Denise', created_at: d(2, 3), hearts: 23, pinned: true },
     { code: 'd2', body: 'Over 20 years coming here. My whole family and most of my friends have ended up on these lanes at some point.', photo_url: P + 'friends.jpg', maker_name: 'Marcus', created_at: d(5, 1), hearts: 11 },
     { code: 'd3', body: 'On Friday nights my grandmother would send an envelope home with my dad, with the money to pay for my bowling.', photo_url: null, maker_name: 'Matt', created_at: d(7, 4), hearts: 14 },
-    { code: 'd4', body: 'I was in a father-and-son league here in the ’60s with my late father.', photo_url: null, maker_name: 'Paul', created_at: d(9), hearts: 19 },
+    { code: 'd4', body: 'Bowling was our family’s thing as far back as I can remember. Dad started bringing me when I was two.', photo_url: null, maker_name: 'Paul', created_at: d(9), hearts: 19 },
     { code: 'd5', body: 'Established myself as a mediocre bowler in middle school, rarely over 140. Still rarely over 140.', photo_url: P + 'shoes.jpg', maker_name: 'Kate', created_at: d(12, 2), hearts: 7 },
     { code: 'd6', body: 'Brings me back to my childhood: running around while my dad bowled and handed me quarters.', photo_url: null, maker_name: 'Rachel', created_at: d(16), hearts: 9 },
     { code: 'd7', body: 'Later on we’d come for fries at night and not even bowl.', photo_url: P + 'night.jpg', maker_name: 'Jess', created_at: d(19, 5), hearts: 8 },
-    { code: 'd8', body: 'In 1968 my friend Earl and I won the doubles championship for our age group. We were 12.', photo_url: null, maker_name: 'Mike', created_at: d(24), hearts: 16 },
+    { code: 'd8', body: 'My first job was here, behind the shoe counter. Friday nights were chaos and I loved every one.', photo_url: null, maker_name: 'Mike', created_at: d(24), hearts: 16 },
     { code: 'd9', body: 'The man behind the counter told me she had been here over 40 years. Once a week, more than half her life.', photo_url: null, maker_name: 'Dan', created_at: d(31), hearts: 12 },
-    { code: 'd10', body: 'One of my favourite memories of all time: my eighth birthday party here, early ’80s.', photo_url: P + 'lanes.jpg', maker_name: 'Neal', created_at: d(37, 3), hearts: 10 },
+    { code: 'd10', body: 'One of my favourite memories of all time: my eighth birthday party here.', photo_url: P + 'lanes.jpg', maker_name: 'Neal', created_at: d(37, 3), hearts: 10 },
     { code: 'd11', body: 'I used to take my kids here once or twice a week. Now they bring theirs.', photo_url: null, maker_name: 'Linda', created_at: d(45), hearts: 13 },
     { code: 'd12', body: 'Mom’s record game was a 266. They gave her a brooch with a bowling pin on it and she wore it to church.', photo_url: null, maker_name: 'Sue', created_at: d(52), hearts: 6 }
   ];
-  var s = { kind: 'place', place_name: 'Riverside Lanes', finds: 112, created_at: d(60), lat: 49.2827, lng: -123.1207, logo_url: null };
-  renderPlace(s, { code: 'demo', demo: true, owner: !!owner, wall: { place: { name: 'Riverside Lanes', note: 'Family-run since 1954. Leave a memory for the next bowler: a score, a night, a face you miss. It stays on our wall for good.', photo_url: null, opens: 112 }, cards: cards,
+  var s = { kind: 'place', place_name: 'PoCo Bowl', finds: 112, created_at: d(60), lat: 49.2625, lng: -122.7811, logo_url: null };
+  renderPlace(s, { code: 'demo', demo: true, owner: !!owner, wall: { place: { name: 'PoCo Bowl', note: owner ? '' : 'Leave a memory for the next bowler: a score, a night, a face you miss. It stays on our wall for good.', photo_url: null, opens: 112 }, cards: cards,
     logbook: [{ note: 'First time back since 2009. Nothing has changed, thank goodness.', finder_name: 'Ana', created_at: d(3) }, { note: 'Saturday youth league. Loud. Perfect.', finder_name: 'Marcus', created_at: d(8) }, { note: 'Lane 4, three strikes, no witnesses.', finder_name: 'Kai', created_at: d(15) }] } });
 }
 
