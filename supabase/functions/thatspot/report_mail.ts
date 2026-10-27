@@ -47,7 +47,7 @@ ${r.sample ? `<div style="background:#1d2433;color:#ffcd5e;border-radius:12px;pa
     <tr><td style="padding:6px 0;border-bottom:1px solid #efe6cf">Different visitors</td><td style="padding:6px 0;border-bottom:1px solid #efe6cf;text-align:right;font-weight:800">${r.unique_total}</td></tr>
     <tr><td style="padding:6px 0">Came back more than once</td><td style="padding:6px 0;text-align:right;font-weight:800">${r.repeat_total}</td></tr></table>
   <p style="margin:20px 0 4px"><a href="${esc(r.wall_url)}" style="display:inline-block;background:#f5b83d;color:#1a1304;font:800 15px system-ui,sans-serif;padding:13px 20px;border-radius:999px;text-decoration:none">Open your wall &amp; owner panel</a></p>
-  <p style="font:500 13px/1.5 system-ui,sans-serif;color:#6b7387;margin:10px 0 0">Visitors are counted, never identified: we don't store where anyone stood, and nobody can pay to be seen on the map.</p>
+  <p style="font:500 13px/1.5 system-ui,sans-serif;color:#6b7387;margin:10px 0 0">Visitors are counted, never identified: we don't store where anyone stood, and there are no ads on the map.</p>
 </div>
 <p style="font:500 12px/1.5 system-ui,sans-serif;color:#6b7387;text-align:center;margin:16px 0 0">You get this every Monday because your shop is on the memory wall at voterpup.com/myspot.<br><a href="${esc(r.unsub_url)}" style="color:#6b7387">Unsubscribe</a> · <a href="${esc(r.privacy_url)}" style="color:#6b7387">Privacy</a> · hi@voterpup.com</p>
 </div></body></html>`;
